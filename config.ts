@@ -4,7 +4,6 @@ import { exists } from "@std/fs/exists";
 type Config = {
   root: string;
   port?: number;
-  env?: Record<string, string>;
 };
 
 const homeDir = Deno.env.get("HOME") || Deno.env.get("USERPROFILE")!;

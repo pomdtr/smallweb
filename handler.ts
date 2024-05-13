@@ -56,7 +56,7 @@ export function createHandler(params: {
     fetch: async (request: Request) => {
       const serializedRequest = await serializeRequest(request);
       const worker = new DenoWorker(
-        new URL("file://" + path.join(import.meta.dirname!, "sandbox.tsx")),
+        new URL("file://" + path.join(import.meta.dirname!, "sandbox.ts")),
         {
           reload: false,
           spawnOptions: {

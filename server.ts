@@ -1,40 +1,52 @@
 #!/usr/bin/env -S deno run -A
 
 import { createHandler } from "./handler.ts";
-import { existsSync } from "jsr:@std/fs/exists";
-import * as path from "jsr:@std/path";
-import { serveDir } from "./file-server.ts";
 import { config } from "./config.ts";
-import * as dotenv from "jsr:@std/dotenv";
+import { existsSync } from "@std/fs/exists";
+import * as path from "@std/path";
+import { serveDir } from "@std/http/file-server";
+import * as dotenv from "@std/dotenv";
 
 const extensions = [".tsx", ".ts", ".jsx", ".js"];
-function inferEntrypoint(name: string): {
-  entrypoint: string;
-  env: Record<string, string>;
-} | null {
+function inferEntrypoint(name: string) {
   for (const ext of extensions) {
     const entrypoint = path.join(config.root, name + ext);
     if (existsSync(entrypoint)) {
-      return { entrypoint, env: config.env || {} };
+      return entrypoint;
     }
   }
 
   for (const ext of extensions) {
     const entrypoint = path.join(config.root, name, "mod" + ext);
     if (existsSync(entrypoint)) {
-      const envPath = path.join(config.root, name, ".env");
-      return {
-        entrypoint,
-        env: { ...config.env, ...dotenv.loadSync({ envPath }) },
-      };
+      return entrypoint;
     }
   }
 
-  if (existsSync(path.join(config.root, name, "index.html"))) {
-    return { entrypoint: path.join(config.root, name, "index.html"), env: {} };
+  const index = path.join(config.root, name, "index.html");
+  if (index) {
+    return index;
   }
 
   return null;
+}
+
+function loadEnv(root: string, entrypoint: string) {
+  if (entrypoint.endsWith(".html")) {
+    return {};
+  }
+
+  let rootEnv = {};
+  const rootEnvPath = path.join(root, ".env");
+  if (existsSync(rootEnvPath)) {
+    rootEnv = dotenv.loadSync({ envPath: rootEnvPath });
+  }
+
+  const envPath = path.join(path.dirname(entrypoint), ".env");
+  if (rootEnvPath == envPath) {
+    return rootEnv;
+  }
+  return { ...rootEnv, ...dotenv.loadSync({ envPath }) };
 }
 
 Deno.serve(
@@ -59,13 +71,14 @@ Deno.serve(
       });
     }
 
-    const res = inferEntrypoint(val);
-    if (!res) {
+    const entrypoint = inferEntrypoint(val);
+    if (!entrypoint) {
       return new Response("Not Found", {
         status: 404,
       });
     }
-    const { entrypoint, env } = res;
+
+    const env = loadEnv(config.root, entrypoint);
 
     if (!entrypoint) {
       return new Response("Not Found", {

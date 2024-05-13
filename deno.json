@@ -1,8 +1,6 @@
 {
     "imports": {
         "deno-vm": "npm:deno-vm@0.12.0",
-        "@std": "jsr:@std",
-        "esbuild": "npm:esbuild@0.21.1",
-        "esbuild-deno-loader": "jsr:@luca/esbuild-deno-loader@^0.10.3"
+        "@std": "jsr:@std"
     }
 }
