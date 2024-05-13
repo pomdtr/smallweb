@@ -63,23 +63,9 @@ interface ReturnMessage {
   value: unknown;
   timing?: Timing;
 }
-interface ExportsMessage {
-  type: "exports";
-  value: unknown;
-}
-interface ExpressResponseMessage {
-  type: "expressresponse";
-  name: string;
-  args: unknown[];
-}
-type Message = (
-  | DoneMessage
-  | ErrorMessage
-  | ReadyMessage
-  | ReturnMessage
-  | ExportsMessage
-  | ExpressResponseMessage
-) & { _send_time?: number };
+type Message = (DoneMessage | ErrorMessage | ReadyMessage | ReturnMessage) & {
+  _send_time?: number;
+};
 
 export function send(message: Message) {
   // We used to have a much smaller limit here.
@@ -94,10 +80,7 @@ export function send(message: Message) {
         },
       };
     }
-  } catch (e) {
-    if (message.type === "exports") {
-      return;
-    }
+  } catch (_) {
     message = {
       type: "error",
       value: {
@@ -127,9 +110,11 @@ function deserializeRequest(arg: SerializedRequest) {
 
 const WALL_TIME_START = Date.now();
 
-function getHandler(
-  mod: any
-): { ok: true; value: any } | { ok: false; error: Error } {
+function getHandler(mod: {
+  default?: any;
+}):
+  | { ok: true; value: (req: Request) => Response | Promise<Response> }
+  | { ok: false; error: Error } {
   if (!("default" in mod)) {
     return {
       ok: false,
@@ -169,17 +154,12 @@ self.addEventListener("message", async (msg: any) => {
         });
       };
 
-      if (Array.isArray(msg.data.args)) {
-        const exp = getHandler(mod);
-        if (!exp.ok) {
-          throw exp.error;
-        }
-        let value = await exp.value(deserializeRequest(msg.data.args[0]));
-        if (value instanceof Response) {
-          value = await serializeResponse(value);
-        }
-        sendReturn(value);
+      const exp = getHandler(mod);
+      if (!exp.ok) {
+        throw exp.error;
       }
+      const resp = await exp.value(deserializeRequest(msg.data.req));
+      sendReturn(await serializeResponse(resp));
 
       // Communicate the result to the parent.
     } catch (e) {

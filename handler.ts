@@ -39,13 +39,13 @@ export function deserializeResponse(serialized: SerializedResponse): Response {
 
 type InputMsg = {
   entrypoint: string;
-  args: unknown[];
+  req: SerializedRequest;
   env: Record<string, string>;
 };
 
 type OutputMsg = {
   type: "ready" | "return" | "exports" | "error";
-  value: any;
+  value: unknown;
 };
 
 export function createHandler(params: {
@@ -69,8 +69,7 @@ export function createHandler(params: {
       );
 
       const resp = await new Promise<Response>((resolve, reject) => {
-        worker.onmessage = (msg: any) => {
-          const data = msg.data as OutputMsg;
+        worker.onmessage = ({ data }: { data: OutputMsg }) => {
           console.log("worker -> host", data.type);
           switch (data.type) {
             case "ready":
@@ -87,7 +86,7 @@ export function createHandler(params: {
               worker.postMessage({
                 entrypoint: params.entrypoint,
                 env: params.env,
-                args: [serializedRequest],
+                req: serializedRequest,
               } satisfies InputMsg);
               break;
             case "return": {
