@@ -7,6 +7,49 @@ import { serveDir } from "@std/http/file-server";
 import * as dotenv from "@std/dotenv";
 import { Command } from "cliffy";
 
+function loadEnv(root: string, entrypoint: string) {
+  if (entrypoint.endsWith(".html")) {
+    return {};
+  }
+
+  let rootEnv = {};
+  const rootEnvPath = path.join(root, ".env");
+  if (existsSync(rootEnvPath)) {
+    rootEnv = dotenv.loadSync({ envPath: rootEnvPath });
+  }
+
+  const envPath = path.join(path.dirname(entrypoint), ".env");
+  if (rootEnvPath == envPath) {
+    return rootEnv;
+  }
+  return { ...rootEnv, ...dotenv.loadSync({ envPath }) };
+}
+
+const extensions = [".tsx", ".ts", ".jsx", ".js"];
+function inferEntrypoint(root: string, name: string) {
+  for (const ext of extensions) {
+    const entrypoint = path.join(root, name + ext);
+    if (existsSync(entrypoint)) {
+      return entrypoint;
+    }
+  }
+
+  for (const ext of extensions) {
+    const entrypoint = path.join(root, name, "mod" + ext);
+
+    if (existsSync(entrypoint)) {
+      return entrypoint;
+    }
+  }
+
+  const index = path.join(root, name, "index.html");
+  if (index) {
+    return index;
+  }
+
+  return null;
+}
+
 new Command()
   .name("smallweb")
   .version("0.0.1")
@@ -15,49 +58,6 @@ new Command()
   .action((options, rootDir) => {
     if (!rootDir) {
       rootDir = Deno.cwd();
-    }
-
-    const extensions = [".tsx", ".ts", ".jsx", ".js"];
-    function inferEntrypoint(root: string, name: string) {
-      for (const ext of extensions) {
-        const entrypoint = path.join(name + ext);
-        if (existsSync(entrypoint)) {
-          return entrypoint;
-        }
-      }
-
-      for (const ext of extensions) {
-        const entrypoint = path.join(root, name, "mod" + ext);
-
-        if (existsSync(entrypoint)) {
-          return entrypoint;
-        }
-      }
-
-      const index = path.join(root, name, "index.html");
-      if (index) {
-        return index;
-      }
-
-      return null;
-    }
-
-    function loadEnv(root: string, entrypoint: string) {
-      if (entrypoint.endsWith(".html")) {
-        return {};
-      }
-
-      let rootEnv = {};
-      const rootEnvPath = path.join(root, ".env");
-      if (existsSync(rootEnvPath)) {
-        rootEnv = dotenv.loadSync({ envPath: rootEnvPath });
-      }
-
-      const envPath = path.join(path.dirname(entrypoint), ".env");
-      if (rootEnvPath == envPath) {
-        return rootEnv;
-      }
-      return { ...rootEnv, ...dotenv.loadSync({ envPath }) };
     }
 
     Deno.serve(
@@ -84,19 +84,12 @@ new Command()
 
         const entrypoint = inferEntrypoint(rootDir, val);
         if (!entrypoint) {
-          return new Response("Not Found", {
+          return new Response("Could not find entrypoint", {
             status: 404,
           });
         }
 
         const env = loadEnv(rootDir, entrypoint);
-
-        if (!entrypoint) {
-          return new Response("Not Found", {
-            status: 404,
-          });
-        }
-
         if (path.basename(entrypoint) == "index.html") {
           return serveDir(req, {
             fsRoot: path.dirname(entrypoint),
