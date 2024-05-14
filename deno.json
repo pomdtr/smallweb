@@ -1,6 +1,7 @@
 {
     "imports": {
         "deno-vm": "npm:deno-vm@0.12.0",
-        "@std": "jsr:@std"
+        "@std": "jsr:@std",
+        "cliffy": "jsr:@cliffy/command@1.0.0-rc.4"
     }
 }
