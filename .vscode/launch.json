@@ -14,7 +14,7 @@
             "args": [
                 "${userHome}/www/"
             ],
-            "runtimeExecutable": "/opt/homebrew/bin/deno",
+            "runtimeExecutable": "${userHome}/.deno/bin/deno",
             "runtimeArgs": [
                 "run",
                 "--inspect-wait",

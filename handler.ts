@@ -62,6 +62,9 @@ export function createHandler(params: {
           spawnOptions: {
             cwd: path.dirname(params.entrypoint),
           },
+          denoExecutable: Deno.execPath(),
+          logStdout: false,
+          logStderr: false,
           permissions: {
             allowAll: true,
           },
@@ -73,16 +76,6 @@ export function createHandler(params: {
           console.log("worker -> host", data.type);
           switch (data.type) {
             case "ready":
-              worker.stdout.setEncoding("utf-8");
-              worker.stdout.on("data", (data: unknown) => {
-                console.log("stdout", data);
-              });
-
-              worker.stderr.setEncoding("utf-8");
-              worker.stderr.on("data", (data: unknown) => {
-                console.error("stderr", data);
-              });
-
               worker.postMessage({
                 entrypoint: params.entrypoint,
                 env: params.env,
