@@ -1,6 +1,7 @@
 import { encodeBase64, decodeBase64 } from "@std/encoding/base64";
 import { DenoWorker } from "deno-vm";
 import * as path from "@std/path";
+import { exists } from "jsr:@std/fs@0.224.0/exists";
 
 export type SerializedRequest = {
   url: string;
@@ -48,6 +49,20 @@ type OutputMsg = {
   value: unknown;
 };
 
+async function sandboxURL() {
+  const sandboxUrl = new URL("file:///tmp/sandbox.ts");
+  if (await exists(sandboxUrl)) {
+    return sandboxUrl;
+  }
+
+  const resp = await fetch(new URL("sandbox.ts", import.meta.url));
+  await Deno.writeTextFile(sandboxUrl, await resp.text(), {
+    create: true,
+  });
+
+  return sandboxUrl;
+}
+
 export function createHandler(params: {
   entrypoint: string;
   env: Record<string, string>;
@@ -55,7 +70,7 @@ export function createHandler(params: {
   return {
     fetch: async (request: Request) => {
       const serializedRequest = await serializeRequest(request);
-      const worker = new DenoWorker(new URL("sandbox.ts", import.meta.url), {
+      const worker = new DenoWorker(await sandboxURL(), {
         reload: false,
         spawnOptions: {
           cwd: path.dirname(params.entrypoint),
