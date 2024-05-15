@@ -55,21 +55,18 @@ export function createHandler(params: {
   return {
     fetch: async (request: Request) => {
       const serializedRequest = await serializeRequest(request);
-      const worker = new DenoWorker(
-        new URL("file://" + path.join(import.meta.dirname!, "sandbox.ts")),
-        {
-          reload: false,
-          spawnOptions: {
-            cwd: path.dirname(params.entrypoint),
-          },
-          denoExecutable: Deno.execPath(),
-          logStdout: false,
-          logStderr: false,
-          permissions: {
-            allowAll: true,
-          },
-        }
-      );
+      const worker = new DenoWorker(new URL("sandbox.ts", import.meta.url), {
+        reload: false,
+        spawnOptions: {
+          cwd: path.dirname(params.entrypoint),
+        },
+        denoExecutable: Deno.execPath(),
+        logStdout: false,
+        logStderr: false,
+        permissions: {
+          allowAll: true,
+        },
+      });
 
       const resp = await new Promise<Response>((resolve, reject) => {
         worker.onmessage = ({ data }: { data: OutputMsg }) => {
