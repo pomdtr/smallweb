@@ -61,8 +61,8 @@ export function createHandler(params: {
           cwd: path.dirname(params.entrypoint),
         },
         denoExecutable: Deno.execPath(),
-        logStdout: false,
-        logStderr: false,
+        logStdout: true,
+        logStderr: true,
         permissions: {
           allowAll: true,
         },
