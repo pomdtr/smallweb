@@ -44,6 +44,14 @@ async function inferEntrypoint(root: string, name: string) {
     }
   }
 
+  for (const ext of extensions) {
+    const entrypoint = path.join(root, name, name + ext);
+
+    if (await exists(entrypoint)) {
+      return entrypoint;
+    }
+  }
+
   const index = path.join(root, name, "index.html");
   if (await exists(index)) {
     return index;
