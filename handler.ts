@@ -49,28 +49,17 @@ type OutputMsg = {
   value: unknown;
 };
 
-async function sandboxURL() {
-  const sandboxUrl = new URL("file:///tmp/sandbox.ts");
-  if (await exists(sandboxUrl)) {
-    return sandboxUrl;
+export function createHandler(
+  sandboxURL: URL,
+  params: {
+    entrypoint: string;
+    env: Record<string, string>;
   }
-
-  const resp = await fetch(new URL("sandbox.ts", import.meta.url));
-  await Deno.writeTextFile(sandboxUrl, await resp.text(), {
-    create: true,
-  });
-
-  return sandboxUrl;
-}
-
-export function createHandler(params: {
-  entrypoint: string;
-  env: Record<string, string>;
-}) {
+) {
   return {
     fetch: async (request: Request) => {
       const serializedRequest = await serializeRequest(request);
-      const worker = new DenoWorker(await sandboxURL(), {
+      const worker = new DenoWorker(sandboxURL, {
         reload: false,
         spawnOptions: {
           cwd: path.dirname(params.entrypoint),

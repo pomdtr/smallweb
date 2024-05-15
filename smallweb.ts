@@ -1,20 +1,20 @@
 #!/usr/bin/env -S deno run -A
 
 import { createHandler } from "./handler.ts";
-import { existsSync } from "@std/fs/exists";
+import { exists } from "@std/fs/exists";
 import * as path from "@std/path";
 import { serveDir } from "@std/http/file-server";
 import * as dotenv from "@std/dotenv";
 import { Command } from "cliffy";
 
-function loadEnv(root: string, entrypoint: string) {
+async function loadEnv(root: string, entrypoint: string) {
   if (entrypoint.endsWith(".html")) {
     return {};
   }
 
   let rootEnv = {};
   const rootEnvPath = path.join(root, ".env");
-  if (existsSync(rootEnvPath)) {
+  if (await exists(rootEnvPath)) {
     rootEnv = dotenv.loadSync({ envPath: rootEnvPath });
   }
 
@@ -22,14 +22,16 @@ function loadEnv(root: string, entrypoint: string) {
   if (rootEnvPath == envPath) {
     return rootEnv;
   }
-  return { ...rootEnv, ...dotenv.loadSync({ envPath }) };
+
+  const env = await dotenv.load({ envPath });
+  return { ...rootEnv, ...env };
 }
 
 const extensions = [".tsx", ".ts", ".jsx", ".js"];
-function inferEntrypoint(root: string, name: string) {
+async function inferEntrypoint(root: string, name: string) {
   for (const ext of extensions) {
     const entrypoint = path.join(root, name + ext);
-    if (existsSync(entrypoint)) {
+    if (await exists(entrypoint)) {
       return entrypoint;
     }
   }
@@ -37,29 +39,46 @@ function inferEntrypoint(root: string, name: string) {
   for (const ext of extensions) {
     const entrypoint = path.join(root, name, "mod" + ext);
 
-    if (existsSync(entrypoint)) {
+    if (await exists(entrypoint)) {
       return entrypoint;
     }
   }
 
   const index = path.join(root, name, "index.html");
-  if (index) {
+  if (await exists(index)) {
     return index;
   }
 
   return null;
 }
 
+// if the script is running in a remote context,
+// we need to fetch the sandbox in order to import local modules from it
+async function getSandboxURL() {
+  const remoteURL = new URL("sandbox.ts", import.meta.url);
+  if (remoteURL.protocol == "file:") {
+    return remoteURL;
+  }
+
+  const tempDir = await Deno.makeTempDir();
+  const localURL = new URL(`file://${tempDir}/sandbox.ts`);
+  const resp = await fetch(new URL("sandbox.ts", import.meta.url));
+  await Deno.writeTextFile(localURL, await resp.text(), {
+    create: true,
+  });
+
+  return localURL;
+}
+
 new Command()
   .name("smallweb")
-  .version("0.0.1")
   .arguments("[rootDir]")
   .option("-p, --port <port:number>", "Port to listen on")
-  .action((options, rootDir) => {
+  .action(async (options, rootDir) => {
     if (!rootDir) {
       rootDir = Deno.cwd();
     }
-
+    const sandboxUrl = await getSandboxURL();
     Deno.serve(
       {
         port: options.port,
@@ -82,21 +101,21 @@ new Command()
           });
         }
 
-        const entrypoint = inferEntrypoint(rootDir, val);
+        const entrypoint = await inferEntrypoint(rootDir, val);
         if (!entrypoint) {
           return new Response("Could not find entrypoint", {
             status: 404,
           });
         }
 
-        const env = loadEnv(rootDir, entrypoint);
+        const env = await loadEnv(rootDir, entrypoint);
         if (path.basename(entrypoint) == "index.html") {
           return serveDir(req, {
             fsRoot: path.dirname(entrypoint),
           });
         }
 
-        const handler = createHandler({
+        const handler = createHandler(sandboxUrl, {
           entrypoint,
           env,
         });
