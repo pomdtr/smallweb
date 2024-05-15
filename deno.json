@@ -1,4 +1,7 @@
 {
+    "name": "@pomdtr/smallweb",
+    "version": "0.1",
+    "exports": "./smallweb.ts",
     "imports": {
         "deno-vm": "npm:deno-vm@0.12.0",
         "@std": "jsr:@std",
