@@ -37,7 +37,7 @@ async function inferEntrypoint(root: string, name: string) {
   }
 
   for (const ext of extensions) {
-    const entrypoint = path.join(root, name, "mod" + ext);
+    const entrypoint = path.join(root, name, name + ext);
 
     if (await exists(entrypoint)) {
       return entrypoint;
@@ -45,7 +45,7 @@ async function inferEntrypoint(root: string, name: string) {
   }
 
   for (const ext of extensions) {
-    const entrypoint = path.join(root, name, name + ext);
+    const entrypoint = path.join(root, name, "mod" + ext);
 
     if (await exists(entrypoint)) {
       return entrypoint;
