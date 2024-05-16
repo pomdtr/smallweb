@@ -25,15 +25,9 @@ var sandboxPath = path.Join(dataHome, "sandbox.ts")
 //go:embed embed/sandbox.ts
 var sandboxBytes []byte
 
-func exists(path string) (bool, error) {
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func denoExecutable() (string, error) {
@@ -49,35 +43,27 @@ var extensions = []string{".js", ".ts", ".jsx", ".tsx"}
 func inferEntrypoint(rootDir, alias string) (string, error) {
 	for _, ext := range extensions {
 		entrypoint := path.Join(rootDir, alias+ext)
-		if exists, err := exists(entrypoint); err != nil {
-			return "", err
-		} else if exists {
+		if exists(entrypoint) {
 			return entrypoint, nil
 		}
 	}
 
 	for _, ext := range extensions {
 		entrypoint := path.Join(rootDir, alias, "mod"+ext)
-		if exists, err := exists(entrypoint); err != nil {
-			return "", err
-		} else if exists {
+		if exists(entrypoint) {
 			return entrypoint, nil
 		}
 	}
 
 	for _, ext := range extensions {
 		entrypoint := path.Join(rootDir, alias, alias+ext)
-		if exists, err := exists(entrypoint); err != nil {
-			return "", err
-		} else if exists {
+		if exists(entrypoint) {
 			return entrypoint, nil
 		}
 	}
 
 	entrypoint := path.Join(rootDir, alias, "index.html")
-	if exists, err := exists(entrypoint); err != nil {
-		return "", err
-	} else if exists {
+	if exists(entrypoint) {
 		return entrypoint, nil
 	}
 
@@ -89,26 +75,27 @@ func loadEnv(root string, entrypoint string) (map[string]string, error) {
 		return make(map[string]string), nil
 	}
 
-	rootEnv := make(map[string]string)
+	env := make(map[string]string)
 	rootEnvPath := filepath.Join(root, ".env")
-	if _, err := os.Stat(rootEnvPath); err == nil {
-		rootEnv, err = godotenv.Read(rootEnvPath)
+	if exists(rootEnvPath) {
+		rootEnv, err := godotenv.Read(rootEnvPath)
 		if err != nil {
 			return nil, err
 		}
+		env = rootEnv
 	}
 
 	envPath := filepath.Join(filepath.Dir(entrypoint), ".env")
-	if rootEnvPath == envPath {
-		return rootEnv, nil
+	if !exists(envPath) || envPath == rootEnvPath {
+		return env, nil
 	}
 
-	env, err := godotenv.Read(envPath)
+	dirEnv, err := godotenv.Read(envPath)
 	if err != nil {
 		return nil, err
 	}
 
-	for k, v := range rootEnv {
+	for k, v := range dirEnv {
 		env[k] = v
 	}
 
@@ -201,9 +188,7 @@ func NewServeCmd() *cobra.Command {
 			}
 
 			rootDir := args[0]
-			if exists, err := exists(rootDir); err != nil {
-				return err
-			} else if !exists {
+			if !exists(rootDir) {
 				return fmt.Errorf("directory %s does not exist", rootDir)
 			}
 
@@ -248,6 +233,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	entrypoint, err := inferEntrypoint(h.rootDir, subdomain)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if path.Base(entrypoint) == "index.html" {
+		server := http.FileServer(http.Dir(path.Dir(entrypoint)))
+		server.ServeHTTP(w, r)
 		return
 	}
 

@@ -99,4 +99,5 @@ try {
   Deno.writeTextFileSync(output, JSON.stringify(serialized));
 } catch (e) {
   console.error(e);
+  Deno.exit(1);
 }
