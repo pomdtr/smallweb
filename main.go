@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	_ "embed"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -113,21 +112,7 @@ type SerializedRequest struct {
 	Url     string     `json:"url"`
 	Method  string     `json:"method"`
 	Headers [][]string `json:"headers"`
-	Body    string     `json:"body,omitempty"`
-}
-
-func serializeRequestBody(body io.Reader) (string, error) {
-	b, err := io.ReadAll(body)
-	if err != nil {
-		return "", err
-	}
-
-	res := strings.Builder{}
-	if _, err := base64.NewEncoder(base64.StdEncoding, &res).Write(b); err != nil {
-		return "", err
-	}
-
-	return res.String(), nil
+	Body    []byte     `json:"body"`
 }
 
 func serializeRequest(req *http.Request) (SerializedRequest, error) {
@@ -147,7 +132,7 @@ func serializeRequest(req *http.Request) (SerializedRequest, error) {
 		res.Headers = append(res.Headers, []string{k, v[0]})
 	}
 
-	body, err := serializeRequestBody(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		return res, err
 	}
@@ -159,7 +144,7 @@ func serializeRequest(req *http.Request) (SerializedRequest, error) {
 type SerializedResponse struct {
 	Status  int        `json:"status"`
 	Headers [][]string `json:"headers"`
-	Body    string     `json:"body"`
+	Body    []byte     `json:"body"`
 }
 
 func NewCmdRoot() *cobra.Command {
@@ -228,9 +213,9 @@ type CommandInput struct {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host := r.Host
-	subdomain := strings.Split(host, ".")[0]
+	alias := strings.Split(host, ".")[0]
 
-	entrypoint, err := inferEntrypoint(h.rootDir, subdomain)
+	entrypoint, err := inferEntrypoint(h.rootDir, alias)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -306,18 +291,29 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, err := io.ReadAll(base64.NewDecoder(base64.StdEncoding, strings.NewReader(res.Body)))
+	logPath := path.Join(h.rootDir, ".logs", alias+".log")
+	if err := os.MkdirAll(path.Dir(logPath), 0755); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if res.Status != 200 {
-		w.WriteHeader(res.Status)
+	if _, err := logFile.WriteString(fmt.Sprintf("%s %s %d\n", r.Method, r.URL.String(), res.Status)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
 	for _, header := range res.Headers {
 		w.Header().Set(header[0], header[1])
 	}
-	w.Write(body)
 
+	w.WriteHeader(res.Status)
+	if res.Body != nil {
+		w.Write(res.Body)
+	}
 }
