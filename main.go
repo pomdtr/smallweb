@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/joho/godotenv"
@@ -112,7 +113,7 @@ type SerializedRequest struct {
 	Url     string     `json:"url"`
 	Method  string     `json:"method"`
 	Headers [][]string `json:"headers"`
-	Body    []byte     `json:"body"`
+	Body    []byte     `json:"body,omitempty"`
 }
 
 func serializeRequest(req *http.Request) (SerializedRequest, error) {
@@ -211,6 +212,26 @@ type CommandInput struct {
 	Output     string            `json:"output"`
 }
 
+type Log struct {
+	Request    *SerializedRequest  `json:"request"`
+	Response   *SerializedResponse `json:"response,omitempty"`
+	Timestamp  string              `json:"timestamp,omitempty"`
+	Entrypoint string              `json:"entrypoint,omitempty"`
+	Duration   time.Duration       `json:"duration,omitempty"`
+	Logs       []byte              `json:"logs"`
+}
+
+func writeLog(log Log, logPath string) error {
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	encoder := json.NewEncoder(f)
+	encoder.SetEscapeHTML(false)
+	return encoder.Encode(log)
+}
+
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host := r.Host
 	alias := strings.Split(host, ".")[0]
@@ -270,11 +291,20 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cmd.Stdin = &stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	logPath := path.Join(h.rootDir, ".logs", alias+".jsonl")
 
-	if err := cmd.Run(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	timestamp := time.Now()
+	outputBytes, err := cmd.CombinedOutput()
+	duration := time.Since(timestamp)
+	if err != nil {
+		writeLog(Log{
+			Timestamp:  timestamp.Format(time.RFC3339),
+			Entrypoint: entrypoint,
+			Request:    &req,
+			Duration:   duration,
+			Logs:       outputBytes,
+		}, logPath)
+		http.Error(w, string(outputBytes), http.StatusInternalServerError)
 		return
 	}
 
@@ -291,22 +321,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logPath := path.Join(h.rootDir, ".logs", alias+".log")
-	if err := os.MkdirAll(path.Dir(logPath), 0755); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if _, err := logFile.WriteString(fmt.Sprintf("%s %s %d\n", r.Method, r.URL.String(), res.Status)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	writeLog(Log{
+		Timestamp:  timestamp.Format(time.RFC3339),
+		Entrypoint: entrypoint,
+		Duration:   duration,
+		Request:    &req,
+		Response:   &res,
+		Logs:       outputBytes,
+	}, logPath)
 
 	for _, header := range res.Headers {
 		w.Header().Set(header[0], header[1])
