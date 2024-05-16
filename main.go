@@ -21,7 +21,7 @@ import (
 var dataHome = path.Join(xdg.DataHome, "smallweb")
 var sandboxPath = path.Join(dataHome, "sandbox.ts")
 
-//go:embed embed/sandbox.ts
+//go:embed deno/sandbox.ts
 var sandboxBytes []byte
 
 func exists(path string) bool {
