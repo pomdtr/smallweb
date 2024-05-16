@@ -24,7 +24,6 @@ archives:
       - README.md
       - LICENSE-MIT
       - completions/*
-    rlcp: true
 checksum:
   name_template: "checksums.txt"
 snapshot:
