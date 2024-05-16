@@ -1,0 +1,13 @@
+{
+    "project": {
+        "name": "Smallweb"
+    },
+    "components": {
+        "mdbook": {
+            "path": "./docs"
+        }
+    },
+    "styles": {
+        "theme": "hacker"
+    }
+}

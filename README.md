@@ -1,8 +1,8 @@
+<div class="oranda-hide">
+
 # Small Web
 
-## Requirements
-
-- [deno](https://deno.com/)
+</div>
 
 ## Installation
 
