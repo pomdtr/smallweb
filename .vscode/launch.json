@@ -5,22 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Package",
+            "type": "go",
             "request": "launch",
-            "name": "Launch Program",
-            "type": "node",
-            "program": "${workspaceFolder}/smallweb.ts",
-            "cwd": "${workspaceFolder}",
-            "env": {},
+            "mode": "auto",
+            "program": "${workspaceFolder}/main.go",
             "args": [
-                "${userHome}/www/"
-            ],
-            "runtimeExecutable": "${userHome}/.deno/bin/deno",
-            "runtimeArgs": [
-                "run",
-                "--inspect-wait",
-                "--allow-all"
-            ],
-            "attachSimplePort": 9229
+                "serve",
+                "${userHome}/www"
+            ]
         }
     ]
 }

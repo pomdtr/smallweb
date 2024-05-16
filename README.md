@@ -2,10 +2,16 @@
 
 ## Requirements
 
-- Deno
+- [deno](https://deno.com/)
 
 ## Installation
 
 ```bash
-deno install -Arf jsr:@pomdtr/smallweb
+go install github.com/pomdtr/smallweb
+```
+
+## Launch the evaluation server
+
+```bash
+smallweb serve <root-dir> --port 7777
 ```
