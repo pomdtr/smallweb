@@ -1,0 +1,8 @@
+services:
+  smallweb:
+    image: pomdtrr/smallweb
+    volumes:
+      - ~/www:/www
+    command: ["serve", "/www"]
+    ports:
+      - 4321:4321
