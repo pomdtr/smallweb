@@ -281,7 +281,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := exec.Command(deno, "run", "-A", sandboxPath)
+	cmd := exec.Command(deno, "run", "-A", "--unstable-kv", sandboxPath)
 	cmd.Dir = path.Dir(entrypoint)
 	stdin := bytes.Buffer{}
 	encoder := json.NewEncoder(&stdin)
