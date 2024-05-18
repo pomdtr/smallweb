@@ -218,7 +218,6 @@ type Log struct {
 	Timestamp  string              `json:"timestamp,omitempty"`
 	Entrypoint string              `json:"entrypoint,omitempty"`
 	Duration   time.Duration       `json:"duration,omitempty"`
-	Logs       []byte              `json:"logs"`
 }
 
 func writeLog(log Log, logPath string) error {
@@ -294,17 +293,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logPath := path.Join(h.rootDir, ".logs", alias+".jsonl")
 
 	timestamp := time.Now()
-	outputBytes, err := cmd.CombinedOutput()
-	duration := time.Since(timestamp)
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		writeLog(Log{
 			Timestamp:  timestamp.Format(time.RFC3339),
 			Entrypoint: entrypoint,
 			Request:    &req,
-			Duration:   duration,
-			Logs:       outputBytes,
+			Duration:   time.Since(timestamp),
 		}, logPath)
-		http.Error(w, string(outputBytes), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -324,10 +320,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	writeLog(Log{
 		Timestamp:  timestamp.Format(time.RFC3339),
 		Entrypoint: entrypoint,
-		Duration:   duration,
+		Duration:   time.Since(timestamp),
 		Request:    &req,
 		Response:   &res,
-		Logs:       outputBytes,
 	}, logPath)
 
 	for _, header := range res.Headers {
