@@ -1,6 +1,6 @@
 module github.com/pomdtr/smallweb
 
-go 1.21.7
+go 1.22.3
 
 require (
 	github.com/adrg/xdg v0.4.0

@@ -12,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/joho/godotenv"
@@ -178,14 +177,85 @@ func NewServeCmd() *cobra.Command {
 				return fmt.Errorf("directory %s does not exist", rootDir)
 			}
 
+			mux := http.NewServeMux()
+
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				entries, err := os.ReadDir(rootDir)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				var mods []string
+				for _, entry := range entries {
+					if !entry.IsDir() {
+						continue
+					}
+
+					_, err := inferEntrypoint(rootDir, entry.Name())
+					if err != nil {
+						continue
+					}
+
+					mods = append(mods, fmt.Sprintf("https://%s.%s", entry.Name(), r.Host))
+				}
+
+				w.Header().Set("Content-Type", "text/json")
+				encoder := json.NewEncoder(w)
+				encoder.SetEscapeHTML(false)
+				if err := encoder.Encode(mods); err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+			})
+
+			mux.HandleFunc("/raw/{pathname...}", func(w http.ResponseWriter, r *http.Request) {
+				pathname := r.PathValue("pathname")
+				if len(pathname) == 0 {
+					http.Error(w, "not found", http.StatusNotFound)
+					return
+				}
+
+				path := filepath.Join(rootDir, pathname)
+				if !exists(path) {
+					http.Error(w, "not found", http.StatusNotFound)
+					return
+				}
+
+				if strings.HasSuffix(path, ".ts") {
+					w.Header().Set("Content-Type", "text/typescript")
+				} else if strings.HasSuffix(path, ".tsx") {
+					w.Header().Set("Content-Type", "text/tsx")
+				} else if strings.HasSuffix(path, ".jsx") {
+					w.Header().Set("Content-Type", "text/jsx")
+				}
+
+				http.ServeFile(w, r, path)
+			})
+
+			denoHandler := NewHandler(rootDir)
+
 			port, err := cmd.Flags().GetInt("port")
 			if err != nil {
 				return err
 			}
 
 			server := http.Server{
-				Addr:    fmt.Sprintf(":%d", port),
-				Handler: NewHandler(rootDir),
+				Addr: fmt.Sprintf(":%d", port),
+				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					host := r.Host
+					parts := strings.Split(host, ".")
+					if len(parts) == 2 {
+						mux.ServeHTTP(w, r)
+						return
+					} else if len(parts) > 2 {
+						denoHandler.ServeHTTP(w, r)
+						return
+					} else {
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+				}),
 			}
 
 			fmt.Fprintln(os.Stderr, "Listening on", server.Addr)
@@ -197,11 +267,11 @@ func NewServeCmd() *cobra.Command {
 }
 
 func NewHandler(rootDir string) http.Handler {
-	return &Handler{rootDir: rootDir}
+	return &DenoHandler{rootDir: rootDir}
 
 }
 
-type Handler struct {
+type DenoHandler struct {
 	rootDir string
 }
 
@@ -212,26 +282,7 @@ type CommandInput struct {
 	Output     string            `json:"output"`
 }
 
-type Log struct {
-	Request    *SerializedRequest  `json:"request"`
-	Response   *SerializedResponse `json:"response,omitempty"`
-	Timestamp  string              `json:"timestamp,omitempty"`
-	Entrypoint string              `json:"entrypoint,omitempty"`
-	Duration   time.Duration       `json:"duration,omitempty"`
-}
-
-func writeLog(log Log, logPath string) error {
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-
-	encoder := json.NewEncoder(f)
-	encoder.SetEscapeHTML(false)
-	return encoder.Encode(log)
-}
-
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *DenoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	host := r.Host
 	alias := strings.Split(host, ".")[0]
 
@@ -289,17 +340,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	cmd.Stdin = &stdin
-	logPath := path.Join(h.rootDir, ".logs", alias+".jsonl")
 
-	timestamp := time.Now()
+	cmd.Stdin = &stdin
 	if err := cmd.Run(); err != nil {
-		writeLog(Log{
-			Timestamp:  timestamp.Format(time.RFC3339),
-			Entrypoint: entrypoint,
-			Request:    &req,
-			Duration:   time.Since(timestamp),
-		}, logPath)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -316,14 +359,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	writeLog(Log{
-		Timestamp:  timestamp.Format(time.RFC3339),
-		Entrypoint: entrypoint,
-		Duration:   time.Since(timestamp),
-		Request:    &req,
-		Response:   &res,
-	}, logPath)
 
 	for _, header := range res.Headers {
 		w.Header().Set(header[0], header[1])
