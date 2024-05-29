@@ -35,9 +35,9 @@ export function createDenoEnvStub(
  */
 export async function serializeResponse(resp: Response) {
   return {
+    code: resp.status,
     headers: [...resp.headers.entries()],
     body: resp.body ? encodeBase64(await resp.arrayBuffer()) : null,
-    status: resp.status,
   };
 }
 
@@ -56,10 +56,13 @@ function deserializeRequest(arg: SerializedRequest) {
   });
 }
 
-function getHandler(mod: {
-  default?: any;
-}):
-  | { ok: true; value: (req: Request) => Response | Promise<Response> }
+function getHandler(mod: { default?: any }):
+  | {
+      ok: true;
+      handler: {
+        fetch: (req: Request) => Response | Promise<Response>;
+      };
+    }
   | { ok: false; error: Error } {
   if (!("default" in mod)) {
     return {
@@ -68,7 +71,7 @@ function getHandler(mod: {
     };
   }
 
-  return { ok: true, value: mod.default };
+  return { ok: true, handler: mod.default };
 }
 
 const { entrypoint, env, req, output } = (await toJson(
@@ -94,7 +97,7 @@ try {
   if (!exp.ok) {
     throw exp.error;
   }
-  const resp = await exp.value(deserializeRequest(req));
+  const resp = await exp.handler.fetch(deserializeRequest(req));
   const serialized = await serializeResponse(resp);
   Deno.writeTextFileSync(output, JSON.stringify(serialized));
 } catch (e) {

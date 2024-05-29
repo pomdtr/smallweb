@@ -106,7 +106,7 @@ func NewCmdTunnel() *cobra.Command {
 
 				res, err := Evaluate(entrypoint, &input.Data)
 				if err != nil {
-					res = &SerializedResponse{Status: 500, Body: []byte(err.Error())}
+					res = &SerializedResponse{Code: 500, Body: []byte(err.Error())}
 				}
 
 				if err := encoder.Encode(Message[*SerializedResponse]{

@@ -85,7 +85,7 @@ func NewCmdServe() *cobra.Command {
 						w.Header().Set(h[0], h[1])
 					}
 
-					w.WriteHeader(res.Status)
+					w.WriteHeader(res.Code)
 					w.Write(res.Body)
 				}),
 			}

@@ -35,7 +35,7 @@ type SetUserNameRequest struct {
 }
 
 func NewCmdProxy() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "proxy",
 		Short: "Start a smallweb proxy",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -47,8 +47,9 @@ func NewCmdProxy() *cobra.Command {
 
 			requestForwarder := NewRequestForwarder()
 
+			httpPort, _ := cmd.Flags().GetString("http-port")
 			httpServer := http.Server{
-				Addr: ":8000",
+				Addr: fmt.Sprintf(":%s", httpPort),
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					username := strings.Split(r.Host, "-")[0]
 
@@ -78,13 +79,14 @@ func NewCmdProxy() *cobra.Command {
 						w.Header().Set(header[0], header[1])
 					}
 
-					w.WriteHeader(req.Status)
+					w.WriteHeader(req.Code)
 					w.Write(req.Body)
 				}),
 			}
 
+			sshPort, _ := cmd.Flags().GetString("ssh-port")
 			sshServer := ssh.Server{
-				Addr: ":2222",
+				Addr: fmt.Sprintf(":%s", sshPort),
 				PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
 					keyText, err := keyText(key)
 					if err != nil {
@@ -153,6 +155,11 @@ func NewCmdProxy() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().Int("ssh-port", 2222, "port for the ssh server")
+	cmd.Flags().Int("http-port", 8000, "port for the http server")
+
+	return cmd
 }
 
 type RequestForwarder struct {
