@@ -1,20 +1,11 @@
 package cmd
 
 import (
-	_ "embed"
 	"os"
 	"os/exec"
-	"path"
 
-	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"
 )
-
-var dataHome = path.Join(xdg.DataHome, "smallweb")
-var sandboxPath = path.Join(dataHome, "sandbox.ts")
-
-//go:embed deno/sandbox.ts
-var sandboxBytes []byte
 
 func exists(path string) bool {
 	_, err := os.Stat(path)

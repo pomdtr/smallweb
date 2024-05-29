@@ -74,9 +74,7 @@ function getHandler(mod: { default?: any }):
   return { ok: true, handler: mod.default };
 }
 
-const { entrypoint, env, req, output } = (await toJson(
-  Deno.stdin.readable
-)) as {
+const { entrypoint, env, req } = (await toJson(Deno.stdin.readable)) as {
   entrypoint: string;
   req: SerializedRequest;
   env: Record<string, string>;
@@ -99,7 +97,7 @@ try {
   }
   const resp = await exp.handler.fetch(deserializeRequest(req));
   const serialized = await serializeResponse(resp);
-  Deno.writeTextFileSync(output, JSON.stringify(serialized));
+  console.log(JSON.stringify(serialized));
 } catch (e) {
   console.error(e);
   Deno.exit(1);

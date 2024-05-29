@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -43,15 +42,6 @@ func NewCmdServe() *cobra.Command {
 		Short: "Start a smallweb server",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := os.MkdirAll(dataHome, 0755); err != nil {
-				return err
-			}
-
-			// refresh sandbox code
-			if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
-				return err
-			}
-
 			rootDir := args[0]
 			if !exists(rootDir) {
 				return fmt.Errorf("directory %s does not exist", rootDir)
@@ -68,8 +58,7 @@ func NewCmdServe() *cobra.Command {
 						return
 					}
 
-					rootDir := path.Join(rootDir, subdomain)
-					entrypoint, err := inferEntrypoint(rootDir)
+					entrypoint, err := inferEntrypoint(rootDir, subdomain)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return

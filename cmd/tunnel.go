@@ -50,6 +50,7 @@ func NewCmdTunnel() *cobra.Command {
 		Short: "Start a smallweb tunnel",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			rootDir := args[0]
 			cc, err := NewClientWithDefaults()
 			if err != nil {
 				log.Fatalf("failed to create client: %v", err)
@@ -99,7 +100,7 @@ func NewCmdTunnel() *cobra.Command {
 				subdomain := strings.Split(url.Host, ".")[0]
 				name := strings.Split(subdomain, "-")[1]
 
-				entrypoint, err := inferEntrypoint(filepath.Join(args[0], name))
+				entrypoint, err := inferEntrypoint(rootDir, name)
 				if err != nil {
 					return fmt.Errorf("infer entrypoint failed: %v", err)
 				}

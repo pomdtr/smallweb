@@ -3,8 +3,10 @@ package cmd
 import (
 	"bufio"
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,27 +14,49 @@ import (
 	"path"
 	"strings"
 
+	"github.com/adrg/xdg"
 	"github.com/google/shlex"
 )
 
 var extensions = []string{".js", ".ts", ".jsx", ".tsx"}
+var dataHome = path.Join(xdg.DataHome, "smallweb")
+var sandboxPath = path.Join(dataHome, "sandbox.ts")
+
+//go:embed deno/sandbox.ts
+var sandboxBytes []byte
 
 type CommandInput struct {
 	Req        *SerializedRequest `json:"req"`
 	Entrypoint string             `json:"entrypoint"`
-	Env        map[string]string  `json:"env"`
-	Output     string             `json:"output"`
 }
 
-func inferEntrypoint(dir string) (string, error) {
+func init() {
+	if err := os.MkdirAll(dataHome, 0755); err != nil {
+		log.Fatal(err)
+	}
+
+	// refresh sandbox code
+	if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func inferEntrypoint(rootDir string, name string) (string, error) {
 	for _, ext := range extensions {
-		entrypoint := path.Join(dir, "mod"+ext)
+		entrypoint := path.Join(rootDir, name+ext)
 		if exists(entrypoint) {
 			return entrypoint, nil
 		}
 	}
 
-	entrypoint := path.Join(dir, "index.html")
+	for _, ext := range extensions {
+		entrypoint := path.Join(rootDir, name, "mod"+ext)
+		if exists(entrypoint) {
+			return entrypoint, nil
+		}
+	}
+
+	entrypoint := path.Join(rootDir, name, "index.html")
 	if exists(entrypoint) {
 		return entrypoint, nil
 	}
@@ -61,7 +85,7 @@ func extractShebangFlags(script string) ([]string, error) {
 
 	defer f.Close()
 
-	defaultFlags := []string{"--allow-net", "--allow-read=.", "allow-write=.", "--env"}
+	defaultFlags := []string{"--allow-net", "--allow-read=.", "--allow-write=.", "--env"}
 	scanner := bufio.NewScanner(f)
 	if ok := scanner.Scan(); !ok {
 		return defaultFlags, nil
@@ -145,12 +169,10 @@ func Evaluate(entrypoint string, req *SerializedRequest) (*SerializedResponse, e
 		return nil, err
 	}
 	defer os.RemoveAll(tempdir)
-	outputFile := path.Join(tempdir, "response.json")
 
 	input := CommandInput{
 		Req:        req,
 		Entrypoint: entrypoint,
-		Output:     outputFile,
 	}
 
 	deno, err := denoExecutable()
@@ -165,6 +187,7 @@ func Evaluate(entrypoint string, req *SerializedRequest) (*SerializedResponse, e
 
 	args := []string{"run"}
 	args = append(args, flags...)
+	args = append(args, sandboxPath)
 
 	cmd := exec.Command(deno, args...)
 	cmd.Dir = rootDir
@@ -175,21 +198,18 @@ func Evaluate(entrypoint string, req *SerializedRequest) (*SerializedResponse, e
 		return nil, err
 	}
 
+	// TODO: use websocket instead of stdin/stdout
 	cmd.Stdin = &stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return nil, err
-	}
-
-	f, err := os.Open(outputFile)
+	output, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("%s: %s", err, exitErr.Stderr)
+		}
+		return nil, fmt.Errorf("%s: %s", err, output)
 	}
 
 	var res SerializedResponse
-	decoder := json.NewDecoder(f)
-	if err := decoder.Decode(&res); err != nil {
+	if err := json.Unmarshal(output, &res); err != nil {
 		return nil, err
 	}
 
