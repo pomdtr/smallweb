@@ -58,9 +58,7 @@ function deserializeRequest(arg: SerializedRequest) {
 function getHandler(mod: { default?: any }):
   | {
       ok: true;
-      handler: {
-        fetch: (req: Request) => Response | Promise<Response>;
-      };
+      fetch: (req: Request) => Response | Promise<Response>;
     }
   | { ok: false; error: Error } {
   if (!("default" in mod)) {
@@ -70,7 +68,7 @@ function getHandler(mod: { default?: any }):
     };
   }
 
-  return { ok: true, handler: mod.default };
+  return { ok: true, fetch: mod.default };
 }
 
 const conn = await Deno.connect({
@@ -105,7 +103,7 @@ try {
   if (!exp.ok) {
     throw exp.error;
   }
-  const resp = await exp.handler.fetch(deserializeRequest(req));
+  const resp = await exp.fetch(deserializeRequest(req));
   const serialized = await serializeResponse(resp);
 
   const writer = conn.writable.getWriter();

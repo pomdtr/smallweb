@@ -34,7 +34,7 @@ func promptUserName() (string, error) {
 
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Username").Value(&username),
+			huh.NewInput().Title("Username").Description("Choose a username").Value(&username),
 		),
 	)
 
@@ -45,19 +45,38 @@ func promptUserName() (string, error) {
 	return username, nil
 }
 
+func defaultRootDir() (string, error) {
+	homedir, err := homedir.Dir()
+	if err != nil {
+		return "", err
+	}
+
+	return path.Join(homedir, "smallweb"), nil
+}
+
 func NewCmdTunnel() *cobra.Command {
 	return &cobra.Command{
 		Use:   "tunnel",
 		Short: "Start a smallweb tunnel",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := args[0]
+			var rootDir string
+			if len(args) == 1 {
+				rootDir = args[0]
+			} else {
+				d, err := defaultRootDir()
+				if err != nil {
+					return fmt.Errorf("could not get default root dir: %v", err)
+				}
+				rootDir = d
+			}
+
 			client, err := NewClientWithDefaults()
 			if err != nil {
 				log.Fatalf("failed to create client: %v", err)
 			}
 
-			addr := "smallweb.run:2222"
+			addr := fmt.Sprintf("%s:%d", client.Config.Host, client.Config.SSHPort)
 			conn, err := net.Dial("tcp", addr)
 			if err != nil {
 				log.Fatalf("could not dial: %v", err)
@@ -70,25 +89,14 @@ func NewCmdTunnel() *cobra.Command {
 
 			go ssh.DiscardRequests(reqs)
 
-			if ok, username, err := sshConn.SendRequest("get-username", true, []byte("")); err != nil {
-				log.Fatalf("could not fetch username")
-			} else if !ok {
-				log.Fatalf("no username found")
-			} else if len(username) == 0 {
-				username, err := promptUserName()
-				if err != nil {
-					return fmt.Errorf("could not prompt for username: %v", err)
-				}
-
-				payload := ssh.Marshal(&SetUserNameRequest{Username: username})
-				if ok, _, err := sshConn.SendRequest("set-username", true, payload); err != nil {
-					return fmt.Errorf("could not set username: %v", err)
-				} else if !ok {
-					return fmt.Errorf("could not set username")
-				}
+			username, err := promptUserName()
+			if err != nil {
+				log.Fatalf("could not prompt for username: %v", err)
 			}
 
-			ok, _, err := sshConn.SendRequest("smallweb-forward", true, []byte(""))
+			ok, _, err := sshConn.SendRequest("smallweb-forward", true, ssh.Marshal(ForwardPayload{
+				Username: username,
+			}))
 			if err != nil {
 				return fmt.Errorf("could not forward: %v", err)
 			}

@@ -27,7 +27,7 @@ type Message[T any] struct {
 	Data T      `json:"data"`
 }
 
-type SetUserNameRequest struct {
+type ForwardPayload struct {
 	Username string
 }
 
@@ -87,24 +87,24 @@ func NewCmdProxy() *cobra.Command {
 					return true
 				},
 				RequestHandlers: map[string]ssh.RequestHandler{
-					"get-username": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
-						username := ctx.Value(userNameContextKey).(string)
-						return true, []byte(username)
-					},
-					"set-username": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
-						userID := ctx.Value(userIDContextKey).(string)
-						var payload SetUserNameRequest
-						if err := gossh.Unmarshal(req.Payload, &payload); err != nil {
-							return false, nil
-						}
+					// "get-username": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
+					// 	username := ctx.Value(userNameContextKey).(string)
+					// 	return true, []byte(username)
+					// },
+					// "set-username": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
+					// userID := ctx.Value(userIDContextKey).(string)
+					// var payload SetUserNameRequest
+					// if err := gossh.Unmarshal(req.Payload, &payload); err != nil {
+					// 	return false, nil
+					// }
 
-						if _, err := db.SetUserName(userID, payload.Username); err != nil {
-							return false, nil
-						}
+					// if _, err := db.SetUserName(userID, payload.Username); err != nil {
+					// 	return false, nil
+					// }
 
-						ctx.SetValue(userNameContextKey, payload.Username)
-						return true, nil
-					},
+					// ctx.SetValue(userNameContextKey, payload.Username)
+					// return true, nil
+					// },
 					"smallweb-forward": forwarder.HandleSSHRequest,
 				},
 			}
@@ -138,7 +138,11 @@ type Forwarder struct {
 }
 
 func (h *Forwarder) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
-	username := ctx.Value(userNameContextKey).(string)
+	var payload ForwardPayload
+	if err := gossh.Unmarshal(req.Payload, &payload); err != nil {
+		return false, nil
+	}
+
 	h.Lock()
 	if h.conns == nil {
 		h.conns = make(map[string]*gossh.ServerConn)
@@ -148,12 +152,12 @@ func (h *Forwarder) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server, req *goss
 	switch req.Type {
 	case "smallweb-forward":
 		h.Lock()
-		h.conns[username] = conn
+		h.conns[payload.Username] = conn
 		h.Unlock()
 		return true, nil
 	case "cancel-smallweb-forward":
 		h.Lock()
-		delete(h.conns, username)
+		delete(h.conns, payload.Username)
 		h.Unlock()
 		return true, nil
 	default:

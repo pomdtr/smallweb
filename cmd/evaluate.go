@@ -89,7 +89,7 @@ func (r Request) Alias() (string, error) {
 	}
 
 	subdomain := strings.Split(url.Host, ".")[0]
-	parts := strings.Split(subdomain, "-")
+	parts := strings.SplitN(subdomain, "-", 2)
 	if len(parts) != 2 {
 		return "", fmt.Errorf("invalid subdomain")
 	}

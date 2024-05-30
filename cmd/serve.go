@@ -43,9 +43,15 @@ func NewCmdServe() *cobra.Command {
 		Short: "Start a smallweb server",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := args[0]
-			if !exists(rootDir) {
-				return fmt.Errorf("directory %s does not exist", rootDir)
+			var rootDir string
+			if len(args) == 1 {
+				rootDir = args[0]
+			} else {
+				d, err := defaultRootDir()
+				if err != nil {
+					return fmt.Errorf("could not get default root dir: %v", err)
+				}
+				rootDir = d
 			}
 
 			port, _ := cmd.Flags().GetInt("port")
