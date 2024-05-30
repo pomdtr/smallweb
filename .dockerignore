@@ -1,0 +1,10 @@
+# flyctl launch added from .gitignore
+**/dist
+**/completions
+**/public
+**/data
+**/*.db
+
+# flyctl launch added from docs/.gitignore
+docs/**/book
+fly.toml

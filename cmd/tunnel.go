@@ -57,12 +57,13 @@ func NewCmdTunnel() *cobra.Command {
 				log.Fatalf("failed to create client: %v", err)
 			}
 
-			conn, err := net.Dial("tcp", ":2222")
+			addr := "smallweb.run:2222"
+			conn, err := net.Dial("tcp", addr)
 			if err != nil {
 				log.Fatalf("could not dial: %v", err)
 			}
 
-			sshConn, chans, reqs, err := ssh.NewClientConn(conn, ":2222", client.sshConfig)
+			sshConn, chans, reqs, err := ssh.NewClientConn(conn, addr, client.sshConfig)
 			if err != nil {
 				log.Fatalf("could not create client connection: %v", err)
 			}
@@ -147,7 +148,7 @@ func NewCmdTunnel() *cobra.Command {
 }
 
 type Config struct {
-	Host    string `env:"SMALLWEB_HOST" envDefault:"cloud.charm.sh"`
+	Host    string `env:"SMALLWEB_HOST" envDefault:"smallweb.run"`
 	SSHPort int    `env:"SMALLWEB_SSH_PORT" envDefault:"2222"`
 	Debug   bool   `env:"SMALLWEB_DEBUG" envDefault:"false"`
 	KeyType string `env:"SMALLWEB_KEY_TYPE" envDefault:"ed25519"`

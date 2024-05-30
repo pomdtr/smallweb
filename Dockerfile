@@ -1,11 +1,12 @@
-FROM golang:1.22.0 as builder
+FROM golang:1.22.3 as builder
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 COPY *.go ./
-COPY deno/sandbox.ts ./deno/sandbox.ts
+COPY cmd/ ./cmd/
 RUN CGO_ENABLED=0 GOOS=linux go build -o /smallweb
 
-FROM denoland/deno:1.43.4
+FROM alpine:3.20
 COPY --from=builder /smallweb /usr/local/bin/smallweb
 ENTRYPOINT [ "/usr/local/bin/smallweb" ]
+CMD [ "proxy" ]
