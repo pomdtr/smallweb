@@ -1,16 +1,19 @@
 package cmd
 
 import (
-	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/adrg/xdg"
@@ -25,8 +28,9 @@ var sandboxPath = path.Join(dataHome, "sandbox.ts")
 var sandboxBytes []byte
 
 type CommandInput struct {
-	Req        *SerializedRequest `json:"req"`
-	Entrypoint string             `json:"entrypoint"`
+	Req        Request           `json:"req"`
+	Entrypoint string            `json:"entrypoint"`
+	Env        map[string]string `json:"env"`
 }
 
 func init() {
@@ -40,15 +44,15 @@ func init() {
 	}
 }
 
-func inferEntrypoint(rootDir string, name string) (string, error) {
+func inferEntrypoint(rootDir string) (string, error) {
 	for _, ext := range extensions {
-		entrypoint := path.Join(rootDir, name, "mod"+ext)
+		entrypoint := path.Join(rootDir, "mod"+ext)
 		if exists(entrypoint) {
 			return entrypoint, nil
 		}
 	}
 
-	entrypoint := path.Join(rootDir, name, "index.html")
+	entrypoint := path.Join(rootDir, "index.html")
 	if exists(entrypoint) {
 		return entrypoint, nil
 	}
@@ -56,22 +60,60 @@ func inferEntrypoint(rootDir string, name string) (string, error) {
 	return "", fmt.Errorf("entrypoint not found")
 }
 
-type SerializedRequest struct {
+type Request struct {
 	Url     string     `json:"url"`
 	Method  string     `json:"method"`
 	Headers [][]string `json:"headers"`
 	Body    []byte     `json:"body,omitempty"`
 }
 
-type SerializedResponse struct {
+func (r Request) Username() (string, error) {
+	url, err := url.Parse(r.Url)
+	if err != nil {
+		return "", err
+	}
+
+	subdomain := strings.Split(url.Host, ".")[0]
+	parts := strings.Split(subdomain, "-")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid subdomain")
+	}
+
+	return parts[0], nil
+}
+
+func (r Request) Alias() (string, error) {
+	url, err := url.Parse(r.Url)
+	if err != nil {
+		return "", err
+	}
+
+	subdomain := strings.Split(url.Host, ".")[0]
+	parts := strings.Split(subdomain, "-")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid subdomain")
+	}
+
+	return parts[1], nil
+}
+
+type Response struct {
 	Code    int        `json:"code"`
 	Headers [][]string `json:"headers"`
 	Body    []byte     `json:"body"`
 }
 
-func Evaluate(entrypoint string, req *SerializedRequest) (*SerializedResponse, error) {
-	rootDir := path.Dir(entrypoint)
-	if strings.HasSuffix(entrypoint, ".html") {
+type DenoClient struct {
+	entrypoint string
+}
+
+func NewDenoClient(entrypoint string) *DenoClient {
+	return &DenoClient{entrypoint: entrypoint}
+}
+
+func (me *DenoClient) Do(req *Request) (*Response, error) {
+	rootDir := path.Dir(me.entrypoint)
+	if strings.HasSuffix(me.entrypoint, ".html") {
 		fileServer := http.FileServer(http.Dir(rootDir))
 		rr := httptest.NewRecorder()
 		req := httptest.NewRequest(req.Method, req.Url, nil)
@@ -82,17 +124,17 @@ func Evaluate(entrypoint string, req *SerializedRequest) (*SerializedResponse, e
 			headers = append(headers, []string{key, values[0]})
 		}
 
-		return &SerializedResponse{
-			Code:    rr.Code,
+		body, err := io.ReadAll(rr.Result().Body)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Response{
+			Code:    rr.Result().StatusCode,
 			Headers: headers,
-			Body:    rr.Body.Bytes(),
+			Body:    body,
 		}, nil
 
-	}
-
-	input := CommandInput{
-		Req:        req,
-		Entrypoint: entrypoint,
 	}
 
 	deno, err := denoExecutable()
@@ -100,39 +142,67 @@ func Evaluate(entrypoint string, req *SerializedRequest) (*SerializedResponse, e
 		return nil, err
 	}
 
-	cmd := exec.Command(deno, "run", "--allow-net", "--allow-read=.", "--allow-write=./data", "--allow-env", "--unstable-kv", sandboxPath)
+	freeport, err := GetFreePort()
+	if err != nil {
+		return nil, err
+	}
+
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", freeport))
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := exec.Command(deno, "run", "--allow-net", "--allow-read=.", "--allow-write=./data", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
 	cmd.Dir = rootDir
-	if exists(path.Join(rootDir, ".env")) {
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	var env map[string]string
+	if exists(".env") {
 		envMap, err := godotenv.Read(".env")
 		if err != nil {
 			return nil, err
 		}
 
-		for key, value := range envMap {
-			cmd.Env = append(cmd.Env, key+"="+value)
-		}
+		env = envMap
 	}
-	stdin := bytes.Buffer{}
-	encoder := json.NewEncoder(&stdin)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(input); err != nil {
+
+	go cmd.Run()
+
+	conn, err := ln.Accept()
+	if err != nil {
 		return nil, err
 	}
 
-	// TODO: use websocket instead of stdin/stdout
-	cmd.Stdin = &stdin
-	output, err := cmd.Output()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("%s: %s", err, exitErr.Stderr)
-		}
-		return nil, fmt.Errorf("%s: %s", err, output)
+	encoder := json.NewEncoder(conn)
+	if err := encoder.Encode(&CommandInput{
+		Req:        *req,
+		Entrypoint: me.entrypoint,
+		Env:        env,
+	}); err != nil {
+		return nil, err
 	}
 
-	var res SerializedResponse
-	if err := json.Unmarshal(output, &res); err != nil {
+	decoder := json.NewDecoder(conn)
+	var res Response
+	if err := decoder.Decode(&res); err != nil {
 		return nil, err
 	}
 
 	return &res, nil
+}
+
+// GetFreePort asks the kernel for a free open port that is ready to use.
+func GetFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port, nil
 }

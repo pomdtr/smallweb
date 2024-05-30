@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/url"
+	"net"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -51,17 +52,24 @@ func NewCmdTunnel() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := args[0]
-			cc, err := NewClientWithDefaults()
+			client, err := NewClientWithDefaults()
 			if err != nil {
 				log.Fatalf("failed to create client: %v", err)
 			}
 
-			conn, err := ssh.Dial("tcp", ":2222", cc.sshConfig)
+			conn, err := net.Dial("tcp", ":2222")
 			if err != nil {
-				return fmt.Errorf("dial failed: %v", err)
+				log.Fatalf("could not dial: %v", err)
 			}
 
-			if ok, username, err := conn.SendRequest("get-username", true, []byte("")); err != nil {
+			sshConn, chans, reqs, err := ssh.NewClientConn(conn, ":2222", client.sshConfig)
+			if err != nil {
+				log.Fatalf("could not create client connection: %v", err)
+			}
+
+			go ssh.DiscardRequests(reqs)
+
+			if ok, username, err := sshConn.SendRequest("get-username", true, []byte("")); err != nil {
 				log.Fatalf("could not fetch username")
 			} else if !ok {
 				log.Fatalf("no username found")
@@ -72,51 +80,68 @@ func NewCmdTunnel() *cobra.Command {
 				}
 
 				payload := ssh.Marshal(&SetUserNameRequest{Username: username})
-				if ok, _, err := conn.SendRequest("set-username", true, payload); err != nil {
+				if ok, _, err := sshConn.SendRequest("set-username", true, payload); err != nil {
 					return fmt.Errorf("could not set username: %v", err)
 				} else if !ok {
 					return fmt.Errorf("could not set username")
 				}
 			}
 
-			c, _, err := conn.OpenChannel("smallweb", nil)
+			ok, _, err := sshConn.SendRequest("smallweb-forward", true, []byte(""))
 			if err != nil {
-				return fmt.Errorf("open channel failed: %v", err)
+				return fmt.Errorf("could not forward: %v", err)
+			}
+			if !ok {
+				return fmt.Errorf("could not forward")
 			}
 
-			decoder := json.NewDecoder(c)
-			encoder := json.NewEncoder(c)
-			for {
-				var input Message[SerializedRequest]
-				if err := decoder.Decode(&input); err != nil {
-					return fmt.Errorf("decode failed: %v", err)
+			handleChan := func(ch ssh.Channel) error {
+				decoder := json.NewDecoder(ch)
+				var req Request
+				if err := decoder.Decode(&req); err != nil {
+					return fmt.Errorf("could not decode request: %v", err)
 				}
 
-				url, err := url.Parse(input.Data.Url)
+				alias, err := req.Alias()
 				if err != nil {
-					return fmt.Errorf("parse url failed: %v", err)
+					return fmt.Errorf("could not get alias: %v", err)
 				}
 
-				subdomain := strings.Split(url.Host, ".")[0]
-				name := strings.Split(subdomain, "-")[1]
-
-				entrypoint, err := inferEntrypoint(rootDir, name)
+				entrypoint, err := inferEntrypoint(path.Join(rootDir, alias))
 				if err != nil {
-					return fmt.Errorf("infer entrypoint failed: %v", err)
+					return fmt.Errorf("could not infer entrypoint: %v", err)
 				}
 
-				res, err := Evaluate(entrypoint, &input.Data)
+				client := NewDenoClient(entrypoint)
+				resp, err := client.Do(&req)
 				if err != nil {
-					res = &SerializedResponse{Code: 500, Body: []byte(err.Error())}
+					return fmt.Errorf("could not fetch response: %v", err)
 				}
 
-				if err := encoder.Encode(Message[*SerializedResponse]{
-					ID:   input.ID,
-					Data: res,
-				}); err != nil {
-					return fmt.Errorf("encode failed: %v", err)
+				encoder := json.NewEncoder(ch)
+				encoder.SetEscapeHTML(false)
+				if err := encoder.Encode(resp); err != nil {
+					return fmt.Errorf("could not encode response: %v", err)
 				}
+
+				return nil
 			}
+
+			for newChannel := range chans {
+				if newChannel.ChannelType() != "forwarded-smallweb" {
+					newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
+				}
+
+				ch, reqs, err := newChannel.Accept()
+				if err != nil {
+					log.Printf("could not accept channel: %v", err)
+				}
+				go ssh.DiscardRequests(reqs)
+
+				go handleChan(ch)
+			}
+
+			return nil
 		},
 	}
 }

@@ -5,13 +5,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-func serializeRequest(req *http.Request) (*SerializedRequest, error) {
-	var res SerializedRequest
+func serializeRequest(req *http.Request) (*Request, error) {
+	var res Request
 
 	url := req.URL
 	url.Host = req.Host
@@ -58,13 +59,14 @@ func NewCmdServe() *cobra.Command {
 						return
 					}
 
-					entrypoint, err := inferEntrypoint(rootDir, subdomain)
+					entrypoint, err := inferEntrypoint(path.Join(rootDir, subdomain))
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
 					}
 
-					res, err := Evaluate(entrypoint, req)
+					client := NewDenoClient(entrypoint)
+					res, err := client.Do(req)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return

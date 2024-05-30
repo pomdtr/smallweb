@@ -1,5 +1,4 @@
 import { encodeBase64, decodeBase64 } from "jsr:@std/encoding/base64";
-import { toJson } from "jsr:@std/streams";
 
 /**
  * Given an object of environment variables, create a stub
@@ -74,11 +73,22 @@ function getHandler(mod: { default?: any }):
   return { ok: true, handler: mod.default };
 }
 
-const { entrypoint, env, req } = (await toJson(Deno.stdin.readable)) as {
+const conn = await Deno.connect({
+  transport: "tcp",
+  port: parseInt(Deno.args[0]),
+});
+
+const reader = conn.readable.getReader();
+const { value: inputBytes } = await reader.read();
+if (!inputBytes) {
+  throw new Error("No input bytes");
+}
+const input = new TextDecoder().decode(inputBytes);
+
+const { entrypoint, req, env } = JSON.parse(input) as {
   entrypoint: string;
   req: SerializedRequest;
   env: Record<string, string>;
-  output: string;
 };
 
 /**
@@ -97,8 +107,12 @@ try {
   }
   const resp = await exp.handler.fetch(deserializeRequest(req));
   const serialized = await serializeResponse(resp);
-  console.log(JSON.stringify(serialized));
+
+  const writer = conn.writable.getWriter();
+  const output = new TextEncoder().encode(JSON.stringify(serialized));
+  await writer.write(output);
 } catch (e) {
-  console.error(e);
-  Deno.exit(1);
+  const writer = conn.writable.getWriter();
+  const output = new TextEncoder().encode(JSON.stringify({ error: e.message }));
+  await writer.write(output);
 }
