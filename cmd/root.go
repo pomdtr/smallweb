@@ -26,7 +26,7 @@ func NewCmdRoot() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdServe())
-	cmd.AddCommand(NewCmdTunnel())
+	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdProxy())
 	cmd.InitDefaultCompletionCmd()
 

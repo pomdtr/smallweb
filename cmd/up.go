@@ -54,9 +54,9 @@ func defaultRootDir() (string, error) {
 	return path.Join(homedir, "smallweb"), nil
 }
 
-func NewCmdTunnel() *cobra.Command {
+func NewCmdUp() *cobra.Command {
 	return &cobra.Command{
-		Use:   "tunnel",
+		Use:   "up",
 		Short: "Start a smallweb tunnel",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
