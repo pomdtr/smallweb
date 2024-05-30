@@ -152,7 +152,7 @@ func (me *DenoClient) Do(req *Request) (*Response, error) {
 		return nil, err
 	}
 
-	cmd := exec.Command(deno, "run", "--allow-net", "--allow-read=.", "--allow-write=./data", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
+	cmd := exec.Command(deno, "run", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
 	cmd.Dir = rootDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
