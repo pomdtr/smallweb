@@ -54,7 +54,7 @@ func inferEntrypoint(name string) (string, error) {
 			return "", err
 		}
 
-		lookupDirs = []string{path.Join(homedir, "smallweb")}
+		lookupDirs = []string{path.Join(homedir, "www")}
 	}
 
 	for _, dir := range lookupDirs {
