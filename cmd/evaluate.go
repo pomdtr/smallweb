@@ -44,17 +44,32 @@ func init() {
 	}
 }
 
-func inferEntrypoint(rootDir string) (string, error) {
-	for _, ext := range extensions {
-		entrypoint := path.Join(rootDir, "mod"+ext)
+func inferEntrypoint(name string) (string, error) {
+	var lookupDirs []string
+	if env, ok := os.LookupEnv("SMALLWEB_PATH"); ok {
+		lookupDirs = strings.Split(env, ":")
+	} else {
+		homedir, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+
+		lookupDirs = []string{path.Join(homedir, "smallweb")}
+	}
+
+	for _, dir := range lookupDirs {
+
+		for _, ext := range extensions {
+			entrypoint := path.Join(dir, name, "mod"+ext)
+			if exists(entrypoint) {
+				return entrypoint, nil
+			}
+		}
+
+		entrypoint := path.Join(dir, name, "index.html")
 		if exists(entrypoint) {
 			return entrypoint, nil
 		}
-	}
-
-	entrypoint := path.Join(rootDir, "index.html")
-	if exists(entrypoint) {
-		return entrypoint, nil
 	}
 
 	return "", fmt.Errorf("entrypoint not found")

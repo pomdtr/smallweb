@@ -58,19 +58,8 @@ func NewCmdUp() *cobra.Command {
 	return &cobra.Command{
 		Use:   "up",
 		Short: "Start a smallweb tunnel",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var rootDir string
-			if len(args) == 1 {
-				rootDir = args[0]
-			} else {
-				d, err := defaultRootDir()
-				if err != nil {
-					return fmt.Errorf("could not get default root dir: %v", err)
-				}
-				rootDir = d
-			}
-
 			client, err := NewClientWithDefaults()
 			if err != nil {
 				log.Fatalf("failed to create client: %v", err)
@@ -116,7 +105,7 @@ func NewCmdUp() *cobra.Command {
 					return fmt.Errorf("could not get alias: %v", err)
 				}
 
-				entrypoint, err := inferEntrypoint(path.Join(rootDir, alias))
+				entrypoint, err := inferEntrypoint(alias)
 				if err != nil {
 					return fmt.Errorf("could not infer entrypoint: %v", err)
 				}
