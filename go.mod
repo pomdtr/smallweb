@@ -8,8 +8,8 @@ require (
 	github.com/charmbracelet/huh v0.4.2
 	github.com/charmbracelet/keygen v0.5.0
 	github.com/gliderlabs/ssh v0.3.7
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
+	github.com/joho/godotenv v1.5.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/go-app-paths v0.2.2
 	github.com/spf13/cobra v1.8.0
