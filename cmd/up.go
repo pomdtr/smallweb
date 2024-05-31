@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/charmbracelet/huh"
@@ -83,6 +84,21 @@ func NewCmdUp() *cobra.Command {
 			if !ok {
 				return fmt.Errorf("could not forward")
 			}
+
+			go func() {
+				ticker := time.NewTicker(30 * time.Second)
+				for {
+					<-ticker.C
+					ok, _, err := sshConn.SendRequest("keepalive", true, nil)
+					if err != nil {
+						log.Printf("could not send keepalive: %v", err)
+						break
+					}
+					if !ok {
+						log.Printf("keepalive failed")
+					}
+				}
+			}()
 
 			handleChan := func(ch ssh.Channel) error {
 				decoder := json.NewDecoder(ch)

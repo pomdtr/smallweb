@@ -23,11 +23,6 @@ const (
 	userIDContextKey   = "userid"
 )
 
-type Message[T any] struct {
-	ID   string `json:"id"`
-	Data T      `json:"data"`
-}
-
 type ForwardPayload struct {
 	Username string
 }
