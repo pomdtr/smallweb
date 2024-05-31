@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/gliderlabs/ssh"
 	"github.com/spf13/cobra"
@@ -112,6 +113,7 @@ func NewCmdProxy() *cobra.Command {
 			slog.Info("starting servers")
 			go sshServer.ListenAndServe()
 			go httpServer.ListenAndServe()
+			go forwarder.KeepAlive()
 
 			sigs := make(chan os.Signal, 1)
 			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -196,6 +198,22 @@ func (me *Forwarder) Forward(req *Request) (*Response, error) {
 	}
 
 	return &resp, nil
+}
+
+func (me *Forwarder) KeepAlive() {
+	ticker := time.NewTicker(60 * time.Second)
+	for {
+		<-ticker.C
+		for username, conn := range me.conns {
+			_, _, err := conn.SendRequest("keepalive", true, nil)
+			if err != nil {
+				log.Printf("could not send keepalive: %v", err)
+				me.Lock()
+				delete(me.conns, username)
+				me.Unlock()
+			}
+		}
+	}
 }
 
 // keyText is the base64 encoded public key for the glider.Session.

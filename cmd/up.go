@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/user"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -43,15 +43,6 @@ func promptUserName() (string, error) {
 	}
 
 	return username, nil
-}
-
-func defaultRootDir() (string, error) {
-	homedir, err := homedir.Dir()
-	if err != nil {
-		return "", err
-	}
-
-	return path.Join(homedir, "smallweb"), nil
 }
 
 func NewCmdUp() *cobra.Command {
@@ -125,6 +116,7 @@ func NewCmdUp() *cobra.Command {
 				return nil
 			}
 
+			slog.Info("smallweb tunnel is up")
 			for newChannel := range chans {
 				if newChannel.ChannelType() != "forwarded-smallweb" {
 					newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
