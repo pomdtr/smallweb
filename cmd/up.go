@@ -70,32 +70,55 @@ func NewCmdUp() *cobra.Command {
 
 			go ssh.DiscardRequests(reqs)
 
-			username, err := promptUserName()
+			userExists, payload, err := sshConn.SendRequest("get-user", true, nil)
 			if err != nil {
-				log.Fatalf("could not prompt for username: %v", err)
+				log.Fatalf("could not get user: %v", err)
+			}
+			if !userExists {
+				return fmt.Errorf("credentials not found, please run 'smallweb auth signup' or 'smallweb auth login'")
 			}
 
-			ok, _, err := sshConn.SendRequest("smallweb-forward", true, ssh.Marshal(ForwardPayload{
-				Username: username,
-			}))
+			var user UserResponse
+			if err := ssh.Unmarshal(payload, &user); err != nil {
+				log.Fatalf("could not unmarshal user: %v", err)
+			}
+
+			if !user.EmailVerified {
+				if err := verifyEmail(sshConn, user.Email); err != nil {
+					log.Fatalf("could not verify email: %v", err)
+				}
+			}
+
+			if user.Name == "" {
+				username, err := promptUserName()
+				if err != nil {
+					log.Fatalf("could not prompt for username: %v", err)
+				}
+
+				ok, _, err := sshConn.SendRequest("set-username", true, ssh.Marshal(SetUsernameBody{Username: username}))
+				if err != nil {
+					log.Fatalf("could not set username: %v", err)
+				} else if !ok {
+					log.Fatalf("could not set username")
+				}
+			}
+
+			ok, _, err := sshConn.SendRequest("smallweb-forward", true, nil)
 			if err != nil {
 				return fmt.Errorf("could not forward: %v", err)
 			}
 			if !ok {
-				return fmt.Errorf("could not forward")
+				return fmt.Errorf("user not logged in, please run 'smallweb login'")
 			}
 
 			go func() {
 				ticker := time.NewTicker(30 * time.Second)
 				for {
 					<-ticker.C
-					ok, _, err := sshConn.SendRequest("keepalive", true, nil)
+					_, _, err := sshConn.SendRequest("keepalive", true, nil)
 					if err != nil {
 						log.Printf("could not send keepalive: %v", err)
 						break
-					}
-					if !ok {
-						log.Printf("keepalive failed")
 					}
 				}
 			}()

@@ -3,3 +3,4 @@ completions/
 public/
 data/
 *.db
+.env

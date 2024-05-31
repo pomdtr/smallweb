@@ -1,8 +1,11 @@
 CREATE TABLE IF NOT EXISTS user (
     id INTEGER NOT NULL PRIMARY KEY,
     name VARCHAR(50) UNIQUE,
+    email TEXT NOT NULL,
+    email_verified BOOLEAN DEFAULT FALSE,
     public_id TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    UNIQUE (email, public_id)
 );
 
 CREATE TABLE IF NOT EXISTS public_key (
@@ -17,3 +20,16 @@ CREATE TABLE IF NOT EXISTS public_key (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS email_verification_code (
+    id INTEGER NOT NULL PRIMARY KEY,
+    code TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    email TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    CONSTRAINT user_id_fk
+        FOREIGN KEY (user_id)
+        REFERENCES user (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+)

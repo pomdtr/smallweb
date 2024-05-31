@@ -89,12 +89,12 @@ func (r Request) Username() (string, error) {
 	}
 
 	subdomain := strings.Split(url.Host, ".")[0]
-	parts := strings.SplitN(subdomain, "-", 2)
-	if len(parts) != 2 {
+	parts := strings.Split(subdomain, "-")
+	if len(parts) < 2 {
 		return "", fmt.Errorf("invalid subdomain")
 	}
 
-	return parts[0], nil
+	return parts[len(parts)-1], nil
 }
 
 func (r Request) Alias() (string, error) {
@@ -104,12 +104,12 @@ func (r Request) Alias() (string, error) {
 	}
 
 	subdomain := strings.Split(url.Host, ".")[0]
-	parts := strings.SplitN(subdomain, "-", 2)
-	if len(parts) != 2 {
+	parts := strings.Split(subdomain, "-")
+	if len(parts) < 2 {
 		return "", fmt.Errorf("invalid subdomain")
 	}
 
-	return parts[1], nil
+	return strings.Join(parts[:len(parts)-1], "-"), nil
 }
 
 type Response struct {

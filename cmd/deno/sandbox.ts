@@ -58,7 +58,9 @@ function deserializeRequest(arg: SerializedRequest) {
 function getHandler(mod: { default?: any }):
   | {
       ok: true;
-      fetch: (req: Request) => Response | Promise<Response>;
+      handler: {
+        fetch: (req: Request) => Response | Promise<Response>;
+      };
     }
   | { ok: false; error: Error } {
   if (!("default" in mod)) {
@@ -68,7 +70,15 @@ function getHandler(mod: { default?: any }):
     };
   }
 
-  return { ok: true, fetch: mod.default };
+  const handler = mod.default;
+  if (!handler.fetch || typeof handler.fetch !== "function") {
+    return {
+      ok: false,
+      error: new Error("The default export must be a method named 'fetch'"),
+    };
+  }
+
+  return { ok: true, handler };
 }
 
 const conn = await Deno.connect({
@@ -103,7 +113,7 @@ try {
   if (!exp.ok) {
     throw exp.error;
   }
-  const resp = await exp.fetch(deserializeRequest(req));
+  const resp = await exp.handler.fetch(deserializeRequest(req));
   const serialized = await serializeResponse(resp);
 
   const writer = conn.writable.getWriter();

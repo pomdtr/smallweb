@@ -1,11 +1,15 @@
 package cmd
 
 import (
+	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,17 +18,39 @@ import (
 	"time"
 
 	"github.com/gliderlabs/ssh"
+	"github.com/resend/resend-go/v2"
 	"github.com/spf13/cobra"
 	gossh "golang.org/x/crypto/ssh"
 )
 
-const (
-	userNameContextKey = "username"
-	userIDContextKey   = "userid"
-)
-
-type ForwardPayload struct {
+type SetUsernameBody struct {
 	Username string
+}
+
+type SignupBody struct {
+	Email string
+}
+
+type VerifyEmailBody struct {
+	Code string
+}
+
+type UserResponse struct {
+	ID            string
+	Name          string
+	Email         string
+	EmailVerified bool
+}
+
+func sendVerificationCode(client *resend.Client, email string, code string) error {
+	_, err := client.Emails.Send(&resend.SendEmailRequest{
+		From:    "Smallweb <smallweb@resend.dev>",
+		To:      []string{email},
+		Subject: "Smallweb signup code",
+		Text:    fmt.Sprintf("Your Smallweb signup code is: %s", code),
+	})
+
+	return err
 }
 
 func NewCmdProxy() *cobra.Command {
@@ -32,13 +58,29 @@ func NewCmdProxy() *cobra.Command {
 		Use:   "proxy",
 		Short: "Start a smallweb proxy",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			resendApiKey, ok := os.LookupEnv("RESEND_API_KEY")
+			if !ok {
+				return errors.New("RESEND_API_KEY not set")
+			}
+			resendClient := resend.NewClient(resendApiKey)
 
-			db, err := NewDB("smallweb.db")
+			dbURL, ok := os.LookupEnv("TURSO_DATABASE_URL")
+			if !ok {
+				return errors.New("TURSO_DATABASE_URL not set")
+			}
+			dbToken, ok := os.LookupEnv("TURSO_AUTH_TOKEN")
+			if !ok {
+				return errors.New("TURSO_AUTH_TOKEN not set")
+			}
+
+			db, err := NewTursoDB(fmt.Sprintf("%s?authToken=%s", dbURL, dbToken))
 			if err != nil {
 				log.Fatalf("failed to open database: %v", err)
 			}
 
-			forwarder := Forwarder{}
+			forwarder := Forwarder{
+				db: db,
+			}
 			httpPort, _ := cmd.Flags().GetInt("http-port")
 			httpServer := http.Server{
 				Addr: fmt.Sprintf(":%d", httpPort),
@@ -67,40 +109,127 @@ func NewCmdProxy() *cobra.Command {
 			sshPort, _ := cmd.Flags().GetInt("ssh-port")
 			sshServer := ssh.Server{
 				Addr: fmt.Sprintf(":%d", sshPort),
-				PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
-					keyText, err := keyText(key)
+				PublicKeyHandler: func(ctx ssh.Context, publicKey ssh.PublicKey) bool {
+					key, err := keyText(publicKey)
 					if err != nil {
 						return false
 					}
-					user, err := db.UserForKey(keyText, true)
-					if err != nil {
-						return false
-					}
-
-					ctx.SetValue(userNameContextKey, user.Name)
-					ctx.SetValue(userIDContextKey, user.PublicID)
-
+					ctx.SetValue("key", key)
 					return true
 				},
 				RequestHandlers: map[string]ssh.RequestHandler{
-					// "get-username": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
-					// 	username := ctx.Value(userNameContextKey).(string)
-					// 	return true, []byte(username)
-					// },
-					// "set-username": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
-					// userID := ctx.Value(userIDContextKey).(string)
-					// var payload SetUserNameRequest
-					// if err := gossh.Unmarshal(req.Payload, &payload); err != nil {
-					// 	return false, nil
-					// }
+					"get-user": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
+						user, err := db.UserFromContext(ctx)
+						if err != nil {
+							return false, nil
+						}
 
-					// if _, err := db.SetUserName(userID, payload.Username); err != nil {
-					// 	return false, nil
-					// }
+						return true, gossh.Marshal(UserResponse{
+							ID:            user.PublicID,
+							Name:          user.Name,
+							Email:         user.Email,
+							EmailVerified: user.EmailVerified,
+						})
 
-					// ctx.SetValue(userNameContextKey, payload.Username)
-					// return true, nil
-					// },
+					},
+					"set-username": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
+						user, err := db.UserFromContext(ctx)
+						if err != nil {
+							return false, nil
+						}
+
+						var body SetUsernameBody
+						if err := gossh.Unmarshal(req.Payload, &body); err != nil {
+							return false, nil
+						}
+
+						if _, err := db.SetUserName(user.PublicID, body.Username); err != nil {
+							return false, nil
+						}
+
+						return true, nil
+					},
+					"signup": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
+						if _, err := db.UserFromContext(ctx); err != nil {
+							return false, nil
+						}
+
+						publicKey, ok := ctx.Value(ssh.ContextKeyPublicKey).(gossh.PublicKey)
+						if !ok {
+							return false, nil
+						}
+
+						keytext, err := keyText(publicKey)
+						if err != nil {
+							return false, nil
+						}
+
+						var body SignupBody
+						if err := gossh.Unmarshal(req.Payload, &body); err != nil {
+							return false, nil
+						}
+
+						var user *User
+						if err := db.WrapTransaction(func(tx *sql.Tx) error {
+							if err := db.createUser(tx, keytext, body.Email); err != nil {
+								return err
+							}
+
+							u, err := db.UserForKey(keytext)
+							if err != nil {
+								return err
+							}
+
+							user = u
+							return nil
+						}); err != nil {
+							return false, nil
+						}
+
+						return true, gossh.Marshal(UserResponse{
+							ID:            user.PublicID,
+							Name:          user.Name,
+							Email:         user.Email,
+							EmailVerified: user.EmailVerified,
+						})
+					},
+					"verify-email": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
+						user, err := db.UserFromContext(ctx)
+						if err != nil {
+							return false, nil
+						}
+
+						if len(req.Payload) == 0 {
+
+							code, err := generateRandomString(8, "0123456789")
+							if err != nil {
+								fmt.Println("Error generating random string:", err)
+								return
+							}
+
+							if err := db.createVerificationCode(user, code); err != nil {
+								return false, nil
+							}
+
+							if err := sendVerificationCode(resendClient, user.Email, code); err != nil {
+								return false, nil
+							}
+							return true, nil
+						}
+
+						var body VerifyEmailBody
+						if err := gossh.Unmarshal(req.Payload, &body); err != nil {
+							return false, nil
+						}
+
+						codeIsValid, err := db.verifyVerificationCode(user, body.Code)
+						if err != nil {
+							return false, nil
+						}
+
+						return codeIsValid, nil
+
+					},
 					"smallweb-forward": forwarder.HandleSSHRequest,
 				},
 			}
@@ -130,32 +259,33 @@ func NewCmdProxy() *cobra.Command {
 // adding the HandleSSHRequest callback to the server's RequestHandlers under
 // tcpip-forward and cancel-tcpip-forward.
 type Forwarder struct {
+	db    *DB
 	conns map[string]*gossh.ServerConn
 	sync.Mutex
 }
 
-func (h *Forwarder) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
-	var payload ForwardPayload
-	if err := gossh.Unmarshal(req.Payload, &payload); err != nil {
+func (me *Forwarder) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
+	user, err := me.db.UserFromContext(ctx)
+	if err != nil {
 		return false, nil
 	}
 
-	h.Lock()
-	if h.conns == nil {
-		h.conns = make(map[string]*gossh.ServerConn)
+	me.Lock()
+	if me.conns == nil {
+		me.conns = make(map[string]*gossh.ServerConn)
 	}
-	h.Unlock()
+	me.Unlock()
 	conn := ctx.Value(ssh.ContextKeyConn).(*gossh.ServerConn)
 	switch req.Type {
 	case "smallweb-forward":
-		h.Lock()
-		h.conns[payload.Username] = conn
-		h.Unlock()
+		me.Lock()
+		me.conns[user.Name] = conn
+		me.Unlock()
 		return true, nil
 	case "cancel-smallweb-forward":
-		h.Lock()
-		delete(h.conns, payload.Username)
-		h.Unlock()
+		me.Lock()
+		delete(me.conns, user.Name)
+		me.Unlock()
 		return true, nil
 	default:
 		return false, nil
@@ -215,4 +345,19 @@ func (me *Forwarder) KeepAlive() {
 func keyText(publicKey gossh.PublicKey) (string, error) {
 	kb := base64.StdEncoding.EncodeToString(publicKey.Marshal())
 	return fmt.Sprintf("%s %s", publicKey.Type(), kb), nil
+}
+
+func generateRandomString(length int, alphabet string) (string, error) {
+	result := make([]byte, length)
+	alphabetLength := big.NewInt(int64(len(alphabet)))
+
+	for i := 0; i < length; i++ {
+		index, err := rand.Int(rand.Reader, alphabetLength)
+		if err != nil {
+			return "", err
+		}
+		result[i] = alphabet[index.Int64()]
+	}
+
+	return string(result), nil
 }

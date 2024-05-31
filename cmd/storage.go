@@ -10,30 +10,17 @@ import (
 	log "log/slog"
 	"time"
 
+	"github.com/gliderlabs/ssh"
 	"github.com/google/uuid"
-	"modernc.org/sqlite"
-	sqlitelib "modernc.org/sqlite/lib"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 var (
 	ErrMissingUser = errors.New("no user found")
 )
 
-func NewDB(dbPath string) (*DB, error) {
-	dbName := fmt.Sprintf("file:%s", dbPath)
-	if !exists(dbPath) {
-		db, err := sql.Open("sqlite", dbName)
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = db.Exec(initQuery)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	db, err := sql.Open("sqlite", dbName)
+func NewTursoDB(dbURL string) (*DB, error) {
+	db, err := sql.Open("libsql", dbURL)
 	if err != nil {
 		return nil, err
 	}
@@ -41,19 +28,18 @@ func NewDB(dbPath string) (*DB, error) {
 	return &DB{db: db}, nil
 }
 
-//go:embed sql/init.sql
-var initQuery string
-
 type DB struct {
 	db *sql.DB
 }
 
 type User struct {
-	ID        int        `json:"id"`
-	PublicID  string     `json:"public_id"`
-	PublicKey *PublicKey `json:"public_key,omitempty"`
-	Name      string     `json:"name"`
-	CreatedAt *time.Time `json:"created_at"`
+	ID            int        `json:"id"`
+	PublicID      string     `json:"public_id"`
+	PublicKey     *PublicKey `json:"public_key,omitempty"`
+	Name          string     `json:"name"`
+	Email         string     `json:"email"`
+	EmailVerified bool       `json:"email_verified"`
+	CreatedAt     *time.Time `json:"created_at"`
 }
 
 // PublicKey represents to public SSH key for a Smallweb user.
@@ -64,29 +50,32 @@ type PublicKey struct {
 	CreatedAt *time.Time `json:"created_at"`
 }
 
+func (me *DB) UserFromContext(ctx ssh.Context) (*User, error) {
+	key, ok := ctx.Value("key").(string)
+	if !ok {
+		return nil, errors.New("no key found in context")
+	}
+
+	u, err := me.UserForKey(key)
+	if err != nil {
+		return nil, fmt.Errorf("no user found for key: %w", err)
+	}
+
+	return u, nil
+}
+
 // UserForKey returns the user for the given key, or optionally creates a new user with it.
-func (me *DB) UserForKey(key string, create bool) (*User, error) {
+func (me *DB) UserForKey(key string) (*User, error) {
+
 	pk := &PublicKey{}
 	u := &User{}
-	err := me.WrapTransaction(func(tx *sql.Tx) error {
+	if err := me.WrapTransaction(func(tx *sql.Tx) error {
 		var err error
 		r := me.selectPublicKey(tx, key)
 		err = r.Scan(&pk.ID, &pk.UserID, &pk.Key)
-		if err != nil && err != sql.ErrNoRows {
-			return err
-		}
-		if err == sql.ErrNoRows && !create {
+		if err == sql.ErrNoRows {
 			return ErrMissingUser
 		}
-		if err == sql.ErrNoRows {
-			log.Debug("Creating user for key", "key", PublicKeySha(key))
-			err = me.createUser(tx, key)
-			if err != nil {
-				return err
-			}
-		}
-		r = me.selectPublicKey(tx, key)
-		err = r.Scan(&pk.ID, &pk.UserID, &pk.Key)
 		if err != nil {
 			return err
 		}
@@ -101,16 +90,15 @@ func (me *DB) UserForKey(key string, create bool) (*User, error) {
 		}
 		u.PublicKey = pk
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 	return u, nil
 }
 
-func (me *DB) createUser(tx *sql.Tx, key string) error {
+func (me *DB) createUser(tx *sql.Tx, key string, email string) error {
 	publicID := uuid.New().String()
-	err := me.insertUser(tx, publicID)
+	err := me.insertUser(tx, publicID, email)
 	if err != nil {
 		return err
 	}
@@ -122,8 +110,8 @@ func (me *DB) createUser(tx *sql.Tx, key string) error {
 	return me.insertPublicKey(tx, u.ID, key)
 }
 
-func (me *DB) insertUser(tx *sql.Tx, charmID string) error {
-	_, err := tx.Exec(sqlInsertUser, charmID)
+func (me *DB) insertUser(tx *sql.Tx, charmID string, email string) error {
+	_, err := tx.Exec(sqlInsertUser, charmID, email)
 	return err
 }
 
@@ -146,18 +134,21 @@ func (me *DB) selectPublicKey(tx *sql.Tx, key string) *sql.Row {
 
 func (me *DB) scanUser(r *sql.Row) (*User, error) {
 	u := &User{}
-	var un sql.NullString
-	var ca sql.NullTime
-	err := r.Scan(&u.ID, &u.PublicID, &un, &ca)
+	var username sql.NullString
+	var email string
+	var emailVerified bool
+	var createdAt time.Time
+	err := r.Scan(&u.ID, &u.PublicID, &username, &email, &emailVerified, &createdAt)
 	if err != nil {
 		return nil, err
 	}
-	if un.Valid {
-		u.Name = un.String
+	if username.Valid {
+		u.Name = username.String
 	}
-	if ca.Valid {
-		u.CreatedAt = &ca.Time
-	}
+	u.Email = email
+	u.EmailVerified = emailVerified
+
+	u.CreatedAt = &createdAt
 	return u, nil
 }
 
@@ -168,37 +159,30 @@ func PublicKeySha(key string) string {
 
 // WrapTransaction runs the given function within a transaction.
 func (me *DB) WrapTransaction(f func(tx *sql.Tx) error) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*100)
 	defer cancel()
 	tx, err := me.db.BeginTx(ctx, nil)
 	if err != nil {
 		log.Error("error starting transaction", "err", err)
 		return err
 	}
-	for {
-		err = f(tx)
-		if err != nil {
-			serr, ok := err.(*sqlite.Error)
-			if ok && serr.Code() == sqlitelib.SQLITE_BUSY {
-				continue
-			}
-			log.Error("error in transaction", "err", err)
-			return err
-		}
-		err = tx.Commit()
-		if err != nil {
-			log.Error("error committing transaction", "err", err)
-			return err
-		}
-		break
+	err = f(tx)
+	if err != nil {
+		log.Error("error in transaction", "err", err)
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
+		log.Error("error committing transaction", "err", err)
+		return err
 	}
 	return nil
 }
 
 // SetUserName sets a user name for the given user id.
-func (me *DB) SetUserName(charmID string, name string) (*User, error) {
+func (me *DB) SetUserName(publicID string, name string) (*User, error) {
 	var u *User
-	log.Debug("Setting name for user", "name", name, "id", charmID)
+	log.Debug("Setting name for user", "name", name, "id", publicID)
 	err := me.WrapTransaction(func(tx *sql.Tx) error {
 		// nolint: godox
 		// TODO: this should be handled with unique constraints in the database instead.
@@ -209,7 +193,7 @@ func (me *DB) SetUserName(charmID string, name string) (*User, error) {
 			return err
 		}
 		if err == sql.ErrNoRows {
-			r := me.selectUserWithPublicID(tx, charmID)
+			r := me.selectUserWithPublicID(tx, publicID)
 			u, err = me.scanUser(r)
 			if err != nil && err != sql.ErrNoRows {
 				return err
@@ -218,7 +202,7 @@ func (me *DB) SetUserName(charmID string, name string) (*User, error) {
 				return ErrMissingUser
 			}
 
-			err = me.updateUser(tx, charmID, name)
+			err = me.updateUser(tx, publicID, name)
 			if err != nil {
 				return err
 			}
@@ -229,15 +213,57 @@ func (me *DB) SetUserName(charmID string, name string) (*User, error) {
 				return err
 			}
 		}
-		// if u.CharmID != charmID {
-		// 	return charm.ErrNameTaken
-		// }
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return u, nil
+}
+
+func (me *DB) createVerificationCode(user *User, code string) error {
+	if _, err := me.db.Exec(sqlDeleteUserVerificationCodes, user.ID); err != nil {
+		return err
+	}
+
+	expiresAt := time.Now().Add(time.Minute * 15)
+	if _, err := me.db.Exec(sqlInsertVerificationCode, code, user.ID, user.Email, expiresAt); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type VerificationCode struct {
+	ID        int
+	Code      string
+	UserID    int
+	Email     string
+	ExpiresAt time.Time
+}
+
+func (me *DB) verifyVerificationCode(user *User, code string) (bool, error) {
+	row := me.db.QueryRow(sqlSelectVerificationCode, user.ID)
+
+	var storedCode VerificationCode
+	if err := row.Scan(&storedCode.ID, &storedCode.Code, &storedCode.UserID, &storedCode.Email, &storedCode.ExpiresAt); err != nil {
+		return false, err
+	}
+
+	if _, err := me.db.Exec(sqlDeleteUserVerificationCodes, user.ID); err != nil {
+		return false, err
+	}
+
+	if _, err := me.db.Exec(sqlVerifyUserEmail, user.ID); err != nil {
+		return false, err
+	}
+
+	if time.Now().After(storedCode.ExpiresAt) {
+		return false, nil
+	}
+
+	return storedCode.Code == code, nil
 }
 
 func (me *DB) selectUserWithName(tx *sql.Tx, name string) *sql.Row {
