@@ -58,7 +58,7 @@ func (me *DB) UserFromContext(ctx ssh.Context) (*User, error) {
 
 	u, err := me.UserForKey(key)
 	if err != nil {
-		return nil, fmt.Errorf("no user found for key: %w", err)
+		return nil, fmt.Errorf("no user found for key: %s", key)
 	}
 
 	return u, nil

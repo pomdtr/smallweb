@@ -1,32 +1,6 @@
 import { encodeBase64, decodeBase64 } from "jsr:@std/encoding/base64";
 
 /**
- * Given an object of environment variables, create a stub
- * that simulates the same interface as Deno.env
- */
-export function createDenoEnvStub(
-  input: Record<string, string>
-): typeof Deno.env {
-  return {
-    get(key: string) {
-      return input[key];
-    },
-    has(key: string) {
-      return input[key] !== undefined;
-    },
-    toObject() {
-      return { ...input };
-    },
-    set(_key: string, _value: string) {
-      // Stub
-    },
-    delete(_key: string) {
-      // Stub
-    },
-  };
-}
-
-/**
  * Given a Response object, serialize it.
  * Note: if you try this twice on the same Response, it'll
  * crash! Streams, like resp.arrayBuffer(), can only
@@ -93,7 +67,7 @@ if (!inputBytes) {
 }
 const input = new TextDecoder().decode(inputBytes);
 
-const { entrypoint, req, env } = JSON.parse(input) as {
+const { entrypoint, req } = JSON.parse(input) as {
   entrypoint: string;
   req: SerializedRequest;
   env: Record<string, string>;
@@ -103,24 +77,30 @@ const { entrypoint, req, env } = JSON.parse(input) as {
  * Send a message to the host.
  */
 try {
-  // Override the environment
-  Object.defineProperty(Deno, "env", {
-    value: createDenoEnvStub(env),
-  });
-
   const mod = await import(entrypoint);
   const exp = getHandler(mod);
   if (!exp.ok) {
     throw exp.error;
   }
   const resp = await exp.handler.fetch(deserializeRequest(req));
-  const serialized = await serializeResponse(resp);
-
   const writer = conn.writable.getWriter();
-  const output = new TextEncoder().encode(JSON.stringify(serialized));
+  const output = new TextEncoder().encode(
+    JSON.stringify({
+      type: "response",
+      data: await serializeResponse(resp),
+    })
+  );
   await writer.write(output);
 } catch (e) {
   const writer = conn.writable.getWriter();
-  const output = new TextEncoder().encode(JSON.stringify({ error: e.message }));
+  const output = new TextEncoder().encode(
+    JSON.stringify({
+      type: "error",
+      data: {
+        message: e.message,
+        stack: e.stack,
+      },
+    })
+  );
   await writer.write(output);
 }

@@ -121,6 +121,7 @@ func NewCmdProxy() *cobra.Command {
 					"get-user": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
 						user, err := db.UserFromContext(ctx)
 						if err != nil {
+							slog.Info("no user found", slog.String("error", err.Error()))
 							return false, nil
 						}
 
@@ -150,17 +151,19 @@ func NewCmdProxy() *cobra.Command {
 						return true, nil
 					},
 					"signup": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
-						if _, err := db.UserFromContext(ctx); err != nil {
-							return false, nil
+						// if the user already exists
+						user, err := db.UserFromContext(ctx)
+						if err == nil {
+							return true, gossh.Marshal(UserResponse{
+								ID:            user.PublicID,
+								Name:          user.Name,
+								Email:         user.Email,
+								EmailVerified: user.EmailVerified,
+							})
 						}
 
-						publicKey, ok := ctx.Value(ssh.ContextKeyPublicKey).(gossh.PublicKey)
+						key, ok := ctx.Value("key").(string)
 						if !ok {
-							return false, nil
-						}
-
-						keytext, err := keyText(publicKey)
-						if err != nil {
 							return false, nil
 						}
 
@@ -169,20 +172,14 @@ func NewCmdProxy() *cobra.Command {
 							return false, nil
 						}
 
-						var user *User
 						if err := db.WrapTransaction(func(tx *sql.Tx) error {
-							if err := db.createUser(tx, keytext, body.Email); err != nil {
-								return err
-							}
-
-							u, err := db.UserForKey(keytext)
-							if err != nil {
-								return err
-							}
-
-							user = u
-							return nil
+							return db.createUser(tx, key, body.Email)
 						}); err != nil {
+							return false, nil
+						}
+
+						user, err = db.UserForKey(key)
+						if err != nil {
 							return false, nil
 						}
 

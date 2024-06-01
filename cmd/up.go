@@ -123,36 +123,19 @@ func NewCmdUp() *cobra.Command {
 				}
 			}()
 
-			handleChan := func(ch ssh.Channel) error {
-				decoder := json.NewDecoder(ch)
-				var req Request
-				if err := decoder.Decode(&req); err != nil {
-					return fmt.Errorf("could not decode request: %v", err)
-				}
-
+			handleReq := func(req *Request) (*Response, error) {
 				alias, err := req.Alias()
 				if err != nil {
-					return fmt.Errorf("could not get alias: %v", err)
+					return nil, fmt.Errorf("could not get alias: %v", err)
 				}
 
 				entrypoint, err := inferEntrypoint(alias)
 				if err != nil {
-					return fmt.Errorf("could not infer entrypoint: %v", err)
+					return nil, fmt.Errorf("could not infer entrypoint: %v", err)
 				}
 
 				client := NewDenoClient(entrypoint)
-				resp, err := client.Do(&req)
-				if err != nil {
-					return fmt.Errorf("could not fetch response: %v", err)
-				}
-
-				encoder := json.NewEncoder(ch)
-				encoder.SetEscapeHTML(false)
-				if err := encoder.Encode(resp); err != nil {
-					return fmt.Errorf("could not encode response: %v", err)
-				}
-
-				return nil
+				return client.Do(req)
 			}
 
 			slog.Info("smallweb tunnel is up")
@@ -167,7 +150,29 @@ func NewCmdUp() *cobra.Command {
 				}
 				go ssh.DiscardRequests(reqs)
 
-				go handleChan(ch)
+				go func(ch ssh.Channel) {
+					decoder := json.NewDecoder(ch)
+					var req *Request
+					if err := decoder.Decode(&req); err != nil {
+						log.Printf("could not decode request: %v", err)
+						return
+					}
+
+					resp, err := handleReq(req)
+					if err != nil {
+						resp = &Response{
+							Code: 500,
+							Body: []byte("Internal server error"),
+						}
+					}
+
+					encoder := json.NewEncoder(ch)
+					encoder.SetEscapeHTML(false)
+					if err := encoder.Encode(resp); err != nil {
+						log.Printf("could not encode response: %v", err)
+						return
+					}
+				}(ch)
 			}
 
 			return nil
@@ -207,7 +212,7 @@ func NewClient(cfg *Config) (*Client, error) {
 		Config: cfg,
 	}
 
-	sshKeys, err := cc.findAuthKeys("id_rsa")
+	sshKeys, err := cc.findAuthKeys(cfg.KeyType)
 	if err != nil {
 		return nil, err
 	}

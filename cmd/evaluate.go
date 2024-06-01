@@ -17,7 +17,6 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
-	"github.com/joho/godotenv"
 )
 
 var extensions = []string{".js", ".ts", ".jsx", ".tsx"}
@@ -82,6 +81,11 @@ type Request struct {
 	Body    []byte     `json:"body,omitempty"`
 }
 
+type ErrorResponse struct {
+	Message string `json:"message"`
+	Stack   string `json:"stack"`
+}
+
 func (r Request) Username() (string, error) {
 	url, err := url.Parse(r.Url)
 	if err != nil {
@@ -126,6 +130,11 @@ func NewDenoClient(entrypoint string) *DenoClient {
 	return &DenoClient{entrypoint: entrypoint}
 }
 
+type Message struct {
+	Type string          `json:"type"`
+	Data json.RawMessage `json:"data"`
+}
+
 func (me *DenoClient) Do(req *Request) (*Response, error) {
 	rootDir := path.Dir(me.entrypoint)
 	if strings.HasSuffix(me.entrypoint, ".html") {
@@ -167,20 +176,10 @@ func (me *DenoClient) Do(req *Request) (*Response, error) {
 		return nil, err
 	}
 
-	cmd := exec.Command(deno, "run", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
+	cmd := exec.Command(deno, "run", "--env", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
 	cmd.Dir = rootDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
-	var env map[string]string
-	if exists(".env") {
-		envMap, err := godotenv.Read(".env")
-		if err != nil {
-			return nil, err
-		}
-
-		env = envMap
-	}
 
 	go cmd.Run()
 
@@ -193,18 +192,40 @@ func (me *DenoClient) Do(req *Request) (*Response, error) {
 	if err := encoder.Encode(&CommandInput{
 		Req:        *req,
 		Entrypoint: me.entrypoint,
-		Env:        env,
 	}); err != nil {
 		return nil, err
 	}
 
+	var msg Message
 	decoder := json.NewDecoder(conn)
-	var res Response
-	if err := decoder.Decode(&res); err != nil {
-		return nil, err
+	if err := decoder.Decode(&msg); err != nil {
+		return nil, fmt.Errorf("could not decode message: %v", err)
 	}
 
-	return &res, nil
+	switch msg.Type {
+	case "response":
+		var res Response
+		if err := json.Unmarshal(msg.Data, &res); err != nil {
+			return nil, err
+		}
+		return &res, nil
+	case "error":
+		b, err := json.Marshal(msg.Data)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Response{
+			Code: 500,
+			Headers: [][]string{
+				{"Content-Type", "application/json"},
+			},
+			Body: b,
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unexpected message type: %s", msg.Type)
+	}
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.
