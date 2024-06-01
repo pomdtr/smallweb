@@ -23,23 +23,23 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
-type SetUsernameBody struct {
-	Username string
-}
-
-type SignupBody struct {
+type LoginParams struct {
 	Email string
 }
 
-type VerifyEmailBody struct {
+type SignupParams struct {
+	Email    string
+	Username string
+}
+
+type VerifyEmailParams struct {
 	Code string
 }
 
 type UserResponse struct {
-	ID            string
-	Name          string
-	Email         string
-	EmailVerified bool
+	ID    string
+	Name  string
+	Email string
 }
 
 func sendVerificationCode(client *resend.Client, email string, code string) error {
@@ -55,8 +55,9 @@ func sendVerificationCode(client *resend.Client, email string, code string) erro
 
 func NewCmdProxy() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "proxy",
-		Short: "Start a smallweb proxy",
+		Use:    "proxy",
+		Short:  "Start a smallweb proxy",
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resendApiKey, ok := os.LookupEnv("RESEND_API_KEY")
 			if !ok {
@@ -118,7 +119,7 @@ func NewCmdProxy() *cobra.Command {
 					return true
 				},
 				RequestHandlers: map[string]ssh.RequestHandler{
-					"get-user": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
+					"user": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
 						user, err := db.UserFromContext(ctx)
 						if err != nil {
 							slog.Info("no user found", slog.String("error", err.Error()))
@@ -126,40 +127,48 @@ func NewCmdProxy() *cobra.Command {
 						}
 
 						return true, gossh.Marshal(UserResponse{
-							ID:            user.PublicID,
-							Name:          user.Name,
-							Email:         user.Email,
-							EmailVerified: user.EmailVerified,
+							ID:    user.PublicID,
+							Name:  user.Name,
+							Email: user.Email,
 						})
 
 					},
-					"set-username": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
-						user, err := db.UserFromContext(ctx)
+					"signup": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
+						// if the user already exists, it means they are already authenticated
+						if _, err := db.UserFromContext(ctx); err == nil {
+							return false, nil
+						}
+
+						var params SignupParams
+						if err := gossh.Unmarshal(req.Payload, &params); err != nil {
+							return false, nil
+						}
+
+						code, err := generateVerificationCode()
 						if err != nil {
 							return false, nil
 						}
 
-						var body SetUsernameBody
-						if err := gossh.Unmarshal(req.Payload, &body); err != nil {
+						if err := sendVerificationCode(resendClient, params.Email, code); err != nil {
 							return false, nil
 						}
 
-						if _, err := db.SetUserName(user.PublicID, body.Username); err != nil {
+						conn := ctx.Value(ssh.ContextKeyConn).(*gossh.ServerConn)
+						codeOk, payload, err := conn.SendRequest("code", true, nil)
+						if err != nil {
+							return false, nil
+						}
+						if !codeOk {
 							return false, nil
 						}
 
-						return true, nil
-					},
-					"signup": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
-						// if the user already exists
-						user, err := db.UserFromContext(ctx)
-						if err == nil {
-							return true, gossh.Marshal(UserResponse{
-								ID:            user.PublicID,
-								Name:          user.Name,
-								Email:         user.Email,
-								EmailVerified: user.EmailVerified,
-							})
+						var verifyParams VerifyEmailParams
+						if err := gossh.Unmarshal(payload, &verifyParams); err != nil {
+							return false, nil
+						}
+
+						if verifyParams.Code != code {
+							return false, nil
 						}
 
 						key, ok := ctx.Value("key").(string)
@@ -167,65 +176,88 @@ func NewCmdProxy() *cobra.Command {
 							return false, nil
 						}
 
-						var body SignupBody
-						if err := gossh.Unmarshal(req.Payload, &body); err != nil {
-							return false, nil
-						}
-
 						if err := db.WrapTransaction(func(tx *sql.Tx) error {
-							return db.createUser(tx, key, body.Email)
+							return db.createUser(tx, key, params.Email, params.Username)
 						}); err != nil {
 							return false, nil
 						}
 
-						user, err = db.UserForKey(key)
+						return true, nil
+					},
+					"login": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
+						var params LoginParams
+						if err := gossh.Unmarshal(req.Payload, &params); err != nil {
+							return false, nil
+						}
+
+						var user *User
+						if err := db.WrapTransaction(func(tx *sql.Tx) error {
+							row := db.selectUserWithEmail(tx, params.Email)
+							u, err := db.scanUser(row)
+							if err != nil {
+								return err
+							}
+							user = u
+
+							return nil
+						}); err != nil {
+							return false, nil
+						}
+
+						code, err := generateVerificationCode()
 						if err != nil {
 							return false, nil
 						}
 
-						return true, gossh.Marshal(UserResponse{
-							ID:            user.PublicID,
-							Name:          user.Name,
-							Email:         user.Email,
-							EmailVerified: user.EmailVerified,
-						})
+						if err := sendVerificationCode(resendClient, params.Email, code); err != nil {
+							return false, nil
+						}
+
+						conn := ctx.Value(ssh.ContextKeyConn).(*gossh.ServerConn)
+						codeOk, payload, err := conn.SendRequest("code", true, nil)
+						if err != nil {
+							return false, nil
+						}
+						if !codeOk {
+							return false, nil
+						}
+
+						var verifyParams VerifyEmailParams
+						if err := gossh.Unmarshal(payload, &verifyParams); err != nil {
+							return false, nil
+						}
+
+						if verifyParams.Code != code {
+							return false, nil
+						}
+
+						key, ok := ctx.Value("key").(string)
+						if !ok {
+							return false, nil
+						}
+
+						if err := db.WrapTransaction(func(tx *sql.Tx) error {
+							return db.insertPublicKey(tx, user.ID, key)
+						}); err != nil {
+							return false, nil
+						}
+
+						return true, nil
 					},
-					"verify-email": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
+					"logout": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
 						user, err := db.UserFromContext(ctx)
 						if err != nil {
 							return false, nil
 						}
 
-						if len(req.Payload) == 0 {
-
-							code, err := generateRandomString(8, "0123456789")
-							if err != nil {
-								fmt.Println("Error generating random string:", err)
-								return
-							}
-
-							if err := db.createVerificationCode(user, code); err != nil {
-								return false, nil
-							}
-
-							if err := sendVerificationCode(resendClient, user.Email, code); err != nil {
-								return false, nil
-							}
-							return true, nil
-						}
-
-						var body VerifyEmailBody
-						if err := gossh.Unmarshal(req.Payload, &body); err != nil {
+						key := ctx.Value("key").(string)
+						if err := db.WrapTransaction(func(tx *sql.Tx) error {
+							return db.deletePublicKey(tx, user.ID, key)
+						}); err != nil {
 							return false, nil
 						}
 
-						codeIsValid, err := db.verifyVerificationCode(user, body.Code)
-						if err != nil {
-							return false, nil
-						}
-
-						return codeIsValid, nil
-
+						return true, nil
 					},
 					"smallweb-forward": forwarder.HandleSSHRequest,
 				},
@@ -342,6 +374,10 @@ func (me *Forwarder) KeepAlive() {
 func keyText(publicKey gossh.PublicKey) (string, error) {
 	kb := base64.StdEncoding.EncodeToString(publicKey.Marshal())
 	return fmt.Sprintf("%s %s", publicKey.Type(), kb), nil
+}
+
+func generateVerificationCode() (string, error) {
+	return generateRandomString(8, "0123456789")
 }
 
 func generateRandomString(length int, alphabet string) (string, error) {

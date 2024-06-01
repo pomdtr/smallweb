@@ -43,35 +43,59 @@ func init() {
 	}
 }
 
-func inferEntrypoint(name string) (string, error) {
+func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 	var lookupDirs []string
 	if env, ok := os.LookupEnv("SMALLWEB_PATH"); ok {
 		lookupDirs = strings.Split(env, ":")
 	} else {
 		homedir, err := os.UserHomeDir()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		lookupDirs = []string{path.Join(homedir, "www")}
 	}
 
-	for _, dir := range lookupDirs {
+	return &WorkerEntrypoints{
+		Fetch: func() string {
+			for _, dir := range lookupDirs {
+				for _, ext := range extensions {
+					entrypoint := path.Join(dir, name, "fetch"+ext)
+					if exists(entrypoint) {
+						return entrypoint
+					}
+				}
 
-		for _, ext := range extensions {
-			entrypoint := path.Join(dir, name, "mod"+ext)
-			if exists(entrypoint) {
-				return entrypoint, nil
+				entrypoint := path.Join(dir, name, "index.html")
+				if exists(entrypoint) {
+					return entrypoint
+				}
 			}
-		}
-
-		entrypoint := path.Join(dir, name, "index.html")
-		if exists(entrypoint) {
-			return entrypoint, nil
-		}
-	}
-
-	return "", fmt.Errorf("entrypoint not found")
+			return ""
+		}(),
+		Cli: func() string {
+			for _, dir := range lookupDirs {
+				for _, ext := range extensions {
+					entrypoint := path.Join(dir, name, "cli"+ext)
+					if exists(entrypoint) {
+						return entrypoint
+					}
+				}
+			}
+			return ""
+		}(),
+		Email: func() string {
+			for _, dir := range lookupDirs {
+				for _, ext := range extensions {
+					entrypoint := path.Join(dir, name, "email"+ext)
+					if exists(entrypoint) {
+						return entrypoint
+					}
+				}
+			}
+			return ""
+		}(),
+	}, nil
 }
 
 type Request struct {
@@ -122,12 +146,23 @@ type Response struct {
 	Body    []byte     `json:"body"`
 }
 
-type DenoClient struct {
-	entrypoint string
+type WorkerEntrypoints struct {
+	Fetch string
+	Email string
+	Cli   string
 }
 
-func NewDenoClient(entrypoint string) *DenoClient {
-	return &DenoClient{entrypoint: entrypoint}
+type Worker struct {
+	entrypoints WorkerEntrypoints
+}
+
+func NewWorker(alias string) (*Worker, error) {
+	entrypoints, err := inferEntrypoints(alias)
+	if err != nil {
+		return nil, fmt.Errorf("could not infer entrypoint: %v", err)
+	}
+
+	return &Worker{entrypoints: *entrypoints}, nil
 }
 
 type Message struct {
@@ -135,9 +170,23 @@ type Message struct {
 	Data json.RawMessage `json:"data"`
 }
 
-func (me *DenoClient) Do(req *Request) (*Response, error) {
-	rootDir := path.Dir(me.entrypoint)
-	if strings.HasSuffix(me.entrypoint, ".html") {
+func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
+	deno, err := denoExecutable()
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := exec.Command(deno, args...)
+	return cmd, nil
+}
+
+func (me *Worker) Fetch(req *Request) (*Response, error) {
+	if me.entrypoints.Fetch == "" {
+		return nil, fmt.Errorf("entrypoint not found")
+	}
+
+	rootDir := path.Dir(me.entrypoints.Fetch)
+	if strings.HasSuffix(me.entrypoints.Fetch, ".html") {
 		fileServer := http.FileServer(http.Dir(rootDir))
 		rr := httptest.NewRecorder()
 		req := httptest.NewRequest(req.Method, req.Url, nil)
@@ -161,11 +210,6 @@ func (me *DenoClient) Do(req *Request) (*Response, error) {
 
 	}
 
-	deno, err := denoExecutable()
-	if err != nil {
-		return nil, err
-	}
-
 	freeport, err := GetFreePort()
 	if err != nil {
 		return nil, err
@@ -176,7 +220,11 @@ func (me *DenoClient) Do(req *Request) (*Response, error) {
 		return nil, err
 	}
 
-	cmd := exec.Command(deno, "run", "--env", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
+	cmd, err := me.Cmd("run", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
+	if err != nil {
+		return nil, err
+	}
+
 	cmd.Dir = rootDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -191,7 +239,7 @@ func (me *DenoClient) Do(req *Request) (*Response, error) {
 	encoder := json.NewEncoder(conn)
 	if err := encoder.Encode(&CommandInput{
 		Req:        *req,
-		Entrypoint: me.entrypoint,
+		Entrypoint: me.entrypoints.Fetch,
 	}); err != nil {
 		return nil, err
 	}
@@ -226,6 +274,26 @@ func (me *DenoClient) Do(req *Request) (*Response, error) {
 	default:
 		return nil, fmt.Errorf("unexpected message type: %s", msg.Type)
 	}
+}
+
+func (me *Worker) Run(runArgs []string) error {
+	if me.entrypoints.Cli == "" {
+		return fmt.Errorf("entrypoint not found")
+	}
+
+	args := []string{"run", "--allow-all", me.entrypoints.Cli}
+	args = append(args, runArgs...)
+
+	command, err := me.Cmd(args...)
+	if err != nil {
+		return err
+	}
+
+	command.Stdin = os.Stdin
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+
+	return command.Run()
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.

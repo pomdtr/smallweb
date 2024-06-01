@@ -47,9 +47,9 @@
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "env": {
-                "SMALLWEB_HOST": "localhost"
-            },
+            // "env": {
+            //     "SMALLWEB_HOST": "localhost"
+            // },
             "args": [
                 "auth",
                 "signup"

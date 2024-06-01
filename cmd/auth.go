@@ -3,26 +3,44 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"net"
 
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
 )
 
-func promptEmail() (string, error) {
-	var email string
+func signupForm() (*SignupParams, error) {
+	var params SignupParams
 
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Email").Description("Enter your email").Value(&email),
+			huh.NewInput().Title("Email").Description("Enter your email").Value(&params.Email),
+			huh.NewInput().Title("Username").Description("Choose a username").Value(&params.Username),
 		),
 	)
 
 	if err := form.Run(); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return email, nil
+	return &params, nil
+}
+
+func loginForm() (*LoginParams, error) {
+	var params LoginParams
+
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().Title("Email").Description("Enter your email").Value(&params.Email),
+		),
+	)
+
+	if err := form.Run(); err != nil {
+		return nil, err
+	}
+
+	return &params, nil
 }
 
 func promptVerificationCode() (string, error) {
@@ -50,6 +68,7 @@ func NewCmdAuth() *cobra.Command {
 	cmd.AddCommand(NewCmdAuthSignup())
 	cmd.AddCommand(NewCmdAuthLogin())
 	cmd.AddCommand(NewCmdAuthLogout())
+	cmd.AddCommand(NewCmdAuthWhoAmI())
 
 	return cmd
 }
@@ -66,76 +85,63 @@ func NewCmdAuthSignup() *cobra.Command {
 			}
 
 			addr := fmt.Sprintf("%s:%d", client.Config.Host, client.Config.SSHPort)
-			conn, err := ssh.Dial("tcp", addr, client.sshConfig)
+			conn, err := net.DialTimeout("tcp", addr, client.sshConfig.Timeout)
 			if err != nil {
-				log.Fatalf("could not dial: %v", err)
+				return err
 			}
 
-			ok, payload, err := conn.SendRequest("get-user", true, nil)
+			c, chans, reqs, err := ssh.NewClientConn(conn, addr, client.sshConfig)
+			if err != nil {
+				return err
+			}
+
+			go func() {
+				for req := range reqs {
+					if req.Type == "code" {
+						code, err := promptVerificationCode()
+						if err != nil {
+							req.Reply(false, nil)
+						}
+
+						req.Reply(true, ssh.Marshal(VerifyEmailParams{Code: code}))
+					}
+					req.Reply(false, nil)
+				}
+			}()
+
+			go func() {
+				for newChan := range chans {
+					newChan.Reject(ssh.Prohibited, "no channels available")
+				}
+			}()
+
+			userExists, _, err := c.SendRequest("user", true, nil)
 			if err != nil {
 				return fmt.Errorf("could not send request: %v", err)
-			} else if ok {
-				var user UserResponse
-				if err := ssh.Unmarshal(payload, &user); err != nil {
-					return fmt.Errorf("could not unmarshal user: %v", err)
-				}
-
-				if user.EmailVerified {
-					fmt.Println("You are already logged in.")
-					return nil
-				}
-
-				return verifyEmail(conn, user.Email)
 			}
 
-			email, err := promptEmail()
+			if userExists {
+				fmt.Println("You are already authenticated.")
+				return nil
+			}
+
+			params, err := signupForm()
 			if err != nil {
 				return fmt.Errorf("could not prompt for email: %v", err)
 			}
 
-			ok, payload, err = conn.SendRequest("signup", true, ssh.Marshal(SignupBody{Email: email}))
+			userExists, _, err = c.SendRequest("signup", true, ssh.Marshal(params))
 			if err != nil {
 				log.Fatalf("could not send request: %v", err)
-			} else if !ok {
+			} else if !userExists {
 				return fmt.Errorf("failed to sign up")
 			}
 
-			var res UserResponse
-			if err := ssh.Unmarshal(payload, &res); err != nil {
-				return fmt.Errorf("could not unmarshal user: %v", err)
-			}
-
-			return verifyEmail(conn, res.Email)
+			return nil
 		},
 	}
 
 	return cmd
-}
-
-func verifyEmail(conn ssh.Conn, email string) error {
-	emailSent, _, err := conn.SendRequest("verify-email", true, nil)
-	if err != nil {
-		log.Fatalf("could not send request: %v", err)
-	}
-	if !emailSent {
-		return fmt.Errorf("failed to send verification email")
-	}
-
-	code, err := promptVerificationCode()
-	if err != nil {
-		return fmt.Errorf("could not prompt for verification code: %v", err)
-	}
-
-	emailVerified, _, err := conn.SendRequest("verify-email", true, ssh.Marshal(VerifyEmailBody{Code: code}))
-	if err != nil {
-		log.Fatalf("could not send request: %v", err)
-	}
-
-	if !emailVerified {
-		return fmt.Errorf("failed to verify email")
-	}
-
-	return nil
 }
 
 func NewCmdAuthLogin() *cobra.Command {
@@ -150,12 +156,37 @@ func NewCmdAuthLogin() *cobra.Command {
 			}
 
 			addr := fmt.Sprintf("%s:%d", client.Config.Host, client.Config.SSHPort)
-			conn, err := ssh.Dial("tcp", addr, client.sshConfig)
+			conn, err := net.DialTimeout("tcp", addr, client.sshConfig.Timeout)
 			if err != nil {
-				log.Fatalf("could not dial: %v", err)
+				return err
 			}
 
-			ok, _, err := conn.SendRequest("/me", true, nil)
+			c, chans, reqs, err := ssh.NewClientConn(conn, addr, client.sshConfig)
+			if err != nil {
+				return err
+			}
+
+			go func() {
+				for req := range reqs {
+					if req.Type == "code" {
+						code, err := promptVerificationCode()
+						if err != nil {
+							req.Reply(false, nil)
+						}
+
+						req.Reply(true, ssh.Marshal(VerifyEmailParams{Code: code}))
+					}
+					req.Reply(false, nil)
+				}
+			}()
+
+			go func() {
+				for newChan := range chans {
+					newChan.Reject(ssh.Prohibited, "no channels available")
+				}
+			}()
+
+			ok, _, err := c.SendRequest("user", true, nil)
 			if err != nil {
 				return fmt.Errorf("could not send request: %v", err)
 			} else if ok {
@@ -163,7 +194,12 @@ func NewCmdAuthLogin() *cobra.Command {
 				return nil
 			}
 
-			ok, _, err = conn.SendRequest("/auth/login", true, nil)
+			params, err := loginForm()
+			if err != nil {
+				return fmt.Errorf("could not prompt for username: %v", err)
+			}
+
+			ok, _, err = c.SendRequest("login", true, ssh.Marshal(params))
 			if err != nil {
 				log.Fatalf("could not send request: %v", err)
 			} else if !ok {
@@ -195,7 +231,7 @@ func NewCmdAuthLogout() *cobra.Command {
 				log.Fatalf("could not dial: %v", err)
 			}
 
-			ok, _, err := conn.SendRequest("get-user", true, nil)
+			ok, _, err := conn.SendRequest("user", true, nil)
 			if err != nil {
 				return fmt.Errorf("could not send request: %v", err)
 			} else if !ok {
@@ -212,6 +248,44 @@ func NewCmdAuthLogout() *cobra.Command {
 
 			return nil
 
+		},
+	}
+
+	return cmd
+}
+
+func NewCmdAuthWhoAmI() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "whoami",
+		Short: "Display the current user",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := NewClientWithDefaults()
+			if err != nil {
+				log.Fatalf("failed to create client: %v", err)
+			}
+
+			addr := fmt.Sprintf("%s:%d", client.Config.Host, client.Config.SSHPort)
+			conn, err := ssh.Dial("tcp", addr, client.sshConfig)
+			if err != nil {
+				log.Fatalf("could not dial: %v", err)
+			}
+
+			ok, payload, err := conn.SendRequest("user", true, nil)
+			if err != nil {
+				log.Fatalf("could not send request: %v", err)
+			} else if !ok {
+				return fmt.Errorf("not logged in")
+			}
+
+			var user UserResponse
+			if err := ssh.Unmarshal(payload, &user); err != nil {
+				log.Fatalf("could not unmarshal user: %v", err)
+			}
+
+			fmt.Printf("You are logged in as %s\n", user.Name)
+
+			return nil
 		},
 	}
 

@@ -9,7 +9,6 @@ require (
 	github.com/charmbracelet/keygen v0.5.0
 	github.com/gliderlabs/ssh v0.3.7
 	github.com/google/uuid v1.6.0
-	github.com/joho/godotenv v1.5.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/go-app-paths v0.2.2
 	github.com/resend/resend-go/v2 v2.6.0
@@ -32,6 +31,7 @@ require (
 	github.com/charmbracelet/x/input v0.1.1 // indirect
 	github.com/charmbracelet/x/term v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.1.2 // indirect
+	github.com/cli/browser v1.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

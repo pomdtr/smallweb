@@ -28,6 +28,8 @@ func NewCmdRoot() *cobra.Command {
 	cmd.AddCommand(NewCmdServe())
 	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdAuth())
+	cmd.AddCommand(NewCmdRun())
+	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdProxy())
 	cmd.InitDefaultCompletionCmd()
 

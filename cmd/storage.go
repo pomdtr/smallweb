@@ -33,13 +33,12 @@ type DB struct {
 }
 
 type User struct {
-	ID            int        `json:"id"`
-	PublicID      string     `json:"public_id"`
-	PublicKey     *PublicKey `json:"public_key,omitempty"`
-	Name          string     `json:"name"`
-	Email         string     `json:"email"`
-	EmailVerified bool       `json:"email_verified"`
-	CreatedAt     *time.Time `json:"created_at"`
+	ID        int        `json:"id"`
+	PublicID  string     `json:"public_id"`
+	PublicKey *PublicKey `json:"public_key,omitempty"`
+	Name      string     `json:"name"`
+	Email     string     `json:"email"`
+	CreatedAt *time.Time `json:"created_at"`
 }
 
 // PublicKey represents to public SSH key for a Smallweb user.
@@ -96,9 +95,9 @@ func (me *DB) UserForKey(key string) (*User, error) {
 	return u, nil
 }
 
-func (me *DB) createUser(tx *sql.Tx, key string, email string) error {
+func (me *DB) createUser(tx *sql.Tx, key string, email string, username string) error {
 	publicID := uuid.New().String()
-	err := me.insertUser(tx, publicID, email)
+	err := me.insertUser(tx, publicID, email, username)
 	if err != nil {
 		return err
 	}
@@ -110,8 +109,8 @@ func (me *DB) createUser(tx *sql.Tx, key string, email string) error {
 	return me.insertPublicKey(tx, u.ID, key)
 }
 
-func (me *DB) insertUser(tx *sql.Tx, charmID string, email string) error {
-	_, err := tx.Exec(sqlInsertUser, charmID, email)
+func (me *DB) insertUser(tx *sql.Tx, charmID string, email string, username string) error {
+	_, err := tx.Exec(sqlInsertUser, charmID, email, username)
 	return err
 }
 
@@ -128,6 +127,11 @@ func (me *DB) insertPublicKey(tx *sql.Tx, userID int, key string) error {
 	return err
 }
 
+func (me *DB) deletePublicKey(tx *sql.Tx, userID int, key string) error {
+	_, err := tx.Exec(sqlDeletePublicKey, userID, key)
+	return err
+}
+
 func (me *DB) selectPublicKey(tx *sql.Tx, key string) *sql.Row {
 	return tx.QueryRow(sqlSelectPublicKey, key)
 }
@@ -136,9 +140,8 @@ func (me *DB) scanUser(r *sql.Row) (*User, error) {
 	u := &User{}
 	var username sql.NullString
 	var email string
-	var emailVerified bool
 	var createdAt time.Time
-	err := r.Scan(&u.ID, &u.PublicID, &username, &email, &emailVerified, &createdAt)
+	err := r.Scan(&u.ID, &u.PublicID, &username, &email, &createdAt)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +149,6 @@ func (me *DB) scanUser(r *sql.Row) (*User, error) {
 		u.Name = username.String
 	}
 	u.Email = email
-	u.EmailVerified = emailVerified
 
 	u.CreatedAt = &createdAt
 	return u, nil
@@ -222,52 +224,12 @@ func (me *DB) SetUserName(publicID string, name string) (*User, error) {
 	return u, nil
 }
 
-func (me *DB) createVerificationCode(user *User, code string) error {
-	if _, err := me.db.Exec(sqlDeleteUserVerificationCodes, user.ID); err != nil {
-		return err
-	}
-
-	expiresAt := time.Now().Add(time.Minute * 15)
-	if _, err := me.db.Exec(sqlInsertVerificationCode, code, user.ID, user.Email, expiresAt); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type VerificationCode struct {
-	ID        int
-	Code      string
-	UserID    int
-	Email     string
-	ExpiresAt time.Time
-}
-
-func (me *DB) verifyVerificationCode(user *User, code string) (bool, error) {
-	row := me.db.QueryRow(sqlSelectVerificationCode, user.ID)
-
-	var storedCode VerificationCode
-	if err := row.Scan(&storedCode.ID, &storedCode.Code, &storedCode.UserID, &storedCode.Email, &storedCode.ExpiresAt); err != nil {
-		return false, err
-	}
-
-	if _, err := me.db.Exec(sqlDeleteUserVerificationCodes, user.ID); err != nil {
-		return false, err
-	}
-
-	if _, err := me.db.Exec(sqlVerifyUserEmail, user.ID); err != nil {
-		return false, err
-	}
-
-	if time.Now().After(storedCode.ExpiresAt) {
-		return false, nil
-	}
-
-	return storedCode.Code == code, nil
-}
-
 func (me *DB) selectUserWithName(tx *sql.Tx, name string) *sql.Row {
 	return tx.QueryRow(sqlSelectUserWithName, name)
+}
+
+func (me *DB) selectUserWithEmail(tx *sql.Tx, email string) *sql.Row {
+	return tx.QueryRow(sqlSelectUserWithEmail, email)
 }
 
 func (me *DB) updateUser(tx *sql.Tx, charmID string, name string) error {

@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -38,29 +37,25 @@ func serializeRequest(req *http.Request) (*Request, error) {
 
 func NewCmdServe() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "serve",
+		Use:   "serve <mod>",
 		Short: "Start a smallweb server",
-		Args:  cobra.NoArgs,
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			port, _ := cmd.Flags().GetInt("port")
+			worker, err := NewWorker(args[0])
+			if err != nil {
+				return fmt.Errorf("failed to create client: %v", err)
+			}
+
 			server := http.Server{
 				Addr: fmt.Sprintf(":%d", port),
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					subdomain := strings.Split(r.Host, ".")[0]
 					req, err := serializeRequest(r)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
 					}
 
-					entrypoint, err := inferEntrypoint(subdomain)
-					if err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
-					}
-
-					client := NewDenoClient(entrypoint)
-					res, err := client.Do(req)
+					res, err := worker.Fetch(req)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return

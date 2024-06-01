@@ -8,13 +8,11 @@ import (
 	"log/slog"
 	"net"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/caarlos0/env/v6"
-	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/keygen"
 	"github.com/mitchellh/go-homedir"
 	gap "github.com/muesli/go-app-paths"
@@ -26,25 +24,6 @@ import (
 var (
 	ErrMissingSSHAuth = errors.New("no SSH auth found")
 )
-
-func promptUserName() (string, error) {
-	var username string
-	if user, err := user.Current(); err == nil {
-		username = user.Username
-	}
-
-	form := huh.NewForm(
-		huh.NewGroup(
-			huh.NewInput().Title("Username").Description("Choose a username").Value(&username),
-		),
-	)
-
-	if err := form.Run(); err != nil {
-		return "", err
-	}
-
-	return username, nil
-}
 
 func NewCmdUp() *cobra.Command {
 	return &cobra.Command{
@@ -69,39 +48,6 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			go ssh.DiscardRequests(reqs)
-
-			userExists, payload, err := sshConn.SendRequest("get-user", true, nil)
-			if err != nil {
-				log.Fatalf("could not get user: %v", err)
-			}
-			if !userExists {
-				return fmt.Errorf("credentials not found, please run 'smallweb auth signup' or 'smallweb auth login'")
-			}
-
-			var user UserResponse
-			if err := ssh.Unmarshal(payload, &user); err != nil {
-				log.Fatalf("could not unmarshal user: %v", err)
-			}
-
-			if !user.EmailVerified {
-				if err := verifyEmail(sshConn, user.Email); err != nil {
-					log.Fatalf("could not verify email: %v", err)
-				}
-			}
-
-			if user.Name == "" {
-				username, err := promptUserName()
-				if err != nil {
-					log.Fatalf("could not prompt for username: %v", err)
-				}
-
-				ok, _, err := sshConn.SendRequest("set-username", true, ssh.Marshal(SetUsernameBody{Username: username}))
-				if err != nil {
-					log.Fatalf("could not set username: %v", err)
-				} else if !ok {
-					log.Fatalf("could not set username")
-				}
-			}
 
 			ok, _, err := sshConn.SendRequest("smallweb-forward", true, nil)
 			if err != nil {
@@ -129,13 +75,11 @@ func NewCmdUp() *cobra.Command {
 					return nil, fmt.Errorf("could not get alias: %v", err)
 				}
 
-				entrypoint, err := inferEntrypoint(alias)
+				worker, err := NewWorker(alias)
 				if err != nil {
-					return nil, fmt.Errorf("could not infer entrypoint: %v", err)
+					return nil, fmt.Errorf("could not create worker: %v", err)
 				}
-
-				client := NewDenoClient(entrypoint)
-				return client.Do(req)
+				return worker.Fetch(req)
 			}
 
 			slog.Info("smallweb tunnel is up")
