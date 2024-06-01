@@ -1,17 +1,7 @@
 <div class="oranda-hide">
 
-# Small Web
+# Small Web - Put websites in your $PATH
 
 </div>
 
-## Installation
-
-```bash
-go install github.com/pomdtr/smallweb
-```
-
-## Launch the evaluation server
-
-```bash
-smallweb serve <root-dir> --port 7777
-```
+> WIP
