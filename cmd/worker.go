@@ -43,17 +43,29 @@ type Email struct {
 	To      string
 	Cc      string
 	Bcc     string
-	Subject *string
-	Text    *string
-	Html    *string
+	Subject string
+	Text    string
+	Html    string
 }
 
-func (e *Email) Username() (string, error) {
-	return "pomdtr", nil
+func (me *Email) Username() (string, error) {
+	host := strings.Split(me.To, "@")[0]
+	parts := strings.Split(host, "-")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("invalid subdomain")
+	}
+
+	return parts[len(parts)-1], nil
 }
 
-func (e *Email) App() (string, error) {
-	return "email", nil
+func (me *Email) App() (string, error) {
+	host := strings.Split(me.To, "@")[0]
+	parts := strings.Split(host, "-")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("invalid subdomain")
+	}
+
+	return strings.Join(parts[:len(parts)-1], "-"), nil
 }
 
 func init() {
@@ -84,7 +96,7 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 		Http: func() string {
 			for _, dir := range lookupDirs {
 				for _, ext := range extensions {
-					entrypoint := path.Join(dir, name, "fetch"+ext)
+					entrypoint := path.Join(dir, name, "http"+ext)
 					if exists(entrypoint) {
 						return entrypoint
 					}
@@ -149,7 +161,7 @@ func (r Request) Username() (string, error) {
 	return parts[len(parts)-1], nil
 }
 
-func (r Request) Alias() (string, error) {
+func (r Request) App() (string, error) {
 	url, err := url.Parse(r.Url)
 	if err != nil {
 		return "", err
@@ -262,6 +274,7 @@ func (me *Worker) Fetch(req *Request) (*Response, error) {
 
 	encoder := json.NewEncoder(conn)
 	if err := encoder.Encode(&FetchInput{
+		Type:       "fetch",
 		Req:        *req,
 		Entrypoint: me.entrypoints.Http,
 	}); err != nil {
@@ -305,7 +318,7 @@ func (me *Worker) Email(email *Email) (*Email, error) {
 		return nil, fmt.Errorf("entrypoint not found")
 	}
 
-	rootDir := path.Dir(me.entrypoints.Http)
+	rootDir := path.Dir(me.entrypoints.Email)
 	freeport, err := GetFreePort()
 	if err != nil {
 		return nil, err
@@ -334,8 +347,9 @@ func (me *Worker) Email(email *Email) (*Email, error) {
 
 	encoder := json.NewEncoder(conn)
 	if err := encoder.Encode(&EmailInput{
+		Type:       "email",
 		Email:      *email,
-		Entrypoint: me.entrypoints.Http,
+		Entrypoint: me.entrypoints.Email,
 	}); err != nil {
 		return nil, err
 	}
@@ -347,12 +361,6 @@ func (me *Worker) Email(email *Email) (*Email, error) {
 	}
 
 	switch msg.Type {
-	case "reply":
-		var reply Email
-		if err := json.Unmarshal(msg.Data, &reply); err != nil {
-			return nil, err
-		}
-		return &reply, nil
 	case "error":
 		b, err := json.Marshal(msg.Data)
 		if err != nil {
@@ -361,7 +369,7 @@ func (me *Worker) Email(email *Email) (*Email, error) {
 
 		return nil, fmt.Errorf("error: %s", b)
 	default:
-		return nil, fmt.Errorf("unexpected message type: %s", msg.Type)
+		return nil, nil
 	}
 }
 

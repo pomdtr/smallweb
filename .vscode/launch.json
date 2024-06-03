@@ -10,12 +10,15 @@
             ]
         },
         {
-            "name": "smallweb proxy",
+            "name": "smallweb server",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
+            "env": {
+                "SMALLWEB_HOST": "localhost:8000"
+            },
             "args": [
-                "proxy"
+                "server"
             ],
             "envFile": "${workspaceFolder}/.env"
         },
@@ -26,8 +29,7 @@
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "up"
-            ],
-            "console": "integratedTerminal"
+            ]
         },
         {
             "name": "smallweb up (local proxy)",
@@ -39,8 +41,7 @@
             },
             "args": [
                 "up"
-            ],
-            "console": "integratedTerminal"
+            ]
         },
         {
             "name": "smallweb auth signup",

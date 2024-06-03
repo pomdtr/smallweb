@@ -21,16 +21,6 @@ type SerializedRequest = {
   body?: string;
 };
 
-type Email = {
-  from: string;
-  to: string;
-  cc: string;
-  bcc: string;
-  subject: string | undefined;
-  text: string | undefined;
-  html: string | undefined;
-};
-
 function deserializeRequest(arg: SerializedRequest) {
   return new Request(arg.url, {
     method: arg.method,
@@ -48,7 +38,7 @@ type Input =
   | {
       type: "email";
       entrypoint: string;
-      email: {};
+      email: unknown;
     };
 
 const conn = await Deno.connect({

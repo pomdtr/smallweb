@@ -102,7 +102,7 @@ func NewCmdUp() *cobra.Command {
 			}()
 
 			handleReq := func(req *Request) (*Response, error) {
-				alias, err := req.Alias()
+				alias, err := req.App()
 				if err != nil {
 					return nil, fmt.Errorf("could not get alias: %v", err)
 				}
@@ -158,7 +158,7 @@ func NewCmdUp() *cobra.Command {
 	}
 }
 
-type Config struct {
+type ClientConfig struct {
 	Host    string `env:"SMALLWEB_HOST" envDefault:"smallweb.run"`
 	SSHPort int    `env:"SMALLWEB_SSH_PORT" envDefault:"2222"`
 	Debug   bool   `env:"SMALLWEB_DEBUG" envDefault:"false"`
@@ -167,7 +167,7 @@ type Config struct {
 }
 
 // KeygenType returns the keygen key type.
-func (cfg *Config) KeygenType() keygen.KeyType {
+func (cfg *ClientConfig) KeygenType() keygen.KeyType {
 	kt := strings.ToLower(cfg.KeyType)
 	switch kt {
 	case "ed25519":
@@ -180,12 +180,12 @@ func (cfg *Config) KeygenType() keygen.KeyType {
 }
 
 type Client struct {
-	Config       *Config
+	Config       *ClientConfig
 	sshConfig    *ssh.ClientConfig
 	authKeyPaths []string
 }
 
-func NewClient(cfg *Config) (*Client, error) {
+func NewClient(cfg *ClientConfig) (*Client, error) {
 	cc := &Client{
 		Config: cfg,
 	}
@@ -232,8 +232,8 @@ func NewClient(cfg *Config) (*Client, error) {
 }
 
 // ConfigFromEnv loads the configuration from the environment.
-func ConfigFromEnv() (*Config, error) {
-	var cfg Config
+func ConfigFromEnv() (*ClientConfig, error) {
+	var cfg ClientConfig
 	if err := env.Parse(&cfg); err != nil {
 		return nil, err
 	}

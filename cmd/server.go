@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"math/big"
 	"net/http"
+	"net/mail"
 	"os"
 	"os/signal"
 	"regexp"
@@ -18,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/gliderlabs/ssh"
 	"github.com/gobwas/glob"
 	"github.com/resend/resend-go/v2"
@@ -55,28 +57,37 @@ func sendVerificationCode(client *resend.Client, email string, code string) erro
 	return err
 }
 
-func NewCmdProxy() *cobra.Command {
+type ServerConfig struct {
+	Host             string `env:"SMALLWEB_HOST" envDefault:"smallweb.run"`
+	SSHPort          int    `env:"SMALLWEB_SSH_PORT" envDefault:"2222"`
+	ResendApiKey     string `env:"RESEND_API_KEY"`
+	TursoDatabaseURL string `env:"TURSO_DATABASE_URL"`
+	TursoAuthToken   string `env:"TURSO_AUTH_TOKEN"`
+	Debug            bool   `env:"SMALLWEB_DEBUG" envDefault:"false"`
+}
+
+func ServerConfigFromEnv() (*ServerConfig, error) {
+	var cfg ServerConfig
+	if err := env.Parse(&cfg); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
+}
+
+func NewCmdServer() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "proxy",
-		Short:  "Start a smallweb proxy",
+		Use:    "server",
+		Short:  "Start a smallweb server",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			resendApiKey, ok := os.LookupEnv("RESEND_API_KEY")
-			if !ok {
-				return errors.New("RESEND_API_KEY not set")
-			}
-			resendClient := resend.NewClient(resendApiKey)
-
-			dbURL, ok := os.LookupEnv("TURSO_DATABASE_URL")
-			if !ok {
-				return errors.New("TURSO_DATABASE_URL not set")
-			}
-			dbToken, ok := os.LookupEnv("TURSO_AUTH_TOKEN")
-			if !ok {
-				return errors.New("TURSO_AUTH_TOKEN not set")
+			config, err := ServerConfigFromEnv()
+			if err != nil {
+				log.Fatalf("failed to load config: %v", err)
 			}
 
-			db, err := NewTursoDB(fmt.Sprintf("%s?authToken=%s", dbURL, dbToken))
+			resendClient := resend.NewClient(config.ResendApiKey)
+			db, err := NewTursoDB(fmt.Sprintf("%s?authToken=%s", config.TursoDatabaseURL, config.TursoAuthToken))
 			if err != nil {
 				log.Fatalf("failed to open database: %v", err)
 			}
@@ -85,17 +96,31 @@ func NewCmdProxy() *cobra.Command {
 				db: db,
 			}
 			httpPort, _ := cmd.Flags().GetInt("http-port")
-			subdomainGlob := glob.MustCompile("*-*.smallweb.run", '.')
+			subdomainGlob := glob.MustCompile(fmt.Sprintf("*-*.%s", config.Host), '.')
 			httpServer := http.Server{
 				Addr: fmt.Sprintf(":%d", httpPort),
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					switch {
-					case r.Host == "smallweb.run":
+					case r.Host == config.Host:
 						if r.URL.Path != "/email" {
 							http.Error(w, "not found", http.StatusNotFound)
 							return
 						}
 
+						// TODO: use smtp instead of this
+						var email Email
+						if err := json.NewDecoder(r.Body).Decode(&email); err != nil {
+							http.Error(w, err.Error(), http.StatusBadRequest)
+							return
+						}
+
+						if err := forwarder.Email(&email); err != nil {
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+
+						w.WriteHeader(http.StatusNoContent)
+						return
 					case subdomainGlob.Match(r.Host):
 						req, err := serializeRequest(r)
 						if err != nil {
@@ -160,6 +185,10 @@ func NewCmdProxy() *cobra.Command {
 						}
 
 						if err := isValidUsername(params.Username); err != nil {
+							return false, nil
+						}
+
+						if _, err := mail.ParseAddress(params.Email); err != nil {
 							return false, nil
 						}
 
