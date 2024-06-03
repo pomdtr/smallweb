@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS user (
     name VARCHAR(50) UNIQUE NOT NULL,
     email TEXT NOT NULL,
     public_id TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (email, public_id)
 );
 
