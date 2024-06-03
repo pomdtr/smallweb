@@ -21,6 +21,16 @@ type SerializedRequest = {
   body?: string;
 };
 
+type Email = {
+  from: string;
+  to: string;
+  cc: string;
+  bcc: string;
+  subject: string | undefined;
+  text: string | undefined;
+  html: string | undefined;
+};
+
 function deserializeRequest(arg: SerializedRequest) {
   return new Request(arg.url, {
     method: arg.method,
@@ -29,65 +39,59 @@ function deserializeRequest(arg: SerializedRequest) {
   });
 }
 
-function getHandler(mod: { default?: any }):
+type Input =
   | {
-      ok: true;
-      fetch: (req: Request) => Response | Promise<Response>;
+      type: "fetch";
+      entrypoint: string;
+      req: SerializedRequest;
     }
-  | { ok: false; error: Error } {
-  if (!("default" in mod)) {
-    return {
-      ok: false,
-      error: new Error("Mods require a default export, this mod has none."),
+  | {
+      type: "email";
+      entrypoint: string;
+      email: {};
     };
-  }
-
-  if (typeof mod.default !== "function") {
-    return {
-      ok: false,
-      error: new Error("The default export must be a function"),
-    };
-  }
-
-  return { ok: true, fetch: mod.default };
-}
 
 const conn = await Deno.connect({
   transport: "tcp",
   port: parseInt(Deno.args[0]),
 });
-
 const reader = conn.readable.getReader();
+const writer = conn.writable.getWriter();
 const { value: inputBytes } = await reader.read();
 if (!inputBytes) {
   throw new Error("No input bytes");
 }
-const input = new TextDecoder().decode(inputBytes);
-
-const { entrypoint, req } = JSON.parse(input) as {
-  entrypoint: string;
-  req: SerializedRequest;
-  env: Record<string, string>;
-};
+const input = JSON.parse(new TextDecoder().decode(inputBytes)) as Input;
 
 /**
  * Send a message to the host.
  */
 try {
-  const mod = await import(entrypoint);
-  const exp = getHandler(mod);
-  if (!exp.ok) {
-    throw exp.error;
+  if (input.type === "fetch") {
+    const mod = await import(input.entrypoint);
+    const handler = mod.default;
+    if (!handler || typeof handler !== "function") {
+      throw new Error("Mods require a default export, this mod has none.");
+    }
+    const resp = await handler(deserializeRequest(input.req));
+    const output = new TextEncoder().encode(
+      JSON.stringify({
+        type: "response",
+        data: await serializeResponse(resp),
+      })
+    );
+    await writer.write(output);
+  } else if (input.type === "email") {
+    const mod = await import(input.entrypoint);
+    const handler = mod.default;
+    if (!handler || typeof handler !== "function") {
+      throw new Error("Mods require a default export, this mod has none.");
+    }
+    await handler(input.email);
+    await writer.write(
+      new TextEncoder().encode(JSON.stringify({ type: "ok" }))
+    );
   }
-  const resp = await exp.fetch(deserializeRequest(req));
-  const writer = conn.writable.getWriter();
-  const output = new TextEncoder().encode(
-    JSON.stringify({
-      type: "response",
-      data: await serializeResponse(resp),
-    })
-  );
-  await writer.write(output);
 } catch (e) {
   const writer = conn.writable.getWriter();
   const output = new TextEncoder().encode(

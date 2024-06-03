@@ -26,10 +26,34 @@ var sandboxPath = path.Join(dataHome, "sandbox.ts")
 //go:embed deno/sandbox.ts
 var sandboxBytes []byte
 
-type CommandInput struct {
-	Req        Request           `json:"req"`
-	Entrypoint string            `json:"entrypoint"`
-	Env        map[string]string `json:"env"`
+type FetchInput struct {
+	Type       string  `json:"type"`
+	Entrypoint string  `json:"entrypoint"`
+	Req        Request `json:"req"`
+}
+
+type EmailInput struct {
+	Type       string `json:"type"`
+	Entrypoint string `json:"entrypoint"`
+	Email      Email  `json:"email"`
+}
+
+type Email struct {
+	From    string
+	To      string
+	Cc      string
+	Bcc     string
+	Subject *string
+	Text    *string
+	Html    *string
+}
+
+func (e *Email) Username() (string, error) {
+	return "pomdtr", nil
+}
+
+func (e *Email) App() (string, error) {
+	return "email", nil
 }
 
 func init() {
@@ -57,7 +81,7 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 	}
 
 	return &WorkerEntrypoints{
-		Fetch: func() string {
+		Http: func() string {
 			for _, dir := range lookupDirs {
 				for _, ext := range extensions {
 					entrypoint := path.Join(dir, name, "fetch"+ext)
@@ -147,7 +171,7 @@ type Response struct {
 }
 
 type WorkerEntrypoints struct {
-	Fetch string
+	Http  string
 	Email string
 	Cli   string
 }
@@ -181,12 +205,12 @@ func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
 }
 
 func (me *Worker) Fetch(req *Request) (*Response, error) {
-	if me.entrypoints.Fetch == "" {
+	if me.entrypoints.Http == "" {
 		return nil, fmt.Errorf("entrypoint not found")
 	}
 
-	rootDir := path.Dir(me.entrypoints.Fetch)
-	if strings.HasSuffix(me.entrypoints.Fetch, ".html") {
+	rootDir := path.Dir(me.entrypoints.Http)
+	if strings.HasSuffix(me.entrypoints.Http, ".html") {
 		fileServer := http.FileServer(http.Dir(rootDir))
 		rr := httptest.NewRecorder()
 		req := httptest.NewRequest(req.Method, req.Url, nil)
@@ -237,9 +261,9 @@ func (me *Worker) Fetch(req *Request) (*Response, error) {
 	}
 
 	encoder := json.NewEncoder(conn)
-	if err := encoder.Encode(&CommandInput{
+	if err := encoder.Encode(&FetchInput{
 		Req:        *req,
-		Entrypoint: me.entrypoints.Fetch,
+		Entrypoint: me.entrypoints.Http,
 	}); err != nil {
 		return nil, err
 	}
@@ -271,6 +295,71 @@ func (me *Worker) Fetch(req *Request) (*Response, error) {
 			Body: b,
 		}, nil
 
+	default:
+		return nil, fmt.Errorf("unexpected message type: %s", msg.Type)
+	}
+}
+
+func (me *Worker) Email(email *Email) (*Email, error) {
+	if me.entrypoints.Email == "" {
+		return nil, fmt.Errorf("entrypoint not found")
+	}
+
+	rootDir := path.Dir(me.entrypoints.Http)
+	freeport, err := GetFreePort()
+	if err != nil {
+		return nil, err
+	}
+
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", freeport))
+	if err != nil {
+		return nil, err
+	}
+
+	cmd, err := me.Cmd("run", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Dir = rootDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	go cmd.Run()
+
+	conn, err := ln.Accept()
+	if err != nil {
+		return nil, err
+	}
+
+	encoder := json.NewEncoder(conn)
+	if err := encoder.Encode(&EmailInput{
+		Email:      *email,
+		Entrypoint: me.entrypoints.Http,
+	}); err != nil {
+		return nil, err
+	}
+
+	var msg Message
+	decoder := json.NewDecoder(conn)
+	if err := decoder.Decode(&msg); err != nil {
+		return nil, fmt.Errorf("could not decode message: %v", err)
+	}
+
+	switch msg.Type {
+	case "reply":
+		var reply Email
+		if err := json.Unmarshal(msg.Data, &reply); err != nil {
+			return nil, err
+		}
+		return &reply, nil
+	case "error":
+		b, err := json.Marshal(msg.Data)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("error: %s", b)
 	default:
 		return nil, fmt.Errorf("unexpected message type: %s", msg.Type)
 	}

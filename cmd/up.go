@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
@@ -27,9 +26,10 @@ var (
 
 func NewCmdUp() *cobra.Command {
 	return &cobra.Command{
-		Use:   "up",
-		Short: "Start a smallweb tunnel",
-		Args:  cobra.NoArgs,
+		Use:          "up",
+		Short:        "Start a smallweb tunnel",
+		SilenceUsage: true,
+		Args:         cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := NewClientWithDefaults()
 			if err != nil {
@@ -46,15 +46,47 @@ func NewCmdUp() *cobra.Command {
 			if err != nil {
 				log.Fatalf("could not create client connection: %v", err)
 			}
+			defer sshConn.Close()
 
-			go ssh.DiscardRequests(reqs)
+			go func() {
+				for req := range reqs {
+					if req.Type != "email" {
+						req.Reply(false, nil)
+						continue
+					}
+					var email Email
+					if err := ssh.Unmarshal(req.Payload, &email); err != nil {
+						req.Reply(false, nil)
+						continue
+					}
+
+					app, err := email.App()
+					if err != nil {
+						req.Reply(false, nil)
+						continue
+					}
+
+					worker, err := NewWorker(app)
+					if err != nil {
+						req.Reply(false, nil)
+						continue
+					}
+
+					if _, err := worker.Email(&email); err != nil {
+						req.Reply(false, nil)
+						continue
+					}
+
+					req.Reply(true, nil)
+				}
+			}()
 
 			ok, _, err := sshConn.SendRequest("smallweb-forward", true, nil)
 			if err != nil {
 				return fmt.Errorf("could not forward: %v", err)
 			}
 			if !ok {
-				return fmt.Errorf("user not logged in, please run 'smallweb login'")
+				return fmt.Errorf("user not logged in, please run 'smallweb auth login' or 'smallweb auth signup'")
 			}
 
 			go func() {
@@ -82,7 +114,9 @@ func NewCmdUp() *cobra.Command {
 				return worker.Fetch(req)
 			}
 
-			slog.Info("smallweb tunnel is up")
+			exampleUrl := fmt.Sprintf("https://<app>-<user>.%s", client.Config.Host)
+			fmt.Printf("Smallweb tunnel is up and running, you can now access your apps at: %s\n", exampleUrl)
+
 			for newChannel := range chans {
 				if newChannel.ChannelType() != "forwarded-smallweb" {
 					newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")

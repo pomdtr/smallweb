@@ -7,7 +7,7 @@ import (
 func NewCmdRun() *cobra.Command {
 	return &cobra.Command{
 		Use:                "run <alias> [args...]",
-		Short:              "Run a mod",
+		Short:              "Run a smallweb app cli",
 		Args:               cobra.MinimumNArgs(1),
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

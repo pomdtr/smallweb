@@ -75,9 +75,10 @@ func NewCmdAuth() *cobra.Command {
 
 func NewCmdAuthSignup() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "signup",
-		Short: "Sign up for the smallweb server",
-		Args:  cobra.NoArgs,
+		Use:          "signup",
+		Short:        "Sign up for the smallweb server",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := NewClientWithDefaults()
 			if err != nil {
@@ -146,9 +147,10 @@ func NewCmdAuthSignup() *cobra.Command {
 
 func NewCmdAuthLogin() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "login",
-		Short: "Log in to the smallweb server",
-		Args:  cobra.NoArgs,
+		Use:          "login",
+		Short:        "Log in to the smallweb server",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := NewClientWithDefaults()
 			if err != nil {
@@ -216,9 +218,10 @@ func NewCmdAuthLogin() *cobra.Command {
 
 func NewCmdAuthLogout() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "logout",
-		Short: "Log out of the smallweb server",
-		Args:  cobra.NoArgs,
+		Use:          "logout",
+		Short:        "Log out of the smallweb server",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := NewClientWithDefaults()
 			if err != nil {
@@ -256,9 +259,10 @@ func NewCmdAuthLogout() *cobra.Command {
 
 func NewCmdAuthWhoAmI() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "whoami",
-		Short: "Display the current user",
-		Args:  cobra.NoArgs,
+		Use:          "whoami",
+		Short:        "Display the current user",
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := NewClientWithDefaults()
 			if err != nil {

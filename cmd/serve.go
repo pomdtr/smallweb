@@ -37,8 +37,8 @@ func serializeRequest(req *http.Request) (*Request, error) {
 
 func NewCmdServe() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "serve <mod>",
-		Short: "Start a smallweb server",
+		Use:   "serve <app>",
+		Short: "Serve a smallweb app",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			port, _ := cmd.Flags().GetInt("port")

@@ -13,11 +13,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/gliderlabs/ssh"
+	"github.com/gobwas/glob"
 	"github.com/resend/resend-go/v2"
 	"github.com/spf13/cobra"
 	gossh "golang.org/x/crypto/ssh"
@@ -83,27 +85,40 @@ func NewCmdProxy() *cobra.Command {
 				db: db,
 			}
 			httpPort, _ := cmd.Flags().GetInt("http-port")
+			subdomainGlob := glob.MustCompile("*-*.smallweb.run", '.')
 			httpServer := http.Server{
 				Addr: fmt.Sprintf(":%d", httpPort),
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					req, err := serializeRequest(r)
-					if err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
+					switch {
+					case r.Host == "smallweb.run":
+						if r.URL.Path != "/email" {
+							http.Error(w, "not found", http.StatusNotFound)
+							return
+						}
+
+					case subdomainGlob.Match(r.Host):
+						req, err := serializeRequest(r)
+						if err != nil {
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+
+						resp, err := forwarder.Fetch(req)
+						if err != nil {
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+
+						for _, header := range resp.Headers {
+							w.Header().Set(header[0], header[1])
+						}
+
+						w.WriteHeader(resp.Code)
+						w.Write(resp.Body)
+					default:
+						http.Error(w, "not found", http.StatusNotFound)
 						return
 					}
-
-					resp, err := forwarder.Forward(req)
-					if err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
-					}
-
-					for _, header := range resp.Headers {
-						w.Header().Set(header[0], header[1])
-					}
-
-					w.WriteHeader(resp.Code)
-					w.Write(resp.Body)
 				}),
 			}
 
@@ -141,6 +156,24 @@ func NewCmdProxy() *cobra.Command {
 
 						var params SignupParams
 						if err := gossh.Unmarshal(req.Payload, &params); err != nil {
+							return false, nil
+						}
+
+						if err := isValidUsername(params.Username); err != nil {
+							return false, nil
+						}
+
+						if err := db.WrapTransaction(func(tx *sql.Tx) error {
+							if db.selectUserWithEmail(tx, params.Email).Scan() != sql.ErrNoRows {
+								return errors.New("user already exists")
+							}
+
+							if db.selectUserWithName(tx, params.Username).Scan() != sql.ErrNoRows {
+								return errors.New("username already exists")
+							}
+
+							return nil
+						}); err != nil {
 							return false, nil
 						}
 
@@ -321,7 +354,7 @@ func (me *Forwarder) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server, req *gos
 	}
 }
 
-func (me *Forwarder) Forward(req *Request) (*Response, error) {
+func (me *Forwarder) Fetch(req *Request) (*Response, error) {
 	username, err := req.Username()
 	if err != nil {
 		return nil, err
@@ -336,6 +369,7 @@ func (me *Forwarder) Forward(req *Request) (*Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not open channel: %v", err)
 	}
+	defer ch.Close()
 
 	go gossh.DiscardRequests(reqs)
 
@@ -352,6 +386,29 @@ func (me *Forwarder) Forward(req *Request) (*Response, error) {
 	}
 
 	return &resp, nil
+}
+
+func (me *Forwarder) Email(email *Email) error {
+	username, err := email.Username()
+	if err != nil {
+		return err
+	}
+
+	conn, ok := me.conns[username]
+	if !ok {
+		return fmt.Errorf("no connection found")
+	}
+	defer conn.Close()
+
+	success, _, err := conn.SendRequest("email", true, gossh.Marshal(email))
+	if err != nil {
+		return fmt.Errorf("could not open channel: %v", err)
+	}
+	if !success {
+		return fmt.Errorf("email request denied")
+	}
+
+	return nil
 }
 
 func (me *Forwarder) KeepAlive() {
@@ -374,6 +431,21 @@ func (me *Forwarder) KeepAlive() {
 func keyText(publicKey gossh.PublicKey) (string, error) {
 	kb := base64.StdEncoding.EncodeToString(publicKey.Marshal())
 	return fmt.Sprintf("%s %s", publicKey.Type(), kb), nil
+}
+
+func isValidUsername(username string) error {
+	// Check length
+	if len(username) < 3 || len(username) > 15 {
+		return fmt.Errorf("username must be between 3 and 15 characters")
+	}
+
+	// Check if it only contains alphanumeric characters
+	alnumRegex := regexp.MustCompile(`^[a-z][a-z0-9]+$`)
+	if !alnumRegex.MatchString(username) {
+		return fmt.Errorf("username must only contain lowercase letters and numbers")
+	}
+
+	return nil
 }
 
 func generateVerificationCode() (string, error) {

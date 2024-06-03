@@ -12,8 +12,8 @@ import (
 
 func NewCmdOpen() *cobra.Command {
 	return &cobra.Command{
-		Use:   "open",
-		Short: "Open a mod",
+		Use:   "open <app>",
+		Short: "Open a smallweb app in the browser",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := NewClientWithDefaults()

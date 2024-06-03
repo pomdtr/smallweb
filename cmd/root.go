@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -17,7 +19,21 @@ func denoExecutable() (string, error) {
 		return env, nil
 	}
 
-	return exec.LookPath("deno")
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	if denoPath, err := exec.LookPath("deno"); err == nil {
+		return denoPath, nil
+	}
+
+	denoPath := filepath.Join(homedir, ".deno", "bin", "deno")
+	if exists(denoPath) {
+		return denoPath, nil
+	}
+
+	return "", fmt.Errorf("deno executable not found")
 }
 
 func NewCmdRoot() *cobra.Command {
@@ -31,7 +47,6 @@ func NewCmdRoot() *cobra.Command {
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdProxy())
-	cmd.InitDefaultCompletionCmd()
 
 	return cmd
 }
