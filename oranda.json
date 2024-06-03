@@ -2,6 +2,9 @@
     "project": {
         "name": "Smallweb"
     },
+    "build": {
+        "path_prefix": "smallweb"
+    },
     "components": {
         "mdbook": {
             "path": "./docs"
