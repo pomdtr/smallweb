@@ -39,13 +39,13 @@ type EmailInput struct {
 }
 
 type Email struct {
-	From    string
-	To      string
-	Cc      string
-	Bcc     string
-	Subject string
-	Text    string
-	Html    string
+	From    string `json:"from,omitempty"`
+	To      string `json:"to,omitempty"`
+	Cc      string `json:"cc,omitempty"`
+	Bcc     string `json:"bcc,omitempty"`
+	Subject string `json:"subject,omitempty"`
+	Text    string `json:"text,omitempty"`
+	Html    string `json:"html,omitempty"`
 }
 
 func (me *Email) Username() (string, error) {

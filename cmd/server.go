@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"bytes"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"math/big"
@@ -22,7 +24,6 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/gliderlabs/ssh"
 	"github.com/gobwas/glob"
-	"github.com/resend/resend-go/v2"
 	"github.com/spf13/cobra"
 	gossh "golang.org/x/crypto/ssh"
 )
@@ -46,23 +47,12 @@ type UserResponse struct {
 	Email string
 }
 
-func sendVerificationCode(client *resend.Client, email string, code string) error {
-	_, err := client.Emails.Send(&resend.SendEmailRequest{
-		From:    "Smallweb <smallweb@resend.dev>",
-		To:      []string{email},
-		Subject: "Smallweb signup code",
-		Text:    fmt.Sprintf("Your Smallweb signup code is: %s", code),
-	})
-
-	return err
-}
-
 type ServerConfig struct {
 	Host             string `env:"SMALLWEB_HOST" envDefault:"smallweb.run"`
 	SSHPort          int    `env:"SMALLWEB_SSH_PORT" envDefault:"2222"`
-	ResendApiKey     string `env:"RESEND_API_KEY"`
 	TursoDatabaseURL string `env:"TURSO_DATABASE_URL"`
 	TursoAuthToken   string `env:"TURSO_AUTH_TOKEN"`
+	ValTownToken     string `env:"VALTOWN_TOKEN"`
 	Debug            bool   `env:"SMALLWEB_DEBUG" envDefault:"false"`
 }
 
@@ -86,15 +76,17 @@ func NewCmdServer() *cobra.Command {
 				log.Fatalf("failed to load config: %v", err)
 			}
 
-			resendClient := resend.NewClient(config.ResendApiKey)
 			db, err := NewTursoDB(fmt.Sprintf("%s?authToken=%s", config.TursoDatabaseURL, config.TursoAuthToken))
 			if err != nil {
 				log.Fatalf("failed to open database: %v", err)
 			}
 
+			valtownClient := NewValTownClient(config.ValTownToken)
+
 			forwarder := Forwarder{
 				db: db,
 			}
+
 			httpPort, _ := cmd.Flags().GetInt("http-port")
 			subdomainGlob := glob.MustCompile(fmt.Sprintf("*-*.%s", config.Host), '.')
 			httpServer := http.Server{
@@ -211,7 +203,7 @@ func NewCmdServer() *cobra.Command {
 							return false, nil
 						}
 
-						if err := sendVerificationCode(resendClient, params.Email, code); err != nil {
+						if err := sendVerificationCode(valtownClient, params.Email, code); err != nil {
 							return false, nil
 						}
 
@@ -271,7 +263,7 @@ func NewCmdServer() *cobra.Command {
 							return false, nil
 						}
 
-						if err := sendVerificationCode(resendClient, params.Email, code); err != nil {
+						if err := sendVerificationCode(valtownClient, params.Email, code); err != nil {
 							return false, nil
 						}
 
@@ -494,4 +486,55 @@ func generateRandomString(length int, alphabet string) (string, error) {
 	}
 
 	return string(result), nil
+}
+
+type ValTownClient struct {
+	token string
+}
+
+func NewValTownClient(token string) *ValTownClient {
+	return &ValTownClient{
+		token: token,
+	}
+}
+
+func (me *ValTownClient) SendEmail(email Email) error {
+	email.From = "pomdtr.smallweb@valtown.email"
+	body, err := json.Marshal(email)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", "https://api.val.town/v1/email", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", me.token))
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != 202 {
+		msg, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("could not send email: %v", string(msg))
+	}
+
+	return nil
+}
+
+func sendVerificationCode(client *ValTownClient, email string, code string) error {
+	err := client.SendEmail(Email{
+		To:      email,
+		Subject: "Smallweb signup code",
+		Text:    fmt.Sprintf("Your Smallweb signup code is: %s", code),
+	})
+
+	return err
 }
