@@ -4,7 +4,7 @@
 
 </div>
 
-Smallweb simplifies the process of self-hosting websites, taking inspiration from serverless platform like [Deno Deploy](https://deno.com/deploy) or [Val Town](https://val.town).
+Smallweb simplifies the process of self-hosting websites, taking inspiration from platform like [Deno Deploy](https://deno.com/deploy) or [Val Town](https://val.town).
 
 Creating a website should be as simple as creating a file, or cloning a repository in `~/www`.
 
