@@ -38,4 +38,4 @@ export default function(req: Request) {
 
 Now start a tunnel using the `smallweb up command`.
 
-Your website will be available at `https://example-<your-username>.smallweb.dev`.
+Your website will be available at `https://example-<your-username>.smallweb.run`.
