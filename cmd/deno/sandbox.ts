@@ -83,7 +83,7 @@ try {
     );
   }
 } catch (e) {
-  const writer = conn.writable.getWriter();
+  console.error(e);
   const output = new TextEncoder().encode(
     JSON.stringify({
       type: "error",
