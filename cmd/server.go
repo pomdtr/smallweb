@@ -98,11 +98,11 @@ func NewCmdServer() *cobra.Command {
 
 					port, ok := forwarder.forwards[user]
 					if !ok {
-						http.Error(w, "not found", http.StatusNotFound)
+						http.Error(w, fmt.Sprintf("User %s not found", user), http.StatusNotFound)
 						return
 					}
 
-					req, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d/%s", port, r.URL.String()), r.Body)
+					req, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", port, r.URL.String()), r.Body)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
