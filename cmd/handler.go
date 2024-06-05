@@ -1,18 +1,18 @@
 package cmd
 
 import (
+	"bufio"
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -27,15 +27,11 @@ var sandboxPath = path.Join(dataHome, "sandbox.ts")
 var sandboxBytes []byte
 
 type FetchInput struct {
-	Type       string  `json:"type"`
-	Entrypoint string  `json:"entrypoint"`
-	Req        Request `json:"req"`
-}
-
-type EmailInput struct {
-	Type       string `json:"type"`
-	Entrypoint string `json:"entrypoint"`
-	Email      Email  `json:"email"`
+	Entrypoint string     `json:"entrypoint"`
+	Port       int        `json:"port"`
+	Url        string     `json:"url"`
+	Headers    [][]string `json:"headers"`
+	Method     string     `json:"method"`
 }
 
 type Email struct {
@@ -188,25 +184,20 @@ type WorkerEntrypoints struct {
 	Cli   string
 }
 
-type Worker struct {
+type Handler struct {
 	entrypoints WorkerEntrypoints
 }
 
-func NewWorker(alias string) (*Worker, error) {
+func NewHandler(alias string) (*Handler, error) {
 	entrypoints, err := inferEntrypoints(alias)
 	if err != nil {
 		return nil, fmt.Errorf("could not infer entrypoint: %v", err)
 	}
 
-	return &Worker{entrypoints: *entrypoints}, nil
+	return &Handler{entrypoints: *entrypoints}, nil
 }
 
-type Message struct {
-	Type string          `json:"type"`
-	Data json.RawMessage `json:"data"`
-}
-
-func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
+func (me *Handler) Cmd(args ...string) (*exec.Cmd, error) {
 	deno, err := denoExecutable()
 	if err != nil {
 		return nil, err
@@ -216,164 +207,153 @@ func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (me *Worker) Fetch(req *Request) (*Response, error) {
+func (me *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if me.entrypoints.Http == "" {
-		return nil, fmt.Errorf("entrypoint not found")
+		http.NotFound(rw, req)
+		return
 	}
 
 	rootDir := path.Dir(me.entrypoints.Http)
 	if strings.HasSuffix(me.entrypoints.Http, ".html") {
 		fileServer := http.FileServer(http.Dir(rootDir))
-		rr := httptest.NewRecorder()
-		req := httptest.NewRequest(req.Method, req.Url, nil)
-		fileServer.ServeHTTP(rr, req)
-
-		var headers [][]string
-		for key, values := range rr.Result().Header {
-			headers = append(headers, []string{key, values[0]})
-		}
-
-		body, err := io.ReadAll(rr.Result().Body)
-		if err != nil {
-			return nil, err
-		}
-
-		return &Response{
-			Code:    rr.Result().StatusCode,
-			Headers: headers,
-			Body:    body,
-		}, nil
-
+		fileServer.ServeHTTP(rw, req)
+		return
 	}
 
 	freeport, err := GetFreePort()
 	if err != nil {
-		return nil, err
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", freeport))
+	cmd, err := me.Cmd("run", "--allow-all", "--unstable-kv", sandboxPath, me.entrypoints.Http, strconv.Itoa(freeport))
 	if err != nil {
-		return nil, err
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	cmd, err := me.Cmd("run", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
-	if err != nil {
-		return nil, err
-	}
-
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "SMALLWEB_PORT="+strconv.Itoa(freeport))
+	cmd.Env = append(cmd.Env, "SMALLWEB_ENTRYPOINT="+filepath.Base(me.entrypoints.Http))
 	cmd.Dir = rootDir
-	cmd.Stdout = os.Stdout
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	cmd.Stderr = os.Stderr
 
-	go cmd.Run()
+	if err := cmd.Start(); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	conn, err := ln.Accept()
+	scanner := bufio.NewScanner(stdout)
+	scanner.Scan()
+	line := scanner.Text()
+	if !(line == "READY") {
+		http.Error(rw, "could not start server", http.StatusInternalServerError)
+		return
+	}
+
+	request, err := http.NewRequest(req.Method, fmt.Sprintf("http://127.0.0.1:%d%s", freeport, req.URL.String()), req.Body)
 	if err != nil {
-		return nil, err
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	encoder := json.NewEncoder(conn)
-	if err := encoder.Encode(&FetchInput{
-		Type:       "fetch",
-		Req:        *req,
-		Entrypoint: me.entrypoints.Http,
-	}); err != nil {
-		return nil, err
-	}
-
-	var msg Message
-	decoder := json.NewDecoder(conn)
-	if err := decoder.Decode(&msg); err != nil {
-		return nil, fmt.Errorf("could not decode message: %v", err)
-	}
-
-	switch msg.Type {
-	case "response":
-		var res Response
-		if err := json.Unmarshal(msg.Data, &res); err != nil {
-			return nil, err
+	for k, v := range req.Header {
+		for _, vv := range v {
+			request.Header.Add(k, vv)
 		}
-		return &res, nil
-	case "error":
-		b, err := json.Marshal(msg.Data)
-		if err != nil {
-			return nil, err
-		}
-
-		return &Response{
-			Code: 500,
-			Headers: [][]string{
-				{"Content-Type", "application/json"},
-			},
-			Body: b,
-		}, nil
-
-	default:
-		return nil, fmt.Errorf("unexpected message type: %s", msg.Type)
 	}
+
+	resp, err := http.DefaultClient.Do(request)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	for k, v := range resp.Header {
+		for _, vv := range v {
+			rw.Header().Add(k, vv)
+		}
+	}
+
+	rw.WriteHeader(resp.StatusCode)
+	_, err = io.Copy(rw, resp.Body)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 }
 
-func (me *Worker) Email(email *Email) (*Email, error) {
-	if me.entrypoints.Email == "" {
-		return nil, fmt.Errorf("entrypoint not found")
-	}
+func (me *Handler) Email(email *Email) (*Email, error) {
+	return nil, nil
+	// if me.entrypoints.Email == "" {
+	// 	return nil, fmt.Errorf("entrypoint not found")
+	// }
 
-	rootDir := path.Dir(me.entrypoints.Email)
-	freeport, err := GetFreePort()
-	if err != nil {
-		return nil, err
-	}
+	// rootDir := path.Dir(me.entrypoints.Email)
+	// freeport, err := GetFreePort()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", freeport))
-	if err != nil {
-		return nil, err
-	}
+	// ln, err := net.Listen("tcp", fmt.Sprintf(":%d", freeport))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	cmd, err := me.Cmd("run", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
-	if err != nil {
-		return nil, err
-	}
+	// cmd, err := me.Cmd("run", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	cmd.Dir = rootDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// cmd.Dir = rootDir
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 
-	go cmd.Run()
+	// go cmd.Run()
 
-	conn, err := ln.Accept()
-	if err != nil {
-		return nil, err
-	}
+	// conn, err := ln.Accept()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	encoder := json.NewEncoder(conn)
-	if err := encoder.Encode(&EmailInput{
-		Type:       "email",
-		Email:      *email,
-		Entrypoint: me.entrypoints.Email,
-	}); err != nil {
-		return nil, err
-	}
+	// encoder := json.NewEncoder(conn)
+	// if err := encoder.Encode(&EmailInput{
+	// 	Type:       "email",
+	// 	Email:      *email,
+	// 	Entrypoint: me.entrypoints.Email,
+	// }); err != nil {
+	// 	return nil, err
+	// }
 
-	var msg Message
-	decoder := json.NewDecoder(conn)
-	if err := decoder.Decode(&msg); err != nil {
-		return nil, fmt.Errorf("could not decode message: %v", err)
-	}
+	// var msg Message
+	// decoder := json.NewDecoder(conn)
+	// if err := decoder.Decode(&msg); err != nil {
+	// 	return nil, fmt.Errorf("could not decode message: %v", err)
+	// }
 
-	switch msg.Type {
-	case "error":
-		b, err := json.Marshal(msg.Data)
-		if err != nil {
-			return nil, err
-		}
+	// switch msg.Type {
+	// case "error":
+	// 	b, err := json.Marshal(msg.Data)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-		return nil, fmt.Errorf("error: %s", b)
-	default:
-		return nil, nil
-	}
+	// 	return nil, fmt.Errorf("error: %s", b)
+	// default:
+	// 	return nil, nil
+	// }
 }
 
-func (me *Worker) Run(runArgs []string) error {
+func (me *Handler) Run(runArgs []string) error {
 	if me.entrypoints.Cli == "" {
 		return fmt.Errorf("entrypoint not found")
 	}

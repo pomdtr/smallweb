@@ -12,18 +12,18 @@ import (
 	"log"
 	"log/slog"
 	"math/big"
+	"net"
 	"net/http"
 	"net/mail"
 	"os"
 	"os/signal"
 	"regexp"
+	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/gliderlabs/ssh"
-	"github.com/gobwas/glob"
 	"github.com/spf13/cobra"
 	gossh "golang.org/x/crypto/ssh"
 )
@@ -84,58 +84,50 @@ func NewCmdServer() *cobra.Command {
 			valtownClient := NewValTownClient(config.ValTownToken)
 
 			forwarder := Forwarder{
-				db: db,
+				db:       db,
+				forwards: make(map[string]int),
 			}
 
 			httpPort, _ := cmd.Flags().GetInt("http-port")
-			subdomainGlob := glob.MustCompile(fmt.Sprintf("*-*.%s", config.Host), '.')
 			httpServer := http.Server{
 				Addr: fmt.Sprintf(":%d", httpPort),
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					switch {
-					case r.Host == config.Host:
-						if r.URL.Path != "/email" {
-							http.Error(w, "not found", http.StatusNotFound)
-							return
-						}
+					subdomain := strings.Split(r.Host, ".")[0]
+					parts := strings.Split(subdomain, "-")
+					user := parts[len(parts)-1]
 
-						// TODO: use smtp instead of this
-						var email Email
-						if err := json.NewDecoder(r.Body).Decode(&email); err != nil {
-							http.Error(w, err.Error(), http.StatusBadRequest)
-							return
-						}
-
-						if err := forwarder.Email(&email); err != nil {
-							http.Error(w, err.Error(), http.StatusInternalServerError)
-							return
-						}
-
-						w.WriteHeader(http.StatusNoContent)
-						return
-					case subdomainGlob.Match(r.Host):
-						req, err := serializeRequest(r)
-						if err != nil {
-							http.Error(w, err.Error(), http.StatusInternalServerError)
-							return
-						}
-
-						resp, err := forwarder.Fetch(req)
-						if err != nil {
-							http.Error(w, err.Error(), http.StatusInternalServerError)
-							return
-						}
-
-						for _, header := range resp.Headers {
-							w.Header().Set(header[0], header[1])
-						}
-
-						w.WriteHeader(resp.Code)
-						w.Write(resp.Body)
-					default:
+					port, ok := forwarder.forwards[user]
+					if !ok {
 						http.Error(w, "not found", http.StatusNotFound)
 						return
 					}
+
+					req, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d/%s", port, r.URL.String()), r.Body)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+
+					for k, v := range r.Header {
+						req.Header[k] = v
+					}
+					app := strings.Join(parts[:len(parts)-1], "-")
+					req.Header.Add("X-Smallweb-App", app)
+
+					resp, err := http.DefaultClient.Do(req)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+					defer resp.Body.Close()
+
+					for k, v := range resp.Header {
+						for _, vv := range v {
+							w.Header().Add(k, vv)
+						}
+					}
+					w.WriteHeader(resp.StatusCode)
+					io.Copy(w, resp.Body)
 				}),
 			}
 
@@ -320,7 +312,6 @@ func NewCmdServer() *cobra.Command {
 			slog.Info("starting servers")
 			go sshServer.ListenAndServe()
 			go httpServer.ListenAndServe()
-			go forwarder.KeepAlive()
 
 			sigs := make(chan os.Signal, 1)
 			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -342,110 +333,97 @@ func NewCmdServer() *cobra.Command {
 // adding the HandleSSHRequest callback to the server's RequestHandlers under
 // tcpip-forward and cancel-tcpip-forward.
 type Forwarder struct {
-	db    *DB
-	conns map[string]*gossh.ServerConn
+	db       *DB
+	forwards map[string]int
 	sync.Mutex
 }
 
 func (me *Forwarder) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
 	user, err := me.db.UserFromContext(ctx)
 	if err != nil {
+		slog.Info("no user found", slog.String("error", err.Error()))
+		return false, nil
+	}
+
+	freeport, err := GetFreePort()
+	if err != nil {
+		return false, nil
+	}
+
+	addr := fmt.Sprintf("127.0.0.1:%d", freeport)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
 		return false, nil
 	}
 
 	me.Lock()
-	if me.conns == nil {
-		me.conns = make(map[string]*gossh.ServerConn)
-	}
+	me.forwards[user.Name] = freeport
 	me.Unlock()
-	conn := ctx.Value(ssh.ContextKeyConn).(*gossh.ServerConn)
-	switch req.Type {
-	case "smallweb-forward":
+	go func() {
+		<-ctx.Done()
 		me.Lock()
-		me.conns[user.Name] = conn
+		_, ok := me.forwards[user.Name]
 		me.Unlock()
-		return true, nil
-	case "cancel-smallweb-forward":
-		me.Lock()
-		delete(me.conns, user.Name)
-		me.Unlock()
-		return true, nil
-	default:
-		return false, nil
-	}
-}
+		if ok {
+			ln.Close()
+		}
+	}()
 
-func (me *Forwarder) Fetch(req *Request) (*Response, error) {
-	username, err := req.Username()
-	if err != nil {
-		return nil, err
-	}
-
-	conn, ok := me.conns[username]
-	if !ok {
-		return nil, fmt.Errorf("no connection found")
-	}
-
-	ch, reqs, err := conn.OpenChannel("forwarded-smallweb", nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not open channel: %v", err)
-	}
-	defer ch.Close()
-
-	go gossh.DiscardRequests(reqs)
-
-	encoder := json.NewEncoder(ch)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(req); err != nil {
-		return nil, fmt.Errorf("could not encode request: %v", err)
-	}
-
-	decoder := json.NewDecoder(ch)
-	var resp Response
-	if err := decoder.Decode(&resp); err != nil {
-		return nil, fmt.Errorf("could not decode response: %v", err)
-	}
-
-	return &resp, nil
-}
-
-func (me *Forwarder) Email(email *Email) error {
-	username, err := email.Username()
-	if err != nil {
-		return err
-	}
-
-	conn, ok := me.conns[username]
-	if !ok {
-		return fmt.Errorf("no connection found")
-	}
-	defer conn.Close()
-
-	success, _, err := conn.SendRequest("email", true, gossh.Marshal(email))
-	if err != nil {
-		return fmt.Errorf("could not open channel: %v", err)
-	}
-	if !success {
-		return fmt.Errorf("email request denied")
-	}
-
-	return nil
-}
-
-func (me *Forwarder) KeepAlive() {
-	ticker := time.NewTicker(60 * time.Second)
-	for {
-		<-ticker.C
-		for username, conn := range me.conns {
-			_, _, err := conn.SendRequest("keepalive", true, nil)
+	go func() {
+		for {
+			c, err := ln.Accept()
 			if err != nil {
-				log.Printf("could not send keepalive: %v", err)
-				me.Lock()
-				delete(me.conns, username)
-				me.Unlock()
+				// TODO: log accept failure
+				break
 			}
+
+			go func() {
+				conn := ctx.Value(ssh.ContextKeyConn).(*gossh.ServerConn)
+				ch, reqs, err := conn.OpenChannel("forwarded-smallweb", nil)
+				if err != nil {
+					// TODO: log failure to open channel
+					log.Println(err)
+					c.Close()
+					return
+				}
+				go gossh.DiscardRequests(reqs)
+				go func() {
+					defer ch.Close()
+					defer c.Close()
+					io.Copy(ch, c)
+				}()
+				go func() {
+					defer ch.Close()
+					defer c.Close()
+					io.Copy(c, ch)
+				}()
+			}()
+		}
+		me.Lock()
+		delete(me.forwards, addr)
+		me.Unlock()
+	}()
+	return true, nil
+}
+
+type RequestHeader struct {
+	Method  string
+	Url     string
+	Headers [][]string
+}
+
+func (rh *RequestHeader) App() string {
+	for _, v := range rh.Headers {
+		if v[0] == "X-Smallweb-App" {
+			return v[1]
 		}
 	}
+	return ""
+}
+
+type ResponseHeader struct {
+	Code    int
+	Headers [][]string
 }
 
 // keyText is the base64 encoded public key for the glider.Session.

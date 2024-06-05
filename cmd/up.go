@@ -1,15 +1,15 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/charmbracelet/keygen"
@@ -66,7 +66,7 @@ func NewCmdUp() *cobra.Command {
 						continue
 					}
 
-					worker, err := NewWorker(app)
+					worker, err := NewHandler(app)
 					if err != nil {
 						req.Reply(false, nil)
 						continue
@@ -89,68 +89,69 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("user not logged in, please run 'smallweb auth login' or 'smallweb auth signup'")
 			}
 
-			go func() {
-				ticker := time.NewTicker(30 * time.Second)
-				for {
-					<-ticker.C
-					_, _, err := sshConn.SendRequest("keepalive", true, nil)
-					if err != nil {
-						log.Printf("could not send keepalive: %v", err)
-						break
-					}
-				}
-			}()
-
-			handleReq := func(req *Request) (*Response, error) {
-				alias, err := req.App()
-				if err != nil {
-					return nil, fmt.Errorf("could not get alias: %v", err)
-				}
-
-				worker, err := NewWorker(alias)
-				if err != nil {
-					return nil, fmt.Errorf("could not create worker: %v", err)
-				}
-				return worker.Fetch(req)
-			}
-
 			exampleUrl := fmt.Sprintf("https://<app>-<user>.%s", client.Config.Host)
 			fmt.Printf("Smallweb tunnel is up and running, you can now access your apps at: %s\n", exampleUrl)
 
-			for newChannel := range chans {
-				if newChannel.ChannelType() != "forwarded-smallweb" {
-					newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
-				}
+			freeport, err := GetFreePort()
+			if err != nil {
+				return err
+			}
 
-				ch, reqs, err := newChannel.Accept()
-				if err != nil {
-					log.Printf("could not accept channel: %v", err)
-				}
-				go ssh.DiscardRequests(reqs)
-
-				go func(ch ssh.Channel) {
-					decoder := json.NewDecoder(ch)
-					var req *Request
-					if err := decoder.Decode(&req); err != nil {
-						log.Printf("could not decode request: %v", err)
-						return
-					}
-
-					resp, err := handleReq(req)
-					if err != nil {
-						resp = &Response{
-							Code: 500,
-							Body: []byte("Internal server error"),
+			server := http.Server{
+				Addr: fmt.Sprintf(":%d", freeport),
+				Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+					var app string
+					for k, v := range req.Header {
+						if k == "X-Smallweb-App" {
+							app = v[0]
+							break
 						}
 					}
 
-					encoder := json.NewEncoder(ch)
-					encoder.SetEscapeHTML(false)
-					if err := encoder.Encode(resp); err != nil {
-						log.Printf("could not encode response: %v", err)
+					if app == "" {
+						http.Error(rw, "X-Smallweb-App header not found", http.StatusBadRequest)
 						return
 					}
-				}(ch)
+
+					worker, err := NewHandler(app)
+					if err != nil {
+						rw.WriteHeader(http.StatusInternalServerError)
+						return
+					}
+
+					worker.ServeHTTP(rw, req)
+				}),
+			}
+
+			go server.ListenAndServe()
+
+			for ch := range chans {
+				if ch.ChannelType() != "forwarded-smallweb" {
+					ch.Reject(ssh.UnknownChannelType, "unknown channel type")
+				}
+
+				ch, reqs, err := ch.Accept()
+				if err != nil {
+					log.Fatalf("could not accept channel: %v", err)
+				}
+
+				go ssh.DiscardRequests(reqs)
+				c, err := net.Dial("tcp", fmt.Sprintf(":%d", freeport))
+				if err != nil {
+					log.Fatalf("could not dial: %v", err)
+				}
+
+				go func() {
+					defer ch.Close()
+					defer c.Close()
+					io.Copy(ch, c)
+				}()
+				go func() {
+					defer ch.Close()
+					defer c.Close()
+					io.Copy(c, ch)
+				}()
+
 			}
 
 			return nil

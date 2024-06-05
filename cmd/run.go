@@ -11,7 +11,7 @@ func NewCmdRun() *cobra.Command {
 		Args:               cobra.MinimumNArgs(1),
 		DisableFlagParsing: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			worker, err := NewWorker(args[0])
+			worker, err := NewHandler(args[0])
 			if err != nil {
 				return err
 			}

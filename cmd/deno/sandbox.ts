@@ -1,97 +1,43 @@
-import { encodeBase64, decodeBase64 } from "jsr:@std/encoding/base64";
+import * as path from "jsr:@std/path";
 
-/**
- * Given a Response object, serialize it.
- * Note: if you try this twice on the same Response, it'll
- * crash! Streams, like resp.arrayBuffer(), can only
- * be consumed once.
- */
-export async function serializeResponse(resp: Response) {
-  return {
-    code: resp.status,
-    headers: [...resp.headers.entries()],
-    body: resp.body ? encodeBase64(await resp.arrayBuffer()) : null,
-  };
+if (!Deno.env.get("SMALLWEB_ENTRYPOINT")) {
+  throw new Error("SMALLWEB_ENTRYPOINT is not set");
 }
 
-type SerializedRequest = {
-  url: string;
-  method: string;
-  headers: [string, string][];
-  body?: string;
-};
-
-function deserializeRequest(arg: SerializedRequest) {
-  return new Request(arg.url, {
-    method: arg.method,
-    headers: arg.headers,
-    ...(arg.body ? { body: decodeBase64(arg.body) } : {}),
-  });
+if (!Deno.env.get("SMALLWEB_PORT")) {
+  throw new Error("SMALLWEB_PORT is not set");
 }
 
-type Input =
-  | {
-      type: "fetch";
-      entrypoint: string;
-      req: SerializedRequest;
-    }
-  | {
-      type: "email";
-      entrypoint: string;
-      email: unknown;
-    };
+const server = Deno.serve(
+  {
+    port: parseInt(Deno.env.get("SMALLWEB_PORT")!),
+    onListen: () => {
+      // This line will signal that the server is ready to the go
+      console.log("READY");
+    },
+  },
+  async (req) => {
+    // exit the server once the request will be handled
+    queueMicrotask(async () => {
+      await server.shutdown();
+    });
 
-const conn = await Deno.connect({
-  transport: "tcp",
-  port: parseInt(Deno.args[0]),
-});
-const reader = conn.readable.getReader();
-const writer = conn.writable.getWriter();
-const { value: inputBytes } = await reader.read();
-if (!inputBytes) {
-  throw new Error("No input bytes");
-}
-const input = JSON.parse(new TextDecoder().decode(inputBytes)) as Input;
-
-/**
- * Send a message to the host.
- */
-try {
-  if (input.type === "fetch") {
-    const mod = await import(input.entrypoint);
-    const handler = mod.default;
-    if (!handler || typeof handler !== "function") {
-      throw new Error("Mods require a default export, this mod has none.");
-    }
-    const resp = await handler(deserializeRequest(input.req));
-    const output = new TextEncoder().encode(
-      JSON.stringify({
-        type: "response",
-        data: await serializeResponse(resp),
-      })
+    const mod = await import(
+      path.join(Deno.cwd(), Deno.env.get("SMALLWEB_ENTRYPOINT")!)
     );
-    await writer.write(output);
-  } else if (input.type === "email") {
-    const mod = await import(input.entrypoint);
-    const handler = mod.default;
-    if (!handler || typeof handler !== "function") {
-      throw new Error("Mods require a default export, this mod has none.");
+    if (!mod.default || typeof mod.default !== "function") {
+      return new Response("Mod has no default export", { status: 500 });
     }
-    await handler(input.email);
-    await writer.write(
-      new TextEncoder().encode(JSON.stringify({ type: "ok" }))
-    );
+    const handler = mod.default;
+
+    try {
+      const resp = await handler(req);
+      if (!(resp instanceof Response)) {
+        return new Response("Mod did not return a Response", { status: 500 });
+      }
+      return resp;
+    } catch (e) {
+      return new Response(e, { status: 500 });
+    }
   }
-} catch (e) {
-  console.error(e);
-  const output = new TextEncoder().encode(
-    JSON.stringify({
-      type: "error",
-      data: {
-        message: e.message,
-        stack: e.stack,
-      },
-    })
-  );
-  await writer.write(output);
-}
+);
