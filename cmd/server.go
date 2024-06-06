@@ -47,9 +47,14 @@ type UserResponse struct {
 	Email string
 }
 
+type ErrorPayload struct {
+	Message string
+}
+
 type ServerConfig struct {
 	Host             string `env:"SMALLWEB_HOST" envDefault:"smallweb.run"`
 	SSHPort          int    `env:"SMALLWEB_SSH_PORT" envDefault:"2222"`
+	HttpPort         int    `env:"SMALLWEB_HTTP_PORT" envDefault:"8000"`
 	TursoDatabaseURL string `env:"TURSO_DATABASE_URL"`
 	TursoAuthToken   string `env:"TURSO_AUTH_TOKEN"`
 	ValTownToken     string `env:"VALTOWN_TOKEN"`
@@ -88,9 +93,8 @@ func NewCmdServer() *cobra.Command {
 				forwards: make(map[string]int),
 			}
 
-			httpPort, _ := cmd.Flags().GetInt("http-port")
 			httpServer := http.Server{
-				Addr: fmt.Sprintf(":%d", httpPort),
+				Addr: fmt.Sprintf(":%d", config.HttpPort),
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					subdomain := strings.Split(r.Host, ".")[0]
 					parts := strings.Split(subdomain, "-")
@@ -131,9 +135,8 @@ func NewCmdServer() *cobra.Command {
 				}),
 			}
 
-			sshPort, _ := cmd.Flags().GetInt("ssh-port")
 			sshServer := ssh.Server{
-				Addr: fmt.Sprintf(":%d", sshPort),
+				Addr: fmt.Sprintf(":%d", config.SSHPort),
 				PublicKeyHandler: func(ctx ssh.Context, publicKey ssh.PublicKey) bool {
 					key, err := keyText(publicKey)
 					if err != nil {
@@ -147,7 +150,7 @@ func NewCmdServer() *cobra.Command {
 						user, err := db.UserFromContext(ctx)
 						if err != nil {
 							slog.Info("no user found", slog.String("error", err.Error()))
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "no user found"})
 						}
 
 						return true, gossh.Marshal(UserResponse{
@@ -165,15 +168,15 @@ func NewCmdServer() *cobra.Command {
 
 						var params SignupParams
 						if err := gossh.Unmarshal(req.Payload, &params); err != nil {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "invalid payload"})
 						}
 
 						if err := isValidUsername(params.Username); err != nil {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "invalid username"})
 						}
 
 						if _, err := mail.ParseAddress(params.Email); err != nil {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "invalid email"})
 						}
 
 						if err := db.WrapTransaction(func(tx *sql.Tx) error {
@@ -187,45 +190,45 @@ func NewCmdServer() *cobra.Command {
 
 							return nil
 						}); err != nil {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "user already exists"})
 						}
 
 						code, err := generateVerificationCode()
 						if err != nil {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "could not generate code"})
 						}
 
 						if err := sendVerificationCode(valtownClient, params.Email, code); err != nil {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "could not send code"})
 						}
 
 						conn := ctx.Value(ssh.ContextKeyConn).(*gossh.ServerConn)
 						codeOk, payload, err := conn.SendRequest("code", true, nil)
 						if err != nil {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "could not send code"})
 						}
 						if !codeOk {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "could not send code"})
 						}
 
 						var verifyParams VerifyEmailParams
 						if err := gossh.Unmarshal(payload, &verifyParams); err != nil {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "could not unmarshal code"})
 						}
 
 						if verifyParams.Code != code {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "invalid code"})
 						}
 
 						key, ok := ctx.Value("key").(string)
 						if !ok {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "invalid key"})
 						}
 
 						if err := db.WrapTransaction(func(tx *sql.Tx) error {
 							return db.createUser(tx, key, params.Email, params.Username)
 						}); err != nil {
-							return false, nil
+							return false, gossh.Marshal(ErrorPayload{Message: "could not create user"})
 						}
 
 						return true, nil
@@ -322,9 +325,6 @@ func NewCmdServer() *cobra.Command {
 			return nil
 		},
 	}
-
-	cmd.Flags().Int("ssh-port", 2222, "port for the ssh server")
-	cmd.Flags().Int("http-port", 8000, "port for the http server")
 
 	return cmd
 }

@@ -161,7 +161,7 @@ func NewCmdUp() *cobra.Command {
 
 type ClientConfig struct {
 	Host    string `env:"SMALLWEB_HOST" envDefault:"smallweb.run"`
-	SSHPort int    `env:"SMALLWEB_SSH_PORT" envDefault:"2222"`
+	SSHPort int    `env:"SMALLWEB_SSH_PORT" envDefault:"22"`
 	Debug   bool   `env:"SMALLWEB_DEBUG" envDefault:"false"`
 	KeyType string `env:"SMALLWEB_KEY_TYPE" envDefault:"ed25519"`
 	DataDir string `env:"SMALLWEB_DATA_DIR" envDefault:""`

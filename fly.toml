@@ -24,4 +24,4 @@ script_checks = []
 
 [[services.ports]]
 handlers = []
-port = 2222
+port = 22

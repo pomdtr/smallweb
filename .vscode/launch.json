@@ -78,6 +78,16 @@
                 "logout"
             ],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "smallweb serve hono",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.go",
+            "args": [
+                "serve",
+                "hono"
+            ]
         }
     ]
 }
