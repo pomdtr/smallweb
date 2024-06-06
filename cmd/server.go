@@ -137,7 +137,16 @@ func NewCmdServer() *cobra.Command {
 
 			sshServer := ssh.Server{
 				Addr: fmt.Sprintf(":%d", config.SSHPort),
+				KeyboardInteractiveHandler: func(ctx ssh.Context, challenge gossh.KeyboardInteractiveChallenge) bool {
+					log.Printf("attempted keyboard interactive login")
+					return false
+				},
+				PasswordHandler: func(ctx ssh.Context, pass string) bool {
+					log.Printf("attempted password login: %s", pass)
+					return false
+				},
 				PublicKeyHandler: func(ctx ssh.Context, publicKey ssh.PublicKey) bool {
+					log.Printf("attempted public key login: %s", publicKey.Type())
 					key, err := keyText(publicKey)
 					if err != nil {
 						return false
