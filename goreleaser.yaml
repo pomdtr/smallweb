@@ -1,3 +1,4 @@
+version: 2
 # Make sure to check the documentation at https://goreleaser.com
 before:
   hooks:
@@ -8,7 +9,7 @@ before:
     - sh -c 'go run . completion "zsh" >./completions/{{ .ProjectName }}.zsh'
     - sh -c 'go run . completion "fish" >./completions/{{ .ProjectName }}.fish'
 changelog:
-  skip: true
+  disable: true
 builds:
   - env:
       - CGO_ENABLED=0
