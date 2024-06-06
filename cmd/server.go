@@ -37,6 +37,14 @@ type SignupParams struct {
 	Username string
 }
 
+type SignupResponse struct {
+	Username string
+}
+
+type LoginResponse struct {
+	Username string
+}
+
 type VerifyEmailParams struct {
 	Code string
 }
@@ -137,14 +145,6 @@ func NewCmdServer() *cobra.Command {
 
 			sshServer := ssh.Server{
 				Addr: fmt.Sprintf(":%d", config.SSHPort),
-				KeyboardInteractiveHandler: func(ctx ssh.Context, challenge gossh.KeyboardInteractiveChallenge) bool {
-					log.Printf("attempted keyboard interactive login")
-					return false
-				},
-				PasswordHandler: func(ctx ssh.Context, pass string) bool {
-					log.Printf("attempted password login: %s", pass)
-					return false
-				},
 				PublicKeyHandler: func(ctx ssh.Context, publicKey ssh.PublicKey) bool {
 					log.Printf("attempted public key login: %s", publicKey.Type())
 					key, err := keyText(publicKey)
@@ -240,7 +240,7 @@ func NewCmdServer() *cobra.Command {
 							return false, gossh.Marshal(ErrorPayload{Message: "could not create user"})
 						}
 
-						return true, nil
+						return true, gossh.Marshal(SignupResponse{Username: params.Username})
 					},
 					"login": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
 						var params LoginParams
@@ -300,7 +300,7 @@ func NewCmdServer() *cobra.Command {
 							return false, nil
 						}
 
-						return true, nil
+						return true, gossh.Marshal(LoginResponse{Username: user.Name})
 					},
 					"logout": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (ok bool, payload []byte) {
 						user, err := db.UserFromContext(ctx)

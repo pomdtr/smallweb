@@ -131,14 +131,24 @@ func NewCmdAuthSignup() *cobra.Command {
 				return fmt.Errorf("could not prompt for email: %v", err)
 			}
 
-			userExists, _, err = c.SendRequest("signup", true, ssh.Marshal(params))
-			if err != nil {
-				log.Fatalf("could not send request: %v", err)
-			} else if !userExists {
-				return fmt.Errorf("failed to sign up")
-			}
+			if ok, payload, err := c.SendRequest("signup", true, ssh.Marshal(params)); err != nil {
+				return fmt.Errorf("could not sign up: %v", err)
+			} else if !ok {
+				var resp ErrorResponse
+				if err := ssh.Unmarshal(payload, &resp); err != nil {
+					log.Fatalf("could not unmarshal response: %v", err)
+				}
 
-			return nil
+				return fmt.Errorf("failed to sign up: %s", resp.Message)
+			} else {
+				var res SignupResponse
+				if err := ssh.Unmarshal(payload, &res); err != nil {
+					log.Fatalf("could not unmarshal response: %v", err)
+				}
+
+				fmt.Printf("Signed up as %s\n", res.Username)
+				return nil
+			}
 		},
 	}
 
@@ -201,15 +211,24 @@ func NewCmdAuthLogin() *cobra.Command {
 				return fmt.Errorf("could not prompt for username: %v", err)
 			}
 
-			ok, _, err = c.SendRequest("login", true, ssh.Marshal(params))
-			if err != nil {
-				log.Fatalf("could not send request: %v", err)
+			if ok, payload, err := c.SendRequest("login", true, ssh.Marshal(params)); err != nil {
+				return fmt.Errorf("could not log in: %v", err)
 			} else if !ok {
-				return fmt.Errorf("failed to log out")
+				var resp ErrorResponse
+				if err := ssh.Unmarshal(payload, &resp); err != nil {
+					log.Fatalf("could not unmarshal response: %v", err)
+				}
+
+				return fmt.Errorf("failed to log out: %s", resp.Message)
+			} else {
+				var res LoginResponse
+				if err := ssh.Unmarshal(payload, &res); err != nil {
+					log.Fatalf("could not unmarshal response: %v", err)
+				}
+
+				fmt.Printf("Logged in as %s\n", res.Username)
+				return nil
 			}
-
-			return nil
-
 		},
 	}
 

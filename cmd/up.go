@@ -81,11 +81,9 @@ func NewCmdUp() *cobra.Command {
 				}
 			}()
 
-			ok, _, err := sshConn.SendRequest("smallweb-forward", true, nil)
-			if err != nil {
+			if ok, _, err := sshConn.SendRequest("smallweb-forward", true, nil); err != nil {
 				return fmt.Errorf("could not forward: %v", err)
-			}
-			if !ok {
+			} else if !ok {
 				return fmt.Errorf("user not logged in, please run 'smallweb auth login' or 'smallweb auth signup'")
 			}
 
