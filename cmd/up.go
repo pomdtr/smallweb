@@ -48,6 +48,17 @@ func NewCmdUp() *cobra.Command {
 			}
 			defer sshConn.Close()
 
+			var user UserResponse
+			if ok, payload, err := sshConn.SendRequest("user", true, nil); err != nil {
+				log.Fatalf("could not send request: %v", err)
+			} else if !ok {
+				return fmt.Errorf("not logged in")
+			} else {
+				if err := ssh.Unmarshal(payload, &user); err != nil {
+					return fmt.Errorf("could not unmarshal user: %v", err)
+				}
+			}
+
 			go func() {
 				for req := range reqs {
 					if req.Type != "email" {
@@ -87,7 +98,7 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("user not logged in, please run 'smallweb auth login' or 'smallweb auth signup'")
 			}
 
-			exampleUrl := fmt.Sprintf("https://<app>-<user>.%s", client.Config.Host)
+			exampleUrl := fmt.Sprintf("https://<app>-%s.smallweb.run", user.Name)
 			fmt.Printf("Smallweb tunnel is up and running, you can now access your apps at: %s\n", exampleUrl)
 
 			freeport, err := GetFreePort()

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
@@ -141,12 +142,7 @@ func NewCmdAuthSignup() *cobra.Command {
 
 				return fmt.Errorf("failed to sign up: %s", resp.Message)
 			} else {
-				var res SignupResponse
-				if err := ssh.Unmarshal(payload, &res); err != nil {
-					log.Fatalf("could not unmarshal response: %v", err)
-				}
-
-				fmt.Printf("Signed up as %s\n", res.Username)
+				fmt.Printf("Signed up as %s\n", params.Username)
 				return nil
 			}
 		},
@@ -221,12 +217,7 @@ func NewCmdAuthLogin() *cobra.Command {
 
 				return fmt.Errorf("failed to log out: %s", resp.Message)
 			} else {
-				var res LoginResponse
-				if err := ssh.Unmarshal(payload, &res); err != nil {
-					log.Fatalf("could not unmarshal response: %v", err)
-				}
-
-				fmt.Printf("Logged in as %s\n", res.Username)
+				fmt.Fprintf(os.Stderr, "You are now logged in!\n")
 				return nil
 			}
 		},
@@ -261,15 +252,19 @@ func NewCmdAuthLogout() *cobra.Command {
 				return nil
 			}
 
-			ok, _, err = conn.SendRequest("logout", true, nil)
-			if err != nil {
-				log.Fatalf("could not send request: %v", err)
+			if ok, payload, err := conn.SendRequest("logout", true, nil); err != nil {
+				return fmt.Errorf("could not log out: %v", err)
 			} else if !ok {
-				return fmt.Errorf("failed to log out")
+				var resp ErrorResponse
+				if err := ssh.Unmarshal(payload, &resp); err != nil {
+					return fmt.Errorf("failed to log out: %v", err)
+				}
+
+				return fmt.Errorf("failed to log out: %s", resp.Message)
+			} else {
+				fmt.Println("You are now logged out.")
+				return nil
 			}
-
-			return nil
-
 		},
 	}
 

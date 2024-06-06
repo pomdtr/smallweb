@@ -139,7 +139,28 @@ func NewCmdServer() *cobra.Command {
 						}
 					}
 					w.WriteHeader(resp.StatusCode)
-					io.Copy(w, resp.Body)
+					flusher := w.(http.Flusher)
+					// Stream the response body to the client
+					buf := make([]byte, 1024)
+					for {
+						n, err := resp.Body.Read(buf)
+						if n > 0 {
+							_, writeErr := w.Write(buf[:n])
+							if writeErr != nil {
+								http.Error(w, writeErr.Error(), http.StatusInternalServerError)
+								return
+							}
+							flusher.Flush() // flush the buffer to the client
+						}
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+					}
+
 				}),
 			}
 
@@ -240,7 +261,7 @@ func NewCmdServer() *cobra.Command {
 							return false, gossh.Marshal(ErrorPayload{Message: "could not create user"})
 						}
 
-						return true, gossh.Marshal(SignupResponse{Username: params.Username})
+						return true, nil
 					},
 					"login": func(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
 						var params LoginParams

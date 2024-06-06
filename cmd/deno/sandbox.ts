@@ -37,7 +37,7 @@ const server = Deno.serve(
       }
       return resp;
     } catch (e) {
-      return new Response(e, { status: 500 });
+      return new Response(e.message, { status: 500 });
     }
   }
 );

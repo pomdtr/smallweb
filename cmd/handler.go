@@ -139,7 +139,6 @@ type Request struct {
 
 type ErrorResponse struct {
 	Message string `json:"message"`
-	Stack   string `json:"stack"`
 }
 
 func (r Request) Username() (string, error) {
@@ -284,12 +283,27 @@ func (me *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	rw.WriteHeader(resp.StatusCode)
-	_, err = io.Copy(rw, resp.Body)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
+	flusher := rw.(http.Flusher)
+	// Stream the response body to the client
+	buf := make([]byte, 1024)
+	for {
+		n, err := resp.Body.Read(buf)
+		if n > 0 {
+			_, writeErr := rw.Write(buf[:n])
+			if writeErr != nil {
+				return
+			}
+			flusher.Flush() // flush the buffer to the client
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
 }
 
 func (me *Handler) Email(email *Email) (*Email, error) {
