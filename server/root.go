@@ -1,9 +1,11 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
+	"github.com/pomdtr/smallweb/server/frontend"
 	"github.com/pomdtr/smallweb/server/storage"
 	"golang.org/x/crypto/ssh"
 )
@@ -57,10 +59,15 @@ func (me *RootHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			w.WriteHeader(http.StatusOK)
 			// TODO: write a template for this
+			var links []frontend.Link
 			for _, app := range resp.Apps {
-				link := fmt.Sprintf("<a href='https://%s-%s.%s'>%s</a>", app, user.Name, r.Host, app)
-				fmt.Fprintf(w, "%s<br>", link)
+				links = append(links, frontend.Link{
+					Href: fmt.Sprintf("https://%s-%s.%s", app, user.Name, r.Host),
+					Text: app,
+				})
 			}
+
+			frontend.Layout("Smallweb", frontend.LinkList(links)).Render(context.Background(), w)
 			return
 		}
 	})

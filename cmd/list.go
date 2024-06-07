@@ -10,33 +10,37 @@ import (
 )
 
 func listApps() ([]string, error) {
-	lookupDirs, err := client.LookupDirs()
+	homedir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup dirs: %v", err)
+		return nil, fmt.Errorf("failed to get user home dir: %v", err)
 	}
 
 	apps := make(map[string]struct{})
-	for _, lookupDir := range lookupDirs {
-		entries, err := os.ReadDir(lookupDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read dir: %v", err)
+	rootDir := path.Join(homedir, "www")
+	entries, err := os.ReadDir(path.Join(rootDir))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read dir: %v", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
 		}
 
-		for _, entry := range entries {
-			if !entry.IsDir() {
-				continue
+		for _, extension := range client.EXTENSIONS {
+			if exists(path.Join(rootDir, entry.Name(), "http"+extension)) {
+				apps[entry.Name()] = struct{}{}
+				break
 			}
 
-			for _, extension := range client.EXTENSIONS {
-				if exists(path.Join(lookupDir, entry.Name(), "http"+extension)) {
-					apps[entry.Name()] = struct{}{}
-					break
-				}
+			if exists(path.Join(rootDir, "cli", extension)) {
+				apps[entry.Name()] = struct{}{}
+				break
+			}
 
-				if exists(path.Join(lookupDir, "cli", extension)) {
-					apps[entry.Name()] = struct{}{}
-					break
-				}
+			if exists(path.Join(rootDir, entry.Name(), "index.html")) {
+				apps[entry.Name()] = struct{}{}
+				break
 			}
 		}
 	}

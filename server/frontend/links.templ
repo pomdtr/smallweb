@@ -1,0 +1,36 @@
+package frontend
+
+type Link struct {
+	Href string
+	Text string
+}
+
+templ Layout(title string, children ...templ.Component) {
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<title>{ title }</title>
+			<link
+				rel="stylesheet"
+				href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+			/>
+		</head>
+		<body>
+			<main class="container">
+				for _, child := range children {
+					@child
+				}
+			</main>
+		</body>
+	</html>
+}
+
+templ LinkList(links []Link) {
+	<ul>
+		for _, link := range links {
+			<li>
+				<a href={ templ.SafeURL(link.Href) }>{ link.Text }</a>
+			</li>
+		}
+	</ul>
+}

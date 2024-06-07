@@ -49,52 +49,32 @@ func init() {
 	}
 }
 
-func LookupDirs() ([]string, error) {
-	var lookupDirs []string
-	if env, ok := os.LookupEnv("SMALLWEB_PATH"); ok {
-		lookupDirs = strings.Split(env, ":")
-	} else {
-		homedir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, err
-		}
-
-		lookupDirs = []string{path.Join(homedir, "www")}
-	}
-
-	return lookupDirs, nil
-}
-
 func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
-	lookupDirs, err := LookupDirs()
+	homedir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
 	}
 
 	return &WorkerEntrypoints{
 		Http: func() string {
-			for _, dir := range lookupDirs {
-				for _, ext := range EXTENSIONS {
-					entrypoint := path.Join(dir, name, "http"+ext)
-					if exists(entrypoint) {
-						return entrypoint
-					}
-				}
-
-				entrypoint := path.Join(dir, name, "index.html")
+			for _, ext := range EXTENSIONS {
+				entrypoint := path.Join(homedir, "www", name, "http"+ext)
 				if exists(entrypoint) {
 					return entrypoint
 				}
 			}
+
+			entrypoint := path.Join(homedir, "www", name, "index.html")
+			if exists(entrypoint) {
+				return entrypoint
+			}
 			return ""
 		}(),
 		Cli: func() string {
-			for _, dir := range lookupDirs {
-				for _, ext := range EXTENSIONS {
-					entrypoint := path.Join(dir, name, "cli"+ext)
-					if exists(entrypoint) {
-						return entrypoint
-					}
+			for _, ext := range EXTENSIONS {
+				entrypoint := path.Join(homedir, "www", name, "cli"+ext)
+				if exists(entrypoint) {
+					return entrypoint
 				}
 			}
 			return ""
