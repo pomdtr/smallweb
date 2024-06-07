@@ -215,7 +215,7 @@ func (me *AuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if session.Host != r.Host {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "session not valid for this host", http.StatusUnauthorized)
 		return
 	}
 
@@ -223,7 +223,7 @@ func (me *AuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(subdomain, "-")
 	username := parts[len(parts)-1]
 	if username != user.Name {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, fmt.Sprintf("session not valid for this user: %s", user.Name), http.StatusUnauthorized)
 		return
 	}
 
