@@ -18,6 +18,8 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/keygen"
 	"github.com/mitchellh/go-homedir"
+	"github.com/pomdtr/smallweb/client"
+	"github.com/pomdtr/smallweb/server"
 	"github.com/spf13/cobra"
 
 	"golang.org/x/crypto/ssh"
@@ -26,28 +28,6 @@ import (
 var (
 	ErrMissingSSHAuth = errors.New("no SSH auth found")
 )
-
-func denoExecutable() (string, error) {
-	if env, ok := os.LookupEnv("DENO_EXEC_PATH"); ok {
-		return env, nil
-	}
-
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	if denoPath, err := exec.LookPath("deno"); err == nil {
-		return denoPath, nil
-	}
-
-	denoPath := filepath.Join(homedir, ".deno", "bin", "deno")
-	if exists(denoPath) {
-		return denoPath, nil
-	}
-
-	return "", fmt.Errorf("deno executable not found")
-}
 
 func installDeno() error {
 	// if we are on windows, we need to use the powershell script
@@ -67,7 +47,7 @@ func installDeno() error {
 }
 
 func setupDenoIfRequired() error {
-	if _, err := denoExecutable(); err == nil {
+	if _, err := client.DenoExecutable(); err == nil {
 		return nil
 	}
 
@@ -101,26 +81,43 @@ func NewCmdUp() *cobra.Command {
 				return err
 			}
 
-			client, err := NewClientWithDefaults()
+			cc, err := NewClientWithDefaults()
 			if err != nil {
 				log.Fatalf("failed to create client: %v", err)
 			}
 
-			addr := fmt.Sprintf("%s:%d", client.Config.Host, client.Config.SSHPort)
+			addr := fmt.Sprintf("%s:%d", cc.Config.Host, cc.Config.SSHPort)
 			conn, err := net.Dial("tcp", addr)
 			if err != nil {
 				log.Fatalf("could not dial: %v", err)
 			}
 
-			sshConn, chans, reqs, err := ssh.NewClientConn(conn, addr, client.sshConfig)
+			sshConn, chans, reqs, err := ssh.NewClientConn(conn, addr, cc.sshConfig)
 			if err != nil {
 				log.Fatalf("could not create client connection: %v", err)
 			}
 			defer sshConn.Close()
 
-			go ssh.DiscardRequests(reqs)
+			go func() {
+				for req := range reqs {
+					if req.Type == "list-apps" {
+						apps, err := listApps()
+						if err != nil {
+							log.Fatalf("could not list apps: %v", err)
+							req.Reply(false, nil)
+						}
 
-			var user UserResponse
+						req.Reply(true, ssh.Marshal(server.ListAppsResponse{Apps: apps}))
+						continue
+					}
+
+					if req.WantReply {
+						req.Reply(false, nil)
+					}
+				}
+			}()
+
+			var user server.UserResponse
 			if ok, payload, err := sshConn.SendRequest("user", true, nil); err != nil {
 				log.Fatalf("could not send request: %v", err)
 			} else if !ok {
@@ -140,7 +137,7 @@ func NewCmdUp() *cobra.Command {
 			exampleUrl := fmt.Sprintf("https://<app>-%s.smallweb.run", user.Name)
 			fmt.Printf("Smallweb tunnel is up and running, you can now access your apps at: %s\n", exampleUrl)
 
-			freeport, err := GetFreePort()
+			freeport, err := server.GetFreePort()
 			if err != nil {
 				return err
 			}
@@ -161,7 +158,7 @@ func NewCmdUp() *cobra.Command {
 						return
 					}
 
-					worker, err := NewHandler(app)
+					worker, err := client.NewHandler(app)
 					if err != nil {
 						rw.WriteHeader(http.StatusInternalServerError)
 						return

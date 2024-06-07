@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/pomdtr/smallweb/client"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +33,7 @@ func NewCmdServe() *cobra.Command {
 
 			port, _ := cmd.Flags().GetInt("port")
 			if len(args) == 1 {
-				worker, err := NewHandler(args[0])
+				worker, err := client.NewHandler(args[0])
 				if err != nil {
 					return fmt.Errorf("failed to create client: %v", err)
 				}
@@ -62,7 +63,7 @@ func NewCmdServe() *cobra.Command {
 						return
 					}
 
-					worker, err := NewHandler(app)
+					worker, err := client.NewHandler(app)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return

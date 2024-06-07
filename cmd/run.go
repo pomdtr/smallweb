@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/pomdtr/smallweb/client"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +28,7 @@ func NewCmdRun() *cobra.Command {
 				return err
 			}
 
-			worker, err := NewHandler(args[0])
+			worker, err := client.NewHandler(args[0])
 			if err != nil {
 				return err
 			}

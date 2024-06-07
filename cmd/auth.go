@@ -7,12 +7,13 @@ import (
 	"os"
 
 	"github.com/charmbracelet/huh"
+	"github.com/pomdtr/smallweb/server"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
 )
 
-func signupForm() (*SignupParams, error) {
-	var params SignupParams
+func signupForm() (*server.SignupParams, error) {
+	var params server.SignupParams
 
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -28,8 +29,8 @@ func signupForm() (*SignupParams, error) {
 	return &params, nil
 }
 
-func loginForm() (*LoginParams, error) {
-	var params LoginParams
+func loginForm() (*server.LoginParams, error) {
+	var params server.LoginParams
 
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -105,7 +106,7 @@ func NewCmdAuthSignup() *cobra.Command {
 							req.Reply(false, nil)
 						}
 
-						req.Reply(true, ssh.Marshal(VerifyEmailParams{Code: code}))
+						req.Reply(true, ssh.Marshal(server.VerifyEmailParams{Code: code}))
 					}
 					req.Reply(false, nil)
 				}
@@ -135,7 +136,7 @@ func NewCmdAuthSignup() *cobra.Command {
 			if ok, payload, err := c.SendRequest("signup", true, ssh.Marshal(params)); err != nil {
 				return fmt.Errorf("could not sign up: %v", err)
 			} else if !ok {
-				var resp ErrorResponse
+				var resp server.ErrorResponse
 				if err := ssh.Unmarshal(payload, &resp); err != nil {
 					log.Fatalf("could not unmarshal response: %v", err)
 				}
@@ -182,7 +183,7 @@ func NewCmdAuthLogin() *cobra.Command {
 							req.Reply(false, nil)
 						}
 
-						req.Reply(true, ssh.Marshal(VerifyEmailParams{Code: code}))
+						req.Reply(true, ssh.Marshal(server.VerifyEmailParams{Code: code}))
 					}
 					req.Reply(false, nil)
 				}
@@ -210,7 +211,7 @@ func NewCmdAuthLogin() *cobra.Command {
 			if ok, payload, err := c.SendRequest("login", true, ssh.Marshal(params)); err != nil {
 				return fmt.Errorf("could not log in: %v", err)
 			} else if !ok {
-				var resp ErrorResponse
+				var resp server.ErrorResponse
 				if err := ssh.Unmarshal(payload, &resp); err != nil {
 					log.Fatalf("could not unmarshal response: %v", err)
 				}
@@ -255,7 +256,7 @@ func NewCmdAuthLogout() *cobra.Command {
 			if ok, payload, err := conn.SendRequest("logout", true, nil); err != nil {
 				return fmt.Errorf("could not log out: %v", err)
 			} else if !ok {
-				var resp ErrorResponse
+				var resp server.ErrorResponse
 				if err := ssh.Unmarshal(payload, &resp); err != nil {
 					return fmt.Errorf("failed to log out: %v", err)
 				}
@@ -296,7 +297,7 @@ func NewCmdAuthWhoAmI() *cobra.Command {
 				return fmt.Errorf("not logged in")
 			}
 
-			var user UserResponse
+			var user server.UserResponse
 			if err := ssh.Unmarshal(payload, &user); err != nil {
 				log.Fatalf("could not unmarshal user: %v", err)
 			}

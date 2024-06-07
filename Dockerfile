@@ -4,6 +4,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY *.go ./
 COPY cmd/ ./cmd/
+COPY server ./server
+COPY client ./client
 RUN CGO_ENABLED=0 GOOS=linux go build -o /smallweb
 
 FROM alpine:3.20

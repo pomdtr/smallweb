@@ -1,4 +1,4 @@
-package cmd
+package client
 
 import (
 	"bufio"
@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -17,9 +15,10 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
+	"github.com/pomdtr/smallweb/server"
 )
 
-var extensions = []string{".js", ".ts", ".jsx", ".tsx"}
+var EXTENSIONS = []string{".js", ".ts", ".jsx", ".tsx"}
 var dataHome = path.Join(xdg.DataHome, "smallweb")
 var sandboxPath = path.Join(dataHome, "sandbox.ts")
 
@@ -32,6 +31,11 @@ type FetchInput struct {
 	Url        string     `json:"url"`
 	Headers    [][]string `json:"headers"`
 	Method     string     `json:"method"`
+}
+
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func init() {
@@ -70,7 +74,7 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 	return &WorkerEntrypoints{
 		Http: func() string {
 			for _, dir := range lookupDirs {
-				for _, ext := range extensions {
+				for _, ext := range EXTENSIONS {
 					entrypoint := path.Join(dir, name, "http"+ext)
 					if exists(entrypoint) {
 						return entrypoint
@@ -86,7 +90,7 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 		}(),
 		Cli: func() string {
 			for _, dir := range lookupDirs {
-				for _, ext := range extensions {
+				for _, ext := range EXTENSIONS {
 					entrypoint := path.Join(dir, name, "cli"+ext)
 					if exists(entrypoint) {
 						return entrypoint
@@ -96,53 +100,6 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 			return ""
 		}(),
 	}, nil
-}
-
-type Request struct {
-	Url     string     `json:"url"`
-	Method  string     `json:"method"`
-	Headers [][]string `json:"headers"`
-	Body    []byte     `json:"body,omitempty"`
-}
-
-type ErrorResponse struct {
-	Message string `json:"message"`
-}
-
-func (r Request) Username() (string, error) {
-	url, err := url.Parse(r.Url)
-	if err != nil {
-		return "", err
-	}
-
-	subdomain := strings.Split(url.Host, ".")[0]
-	parts := strings.Split(subdomain, "-")
-	if len(parts) < 2 {
-		return "", fmt.Errorf("invalid subdomain")
-	}
-
-	return parts[len(parts)-1], nil
-}
-
-func (r Request) App() (string, error) {
-	url, err := url.Parse(r.Url)
-	if err != nil {
-		return "", err
-	}
-
-	subdomain := strings.Split(url.Host, ".")[0]
-	parts := strings.Split(subdomain, "-")
-	if len(parts) < 2 {
-		return "", fmt.Errorf("invalid subdomain")
-	}
-
-	return strings.Join(parts[:len(parts)-1], "-"), nil
-}
-
-type Response struct {
-	Code    int        `json:"code"`
-	Headers [][]string `json:"headers"`
-	Body    []byte     `json:"body"`
 }
 
 type WorkerEntrypoints struct {
@@ -164,7 +121,7 @@ func NewHandler(alias string) (*Handler, error) {
 }
 
 func (me *Handler) Cmd(args ...string) (*exec.Cmd, error) {
-	deno, err := denoExecutable()
+	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +143,7 @@ func (me *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	freeport, err := GetFreePort()
+	freeport, err := server.GetFreePort()
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -293,17 +250,24 @@ func (me *Handler) Run(runArgs []string) error {
 	return command.Run()
 }
 
-// GetFreePort asks the kernel for a free open port that is ready to use.
-func GetFreePort() (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return 0, err
+func DenoExecutable() (string, error) {
+	if env, ok := os.LookupEnv("DENO_EXEC_PATH"); ok {
+		return env, nil
 	}
 
-	l, err := net.ListenTCP("tcp", addr)
+	homedir, err := os.UserHomeDir()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port, nil
+
+	if denoPath, err := exec.LookPath("deno"); err == nil {
+		return denoPath, nil
+	}
+
+	denoPath := filepath.Join(homedir, ".deno", "bin", "deno")
+	if exists(denoPath) {
+		return denoPath, nil
+	}
+
+	return "", fmt.Errorf("deno executable not found")
 }

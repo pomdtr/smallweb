@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/cli/browser"
+	"github.com/pomdtr/smallweb/server"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
 )
@@ -54,7 +55,7 @@ func NewCmdOpen() *cobra.Command {
 				return fmt.Errorf("credentials not found, please run 'smallweb auth signup' or 'smallweb auth login'")
 			}
 
-			var user UserResponse
+			var user server.UserResponse
 			if err := ssh.Unmarshal(payload, &user); err != nil {
 				log.Fatalf("could not unmarshal user: %v", err)
 			}

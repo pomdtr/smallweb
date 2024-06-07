@@ -5,11 +5,12 @@ import (
 	"os"
 	"path"
 
+	"github.com/pomdtr/smallweb/client"
 	"github.com/spf13/cobra"
 )
 
 func listApps() ([]string, error) {
-	lookupDirs, err := LookupDirs()
+	lookupDirs, err := client.LookupDirs()
 	if err != nil {
 		return nil, fmt.Errorf("failed to lookup dirs: %v", err)
 	}
@@ -26,7 +27,7 @@ func listApps() ([]string, error) {
 				continue
 			}
 
-			for _, extension := range extensions {
+			for _, extension := range client.EXTENSIONS {
 				if exists(path.Join(lookupDir, entry.Name(), "http"+extension)) {
 					apps[entry.Name()] = struct{}{}
 					break

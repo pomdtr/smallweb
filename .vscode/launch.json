@@ -37,7 +37,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "env": {
-                "SMALLWEB_HOST": "localhost"
+                "SMALLWEB_HOST": "localhost",
+                "SMALLWEB_SSH_PORT": "2222"
             },
             "args": [
                 "up"
@@ -84,6 +85,15 @@
             "args": [
                 "serve",
                 "hono"
+            ]
+        },
+        {
+            "name": "smallweb list",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.go",
+            "args": [
+                "list"
             ]
         }
     ]

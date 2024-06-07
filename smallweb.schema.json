@@ -1,0 +1,54 @@
+{
+    "type": "object",
+    "properties": {
+        "permissions": {
+            "type": "object",
+            "properties": {
+                "allow": {
+                    "$ref": "#/definitions/permission-group"
+                },
+                "deny": {
+                    "$ref": "#/definitions/permission-group"
+                }
+            }
+        }
+    },
+    "definitions": {
+        "permission-group": {
+            "read": {
+                "$ref": "#/definitions/permission"
+            },
+            "write": {
+                "$ref": "#/definitions/permission"
+            },
+            "run": {
+                "$ref": "#/definitions/permission"
+            },
+            "net": {
+                "$ref": "#/definitions/permission"
+            },
+            "ffi": {
+                "$ref": "#/definitions/permission"
+            },
+            "sys": {
+                "$ref": "#/definitions/permission"
+            },
+            "hrtime": {
+                "$ref": "#/definitions/permission"
+            }
+        },
+        "permission": {
+            "oneOf": [
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "type": "boolean"
+                }
+            ]
+        }
+    }
+}
