@@ -10,19 +10,66 @@ import (
 
 func NewCmdServe() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "serve <app>",
+		Use:   "serve [app]",
 		Short: "Serve a smallweb app",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			port, _ := cmd.Flags().GetInt("port")
-			worker, err := NewHandler(args[0])
+		Args:  cobra.MaximumNArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) != 0 {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			apps, err := listApps()
 			if err != nil {
-				return fmt.Errorf("failed to create client: %v", err)
+				return nil, cobra.ShellCompDirectiveError
+			}
+
+			return apps, cobra.ShellCompDirectiveNoFileComp
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := setupDenoIfRequired(); err != nil {
+				return err
+			}
+
+			port, _ := cmd.Flags().GetInt("port")
+			if len(args) == 1 {
+				worker, err := NewHandler(args[0])
+				if err != nil {
+					return fmt.Errorf("failed to create client: %v", err)
+				}
+
+				server := http.Server{
+					Addr:    fmt.Sprintf(":%d", port),
+					Handler: worker,
+				}
+
+				fmt.Fprintln(os.Stderr, "Listening on", server.Addr)
+				return server.ListenAndServe()
 			}
 
 			server := http.Server{
-				Addr:    fmt.Sprintf(":%d", port),
-				Handler: worker,
+				Addr: fmt.Sprintf(":%d", port),
+				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					var app string
+					for k, v := range r.Header {
+						if k == "X-Smallweb-App" {
+							app = v[0]
+							break
+						}
+					}
+
+					if app == "" {
+						http.Error(w, "No app specified", http.StatusBadRequest)
+						return
+					}
+
+					worker, err := NewHandler(app)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+
+					worker.ServeHTTP(w, r)
+				}),
 			}
 
 			fmt.Fprintln(os.Stderr, "Listening on", server.Addr)

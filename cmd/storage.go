@@ -232,7 +232,74 @@ func (me *DB) selectUserWithEmail(tx *sql.Tx, email string) *sql.Row {
 	return tx.QueryRow(sqlSelectUserWithEmail, email)
 }
 
+func (me *DB) selectSession(tx *sql.Tx, sessionID string) *sql.Row {
+	return tx.QueryRow(sqlSelectSessionWithID, sessionID)
+}
+
 func (me *DB) updateUser(tx *sql.Tx, charmID string, name string) error {
 	_, err := tx.Exec(sqlUpdateUser, name, charmID)
+	return err
+}
+
+type Session struct {
+	ID        string
+	Email     string
+	Host      string
+	ExpiresAt time.Time
+}
+
+func (me *DB) scanSession(r *sql.Row) (*Session, error) {
+	s := &Session{}
+	var expiresAt time.Time
+	err := r.Scan(&s.ID, &s.Email, &s.Host, &expiresAt)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func (me *DB) GetSession(sessionID string) (*Session, *User, error) {
+	var session *Session
+	var user *User
+	if err := me.WrapTransaction(func(tx *sql.Tx) error {
+		sessionRow := me.selectSession(tx, sessionID)
+		s, err := me.scanSession(sessionRow)
+		if err != nil {
+			return err
+		}
+		session = s
+
+		userRow := me.selectUserWithEmail(tx, session.Email)
+		u, err := me.scanUser(userRow)
+		if err != nil {
+			return nil
+		}
+		user = u
+
+		return nil
+	}); err != nil {
+		return nil, nil, err
+	}
+
+	return session, user, nil
+}
+
+func (me *DB) CreateSession(email string, host string) (string, error) {
+	sessionID := uuid.New().String()
+	if err := me.WrapTransaction(func(tx *sql.Tx) error {
+		if err := me.insertSession(tx, sessionID, email, host, time.Now().Add(time.Hour*24)); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return "", err
+	}
+
+	return sessionID, nil
+}
+
+func (me *DB) insertSession(tx *sql.Tx, id string, email string, host string, expiresAt time.Time) error {
+	_, err := tx.Exec(sqlCreateSession, id, email, host, expiresAt)
 	return err
 }

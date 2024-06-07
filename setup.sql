@@ -19,3 +19,11 @@ CREATE TABLE IF NOT EXISTS public_key (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS session (
+    id TEXT NOT NULL PRIMARY KEY,
+    /* You do not need to be a user to have a session */
+    email TEXT NOT NULL,
+    host TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL
+)

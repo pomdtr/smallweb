@@ -34,36 +34,6 @@ type FetchInput struct {
 	Method     string     `json:"method"`
 }
 
-type Email struct {
-	From    string `json:"from,omitempty"`
-	To      string `json:"to,omitempty"`
-	Cc      string `json:"cc,omitempty"`
-	Bcc     string `json:"bcc,omitempty"`
-	Subject string `json:"subject,omitempty"`
-	Text    string `json:"text,omitempty"`
-	Html    string `json:"html,omitempty"`
-}
-
-func (me *Email) Username() (string, error) {
-	host := strings.Split(me.To, "@")[0]
-	parts := strings.Split(host, "-")
-	if len(parts) < 2 {
-		return "", fmt.Errorf("invalid subdomain")
-	}
-
-	return parts[len(parts)-1], nil
-}
-
-func (me *Email) App() (string, error) {
-	host := strings.Split(me.To, "@")[0]
-	parts := strings.Split(host, "-")
-	if len(parts) < 2 {
-		return "", fmt.Errorf("invalid subdomain")
-	}
-
-	return strings.Join(parts[:len(parts)-1], "-"), nil
-}
-
 func init() {
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
 		log.Fatal(err)
@@ -75,7 +45,7 @@ func init() {
 	}
 }
 
-func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
+func LookupDirs() ([]string, error) {
 	var lookupDirs []string
 	if env, ok := os.LookupEnv("SMALLWEB_PATH"); ok {
 		lookupDirs = strings.Split(env, ":")
@@ -86,6 +56,15 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 		}
 
 		lookupDirs = []string{path.Join(homedir, "www")}
+	}
+
+	return lookupDirs, nil
+}
+
+func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
+	lookupDirs, err := LookupDirs()
+	if err != nil {
+		return nil, err
 	}
 
 	return &WorkerEntrypoints{
@@ -167,9 +146,8 @@ type Response struct {
 }
 
 type WorkerEntrypoints struct {
-	Http  string
-	Email string
-	Cli   string
+	Http string
+	Cli  string
 }
 
 type Handler struct {
@@ -214,7 +192,7 @@ func (me *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	cmd, err := me.Cmd("run", "--allow-all", "--unstable-kv", sandboxPath, me.entrypoints.Http, strconv.Itoa(freeport))
+	cmd, err := me.Cmd("run", "--allow-read=.", "--allow-write=.", "--allow-net", "--allow-env", sandboxPath, me.entrypoints.Http, strconv.Itoa(freeport))
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return

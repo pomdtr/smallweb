@@ -11,10 +11,10 @@ require (
 	github.com/gliderlabs/ssh v0.3.7
 	github.com/google/uuid v1.6.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/muesli/go-app-paths v0.2.2
 	github.com/spf13/cobra v1.8.0
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240416075003-747366ff79c4
 	golang.org/x/crypto v0.23.0
+	golang.org/x/oauth2 v0.21.0
 )
 
 require (

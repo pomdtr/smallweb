@@ -11,8 +11,10 @@ const (
 	ON CONFLICT (user_id, public_key) DO UPDATE SET
 	user_id = excluded.user_id,
 	public_key = excluded.public_key`
-	sqlDeletePublicKey = `DELETE FROM public_key WHERE user_id = ? AND public_key = ?`
-	sqlSelectPublicKey = `SELECT id, user_id, public_key FROM public_key WHERE public_key = ?`
-	sqlVerifyUserEmail = `UPDATE user SET email_verified = true WHERE id = ?`
-	sqlUpdateUser      = `UPDATE user SET name = ? WHERE public_id = ?`
+	sqlDeletePublicKey     = `DELETE FROM public_key WHERE user_id = ? AND public_key = ?`
+	sqlSelectPublicKey     = `SELECT id, user_id, public_key FROM public_key WHERE public_key = ?`
+	sqlVerifyUserEmail     = `UPDATE user SET email_verified = true WHERE id = ?`
+	sqlUpdateUser          = `UPDATE user SET name = ? WHERE public_id = ?`
+	sqlCreateSession       = `INSERT INTO session (id, email, host, expires_at) VALUES (?, ?, ?, ?)`
+	sqlSelectSessionWithID = `SELECT id, email, host, expires_at FROM session WHERE id = ?`
 )

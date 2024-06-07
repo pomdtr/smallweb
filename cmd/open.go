@@ -15,6 +15,18 @@ func NewCmdOpen() *cobra.Command {
 		Use:   "open <app>",
 		Short: "Open a smallweb app in the browser",
 		Args:  cobra.MinimumNArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) != 0 {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			apps, err := listApps()
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
+			}
+
+			return apps, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := NewClientWithDefaults()
 			if err != nil {

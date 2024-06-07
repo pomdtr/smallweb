@@ -8,13 +8,15 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/adrg/xdg"
 	"github.com/caarlos0/env/v6"
+	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/keygen"
 	"github.com/mitchellh/go-homedir"
-	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
 
 	"golang.org/x/crypto/ssh"
@@ -24,6 +26,64 @@ var (
 	ErrMissingSSHAuth = errors.New("no SSH auth found")
 )
 
+func denoExecutable() (string, error) {
+	if env, ok := os.LookupEnv("DENO_EXEC_PATH"); ok {
+		return env, nil
+	}
+
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	if denoPath, err := exec.LookPath("deno"); err == nil {
+		return denoPath, nil
+	}
+
+	denoPath := filepath.Join(homedir, ".deno", "bin", "deno")
+	if exists(denoPath) {
+		return denoPath, nil
+	}
+
+	return "", fmt.Errorf("deno executable not found")
+}
+
+func installDeno() error {
+	if _, err := exec.LookPath("curl"); err == nil {
+		return exec.Command("sh", "-c", "curl -fsSL https://deno.land/x/install/install.sh | sh").Run()
+	}
+
+	if _, err := exec.LookPath("wget"); err == nil {
+		return exec.Command("sh", "-c", "wget -qO- https://deno.land/x/install/install.sh | sh").Run()
+	}
+
+	return nil
+}
+
+func setupDenoIfRequired() error {
+	if _, err := denoExecutable(); err == nil {
+		return nil
+	}
+
+	var confirm bool
+	form := huh.NewForm(huh.NewGroup(huh.NewConfirm().Description("Deno is required to run smallweb. Do you want to install it now?").Value(&confirm)))
+	if err := form.Run(); err != nil {
+		return fmt.Errorf("could not get user input: %v", err)
+	}
+
+	if !confirm {
+		return fmt.Errorf("deno is required to run smallweb")
+	}
+
+	fmt.Fprintln(os.Stderr, "Installing deno...")
+	if err := installDeno(); err != nil {
+		return fmt.Errorf("could not install deno: %v", err)
+	}
+	fmt.Fprintln(os.Stderr, "Deno installed successfully!")
+
+	return nil
+}
+
 func NewCmdUp() *cobra.Command {
 	return &cobra.Command{
 		Use:          "up",
@@ -31,6 +91,10 @@ func NewCmdUp() *cobra.Command {
 		SilenceUsage: true,
 		Args:         cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := setupDenoIfRequired(); err != nil {
+				return err
+			}
+
 			client, err := NewClientWithDefaults()
 			if err != nil {
 				log.Fatalf("failed to create client: %v", err)
@@ -54,7 +118,7 @@ func NewCmdUp() *cobra.Command {
 			if ok, payload, err := sshConn.SendRequest("user", true, nil); err != nil {
 				log.Fatalf("could not send request: %v", err)
 			} else if !ok {
-				return fmt.Errorf("not logged in")
+				return fmt.Errorf("you are not logged in, please run 'smallweb auth login' or 'smallweb auth signup'")
 			} else {
 				if err := ssh.Unmarshal(payload, &user); err != nil {
 					return fmt.Errorf("could not unmarshal user: %v", err)
@@ -138,7 +202,7 @@ func NewCmdUp() *cobra.Command {
 }
 
 type ClientConfig struct {
-	Host    string `env:"SMALLWEB_HOST" envDefault:"37.16.2.166"`
+	Host    string `env:"SMALLWEB_HOST" envDefault:"smallweb.run"`
 	SSHPort int    `env:"SMALLWEB_SSH_PORT" envDefault:"22"`
 	Debug   bool   `env:"SMALLWEB_DEBUG" envDefault:"false"`
 	KeyType string `env:"SMALLWEB_KEY_TYPE" envDefault:"ed25519"`
@@ -236,12 +300,8 @@ func (cc *Client) DataPath() (string, error) {
 	if cc.Config.DataDir != "" {
 		return filepath.Join(cc.Config.DataDir, cc.Config.Host), nil
 	}
-	scope := gap.NewScope(gap.User, filepath.Join("smallweb", cc.Config.Host))
-	dataPath, err := scope.DataPath("")
-	if err != nil {
-		return "", err
-	}
-	return dataPath, nil
+
+	return filepath.Join(xdg.DataHome, "smallweb", cc.Config.Host), nil
 }
 
 // FindAuthKeys looks in a user's XDG smallweb-dir for possible auth keys.
