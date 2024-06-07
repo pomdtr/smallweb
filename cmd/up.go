@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/adrg/xdg"
@@ -49,6 +50,11 @@ func denoExecutable() (string, error) {
 }
 
 func installDeno() error {
+	// if we are on windows, we need to use the powershell script
+	if runtime.GOOS == "windows" {
+		return exec.Command("powershell", "-c", "irm https://deno.land/install.ps1 | iex").Run()
+	}
+
 	if _, err := exec.LookPath("curl"); err == nil {
 		return exec.Command("sh", "-c", "curl -fsSL https://deno.land/x/install/install.sh | sh").Run()
 	}

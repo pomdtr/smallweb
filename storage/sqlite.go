@@ -1,4 +1,4 @@
-package cmd
+package storage
 
 const (
 	sqlInsertUser            = `INSERT INTO user (public_id, email, name) VALUES (?, ?, ?)`

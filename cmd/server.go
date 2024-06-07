@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
-	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -26,9 +25,18 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/gliderlabs/ssh"
 	"github.com/google/uuid"
+	"github.com/pomdtr/smallweb/storage"
 	"github.com/spf13/cobra"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/oauth2"
+)
+
+type contextKey struct {
+	name string
+}
+
+var (
+	ContextKeyEmail = &contextKey{"email"}
 )
 
 type LoginParams struct {
@@ -82,8 +90,8 @@ func ServerConfigFromEnv() (*ServerConfig, error) {
 }
 
 type AuthMiddleware struct {
-	handler http.Handler
-	db      *DB
+	next http.Handler
+	db   *storage.DB
 }
 
 func (me *AuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +205,7 @@ func (me *AuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, user, err := me.db.GetSession(sessionID.Value)
+	session, err := me.db.GetSession(sessionID.Value)
 	if err != nil {
 		state := uuid.New().String()
 		url := oauthConfig.AuthCodeURL(state)
@@ -219,21 +227,93 @@ func (me *AuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := context.WithValue(r.Context(), ContextKeyEmail, session.Email)
+	me.next.ServeHTTP(w, r.WithContext(ctx))
+}
+
+func NewAuthMiddleware(handler http.Handler, db *storage.DB) *AuthMiddleware {
+	return &AuthMiddleware{
+		next: handler,
+		db:   db,
+	}
+}
+
+type SubdomainHandler struct {
+	db        *storage.DB
+	forwarder *Forwarder
+}
+
+func (me *SubdomainHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	visitorEmail := r.Context().Value(ContextKeyEmail).(string)
 	subdomain := strings.Split(r.Host, ".")[0]
 	parts := strings.Split(subdomain, "-")
 	username := parts[len(parts)-1]
-	if username != user.Name {
-		http.Error(w, fmt.Sprintf("session not valid for this user: %s", user.Name), http.StatusUnauthorized)
+	user, err := me.db.GetUserWithName(username)
+
+	if user.Email != visitorEmail {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	me.handler.ServeHTTP(w, r)
+	port, ok := me.forwarder.forwards[user.Name]
+	if !ok {
+		http.Error(w, fmt.Sprintf("User %s not found", user.Name), http.StatusNotFound)
+		return
+	}
+
+	req, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", port, r.URL.String()), r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for k, v := range r.Header {
+		req.Header[k] = v
+	}
+	app := strings.Join(parts[:len(parts)-1], "-")
+	req.Header.Add("X-Smallweb-App", app)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	for k, v := range resp.Header {
+		for _, vv := range v {
+			w.Header().Add(k, vv)
+		}
+	}
+	w.WriteHeader(resp.StatusCode)
+	flusher := w.(http.Flusher)
+	// Stream the response body to the client
+	buf := make([]byte, 1024)
+	for {
+		n, err := resp.Body.Read(buf)
+		if n > 0 {
+			_, writeErr := w.Write(buf[:n])
+			if writeErr != nil {
+				http.Error(w, writeErr.Error(), http.StatusInternalServerError)
+				return
+			}
+			flusher.Flush() // flush the buffer to the client
+		}
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 }
 
-func NewAuthMiddleware(handler http.Handler, db *DB) *AuthMiddleware {
-	return &AuthMiddleware{
-		handler: handler,
-		db:      db,
+func NewSubdomainHandler(db *storage.DB, forwarder *Forwarder) *SubdomainHandler {
+	return &SubdomainHandler{
+		db:        db,
+		forwarder: forwarder,
 	}
 }
 
@@ -248,78 +328,31 @@ func NewCmdServer() *cobra.Command {
 				log.Fatalf("failed to load config: %v", err)
 			}
 
-			db, err := NewTursoDB(fmt.Sprintf("%s?authToken=%s", config.TursoDatabaseURL, config.TursoAuthToken))
+			db, err := storage.NewTursoDB(fmt.Sprintf("%s?authToken=%s", config.TursoDatabaseURL, config.TursoAuthToken))
 			if err != nil {
 				log.Fatalf("failed to open database: %v", err)
 			}
 
 			valtownClient := NewValTownClient(config.ValTownToken)
 
-			forwarder := Forwarder{
+			forwarder := &Forwarder{
 				db:       db,
 				forwards: make(map[string]int),
 			}
+
+			subdomainHandler := NewSubdomainHandler(db, forwarder)
 
 			httpServer := http.Server{
 				Addr: fmt.Sprintf(":%d", config.HttpPort),
 				Handler: NewAuthMiddleware(
 					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						subdomain := strings.Split(r.Host, ".")[0]
-						parts := strings.Split(subdomain, "-")
-						user := parts[len(parts)-1]
-
-						port, ok := forwarder.forwards[user]
-						if !ok {
-							http.Error(w, fmt.Sprintf("User %s not found", user), http.StatusNotFound)
+						parts := strings.Split(r.Host, ".")
+						if len(parts) == 3 {
+							subdomainHandler.ServeHTTP(w, r)
 							return
 						}
 
-						req, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", port, r.URL.String()), r.Body)
-						if err != nil {
-							http.Error(w, err.Error(), http.StatusInternalServerError)
-							return
-						}
-
-						for k, v := range r.Header {
-							req.Header[k] = v
-						}
-						app := strings.Join(parts[:len(parts)-1], "-")
-						req.Header.Add("X-Smallweb-App", app)
-
-						resp, err := http.DefaultClient.Do(req)
-						if err != nil {
-							http.Error(w, err.Error(), http.StatusInternalServerError)
-							return
-						}
-						defer resp.Body.Close()
-
-						for k, v := range resp.Header {
-							for _, vv := range v {
-								w.Header().Add(k, vv)
-							}
-						}
-						w.WriteHeader(resp.StatusCode)
-						flusher := w.(http.Flusher)
-						// Stream the response body to the client
-						buf := make([]byte, 1024)
-						for {
-							n, err := resp.Body.Read(buf)
-							if n > 0 {
-								_, writeErr := w.Write(buf[:n])
-								if writeErr != nil {
-									http.Error(w, writeErr.Error(), http.StatusInternalServerError)
-									return
-								}
-								flusher.Flush() // flush the buffer to the client
-							}
-							if err != nil {
-								if err == io.EOF {
-									break
-								}
-								http.Error(w, err.Error(), http.StatusInternalServerError)
-								return
-							}
-						}
+						http.Error(w, "Not found", http.StatusNotFound)
 					}), db,
 				),
 			}
@@ -369,17 +402,7 @@ func NewCmdServer() *cobra.Command {
 							return false, gossh.Marshal(ErrorPayload{Message: "invalid email"})
 						}
 
-						if err := db.WrapTransaction(func(tx *sql.Tx) error {
-							if db.selectUserWithEmail(tx, params.Email).Scan() != sql.ErrNoRows {
-								return errors.New("user already exists")
-							}
-
-							if db.selectUserWithName(tx, params.Username).Scan() != sql.ErrNoRows {
-								return errors.New("username already exists")
-							}
-
-							return nil
-						}); err != nil {
+						if err := db.CheckUserInfo(params.Email, params.Username); err != nil {
 							return false, gossh.Marshal(ErrorPayload{Message: "user already exists"})
 						}
 
@@ -415,9 +438,7 @@ func NewCmdServer() *cobra.Command {
 							return false, gossh.Marshal(ErrorPayload{Message: "invalid key"})
 						}
 
-						if err := db.WrapTransaction(func(tx *sql.Tx) error {
-							return db.createUser(tx, key, params.Email, params.Username)
-						}); err != nil {
+						if _, err := db.CreateUser(key, params.Email, params.Username); err != nil {
 							return false, gossh.Marshal(ErrorPayload{Message: "could not create user"})
 						}
 
@@ -429,19 +450,7 @@ func NewCmdServer() *cobra.Command {
 							return false, nil
 						}
 
-						var user *User
-						if err := db.WrapTransaction(func(tx *sql.Tx) error {
-							row := db.selectUserWithEmail(tx, params.Email)
-							u, err := db.scanUser(row)
-							if err != nil {
-								return err
-							}
-							user = u
-
-							return nil
-						}); err != nil {
-							return false, nil
-						}
+						user, err := db.GetUserWithEmail(params.Email)
 
 						code, err := generateVerificationCode()
 						if err != nil {
@@ -475,9 +484,7 @@ func NewCmdServer() *cobra.Command {
 							return false, nil
 						}
 
-						if err := db.WrapTransaction(func(tx *sql.Tx) error {
-							return db.insertPublicKey(tx, user.ID, key)
-						}); err != nil {
+						if err := db.AddUserPublicKey(user.ID, key); err != nil {
 							return false, nil
 						}
 
@@ -490,9 +497,7 @@ func NewCmdServer() *cobra.Command {
 						}
 
 						key := ctx.Value("key").(string)
-						if err := db.WrapTransaction(func(tx *sql.Tx) error {
-							return db.deletePublicKey(tx, user.ID, key)
-						}); err != nil {
+						if err := db.DeleteUserPublicKey(user.ID, key); err != nil {
 							return false, nil
 						}
 
@@ -524,7 +529,7 @@ func NewCmdServer() *cobra.Command {
 // adding the HandleSSHRequest callback to the server's RequestHandlers under
 // tcpip-forward and cancel-tcpip-forward.
 type Forwarder struct {
-	db       *DB
+	db       *storage.DB
 	forwards map[string]int
 	sync.Mutex
 }

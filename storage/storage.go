@@ -1,4 +1,4 @@
-package cmd
+package storage
 
 import (
 	"context"
@@ -258,30 +258,123 @@ func (me *DB) scanSession(r *sql.Row) (*Session, error) {
 	return s, nil
 }
 
-func (me *DB) GetSession(sessionID string) (*Session, *User, error) {
+func (me *DB) GetSession(sessionID string) (*Session, error) {
 	var session *Session
-	var user *User
 	if err := me.WrapTransaction(func(tx *sql.Tx) error {
 		sessionRow := me.selectSession(tx, sessionID)
 		s, err := me.scanSession(sessionRow)
 		if err != nil {
 			return err
 		}
-		session = s
 
-		userRow := me.selectUserWithEmail(tx, session.Email)
-		u, err := me.scanUser(userRow)
-		if err != nil {
-			return nil
+		session = s
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return session, nil
+}
+
+func (me *DB) CreateUser(key string, email string, username string) (*User, error) {
+	var u *User
+	if err := me.WrapTransaction(func(tx *sql.Tx) error {
+		var err error
+		r := me.selectUserWithEmail(tx, email)
+		u, err = me.scanUser(r)
+		if err != nil && err != sql.ErrNoRows {
+			return err
 		}
-		user = u
+		if err == sql.ErrNoRows {
+			err = me.createUser(tx, key, email, username)
+			if err != nil {
+				return err
+			}
+			r = me.selectUserWithEmail(tx, email)
+			u, err = me.scanUser(r)
+			if err != nil {
+				return err
+			}
+		}
 
 		return nil
 	}); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return session, user, nil
+	return u, nil
+}
+
+func (me *DB) CheckUserInfo(email string, username string) error {
+	if err := me.WrapTransaction(func(tx *sql.Tx) error {
+		if me.selectUserWithEmail(tx, email).Scan() != sql.ErrNoRows {
+			return errors.New("user already exists")
+		}
+
+		if me.selectUserWithName(tx, username).Scan() != sql.ErrNoRows {
+			return errors.New("username already exists")
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error checking user info: %w", err)
+	}
+
+	return nil
+}
+
+func (me *DB) GetUserWithName(name string) (*User, error) {
+	var user *User
+	if err := me.WrapTransaction(func(tx *sql.Tx) error {
+		r := me.selectUserWithName(tx, name)
+		u, err := me.scanUser(r)
+		if err != nil {
+			return err
+		}
+
+		user = u
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (me *DB) GetUserWithEmail(email string) (*User, error) {
+	var user *User
+	if err := me.WrapTransaction(func(tx *sql.Tx) error {
+		r := me.selectUserWithEmail(tx, email)
+		u, err := me.scanUser(r)
+		if err != nil {
+			return err
+		}
+
+		user = u
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (me *DB) AddUserPublicKey(userID int, key string) error {
+	if err := me.WrapTransaction(func(tx *sql.Tx) error {
+		return me.insertPublicKey(tx, userID, key)
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (me *DB) DeleteUserPublicKey(userID int, key string) error {
+	if err := me.WrapTransaction(func(tx *sql.Tx) error {
+		return me.deletePublicKey(tx, userID, key)
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (me *DB) CreateSession(email string, host string) (string, error) {
