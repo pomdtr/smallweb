@@ -48,6 +48,8 @@ func NewCmdUp() *cobra.Command {
 			}
 			defer sshConn.Close()
 
+			go ssh.DiscardRequests(reqs)
+
 			var user UserResponse
 			if ok, payload, err := sshConn.SendRequest("user", true, nil); err != nil {
 				log.Fatalf("could not send request: %v", err)
@@ -58,39 +60,6 @@ func NewCmdUp() *cobra.Command {
 					return fmt.Errorf("could not unmarshal user: %v", err)
 				}
 			}
-
-			go func() {
-				for req := range reqs {
-					if req.Type != "email" {
-						req.Reply(false, nil)
-						continue
-					}
-					var email Email
-					if err := ssh.Unmarshal(req.Payload, &email); err != nil {
-						req.Reply(false, nil)
-						continue
-					}
-
-					app, err := email.App()
-					if err != nil {
-						req.Reply(false, nil)
-						continue
-					}
-
-					worker, err := NewHandler(app)
-					if err != nil {
-						req.Reply(false, nil)
-						continue
-					}
-
-					if _, err := worker.Email(&email); err != nil {
-						req.Reply(false, nil)
-						continue
-					}
-
-					req.Reply(true, nil)
-				}
-			}()
 
 			if ok, _, err := sshConn.SendRequest("smallweb-forward", true, nil); err != nil {
 				return fmt.Errorf("could not forward: %v", err)

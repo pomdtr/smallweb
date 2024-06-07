@@ -116,17 +116,6 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 			}
 			return ""
 		}(),
-		Email: func() string {
-			for _, dir := range lookupDirs {
-				for _, ext := range extensions {
-					entrypoint := path.Join(dir, name, "email"+ext)
-					if exists(entrypoint) {
-						return entrypoint
-					}
-				}
-			}
-			return ""
-		}(),
 	}, nil
 }
 
@@ -304,67 +293,6 @@ func (me *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-}
-
-func (me *Handler) Email(email *Email) (*Email, error) {
-	return nil, nil
-	// if me.entrypoints.Email == "" {
-	// 	return nil, fmt.Errorf("entrypoint not found")
-	// }
-
-	// rootDir := path.Dir(me.entrypoints.Email)
-	// freeport, err := GetFreePort()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// ln, err := net.Listen("tcp", fmt.Sprintf(":%d", freeport))
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// cmd, err := me.Cmd("run", "--allow-all", "--unstable-kv", sandboxPath, strconv.Itoa(freeport))
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// cmd.Dir = rootDir
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
-
-	// go cmd.Run()
-
-	// conn, err := ln.Accept()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// encoder := json.NewEncoder(conn)
-	// if err := encoder.Encode(&EmailInput{
-	// 	Type:       "email",
-	// 	Email:      *email,
-	// 	Entrypoint: me.entrypoints.Email,
-	// }); err != nil {
-	// 	return nil, err
-	// }
-
-	// var msg Message
-	// decoder := json.NewDecoder(conn)
-	// if err := decoder.Decode(&msg); err != nil {
-	// 	return nil, fmt.Errorf("could not decode message: %v", err)
-	// }
-
-	// switch msg.Type {
-	// case "error":
-	// 	b, err := json.Marshal(msg.Data)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	return nil, fmt.Errorf("error: %s", b)
-	// default:
-	// 	return nil, nil
-	// }
 }
 
 func (me *Handler) Run(runArgs []string) error {
