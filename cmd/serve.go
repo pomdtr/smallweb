@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/pomdtr/smallweb/client"
 	"github.com/spf13/cobra"
@@ -51,9 +52,11 @@ func NewCmdServe() *cobra.Command {
 				Addr: fmt.Sprintf(":%d", port),
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					app := r.Header.Get("X-Smallweb-App")
+
+					// if app is not provided, infer it from the subdomain
 					if app == "" {
-						http.Error(w, "No app specified", http.StatusBadRequest)
-						return
+						parts := strings.Split(r.Host, ".")
+						app = parts[0]
 					}
 
 					worker, err := client.NewWorker(app)
