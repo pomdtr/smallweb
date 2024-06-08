@@ -41,6 +41,8 @@ const server = Deno.serve(
         console.error(e.stack);
         return new Response(e.stack, { status: 500 });
       }
+
+      return new Response("Unknown error", { status: 500 });
     }
   }
 );
