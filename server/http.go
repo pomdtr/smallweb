@@ -29,7 +29,7 @@ func NewHandler(db *storage.DB, forwarder *Forwarder) *Handler {
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Host == "smallweb.run" {
-		http.Redirect(w, r, "https://github.com/pomdtr/smallweb", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "https://pomdtr.github.io/smallweb/", http.StatusTemporaryRedirect)
 	}
 
 	subdomain := strings.Split(r.Host, ".")[0]
