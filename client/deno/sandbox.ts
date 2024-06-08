@@ -37,7 +37,10 @@ const server = Deno.serve(
       }
       return resp;
     } catch (e) {
-      return new Response(e.message, { status: 500 });
+      if (e instanceof Error) {
+        console.error(e.stack);
+        return new Response(e.stack, { status: 500 });
+      }
     }
   }
 );

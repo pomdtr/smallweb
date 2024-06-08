@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
+	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/server"
 )
 
@@ -87,20 +88,20 @@ type WorkerEntrypoints struct {
 	Cli  string
 }
 
-type Handler struct {
+type Worker struct {
 	entrypoints WorkerEntrypoints
 }
 
-func NewHandler(alias string) (*Handler, error) {
+func NewWorker(alias string) (*Worker, error) {
 	entrypoints, err := inferEntrypoints(alias)
 	if err != nil {
 		return nil, fmt.Errorf("could not infer entrypoint: %v", err)
 	}
 
-	return &Handler{entrypoints: *entrypoints}, nil
+	return &Worker{entrypoints: *entrypoints}, nil
 }
 
-func (me *Handler) Cmd(args ...string) (*exec.Cmd, error) {
+func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
 	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, err
@@ -110,28 +111,30 @@ func (me *Handler) Cmd(args ...string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-func (me *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+var upgrader = websocket.Upgrader{} // use default options
+
+func (me *Worker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if me.entrypoints.Http == "" {
-		http.NotFound(rw, req)
+		http.NotFound(w, req)
 		return
 	}
 
 	rootDir := path.Dir(me.entrypoints.Http)
 	if strings.HasSuffix(me.entrypoints.Http, ".html") {
 		fileServer := http.FileServer(http.Dir(rootDir))
-		fileServer.ServeHTTP(rw, req)
+		fileServer.ServeHTTP(w, req)
 		return
 	}
 
 	freeport, err := server.GetFreePort()
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	cmd, err := me.Cmd("run", "--allow-read=.", "--allow-write=.", "--allow-net", "--allow-env", sandboxPath, me.entrypoints.Http, strconv.Itoa(freeport))
+	cmd, err := me.Cmd("run", "--allow-read=.", "--env", "--allow-write=.", "--allow-net", "--allow-env", sandboxPath, me.entrypoints.Http, strconv.Itoa(freeport))
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -142,28 +145,76 @@ func (me *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	defer cmd.Process.Kill()
 
 	scanner := bufio.NewScanner(stdout)
 	scanner.Scan()
 	line := scanner.Text()
 	if !(line == "READY") {
-		http.Error(rw, "could not start server", http.StatusInternalServerError)
+		http.Error(w, "could not start server", http.StatusInternalServerError)
 		return
+	}
+
+	// handle websockets
+	if req.Header.Get("Upgrade") == "websocket" {
+		serverConn, err := upgrader.Upgrade(w, req, nil)
+		if err != nil {
+			log.Printf("Error upgrading connection: %v", err)
+			return
+		}
+		defer serverConn.Close()
+
+		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", freeport, req.URL.Path), nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer clientConn.Close()
+
+		go func() {
+			for {
+				messageType, p, err := clientConn.ReadMessage()
+				if err != nil {
+					log.Printf("Error reading message: %v", err)
+					break
+				}
+
+				if err := serverConn.WriteMessage(messageType, p); err != nil {
+					log.Printf("Error writing message: %v", err)
+					break
+				}
+			}
+
+		}()
+
+		for {
+			messageType, p, err := serverConn.ReadMessage()
+			if err != nil {
+				log.Printf("Error reading message: %v", err)
+				break
+			}
+
+			if err := clientConn.WriteMessage(messageType, p); err != nil {
+				log.Printf("Error writing message: %v", err)
+				break
+			}
+		}
+
 	}
 
 	request, err := http.NewRequest(req.Method, fmt.Sprintf("http://127.0.0.1:%d%s", freeport, req.URL.String()), req.Body)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -175,27 +226,28 @@ func (me *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
 
 	for k, v := range resp.Header {
 		for _, vv := range v {
-			rw.Header().Add(k, vv)
+			w.Header().Add(k, vv)
 		}
 	}
 
-	rw.WriteHeader(resp.StatusCode)
+	w.WriteHeader(resp.StatusCode)
 
-	flusher := rw.(http.Flusher)
+	flusher := w.(http.Flusher)
 	// Stream the response body to the client
 	buf := make([]byte, 1024)
 	for {
 		n, err := resp.Body.Read(buf)
 		if n > 0 {
-			_, writeErr := rw.Write(buf[:n])
+			_, writeErr := w.Write(buf[:n])
 			if writeErr != nil {
+				log.Printf("Error writing response: %v", writeErr)
 				return
 			}
 			flusher.Flush() // flush the buffer to the client
@@ -204,25 +256,25 @@ func (me *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			if err == io.EOF {
 				break
 			}
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 }
 
-func (me *Handler) Run(runArgs []string) error {
+func (me *Worker) Run(runArgs []string) error {
 	if me.entrypoints.Cli == "" {
 		return fmt.Errorf("entrypoint not found")
 	}
 
-	args := []string{"run", "--allow-all", me.entrypoints.Cli}
+	args := []string{"run", "--env", "--allow-all", me.entrypoints.Cli}
 	args = append(args, runArgs...)
 
 	command, err := me.Cmd(args...)
 	if err != nil {
 		return err
 	}
-
+	command.Dir = filepath.Dir(me.entrypoints.Cli)
 	command.Stdin = os.Stdin
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr

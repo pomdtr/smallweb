@@ -11,6 +11,8 @@ func NewCmdRun() *cobra.Command {
 		Short:              "Run a smallweb app cli",
 		Args:               cobra.MinimumNArgs(1),
 		DisableFlagParsing: true,
+		SilenceUsage:       true,
+		SilenceErrors:      true,
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			if len(args) != 0 {
 				return nil, cobra.ShellCompDirectiveNoFileComp
@@ -28,7 +30,7 @@ func NewCmdRun() *cobra.Command {
 				return err
 			}
 
-			worker, err := client.NewHandler(args[0])
+			worker, err := client.NewWorker(args[0])
 			if err != nil {
 				return err
 			}

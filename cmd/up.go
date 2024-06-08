@@ -157,7 +157,7 @@ func NewCmdUp() *cobra.Command {
 						return
 					}
 
-					worker, err := client.NewHandler(app)
+					worker, err := client.NewWorker(app)
 					if err != nil {
 						rw.WriteHeader(http.StatusInternalServerError)
 						return
