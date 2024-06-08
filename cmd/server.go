@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/caarlos0/env/v6"
@@ -51,26 +50,13 @@ func NewCmdServer() *cobra.Command {
 				log.Fatalf("failed to open database: %v", err)
 			}
 
-			emailer := server.NewValTownEmail(config.ValTownToken)
 			forwarder := server.NewForwarder(db)
-			subdomainHandler := server.NewSubdomainHandler(db, forwarder)
-			rootHandler := server.NewRootHandler(db, forwarder)
-
 			httpServer := http.Server{
-				Addr: fmt.Sprintf(":%d", config.HttpPort),
-				Handler: server.NewAuthMiddleware(
-					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						parts := strings.Split(r.Host, ".")
-						if len(parts) == 3 {
-							subdomainHandler.ServeHTTP(w, r)
-							return
-						}
-
-						rootHandler.ServeHTTP(w, r)
-					}), db,
-				),
+				Addr:    fmt.Sprintf(":%d", config.HttpPort),
+				Handler: server.NewHandler(db, forwarder),
 			}
 
+			emailer := server.NewValTownEmail(config.ValTownToken)
 			sshServer := server.NewSSHServer(config.SSHPort, db, forwarder, emailer)
 
 			slog.Info("starting ssh server", slog.Int("port", config.SSHPort))

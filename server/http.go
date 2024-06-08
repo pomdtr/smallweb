@@ -8,35 +8,59 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/pomdtr/smallweb/server/components"
 	"github.com/pomdtr/smallweb/server/storage"
+	"golang.org/x/crypto/ssh"
 )
 
-type SubdomainHandler struct {
+type Handler struct {
 	db        *storage.DB
 	forwarder *Forwarder
 }
 
 var upgrader = websocket.Upgrader{} // use default options
-func (me *SubdomainHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	visitorEmail := r.Context().Value(ContextKeyEmail).(string)
+
+func NewHandler(db *storage.DB, forwarder *Forwarder) *Handler {
+	return &Handler{
+		db:        db,
+		forwarder: forwarder,
+	}
+}
+
+func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Host == "smallweb.run" {
+		http.Redirect(w, r, "https://github.com/pomdtr/smallweb", http.StatusTemporaryRedirect)
+	}
+
 	subdomain := strings.Split(r.Host, ".")[0]
 	parts := strings.Split(subdomain, "-")
+	if len(parts) == 1 {
+		username := parts[0]
+		if ok, payload, err := me.forwarder.SendRequest(username, "list-apps", nil); err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		} else if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		} else {
+			var resp ListAppsResponse
+			if err := ssh.Unmarshal(payload, &resp); err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			components.Home(username, resp.Apps).Render(w)
+			return
+		}
+	}
+
 	username := parts[len(parts)-1]
 	app := strings.Join(parts[:len(parts)-1], "-")
 
-	user, err := me.db.GetUserWithName(username)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	if user.Email != visitorEmail {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	port, ok := me.forwarder.ports[user.Name]
+	port, ok := me.forwarder.ports[username]
 	if !ok {
-		http.Error(w, fmt.Sprintf("User %s not found", user.Name), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("User %s not found", username), http.StatusNotFound)
 		return
 	}
 
@@ -134,11 +158,4 @@ func (me *SubdomainHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-}
-
-func NewSubdomainHandler(db *storage.DB, forwarder *Forwarder) *SubdomainHandler {
-	return &SubdomainHandler{
-		db:        db,
-		forwarder: forwarder,
-	}
 }

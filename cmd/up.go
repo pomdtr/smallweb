@@ -134,7 +134,7 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("user not logged in, please run 'smallweb auth login' or 'smallweb auth signup'")
 			}
 
-			cmd.Println("Smallweb tunnel is up and running, you can now access your apps at https://smallweb.run")
+			cmd.Printf("Smallweb tunnel is up and running, you can now access your apps at https://%s.smallweb.run\n", user.Name)
 
 			freeport, err := server.GetFreePort()
 			if err != nil {
