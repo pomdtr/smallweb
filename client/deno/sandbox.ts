@@ -1,16 +1,20 @@
 import * as path from "jsr:@std/path";
+import { parseArgs } from "jsr:@std/cli";
 
-if (!Deno.env.get("SMALLWEB_ENTRYPOINT")) {
-  throw new Error("SMALLWEB_ENTRYPOINT is not set");
-}
+const { port, entrypoint } = parseArgs(Deno.args, {
+  string: ["port", "entrypoint"],
+});
 
-if (!Deno.env.get("SMALLWEB_PORT")) {
-  throw new Error("SMALLWEB_PORT is not set");
+if (!port || !entrypoint) {
+  console.error(
+    "Usage: deno run -A sandbox.ts --port=<port> --entrypoint=<entrypoint>"
+  );
+  Deno.exit(1);
 }
 
 const server = Deno.serve(
   {
-    port: parseInt(Deno.env.get("SMALLWEB_PORT")!),
+    port: parseInt(port),
     onListen: () => {
       // This line will signal that the server is ready to the go
       console.log("READY");
@@ -22,9 +26,7 @@ const server = Deno.serve(
       await server.shutdown();
     });
 
-    const mod = await import(
-      path.join(Deno.cwd(), Deno.env.get("SMALLWEB_ENTRYPOINT")!)
-    );
+    const mod = await import(entrypoint);
     if (!mod.default || typeof mod.default !== "function") {
       return new Response("Mod has no default export", { status: 500 });
     }

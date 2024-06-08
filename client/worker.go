@@ -16,6 +16,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 	"github.com/pomdtr/smallweb/server"
 )
 
@@ -118,8 +119,8 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-
 	rootDir := path.Dir(me.entrypoints.Http)
+
 	if strings.HasSuffix(me.entrypoints.Http, ".html") {
 		fileServer := http.FileServer(http.Dir(rootDir))
 		fileServer.ServeHTTP(w, r)
@@ -132,24 +133,32 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd, err := me.Cmd("run", "--allow-all", "--env", "--allow-write=.", sandboxPath, me.entrypoints.Http, strconv.Itoa(freeport))
+	cmd, err := me.Cmd("run", "--allow-all", sandboxPath, "--entrypoint", me.entrypoints.Http, "--port", strconv.Itoa(freeport))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "SMALLWEB_PORT="+strconv.Itoa(freeport))
-	cmd.Env = append(cmd.Env, "SMALLWEB_ENTRYPOINT="+filepath.Base(me.entrypoints.Http))
 	cmd.Dir = rootDir
+	if exists(filepath.Join(rootDir, ".env")) {
+		envMap, err := godotenv.Read(filepath.Join(rootDir, ".env"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
+			return
+		}
 
+		cmd.Env = os.Environ()
+		for key, value := range envMap {
+			cmd.Env = append(cmd.Env, key+"="+value)
+		}
+	}
+
+	cmd.Stderr = os.Stderr
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -264,18 +273,31 @@ func (me *Worker) Run(runArgs []string) error {
 	if me.entrypoints.Cli == "" {
 		return fmt.Errorf("entrypoint not found")
 	}
+	rootDir := filepath.Dir(me.entrypoints.Cli)
 
-	args := []string{"run", "--env", "--allow-all", me.entrypoints.Cli}
+	args := []string{"run", "--allow-all", me.entrypoints.Cli}
 	args = append(args, runArgs...)
 
 	command, err := me.Cmd(args...)
 	if err != nil {
 		return err
 	}
-	command.Dir = filepath.Dir(me.entrypoints.Cli)
+	command.Dir = rootDir
 	command.Stdin = os.Stdin
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
+
+	if exists(filepath.Join(rootDir, ".env")) {
+		envMap, err := godotenv.Read(filepath.Join(rootDir, ".env"))
+		if err != nil {
+			return fmt.Errorf("could not read .env file: %v", err)
+		}
+
+		command.Env = os.Environ()
+		for key, value := range envMap {
+			command.Env = append(command.Env, key+"="+value)
+		}
+	}
 
 	return command.Run()
 }
