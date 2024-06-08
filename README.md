@@ -8,10 +8,6 @@ Smallweb simplifies the process of self-hosting websites, taking inspiration fro
 
 Creating a website should be as simple as creating a file, or cloning a repository in `~/www`.
 
-## Requirements
-
-- [Deno](https://deno.com)
-
 ## Installation
 
 ```sh

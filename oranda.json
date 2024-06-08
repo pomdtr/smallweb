@@ -5,9 +5,7 @@
     "build": {
         "path_prefix": "smallweb"
     },
-    "components": {
-        "mdbook": {
-            "path": "./docs"
-        }
+    "styles": {
+        "theme": "cupcake"
     }
 }
