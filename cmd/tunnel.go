@@ -70,12 +70,24 @@ func setupDenoIfRequired() error {
 	return nil
 }
 
-func NewCmdUp() *cobra.Command {
+func NewCmdTunnel() *cobra.Command {
 	return &cobra.Command{
-		Use:          "up",
+		Use:          "tunnel",
 		Short:        "Start a smallweb tunnel",
 		SilenceUsage: true,
-		Args:         cobra.NoArgs,
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) != 0 {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			apps, err := listApps()
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
+			}
+
+			return apps, cobra.ShellCompDirectiveNoFileComp
+		},
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := setupDenoIfRequired(); err != nil {
 				return err
@@ -101,6 +113,10 @@ func NewCmdUp() *cobra.Command {
 			go func() {
 				for req := range reqs {
 					if req.Type == "list-apps" {
+						if len(args) == 1 {
+							req.Reply(false, nil)
+						}
+
 						apps, err := listApps()
 						if err != nil {
 							log.Fatalf("could not list apps: %v", err)
@@ -134,7 +150,11 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("user not logged in, please run 'smallweb auth login' or 'smallweb auth signup'")
 			}
 
-			cmd.Printf("Smallweb tunnel is up and running, you can now access your apps at https://%s.smallweb.run\n", user.Name)
+			if len(args) == 1 {
+				cmd.Printf("Smallweb tunnel is up and running, you can now access your app at https://%s-%s.smallweb.run\n", args[0], user.Name)
+			} else {
+				cmd.Printf("Smallweb tunnel is up and running, you can now access your apps at https://%s.smallweb.run\n", user.Name)
+			}
 
 			freeport, err := server.GetFreePort()
 			if err != nil {
@@ -144,10 +164,14 @@ func NewCmdUp() *cobra.Command {
 			server := http.Server{
 				Addr: fmt.Sprintf(":%d", freeport),
 				Handler: http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-
 					app := r.Header.Get("X-Smallweb-App")
 					if app == "" {
 						http.Error(rw, "X-Smallweb-App header not found", http.StatusBadRequest)
+						return
+					}
+
+					if len(args) == 1 && app != args[0] {
+						http.Error(rw, "Not Found", http.StatusNotFound)
 						return
 					}
 

@@ -14,16 +14,16 @@
             "envFile": "${workspaceFolder}/.env"
         },
         {
-            "name": "smallweb up (remote proxy)",
+            "name": "smallweb tunnel (remote proxy)",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "args": [
-                "up"
+                "tunnel"
             ]
         },
         {
-            "name": "smallweb up (local proxy)",
+            "name": "smallweb tunnel (local proxy)",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
@@ -32,7 +32,7 @@
                 "SMALLWEB_SSH_PORT": "2222"
             },
             "args": [
-                "up"
+                "tunnel"
             ]
         },
         {
