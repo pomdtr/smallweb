@@ -143,15 +143,9 @@ func NewCmdUp() *cobra.Command {
 
 			server := http.Server{
 				Addr: fmt.Sprintf(":%d", freeport),
-				Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-					var app string
-					for k, v := range req.Header {
-						if k == "X-Smallweb-App" {
-							app = v[0]
-							break
-						}
-					}
+				Handler: http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 
+					app := r.Header.Get("X-Smallweb-App")
 					if app == "" {
 						http.Error(rw, "X-Smallweb-App header not found", http.StatusBadRequest)
 						return
@@ -163,7 +157,7 @@ func NewCmdUp() *cobra.Command {
 						return
 					}
 
-					worker.ServeHTTP(rw, req)
+					worker.ServeHTTP(rw, r)
 				}),
 			}
 

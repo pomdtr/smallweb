@@ -50,14 +50,7 @@ func NewCmdServe() *cobra.Command {
 			server := http.Server{
 				Addr: fmt.Sprintf(":%d", port),
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					var app string
-					for k, v := range r.Header {
-						if k == "X-Smallweb-App" {
-							app = v[0]
-							break
-						}
-					}
-
+					app := r.Header.Get("X-Smallweb-App")
 					if app == "" {
 						http.Error(w, "No app specified", http.StatusBadRequest)
 						return

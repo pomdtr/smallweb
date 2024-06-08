@@ -3,9 +3,11 @@ package server
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/server/storage"
 )
 
@@ -14,11 +16,13 @@ type SubdomainHandler struct {
 	forwarder *Forwarder
 }
 
+var upgrader = websocket.Upgrader{} // use default options
 func (me *SubdomainHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	visitorEmail := r.Context().Value(ContextKeyEmail).(string)
 	subdomain := strings.Split(r.Host, ".")[0]
 	parts := strings.Split(subdomain, "-")
 	username := parts[len(parts)-1]
+	app := strings.Join(parts[:len(parts)-1], "-")
 
 	user, err := me.db.GetUserWithName(username)
 	if err != nil {
@@ -36,6 +40,54 @@ func (me *SubdomainHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("Upgrade") == "websocket" {
+		serverConn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Printf("Error upgrading connection: %v", err)
+			return
+		}
+		defer serverConn.Close()
+
+		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", port, r.URL.Path), http.Header{
+			"X-Smallweb-App": []string{app},
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer clientConn.Close()
+
+		go func() {
+			for {
+				messageType, p, err := clientConn.ReadMessage()
+				if err != nil {
+					log.Printf("Error reading message: %v", err)
+					break
+				}
+
+				if err := serverConn.WriteMessage(messageType, p); err != nil {
+					log.Printf("Error writing message: %v", err)
+					break
+				}
+			}
+		}()
+
+		for {
+			messageType, p, err := serverConn.ReadMessage()
+			if err != nil {
+				log.Printf("Error reading message: %v", err)
+				break
+			}
+
+			if err := clientConn.WriteMessage(messageType, p); err != nil {
+				log.Printf("Error writing message: %v", err)
+				break
+			}
+		}
+
+		return
+	}
+
 	req, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", port, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -45,7 +97,6 @@ func (me *SubdomainHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for k, v := range r.Header {
 		req.Header[k] = v
 	}
-	app := strings.Join(parts[:len(parts)-1], "-")
 	req.Header.Add("X-Smallweb-App", app)
 
 	resp, err := http.DefaultClient.Do(req)

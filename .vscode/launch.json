@@ -1,15 +1,6 @@
 {
     "configurations": [
         {
-            "name": "smallweb serve",
-            "type": "go",
-            "request": "launch",
-            "program": "${workspaceFolder}/main.go",
-            "args": [
-                "serve"
-            ]
-        },
-        {
             "name": "smallweb server",
             "type": "go",
             "request": "launch",
@@ -78,13 +69,13 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "smallweb serve hono",
+            "name": "smallweb serve",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "serve",
-                "hono"
+                "websockets"
             ]
         },
         {

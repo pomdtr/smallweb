@@ -113,16 +113,16 @@ func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if me.entrypoints.Http == "" {
-		http.NotFound(w, req)
+		http.NotFound(w, r)
 		return
 	}
 
 	rootDir := path.Dir(me.entrypoints.Http)
 	if strings.HasSuffix(me.entrypoints.Http, ".html") {
 		fileServer := http.FileServer(http.Dir(rootDir))
-		fileServer.ServeHTTP(w, req)
+		fileServer.ServeHTTP(w, r)
 		return
 	}
 
@@ -166,15 +166,15 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// handle websockets
-	if req.Header.Get("Upgrade") == "websocket" {
-		serverConn, err := upgrader.Upgrade(w, req, nil)
+	if r.Header.Get("Upgrade") == "websocket" {
+		serverConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Printf("Error upgrading connection: %v", err)
 			return
 		}
 		defer serverConn.Close()
 
-		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", freeport, req.URL.Path), nil)
+		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", freeport, r.URL.Path), nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -194,7 +194,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 					break
 				}
 			}
-
 		}()
 
 		for {
@@ -209,16 +208,15 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				break
 			}
 		}
-
 	}
 
-	request, err := http.NewRequest(req.Method, fmt.Sprintf("http://127.0.0.1:%d%s", freeport, req.URL.String()), req.Body)
+	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", freeport, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	for k, v := range req.Header {
+	for k, v := range r.Header {
 		for _, vv := range v {
 			request.Header.Add(k, vv)
 		}
