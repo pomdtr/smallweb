@@ -20,7 +20,6 @@ func NewCmdRoot() *cobra.Command {
 	cmd.AddCommand(NewCmdTunnel())
 	cmd.AddCommand(NewCmdAuth())
 	cmd.AddCommand(NewCmdRun())
-	cmd.AddCommand(NewCmdClone())
 	cmd.AddCommand(NewCmdServer())
 	cmd.AddCommand(NewCmdList())
 
