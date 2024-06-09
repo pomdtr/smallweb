@@ -17,8 +17,7 @@ CMD [ "proxy" ]
 FROM denoland/deno:1.44.1
 COPY --from=builder /smallweb /usr/local/bin/smallweb
 
-USER deno
-WORKDIR /home/deno/www
+WORKDIR /www
 ENV SMALLWEB_ROOT /www
 
 EXPOSE 8000
