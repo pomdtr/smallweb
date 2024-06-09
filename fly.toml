@@ -6,6 +6,9 @@
 app = 'smallweb-proxy'
 primary_region = 'cdg'
 
+[build]
+build-target = "proxy"
+
 [http_service]
 internal_port = 8000
 force_https = true

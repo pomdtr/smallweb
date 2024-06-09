@@ -17,12 +17,13 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
-	"github.com/pomdtr/smallweb/server"
+	"github.com/pomdtr/smallweb/proxy"
 )
 
 var EXTENSIONS = []string{".js", ".ts", ".jsx", ".tsx"}
 var dataHome = path.Join(xdg.DataHome, "smallweb")
 var sandboxPath = path.Join(dataHome, "sandbox.ts")
+var SMALLWEB_ROOT string
 
 //go:embed deno/sandbox.ts
 var sandboxBytes []byte
@@ -49,24 +50,28 @@ func init() {
 	if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
 		log.Fatal(err)
 	}
+
+	if env, ok := os.LookupEnv("SMALLWEB_ROOT"); ok {
+		SMALLWEB_ROOT = env
+	} else if home, err := os.UserHomeDir(); err == nil {
+		SMALLWEB_ROOT = path.Join(home, "www")
+	} else {
+		SMALLWEB_ROOT = "/www"
+	}
 }
 
 func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
 
 	return &WorkerEntrypoints{
 		Http: func() string {
 			for _, ext := range EXTENSIONS {
-				entrypoint := path.Join(homedir, "www", name, "http"+ext)
+				entrypoint := path.Join(SMALLWEB_ROOT, name, "http"+ext)
 				if exists(entrypoint) {
 					return entrypoint
 				}
 			}
 
-			entrypoint := path.Join(homedir, "www", name, "index.html")
+			entrypoint := path.Join(SMALLWEB_ROOT, name, "index.html")
 			if exists(entrypoint) {
 				return entrypoint
 			}
@@ -74,7 +79,7 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 		}(),
 		Cli: func() string {
 			for _, ext := range EXTENSIONS {
-				entrypoint := path.Join(homedir, "www", name, "cli"+ext)
+				entrypoint := path.Join(SMALLWEB_ROOT, name, "cli"+ext)
 				if exists(entrypoint) {
 					return entrypoint
 				}
@@ -127,7 +132,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	freeport, err := server.GetFreePort()
+	freeport, err := proxy.GetFreePort()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

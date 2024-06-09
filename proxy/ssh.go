@@ -1,4 +1,4 @@
-package server
+package proxy
 
 import (
 	"crypto/rand"
@@ -11,7 +11,7 @@ import (
 	"regexp"
 
 	"github.com/gliderlabs/ssh"
-	"github.com/pomdtr/smallweb/server/storage"
+	"github.com/pomdtr/smallweb/proxy/storage"
 	gossh "golang.org/x/crypto/ssh"
 )
 

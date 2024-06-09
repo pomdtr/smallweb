@@ -10,8 +10,8 @@ import (
 	"syscall"
 
 	"github.com/caarlos0/env/v6"
-	"github.com/pomdtr/smallweb/server"
-	"github.com/pomdtr/smallweb/server/storage"
+	"github.com/pomdtr/smallweb/proxy"
+	"github.com/pomdtr/smallweb/proxy/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -34,10 +34,10 @@ func ServerConfigFromEnv() (*ServerConfig, error) {
 	return &cfg, nil
 }
 
-func NewCmdServer() *cobra.Command {
+func NewCmdProxy() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "server",
-		Short:  "Start a smallweb server",
+		Use:    "proxy",
+		Short:  "Start smallweb proxy server",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config, err := ServerConfigFromEnv()
@@ -50,14 +50,14 @@ func NewCmdServer() *cobra.Command {
 				log.Fatalf("failed to open database: %v", err)
 			}
 
-			forwarder := server.NewForwarder(db)
+			forwarder := proxy.NewForwarder(db)
 			httpServer := http.Server{
 				Addr:    fmt.Sprintf(":%d", config.HttpPort),
-				Handler: server.NewHandler(db, forwarder),
+				Handler: proxy.NewHandler(db, forwarder),
 			}
 
-			emailer := server.NewValTownEmail(config.ValTownToken)
-			sshServer := server.NewSSHServer(config.SSHPort, db, forwarder, emailer)
+			emailer := proxy.NewValTownEmail(config.ValTownToken)
+			sshServer := proxy.NewSSHServer(config.SSHPort, db, forwarder, emailer)
 
 			slog.Info("starting ssh server", slog.Int("port", config.SSHPort))
 			go sshServer.ListenAndServe()

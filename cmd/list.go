@@ -10,14 +10,8 @@ import (
 )
 
 func listApps() ([]string, error) {
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user home dir: %v", err)
-	}
-
 	apps := make(map[string]struct{})
-	rootDir := path.Join(homedir, "www")
-	entries, err := os.ReadDir(path.Join(rootDir))
+	entries, err := os.ReadDir(path.Join(client.SMALLWEB_ROOT))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dir: %v", err)
 	}
@@ -28,17 +22,17 @@ func listApps() ([]string, error) {
 		}
 
 		for _, extension := range client.EXTENSIONS {
-			if exists(path.Join(rootDir, entry.Name(), "http"+extension)) {
+			if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "http"+extension)) {
 				apps[entry.Name()] = struct{}{}
 				break
 			}
 
-			if exists(path.Join(rootDir, "cli", extension)) {
+			if exists(path.Join(client.SMALLWEB_ROOT, "cli", extension)) {
 				apps[entry.Name()] = struct{}{}
 				break
 			}
 
-			if exists(path.Join(rootDir, entry.Name(), "index.html")) {
+			if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "index.html")) {
 				apps[entry.Name()] = struct{}{}
 				break
 			}

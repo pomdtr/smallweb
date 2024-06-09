@@ -1,4 +1,4 @@
-package server
+package proxy
 
 type LoginParams struct {
 	Email string

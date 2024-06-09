@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "smallweb server",
+            "name": "smallweb proxy",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
@@ -9,7 +9,7 @@
                 "SMALLWEB_HOST": "localhost:8000"
             },
             "args": [
-                "server"
+                "proxy"
             ],
             "envFile": "${workspaceFolder}/.env"
         },

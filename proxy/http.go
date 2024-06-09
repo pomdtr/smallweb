@@ -1,4 +1,4 @@
-package server
+package proxy
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
-	"github.com/pomdtr/smallweb/server/components"
-	"github.com/pomdtr/smallweb/server/storage"
+	"github.com/pomdtr/smallweb/proxy/components"
+	"github.com/pomdtr/smallweb/proxy/storage"
 	"golang.org/x/crypto/ssh"
 )
 

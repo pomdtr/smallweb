@@ -19,7 +19,7 @@ import (
 	"github.com/charmbracelet/keygen"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pomdtr/smallweb/client"
-	"github.com/pomdtr/smallweb/server"
+	"github.com/pomdtr/smallweb/proxy"
 	"github.com/spf13/cobra"
 
 	"golang.org/x/crypto/ssh"
@@ -123,7 +123,7 @@ func NewCmdTunnel() *cobra.Command {
 							req.Reply(false, nil)
 						}
 
-						req.Reply(true, ssh.Marshal(server.ListAppsResponse{Apps: apps}))
+						req.Reply(true, ssh.Marshal(proxy.ListAppsResponse{Apps: apps}))
 						continue
 					}
 
@@ -133,7 +133,7 @@ func NewCmdTunnel() *cobra.Command {
 				}
 			}()
 
-			var user server.UserResponse
+			var user proxy.UserResponse
 			if ok, payload, err := sshConn.SendRequest("user", true, nil); err != nil {
 				log.Fatalf("could not send request: %v", err)
 			} else if !ok {
@@ -156,7 +156,7 @@ func NewCmdTunnel() *cobra.Command {
 				cmd.Printf("Smallweb tunnel is up and running, you can now access your apps at https://%s.smallweb.run\n", user.Name)
 			}
 
-			freeport, err := server.GetFreePort()
+			freeport, err := proxy.GetFreePort()
 			if err != nil {
 				return err
 			}

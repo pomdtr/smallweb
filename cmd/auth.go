@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/huh"
-	"github.com/pomdtr/smallweb/server"
+	server "github.com/pomdtr/smallweb/proxy"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
 )
