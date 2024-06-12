@@ -1,5 +1,5 @@
 export default function () {
-  return new Response("Hello from my macbook", {
+  return new Response("Hi from smallweb!", {
     headers: { "content-type": "text/plain" },
   });
 }
