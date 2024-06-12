@@ -22,6 +22,8 @@ import (
 
 var EXTENSIONS = []string{".js", ".ts", ".jsx", ".tsx"}
 var dataHome = path.Join(xdg.DataHome, "smallweb")
+var cacheHome = path.Join(xdg.CacheHome, "smallweb")
+var LogsHome = path.Join(cacheHome, "logs")
 var sandboxPath = path.Join(dataHome, "sandbox.ts")
 var SMALLWEB_ROOT string
 
@@ -43,6 +45,10 @@ func exists(path string) bool {
 
 func init() {
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := os.MkdirAll(LogsHome, 0755); err != nil {
 		log.Fatal(err)
 	}
 
@@ -95,6 +101,7 @@ type WorkerEntrypoints struct {
 }
 
 type Worker struct {
+	alias       string
 	entrypoints WorkerEntrypoints
 }
 
@@ -104,7 +111,7 @@ func NewWorker(alias string) (*Worker, error) {
 		return nil, fmt.Errorf("could not infer entrypoint: %v", err)
 	}
 
-	return &Worker{entrypoints: *entrypoints}, nil
+	return &Worker{alias: alias, entrypoints: *entrypoints}, nil
 }
 
 func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
@@ -158,8 +165,13 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	cmd.Stderr = os.Stderr
 	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -178,6 +190,26 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not start server", http.StatusInternalServerError)
 		return
 	}
+
+	logFile, err := os.OpenFile(filepath.Join(cacheHome, "logs", me.alias), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer logFile.Close()
+
+	go func() {
+		for scanner.Scan() {
+			logFile.WriteString(scanner.Text() + "\n")
+			if err := scanner.Err(); err != nil {
+				break
+			}
+		}
+	}()
+
+	go func() {
+		io.Copy(logFile, stderr)
+	}()
 
 	// handle websockets
 	if r.Header.Get("Upgrade") == "websocket" {
