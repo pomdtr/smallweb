@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" id="oranda" class="light">
+  <head>
+    <title>Smallweb</title>
+    
+    
+      <link rel="icon" href="/smallweb/favicon.ico" />
+    
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Smallweb" />
+    
+    
+    
+    <meta http-equiv="Permissions-Policy" content="interest-cohort=()" />
+    <link rel="stylesheet" href="/smallweb/oranda-v0.6.1.css" />
+    
+    
+  </head>
+  <body>
+    <div class="container">
+      <div class="page-body">
+        
+          <div class="repo_banner">
+            <a href="https://github.com/pomdtr/smallweb">
+              <div class="github-icon" aria-hidden="true"></div>
+              Check out our GitHub!
+            </a>
+          </div>
+        
+
+        <main>
+          <header>
+            
+            <h1 class="title">Smallweb</h1>
+            
+  <nav class="nav">
+    <ul>
+      <li><a href="/smallweb/">Home</a></li>
+
+      
+
+      
+
+      
+        <li><a href="/smallweb/book/">Docs</a></li>
+      
+
+      
+
+      
+    </ul>
+  </nav>
+
+          </header>
+
+          
+
+
+    <div class="oranda-hide">
+<h1>Smallweb - Host websites from your internet folder</h1>
+</div>
+<p>Smallweb is a lightweight web server based on <a href="https://deno.com" rel="noopener noreferrer">Deno</a>. It is inspired both by legacy specifications like <a href="https://en.wikipedia.org/wiki/Common_Gateway_Interface" rel="noopener noreferrer">CGI</a> and online platforms like <a href="https://val.town" rel="noopener noreferrer">Val Town</a> and <a href="https://deno.com/deploy" rel="noopener noreferrer">Deno Deploy</a>.</p>
+<h2>A self-hosted serveless platform</h2>
+<p>Smallweb maps each folder in <code>~/www</code> to a subdomain: <code>~/www/example</code> will be mapped <code>https://example.localhost</code> on your local device, and <code>https://example.&lt;your-domain&gt;</code> on your homelab / VPS.</p>
+<p>Each http request is sandboxed in a single deno subprocess by the smallweb evaluation server. If there is no activity on your website, no resources will be used on your server, making it a great solution for low-traffic websites.</p>
+<p>Creating a new website becomes as simple a creating a folder and opening the corresponding url. And since servers are mapped to text files, you can manage them using standard unix tools like <code>cp</code>, <code>mv</code> or <code>rm</code>.</p>
+<h2>Installation</h2>
+<p>All the instructions are written in the <a href="https://pomdtr.github.io/smallweb/book" rel="noopener noreferrer">getting started guide</a>.</p>
+<p>Smallweb comes with an (optional) tunneling service, which allows you to quickly expose your websites to the internet without the need to configure your router or buy a domain name. But you are encouraged to use your own domain name and server, as the tunneling service is not meant for production use.</p>
+<h2>Demo</h2>
+<p>The following snippet is stored at <code>~/www/demo/http.ts</code> on my raspberrypi 400, and served at <a href="https://demo.pomdtr.me" rel="noopener noreferrer">https://demo.pomdtr.me</a>. Any edit to the file is reflected in real-time, without the need to rebuild the project, or restart the server.</p>
+<pre style="background-color:#263238;"><span style="color:#eeffff;">/** @jsxImportSource npm:preact */
+</span><span style="color:#eeffff;">import { render } from "npm:preact-render-to-string";
+</span><span style="color:#eeffff;">
+</span><span style="color:#eeffff;">export default function () {
+</span><span style="color:#eeffff;">  return new Response(
+</span><span style="color:#eeffff;">    render(
+</span><span style="color:#eeffff;">      &lt;html lang="en"&gt;
+</span><span style="color:#eeffff;">        &lt;head&gt;
+</span><span style="color:#eeffff;">          &lt;meta charset="UTF-8" /&gt;
+</span><span style="color:#eeffff;">          &lt;meta
+</span><span style="color:#eeffff;">            name="viewport"
+</span><span style="color:#eeffff;">            content="width=device-width, initial-scale=1.0"
+</span><span style="color:#eeffff;">          /&gt;
+</span><span style="color:#eeffff;">          &lt;title&gt;Smallweb - Host websites from your internet folder&lt;/title&gt;
+</span><span style="color:#eeffff;">          &lt;link
+</span><span style="color:#eeffff;">            href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
+</span><span style="color:#eeffff;">            rel="stylesheet"
+</span><span style="color:#eeffff;">          /&gt;
+</span><span style="color:#eeffff;">        &lt;/head&gt;
+</span><span style="color:#eeffff;">        &lt;body class="bg-white flex items-center justify-center min-h-screen text-black"&gt;
+</span><span style="color:#eeffff;">          &lt;div class="border-4 border-black p-10 text-center"&gt;
+</span><span style="color:#eeffff;">            &lt;h1 class="text-6xl font-extrabold mb-4"&gt;Smallweb&lt;/h1&gt;
+</span><span style="color:#eeffff;">            &lt;p class="text-2xl mb-6"&gt;Host websites from your internet folder&lt;/p&gt;
+</span><span style="color:#eeffff;">            &lt;a
+</span><span style="color:#eeffff;">              href="https://github.com/pomdtr/smallweb"
+</span><span style="color:#eeffff;">              class="px-8 py-3 bg-black text-white font-bold border-4 border-black hover:bg-white hover:text-black transition duration-300"
+</span><span style="color:#eeffff;">            &gt;
+</span><span style="color:#eeffff;">              Get Started
+</span><span style="color:#eeffff;">            &lt;/a&gt;
+</span><span style="color:#eeffff;">          &lt;/div&gt;
+</span><span style="color:#eeffff;">        &lt;/body&gt;
+</span><span style="color:#eeffff;">      &lt;/html&gt;,
+</span><span style="color:#eeffff;">    ),
+</span><span style="color:#eeffff;">    {
+</span><span style="color:#eeffff;">      headers: {
+</span><span style="color:#eeffff;">        "Content-Type": "text/html",
+</span><span style="color:#eeffff;">      },
+</span><span style="color:#eeffff;">    },
+</span><span style="color:#eeffff;">  );
+</span><span style="color:#eeffff;">}
+</span></pre>
+
+
+
+
+        </main>
+      </div>
+
+      <footer>
+        
+          <a href="https://github.com/pomdtr/smallweb"><div class="github-icon" aria-hidden="true"></div></a>
+        
+        <span>
+          Smallweb, MIT License
+        </span>
+      </footer>
+    </div>
+
+    
+    
+
+    
+
+
+  </body>
+</html>

@@ -1,0 +1,415 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js oranda-light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Smallweb</title>
+        <meta name="robots" content="noindex" />
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" href="oranda-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "oranda-light" : "oranda-light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('orandamdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('orandamdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('orandamdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('oranda-light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="getting-started.html"><strong aria-hidden="true">1.</strong> Getting started</a></li><li class="chapter-item expanded "><a href="usage.html"><strong aria-hidden="true">2.</strong> Using smallweb</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">3.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">4.</strong> Cloudflare setup</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="oranda-light">Oranda Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="oranda-dark">Oranda Dark</button></li>
+
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Smallweb</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h2 id="installing-smallweb"><a class="header" href="#installing-smallweb">Installing smallweb</a></h2>
+<pre><code class="language-bash"># Homebrew (macOS / Linux)
+brew install pomdtr/tap/smallweb
+
+# From source
+go install github.com/pomdtr/smallweb@latest
+</code></pre>
+<p>or download the latest release from the <a href="https://github.com/pomdtr/smallweb/releases">releases page</a>.</p>
+<h2 id="initializing-the-www-folder"><a class="header" href="#initializing-the-www-folder">Initializing the <code>www</code> folder</a></h2>
+<pre><code class="language-bash">smallweb init
+</code></pre>
+<p>This will create a new folder in your home directory called <code>www</code>, and a few examples websites in it to get you started.</p>
+<h2 id="serving-the-websites"><a class="header" href="#serving-the-websites">Serving the websites</a></h2>
+<p>There are a few options to host the websites:</p>
+<ul>
+<li><a href="./localhost/localhost.html">Setup a local environment</a></li>
+<li><a href="./cloudflare/tunnel.html">With Cloudflare Tunnel</a></li>
+</ul>
+<p>But the simplest way to get started is to use the tunneling service provided by smallweb:</p>
+<ol>
+<li>
+<p>Create a smallweb account by running <code>smallweb auth login</code></p>
+</li>
+<li>
+<p>Start a new tunnel with <code>smallweb tunnel</code></p>
+</li>
+</ol>
+<p>You can access a dashboard listing all your apps at <code>https://&lt;username&gt;.smallweb.run</code>, and all your websites will be served from <code>https://&lt;app&gt;-&lt;username&gt;.smallweb.run</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h2 id="http-servers"><a class="header" href="#http-servers">Http servers</a></h2>
+<p>A smallweb app can be as simple as a single module, exporting a single function. This function will be called with the request object, and should return a response object.</p>
+<p>By default, smallweb will look for a module called <code>http.[js,ts,tsx,jsx]</code> in the root of the app.</p>
+<pre><code class="language-ts">// basic/http.ts
+export default function(req: Request): Response {
+    const url = new URL(req.url);
+    const name = url.searchParams.get(&quot;name&quot;) || &quot;world&quot;;
+
+    return new Response(`Hello, ${name}!`);
+}
+</code></pre>
+<p>To run serve this app, you use the smallweb CLI:</p>
+<pre><code class="language-bash">smallweb basic tutorial
+</code></pre>
+<h2 id="remote-dependencies"><a class="header" href="#remote-dependencies">Remote Dependencies</a></h2>
+<p>To use a dependency from npm or jsr, just import it.</p>
+<pre><code class="language-ts">import { uppercase } from &quot;npm:lodash-es&quot;
+
+export default function(req: Request): Response {
+    const url = new URL(req.url);
+    const name = url.searchParams.get(&quot;name&quot;) || &quot;world&quot;;
+
+    return new Response(`Hello, ${uppercase(name)}!`);
+}
+
+</code></pre>
+<h2 id="advanced-routing"><a class="header" href="#advanced-routing">Advanced Routing</a></h2>
+<p>Of course, most apps will need more advanced routing. Smallweb integrates well with modern routing libraries like <a href="https://hono.dev">hono</a>.</p>
+<pre><code class="language-ts">import { Hono } from &quot;jsr:@hono/hono&quot;;
+
+const app = new Hono();
+
+app.get(&quot;/&quot;, (c) =&gt; {
+    return c.json({ message: &quot;Hello, world!&quot; });
+});
+
+app.get(&quot;/:name&quot;, (c) =&gt; {
+    const { name } = c.param();
+    return c.json({ message: `Hello, ${name}!` });
+});
+
+export default app.fetch;
+</code></pre>
+<p>No need to run a run an install command, deno will automatically fetch the dependencies when you run the app.</p>
+<p>Just use <code>smallweb serve hono</code> to start the server.</p>
+<h2 id="using-jsx"><a class="header" href="#using-jsx">Using JSX</a></h2>
+<p>Smallweb also supports JSX, which allows you to write HTML in your JavaScript files.</p>
+<pre><code class="language-jsx">// jsx/hello.tsx
+
+// this line defines which variant of JSX to use
+/** @jsxImportSource https://esm.sh/preact */
+
+import { render } from &quot;https://esm.sh/preact-render-to-string&quot;;
+
+export default function(req) {
+    const url = new URL(req.url);
+    const name = url.searchParams.get(&quot;name&quot;) || &quot;world&quot;;
+
+    return new Response(render(&lt;h1&gt;Hello, {name}!&lt;/h1&gt;), {
+        headers: { &quot;Content-Type&quot;: &quot;text/html&quot; },
+    });
+}
+</code></pre>
+<h2 id="serving-static-files"><a class="header" href="#serving-static-files">Serving Static Files</a></h2>
+<p>If you only want to serve static files, you can omit the <code>http</code> module, and smallweb will serve the files in the root of the app (an <code>index.html</code> file need to be present, and will be served by default).</p>
+<pre><code class="language-console">$ tree ~/www/static-example
+~/www/static-example
+├── index.html
+└── style.css
+$ cat ~/www/static-example/index.html
+&lt;!DOCTYPE html&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;style.css&quot;&gt;
+&lt;h1&gt;Hello, world!&lt;/h1&gt;
+</code></pre>
+<pre><code class="language-bash">smallweb serve static-example
+</code></pre>
+<h2 id="streaming-and-websockets"><a class="header" href="#streaming-and-websockets">Streaming and Websockets</a></h2>
+<p>Smallweb supports streaming responses, and websockets. You can use the <code>Response</code> class to create a streaming response, and the <code>WebSocket</code> class to create a websocket server.</p>
+<pre><code class="language-ts">export default function(): Response {
+  let timer: number | undefined = undefined;
+  const body = new ReadableStream({
+    start(controller) {
+      timer = setInterval(() =&gt; {
+        const message = `It is ${new Date().toISOString()}\n`;
+        controller.enqueue(new TextEncoder().encode(message));
+      }, 1000);
+    },
+    cancel() {
+      if (timer !== undefined) {
+        clearInterval(timer);
+      }
+    },
+  });
+  return new Response(body, {
+    headers: {
+      &quot;content-type&quot;: &quot;text/plain&quot;,
+      &quot;x-content-type-options&quot;: &quot;nosniff&quot;,
+    },
+  });
+}
+</code></pre>
+<h2 id="setting-up-environment-variables"><a class="header" href="#setting-up-environment-variables">Setting up environment variables</a></h2>
+<p>Smallweb supports environment variables, which can be set in the <code>.env</code> file in the root of the app.</p>
+<pre><code class="language-console">$ cat ~/www/env-example/.env
+PASSWORD=secret
+</code></pre>
+<h2 id="cli-commands"><a class="header" href="#cli-commands">Cli commands</a></h2>
+<p>If you create a <code>cli.[js,ts,tsx,jsx]</code> module in the root of your app, smallweb will treat it as a CLI command. When you run <code>smallweb run &lt;app&gt;</code>, smallweb will call the exported function with the arguments passed on the command line.</p>
+<pre><code class="language-ts">// hello/cli.ts
+const [name] = Deno.args;
+console.log(`Hello, ${name}!`);
+</code></pre>
+<pre><code class="language-console">$ smallweb run hello Alice
+Hello, Alice!
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
+<p>At the end of this process, each folder in <code>~/www</code> will be mapped to domain with a <code>.localhost</code> suffix. For example, the folder <code>~/www/example</code> will be accessible at <code>https://example.localhost</code>.</p>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<pre><code class="language-bash"># Install Brew (if you haven't already)
+/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;
+
+# Install Deno
+curl -fsSL https://deno.land/install.sh | sh
+
+# Install Smallweb
+brew install pomdtr/tap/smallweb
+
+# Start the evaluation server
+brew services start smallweb
+
+# Install caddy
+brew install caddy
+
+# *.localhost request will be handled by smallweb
+cat &lt;&lt;EOF &gt; /opt/homebrew/etc/Caddyfile
+*.localhost {
+  tls internal {
+    on_demand
+  }
+
+  reverse_proxy localhost:7777
+}
+EOF
+
+# Start the caddy service
+brew services start caddy
+
+
+# Install dsnmasq
+brew install dnsmasq
+
+# Redirect *.localhost requests to the local machine
+echo &quot;address=/.localhost/127.0.0.1&quot; &gt; /opt/homebrew/etc/dnsmasq.conf
+
+# Start the dnsmasq service
+sudo brew services start dnsmasq
+
+# Use dnsmasq to resolve *.localhost requests
+cat &lt;&lt;EOF | sudo tee -a /etc/resolver/localhost
+nameserver 127.0.0.1
+EOF
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><p>Cloudflare Tunnel is a free service that allows you to expose your local server to the internet, without having to expose your local IP address.</p>
+<p>Additionally, it provides some protection against DDoS attacks, and allows you to use Cloudflare's other services like Access.</p>
+<h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
+<ol>
+<li>
+<p><a href="cloudflare/../getting-started.html">Install Smallweb</a>, and start the evaluation server</p>
+<pre><code class="language-bash">smallweb serve
+</code></pre>
+</li>
+<li>
+<p><a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/">Install cloudflared</a></p>
+</li>
+<li>
+<p>Login and create a tunnel.</p>
+<pre><code class="language-bash">cloudflared tunnel login
+cloudflared tunnel create smallweb
+</code></pre>
+</li>
+<li>
+<p>Add your domain to cloudflare, and setup a wildcard record pointing to the tunnel. You can find the tunnel id by running <code>cloudflared tunnel list</code> command.</p>
+<p><img src="cloudflare/./dns.png" alt="alt text" /></p>
+</li>
+<li>
+<p>Add the wildcard route in your tunnel config</p>
+<p><img src="cloudflare/./wildcard.png" alt="alt text" /></p>
+</li>
+</ol>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Protect some hosts with <a href="https://developers.cloudflare.com/cloudflare-one/policies/access/">Access</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>
