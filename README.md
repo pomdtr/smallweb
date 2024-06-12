@@ -16,7 +16,7 @@ The following snippet is stored at `~/www/demo/http.ts` on my raspberrypi 400, a
 /** @jsxImportSource npm:preact */
 import { render } from "npm:preact-render-to-string";
 
-export default function (_req: Request) {
+export default function () {
   return new Response(
     render(
       <html lang="en">
@@ -55,4 +55,4 @@ export default function (_req: Request) {
 }
 ```
 
-You can test smallweb in a few minutes by following the [Getting Started](./getting-started.md) guide.
+You can test smallweb in a few minutes by following the [getting started guide](https://pomdtr.github.io/smallweb/book).

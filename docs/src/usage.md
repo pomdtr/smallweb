@@ -65,7 +65,7 @@ Just use `smallweb serve hono` to start the server.
 
 Smallweb also supports JSX, which allows you to write HTML in your JavaScript files.
 
-```tsx
+```jsx
 // jsx/hello.tsx
 
 // this line defines which variant of JSX to use
@@ -73,7 +73,7 @@ Smallweb also supports JSX, which allows you to write HTML in your JavaScript fi
 
 import { render } from "https://esm.sh/preact-render-to-string";
 
-export default function(req: Request): Response {
+export default function(req) {
     const url = new URL(req.url);
     const name = url.searchParams.get("name") || "world";
 
