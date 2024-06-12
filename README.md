@@ -4,15 +4,21 @@
 
 </div>
 
-Smallweb is a lightweight web server based on [Deno](https://deno.com). It is inspired both by [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and online platforms like [Val Town](https://val.town) and [Deno Deploy](https://deno.com/deploy).
+Smallweb is a lightweight web server based on [Deno](https://deno.com). It is inspired both by legacy specifications like [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and online platforms like [Val Town](https://val.town) and [Deno Deploy](https://deno.com/deploy).
+
+## A self-hosted serveless platform
 
 Smallweb maps each folder in `~/www` to a subdomain: `~/www/example` will be mapped `https://example.localhost` on your local device, and `https://example.<your-domain>` on your homelab / VPS.
 
-Each http request is isolated in it's own deno subprocess, meaning that if there is no activity on your website, no resources will be used on your server. It also scales surprisingly well!
+Each http request is sandboxed in a single deno subprocess by the smallweb evaluation server. If there is no activity on your website, no resources will be used on your server, making it a great solution for low-traffic websites.
 
-Creating a new website becomes as simple a creating text file and opening the corresponding url. No need to create a Dockerfile, launch a dev server or run an install/build command. Since servers are mapped to text files, you can manage them using standard unix tools like `cp`, `mv` or `rm`
+Creating a new website becomes as simple a creating a folder and opening the corresponding url. And since servers are mapped to text files, you can manage them using standard unix tools like `cp`, `mv` or `rm`.
 
-The following snippet is stored at `~/www/demo/http.ts` on my raspberrypi 400, and served at <https://demo.pomdtr.me>. Every update to the file is instantly mirrored.
+You can install smallweb and get your first websites deployed in a few minutes by following the [getting started guide](https://pomdtr.github.io/smallweb/book).
+
+## Demo
+
+The following snippet is stored at `~/www/demo/http.ts` on my raspberrypi 400, and served at <https://demo.pomdtr.me>. Any edit to the file is reflected in real-time, without the need to rebuild the project, or restart the server.
 
 ```tsx
 /** @jsxImportSource npm:preact */
@@ -56,5 +62,3 @@ export default function () {
   );
 }
 ```
-
-You can install/run smallweb in a few minutes by following the [getting started guide](https://pomdtr.github.io/smallweb/book).
