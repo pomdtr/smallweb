@@ -4,13 +4,15 @@
 
 </div>
 
-Smallweb is a lightweight web server based on [Deno](https://deno.com). It is inspired both by [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and modern serverless platfrom like [Val Town](https://val.town) and [Deno Deploy](https://deno.com/deploy).
+Smallweb is a lightweight web server based on [Deno](https://deno.com). It is inspired both by [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and online platforms like [Val Town](https://val.town) and [Deno Deploy](https://deno.com/deploy).
 
 Smallweb maps each folder in `~/www` to a subdomain (`~/www/example` will be mapped `https://example.localhost` on your local device, and `https://example.<your-domain>` on your homelab / VPS).
 
-Creating a new website becomes as simple as creating a new folder, or cloning a git repository. Servers are managed using the standard unix tools (ls, mv, rm...). After the initial setup, you never need to worry about build commands, dev servers and ports.
+Each http request is isolated in it's own deno subprocess. If there is no activity on your website, no resources is used on your server. And it also scales surprisingly well!
 
-The following snippet is stored at `~/www/demo/http.ts` on my raspberrypi 400, and served at <https://demo.pomdtr.me>. Every update to the file is instantly deployed.
+Creating a new website becomes as simple a creating text file and opening the corresponding url. No need to create a Dockerfile, launch a dev server or run an install/build command. Since servers are mapped to text files, you can manage them using standard unix tools (cp / scp, mv, rm).
+
+The following snippet is stored at `~/www/demo/http.ts` on my raspberrypi 400, and served at <https://demo.pomdtr.me>. Every update to the file is instantly mirrored.
 
 ```tsx
 /** @jsxImportSource npm:preact */
@@ -55,4 +57,4 @@ export default function () {
 }
 ```
 
-You can test smallweb in a few minutes by following the [getting started guide](https://pomdtr.github.io/smallweb/book).
+You can install/run smallweb in a few minutes by following the [getting started guide](https://pomdtr.github.io/smallweb/book).
