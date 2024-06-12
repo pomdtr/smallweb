@@ -14,7 +14,11 @@ Each http request is sandboxed in a single deno subprocess by the smallweb evalu
 
 Creating a new website becomes as simple a creating a folder and opening the corresponding url. And since servers are mapped to text files, you can manage them using standard unix tools like `cp`, `mv` or `rm`.
 
-You can install smallweb and get your first websites deployed in a few minutes by following the [getting started guide](https://pomdtr.github.io/smallweb/book).
+## Installation
+
+All the instructions are written in the [getting started guide](https://pomdtr.github.io/smallweb/book).
+
+Smallweb comes with an (optional) tunneling service, which allows you to quickly expose your websites to the internet without the need to configure your router or buy a domain name. But you are encouraged to use your own domain name and server, as the tunneling service is not meant for production use.
 
 ## Demo
 
