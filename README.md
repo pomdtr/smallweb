@@ -6,7 +6,7 @@
 
 Smallweb is a lightweight web server based on [Deno](https://deno.com). It is inspired both by [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and modern serverless platfrom like [Val Town](https://val.town) and [Deno Deploy](https://deno.com/deploy).
 
-Smallweb maps each folder in `~/www` to a subdomain (`~/www/example` will be mapped `https://example.localhost` on your local device, and `https://example.<your-domain>` on your home lab / vps). 
+Smallweb maps each folder in `~/www` to a subdomain (`~/www/example` will be mapped `https://example.localhost` on your local device, and `https://example.<your-domain>` on your homelab / VPS).
 
 Creating a new website becomes as simple as creating a new folder, or cloning a git repository. Servers are managed using the standard unix tools (ls, mv, rm...). After the initial setup, you never need to worry about build commands, dev servers and ports.
 
