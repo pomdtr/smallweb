@@ -7,7 +7,6 @@ require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/charmbracelet/huh v0.4.2
 	github.com/charmbracelet/keygen v0.5.0
-	github.com/cli/browser v1.3.0
 	github.com/gliderlabs/ssh v0.3.7
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.1

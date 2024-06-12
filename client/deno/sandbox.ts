@@ -1,4 +1,3 @@
-import * as path from "jsr:@std/path";
 import { parseArgs } from "jsr:@std/cli";
 
 const { port, entrypoint } = parseArgs(Deno.args, {
