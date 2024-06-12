@@ -1,11 +1,16 @@
 {
     "project": {
-        "name": "Smallweb"
+        "name": "Smallweb",
+        "repository": "https://github.com/pomdtr/smallweb",
+        "license": "MIT License"
+    },
+    "components": {
+        "changelog": false
     },
     "build": {
         "path_prefix": "smallweb"
     },
     "styles": {
-        "theme": "cupcake"
+        "theme": "light"
     }
 }
