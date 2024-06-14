@@ -8,9 +8,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
-	"github.com/pomdtr/smallweb/proxy/components"
 	"github.com/pomdtr/smallweb/proxy/storage"
-	"golang.org/x/crypto/ssh"
 )
 
 type Handler struct {
@@ -34,25 +32,8 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	subdomain := strings.Split(r.Host, ".")[0]
 	parts := strings.Split(subdomain, "-")
-	if len(parts) == 1 {
-		username := parts[0]
-		if ok, payload, err := me.forwarder.SendRequest(username, "list-apps", nil); err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		} else if !ok {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		} else {
-			var resp ListAppsResponse
-			if err := ssh.Unmarshal(payload, &resp); err != nil {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-				return
-			}
-
-			w.WriteHeader(http.StatusOK)
-			components.Home(username, resp.Apps).Render(w)
-			return
-		}
+	if len(parts) < 2 {
+		http.Error(w, "Invalid subdomain", http.StatusBadRequest)
 	}
 
 	username := parts[len(parts)-1]

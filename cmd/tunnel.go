@@ -110,28 +110,7 @@ func NewCmdTunnel() *cobra.Command {
 			}
 			defer sshConn.Close()
 
-			go func() {
-				for req := range reqs {
-					if req.Type == "list-apps" {
-						if len(args) == 1 {
-							req.Reply(false, nil)
-						}
-
-						apps, err := listApps()
-						if err != nil {
-							log.Fatalf("could not list apps: %v", err)
-							req.Reply(false, nil)
-						}
-
-						req.Reply(true, ssh.Marshal(proxy.ListAppsResponse{Apps: apps}))
-						continue
-					}
-
-					if req.WantReply {
-						req.Reply(false, nil)
-					}
-				}
-			}()
+			go ssh.DiscardRequests(reqs)
 
 			var user proxy.UserResponse
 			if ok, payload, err := sshConn.SendRequest("user", true, nil); err != nil {
