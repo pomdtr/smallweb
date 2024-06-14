@@ -80,7 +80,7 @@ func NewCmdTunnel() *cobra.Command {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 
-			apps, err := listApps()
+			apps, err := listApps(AppKindHTTP)
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
 			}

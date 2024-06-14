@@ -16,6 +16,7 @@ func NewCmdRoot() *cobra.Command {
 		Use: "smallweb",
 	}
 
+	cmd.AddCommand(NewCmdInstall())
 	cmd.AddCommand(NewCmdLog())
 	cmd.AddCommand(NewCmdInit())
 	cmd.AddCommand(NewCmdServe())

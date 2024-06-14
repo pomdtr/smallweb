@@ -300,7 +300,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if err == io.EOF {
 				break
 			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}

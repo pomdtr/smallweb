@@ -9,7 +9,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func listApps() ([]string, error) {
+type AppKind int
+
+const (
+	AppKindUnknown AppKind = iota
+	AppKindHTTP
+	AppKindCLI
+)
+
+func listApps(kind ...AppKind) ([]string, error) {
+	if len(kind) == 0 {
+		kind = []AppKind{AppKindHTTP, AppKindCLI}
+	}
+
 	apps := make(map[string]struct{})
 	entries, err := os.ReadDir(path.Join(client.SMALLWEB_ROOT))
 	if err != nil {
@@ -22,19 +34,20 @@ func listApps() ([]string, error) {
 		}
 
 		for _, extension := range client.EXTENSIONS {
-			if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "http"+extension)) {
-				apps[entry.Name()] = struct{}{}
-				break
-			}
-
-			if exists(path.Join(client.SMALLWEB_ROOT, "cli", extension)) {
-				apps[entry.Name()] = struct{}{}
-				break
-			}
-
-			if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "index.html")) {
-				apps[entry.Name()] = struct{}{}
-				break
+			for _, k := range kind {
+				switch k {
+				case AppKindHTTP:
+					if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "http"+extension)) {
+						apps[entry.Name()] = struct{}{}
+					}
+					if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "index.html")) {
+						apps[entry.Name()] = struct{}{}
+					}
+				case AppKindCLI:
+					if exists(path.Join(client.SMALLWEB_ROOT, "cli", extension)) {
+						apps[entry.Name()] = struct{}{}
+					}
+				}
 			}
 		}
 	}
