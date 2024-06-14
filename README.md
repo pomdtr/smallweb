@@ -1,8 +1,4 @@
-<div class="oranda-hide">
-
 # Smallweb - Host websites from your internet folder
-
-</div>
 
 Smallweb is a lightweight web server based on [Deno](https://deno.com). It is inspired both by legacy specifications like [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and online platforms like [Val Town](https://val.town) and [Deno Deploy](https://deno.com/deploy).
 
