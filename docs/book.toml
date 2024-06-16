@@ -4,3 +4,8 @@ language = "en"
 multilingual = false
 src = "src"
 title = "Smallweb"
+
+[output.html]
+edit-url-template = "https://github.com/pomdtr/smallweb/edit/main/docs/{path}"
+git-repository-url = "https://github.com/pomdtr/smallweb"
+site-url = "/smallweb/"
