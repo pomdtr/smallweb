@@ -15,7 +15,7 @@ Since each http request is sandboxed in a single deno subprocess by the smallweb
 
 ## Installation
 
-All the instructions are written in the [getting started guide](https://pomdtr.github.io/smallweb/book).
+All the instructions are written in the [getting started guide](https://pomdtr.github.io/smallweb).
 
 ## Demo
 
