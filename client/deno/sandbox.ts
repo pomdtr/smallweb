@@ -36,7 +36,7 @@ const server = Deno.serve(
     }
 
     try {
-      const resp = await handler(req);
+      const resp = await handler.fetch(req);
       if (!(resp instanceof Response)) {
         return new Response("Mod did not return a Response", { status: 500 });
       }
