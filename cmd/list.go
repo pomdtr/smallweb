@@ -61,21 +61,39 @@ func listApps(kind ...AppKind) ([]string, error) {
 }
 
 func NewCmdList() *cobra.Command {
-	return &cobra.Command{
+	var flags struct {
+		kind string
+	}
+
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List all apps",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := listApps()
+			apps, err := func() ([]string, error) {
+				switch flags.kind {
+				case "http":
+					return listApps(AppKindHTTP)
+				case "cli":
+					return listApps(AppKindCLI)
+				default:
+					return listApps()
+				}
+			}()
+
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to list apps: %v", err)
 			}
 
 			for _, app := range apps {
-				cmd.Println(app)
+				fmt.Println(app)
 			}
 
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVarP(&flags.kind, "kind", "k", "", "filter by kind")
+
+	return cmd
 }
