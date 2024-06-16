@@ -78,7 +78,7 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 	return &WorkerEntrypoints{
 		Http: func() string {
 			for _, ext := range EXTENSIONS {
-				entrypoint := path.Join(SMALLWEB_ROOT, name, "http"+ext)
+				entrypoint := path.Join(SMALLWEB_ROOT, name, "main"+ext)
 				if exists(entrypoint) {
 					return entrypoint
 				}

@@ -26,10 +26,14 @@ const server = Deno.serve(
     });
 
     const mod = await import(entrypoint);
-    if (!mod.default || typeof mod.default !== "function") {
+    if (!mod.default || typeof mod.default !== "object") {
       return new Response("Mod has no default export", { status: 500 });
     }
+
     const handler = mod.default;
+    if (!("fetch" in handler) || typeof handler.fetch !== "function") {
+      return new Response("Mod has no fetch function", { status: 500 });
+    }
 
     try {
       const resp = await handler(req);

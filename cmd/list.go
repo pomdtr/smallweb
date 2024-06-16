@@ -37,7 +37,7 @@ func listApps(kind ...AppKind) ([]string, error) {
 			for _, k := range kind {
 				switch k {
 				case AppKindHTTP:
-					if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "http"+extension)) {
+					if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "main"+extension)) {
 						apps[entry.Name()] = struct{}{}
 					}
 					if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "index.html")) {

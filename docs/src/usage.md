@@ -34,12 +34,12 @@ git clone https://github.com/nalgeon/sqlime ~/www/sqlime
 
 ## Hosting an HTTP server
 
-Often, you will want to create a dynamic website. For this, you can create a file called `http.ts` in the folder. This file should export a default function that takes a `Request` object and returns a `Response` object.
+Often, you will want to create a dynamic website. For this, you can create a file called `main.[js,ts,jsx,tsx]` in the folder. This file should export a default function that takes a `Request` object and returns a `Response` object.
 
 Here is an example of a simple HTTP server:
 
 ```ts
-// File: ~/www/demo/http.ts
+// File: ~/www/demo/main.ts
 
 export default function (request: Request) {
   const url = new URL(request.url);
@@ -58,7 +58,7 @@ Smallweb use the [deno](https://deno.com) runtime to evaluate the server code. Y
 As an example, the following code snippet use the `@hono/hono` extract params from the request url, and render jsx:
 
 ```tsx
-// File: ~/www/hono/http.tsx
+// File: ~/www/hono/main.tsx
 /** @jsxImportSource jsr:@hono/hono/jsx **/
 
 import { Hono } from "@hono/hono";
@@ -72,7 +72,7 @@ app.get("/:name", c => c.html(<h1>Hello, {c.req.param("name")}!</h1>));
 export default app.fetch;
 ```
 
-No need to run an install command, or configure typescript. Just copy-paste the snippet at `~/www/hono/http.tsx`, and open the corresponding url in your browser.
+No need to run an install command, or configure typescript. Just copy-paste the snippet at `~/www/hono/main.tsx`, and open the corresponding url in your browser.
 
 You are not limited to serving html responses. Smallweb is perfect for creating APIs, or small services (ex: discord/telegram bots, webhooks, etc)...
 
@@ -108,7 +108,7 @@ $ demo --name smallweb
 Hello, smallweb!
 ```
 
-Of course, you can define both an `http.ts` and a `cli.ts` file in the same folder.
+Of course, you can define both an `main.ts` and a `cli.ts` file in the same folder.
 
 ## Setting env variables
 
@@ -123,7 +123,7 @@ NAME=world
 You can access the environment variables in your app using the `Deno.env` object:
 
 ```ts
-// File: ~/www/demo/http.ts
+// File: ~/www/demo/main.ts
 export default function () {
   const name = Deno.env.get("NAME") || "world";
 

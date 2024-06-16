@@ -19,7 +19,7 @@ All the instructions are written in the [getting started guide](https://pomdtr.g
 
 ## Demo
 
-The following snippet is stored at `~/www/demo/http.ts` on my raspberrypi 400, and served at <https://demo.pomdtr.me>. Any edit to the file is reflected in real-time, without the need to rebuild the project, or restart the server.
+The following snippet is stored at `~/www/demo/main.ts` on my raspberrypi 400, and served at <https://demo.pomdtr.me>. Any edit to the file is reflected in real-time, without the need to rebuild the project, or restart the server.
 
 ```tsx
 /** @jsxImportSource npm:preact */
