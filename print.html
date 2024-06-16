@@ -235,9 +235,9 @@ My first &lt;strong&gt;Smallweb&lt;/strong&gt; website!
 <pre><code class="language-sh">git clone https://github.com/nalgeon/sqlime ~/www/sqlime
 </code></pre>
 <h2 id="hosting-an-http-server"><a class="header" href="#hosting-an-http-server">Hosting an HTTP server</a></h2>
-<p>Often, you will want to create a dynamic website. For this, you can create a file called <code>http.ts</code> in the folder. This file should export a default function that takes a <code>Request</code> object and returns a <code>Response</code> object.</p>
+<p>Often, you will want to create a dynamic website. For this, you can create a file called <code>main.[js,ts,jsx,tsx]</code> in the folder. This file should export a default function that takes a <code>Request</code> object and returns a <code>Response</code> object.</p>
 <p>Here is an example of a simple HTTP server:</p>
-<pre><code class="language-ts">// File: ~/www/demo/http.ts
+<pre><code class="language-ts">// File: ~/www/demo/main.ts
 
 export default function (request: Request) {
   const url = new URL(request.url);
@@ -252,7 +252,7 @@ export default function (request: Request) {
 </code></pre>
 <p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
 <p>As an example, the following code snippet use the <code>@hono/hono</code> extract params from the request url, and render jsx:</p>
-<pre><code class="language-tsx">// File: ~/www/hono/http.tsx
+<pre><code class="language-tsx">// File: ~/www/hono/main.tsx
 /** @jsxImportSource jsr:@hono/hono/jsx **/
 
 import { Hono } from "@hono/hono";
@@ -265,7 +265,7 @@ app.get("/:name", c =&gt; c.html(&lt;h1&gt;Hello, {c.req.param("name")}!&lt;/h1&
 
 export default app.fetch;
 </code></pre>
-<p>No need to run an install command, or configure typescript. Just copy-paste the snippet at <code>~/www/hono/http.tsx</code>, and open the corresponding url in your browser.</p>
+<p>No need to run an install command, or configure typescript. Just copy-paste the snippet at <code>~/www/hono/main.tsx</code>, and open the corresponding url in your browser.</p>
 <p>You are not limited to serving html responses. Smallweb is perfect for creating APIs, or small services (ex: discord/telegram bots, webhooks, etc)...</p>
 <h2 id="registering-a-cli-command"><a class="header" href="#registering-a-cli-command">Registering a CLI command</a></h2>
 <p>To add a cli command to your app, just create a file called <code>cli.[js,ts,jsx,tsx]</code> in the folder.</p>
@@ -288,14 +288,14 @@ Hello, smallweb!
 $ demo --name smallweb
 Hello, smallweb!
 </code></pre>
-<p>Of course, you can define both an <code>http.ts</code> and a <code>cli.ts</code> file in the same folder.</p>
+<p>Of course, you can define both an <code>main.ts</code> and a <code>cli.ts</code> file in the same folder.</p>
 <h2 id="setting-env-variables"><a class="header" href="#setting-env-variables">Setting env variables</a></h2>
 <p>You can set environment variables for your app by creating a file called <code>.env</code> in the folder.</p>
 <p>Here is an example of a <code>.env</code> file:</p>
 <pre><code class="language-env">NAME=world
 </code></pre>
 <p>You can access the environment variables in your app using the <code>Deno.env</code> object:</p>
-<pre><code class="language-ts">// File: ~/www/demo/http.ts
+<pre><code class="language-ts">// File: ~/www/demo/main.ts
 export default function () {
   const name = Deno.env.get("NAME") || "world";
 
