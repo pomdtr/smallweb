@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="sidebar-visible no-js oranda-light">
+<html lang="en" class="light" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -10,7 +10,7 @@
         
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#ffffff">
 
         <link rel="icon" href="favicon.svg">
         <link rel="shortcut icon" href="favicon.png">
@@ -27,27 +27,26 @@
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
         <link rel="stylesheet" href="ayu-highlight.css">
-        <link rel="stylesheet" href="oranda-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
     </head>
-    <body>
+    <body class="sidebar-visible no-js">
     <div id="body-container">
         <!-- Provide site root to javascript -->
         <script>
             var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "oranda-light" : "oranda-light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('orandamdbook-theme');
+                var theme = localStorage.getItem('mdbook-theme');
                 var sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
-                    localStorage.setItem('orandamdbook-theme', theme.slice(1, theme.length - 1));
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
                 }
 
                 if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
@@ -59,43 +58,74 @@
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
             var theme;
-            try { theme = localStorage.getItem('orandamdbook-theme'); } catch(e) { }
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             var html = document.querySelector('html');
-            html.classList.remove('no-js')
-            html.classList.remove('oranda-light')
+            html.classList.remove('light')
             html.classList.add(theme);
-            html.classList.add('js');
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
         </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var html = document.querySelector('html');
-            var sidebar = 'hidden';
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
             }
-            html.classList.remove('sidebar-visible');
-            html.classList.add("sidebar-" + sidebar);
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
                 <ol class="chapter"><li class="chapter-item expanded "><a href="getting-started.html"><strong aria-hidden="true">1.</strong> Getting started</a></li><li class="chapter-item expanded "><a href="usage.html" class="active"><strong aria-hidden="true">2.</strong> Using smallweb</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">3.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">4.</strong> Cloudflare setup</a></li></ol>
             </div>
-            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
         </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
 
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
                                 <div id="menu-bar-hover-placeholder"></div>
-                <div id="menu-bar" class="menu-bar sticky bordered">
+                <div id="menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
                             <i class="fa fa-bars"></i>
-                        </button>
+                        </label>
                         <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
                             <i class="fa fa-paint-brush"></i>
                         </button>
@@ -105,9 +135,6 @@
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="oranda-light">Oranda Light</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="oranda-dark">Oranda Dark</button></li>
-
                         </ul>
                         <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
@@ -146,120 +173,102 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="http-servers"><a class="header" href="#http-servers">Http servers</a></h2>
-<p>A smallweb app can be as simple as a single module, exporting a single function. This function will be called with the request object, and should return a response object.</p>
-<p>By default, smallweb will look for a module called <code>http.[js,ts,tsx,jsx]</code> in the root of the app.</p>
-<pre><code class="language-ts">// basic/http.ts
-export default function(req: Request): Response {
-    const url = new URL(req.url);
-    const name = url.searchParams.get(&quot;name&quot;) || &quot;world&quot;;
+                        <p>Every smallweb app is defined as a folder in the <code>~/www</code> directory. The folder name will be used as the subdomain of the website. Dependending on your configuration, the <code>~/www/demo</code> folder could be served at:</p>
+<ul>
+<li><code>https://demo.localhost</code></li>
+<li><code>https://demo.&lt;your-domain&gt;</code> (ex: <a href="https://demo.pomdtr.me">https://demo.pomdtr.me</a>)</li>
+<li><code>https://demo-&lt;your-username</code>.smallweb.run` if you are using the tunneling service</li>
+</ul>
+<p>Depending on the contend of the folder, the app can define:</p>
+<ul>
+<li>a static website</li>
+<li>an http server</li>
+<li>a cli command</li>
+<li>a combination of the above</li>
+</ul>
+<h2 id="creating-a-static-website"><a class="header" href="#creating-a-static-website">Creating a static website</a></h2>
+<p>If the folder contains a file called <code>index.html</code>, it will be served as the root of the website.</p>
+<p>Any other file in the folder will be served as a static file.</p>
+<p>Here is an example of a simple static website:</p>
+<pre><code class="language-html">&lt;!-- File: ~/www/demo/index.html --&gt;
+&lt;!DOCTYPE html&gt;
 
-    return new Response(`Hello, ${name}!`);
+My first &lt;strong&gt;Smallweb&lt;/strong&gt; website!
+</code></pre>
+<p>A lot of static websites are distributed as github repositories. You can easily clone a repository in the <code>~/www</code> folder to create a new website. For example, you can clone the <a href="https://github.com/nalgeon/sqlime">sqlime</a> repository to self-host your own sqlite playground:</p>
+<pre><code class="language-sh">git clone https://github.com/nalgeon/sqlime ~/www/sqlime
+</code></pre>
+<h2 id="hosting-an-http-server"><a class="header" href="#hosting-an-http-server">Hosting an HTTP server</a></h2>
+<p>Often, you will want to create a dynamic website. For this, you can create a file called <code>http.ts</code> in the folder. This file should export a default function that takes a <code>Request</code> object and returns a <code>Response</code> object.</p>
+<p>Here is an example of a simple HTTP server:</p>
+<pre><code class="language-ts">// File: ~/www/demo/http.ts
+
+export default function (request: Request) {
+  const url = new URL(request.url);
+  const name = url.searchParams.get("name") || "world";
+
+  return new Response(`Hello, ${name}!`, {
+    headers: {
+      "Content-Type": "text/plain",
+    },
+  });
 }
 </code></pre>
-<p>To run serve this app, you use the smallweb CLI:</p>
-<pre><code class="language-bash">smallweb basic tutorial
-</code></pre>
-<h2 id="remote-dependencies"><a class="header" href="#remote-dependencies">Remote Dependencies</a></h2>
-<p>To use a dependency from npm or jsr, just import it.</p>
-<pre><code class="language-ts">import { uppercase } from &quot;npm:lodash-es&quot;
+<p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
+<p>As an example, the following code snippet use the <code>@hono/hono</code> extract params from the request url, and render jsx:</p>
+<pre><code class="language-tsx">// File: ~/www/hono/http.tsx
+/** @jsxImportSource jsr:@hono/hono/jsx **/
 
-export default function(req: Request): Response {
-    const url = new URL(req.url);
-    const name = url.searchParams.get(&quot;name&quot;) || &quot;world&quot;;
-
-    return new Response(`Hello, ${uppercase(name)}!`);
-}
-
-</code></pre>
-<h2 id="advanced-routing"><a class="header" href="#advanced-routing">Advanced Routing</a></h2>
-<p>Of course, most apps will need more advanced routing. Smallweb integrates well with modern routing libraries like <a href="https://hono.dev">hono</a>.</p>
-<pre><code class="language-ts">import { Hono } from &quot;jsr:@hono/hono&quot;;
+import { Hono } from "@hono/hono";
 
 const app = new Hono();
 
-app.get(&quot;/&quot;, (c) =&gt; {
-    return c.json({ message: &quot;Hello, world!&quot; });
-});
+app.get("/", c =&gt; c.html(&lt;h1&gt;Hello, world!&lt;/h1&gt;));
 
-app.get(&quot;/:name&quot;, (c) =&gt; {
-    const { name } = c.param();
-    return c.json({ message: `Hello, ${name}!` });
-});
+app.get("/:name", c =&gt; c.html(&lt;h1&gt;Hello, {c.req.param("name")}!&lt;/h1&gt;));
 
 export default app.fetch;
 </code></pre>
-<p>No need to run a run an install command, deno will automatically fetch the dependencies when you run the app.</p>
-<p>Just use <code>smallweb serve hono</code> to start the server.</p>
-<h2 id="using-jsx"><a class="header" href="#using-jsx">Using JSX</a></h2>
-<p>Smallweb also supports JSX, which allows you to write HTML in your JavaScript files.</p>
-<pre><code class="language-jsx">// jsx/hello.tsx
+<p>No need to run an install command, or configure typescript. Just copy-paste the snippet at <code>~/www/hono/http.tsx</code>, and open the corresponding url in your browser.</p>
+<p>You are not limited to serving html responses. Smallweb is perfect for creating APIs, or small services (ex: discord/telegram bots, webhooks, etc)...</p>
+<h2 id="registering-a-cli-command"><a class="header" href="#registering-a-cli-command">Registering a CLI command</a></h2>
+<p>To add a cli command to your app, just create a file called <code>cli.[js,ts,jsx,tsx]</code> in the folder.</p>
+<p>Here is an example of a simple cli command:</p>
+<pre><code class="language-ts">// File: ~/www/demo/cli.ts
+import { parseArgs } from "jsr:@std/cli/parse-args";
 
-// this line defines which variant of JSX to use
-/** @jsxImportSource https://esm.sh/preact */
+const flags = parseArgs(Deno.args, {
+  string: ["name"],
+});
 
-import { render } from &quot;https://esm.sh/preact-render-to-string&quot;;
-
-export default function(req) {
-    const url = new URL(req.url);
-    const name = url.searchParams.get(&quot;name&quot;) || &quot;world&quot;;
-
-    return new Response(render(&lt;h1&gt;Hello, {name}!&lt;/h1&gt;), {
-        headers: { &quot;Content-Type&quot;: &quot;text/html&quot; },
-    });
-}
+console.log(`Hello, ${flags.name || "world"}!`);
 </code></pre>
-<h2 id="serving-static-files"><a class="header" href="#serving-static-files">Serving Static Files</a></h2>
-<p>If you only want to serve static files, you can omit the <code>http</code> module, and smallweb will serve the files in the root of the app (an <code>index.html</code> file need to be present, and will be served by default).</p>
-<pre><code class="language-console">$ tree ~/www/static-example
-~/www/static-example
-├── index.html
-└── style.css
-$ cat ~/www/static-example/index.html
-&lt;!DOCTYPE html&gt;
-&lt;link rel=&quot;stylesheet&quot; href=&quot;style.css&quot;&gt;
-&lt;h1&gt;Hello, world!&lt;/h1&gt;
+<p>To run the command, you can use the <code>smallweb run</code> command:</p>
+<pre><code class="language-sh">$ smallweb run demo --name smallweb
+Hello, smallweb!
 </code></pre>
-<pre><code class="language-bash">smallweb serve static-example
+<p>And if you want the command to be available globally, you can use the <code>smallweb install</code> command:</p>
+<pre><code class="language-sh">$ smallweb install demo
+$ demo --name smallweb
+Hello, smallweb!
 </code></pre>
-<h2 id="streaming-and-websockets"><a class="header" href="#streaming-and-websockets">Streaming and Websockets</a></h2>
-<p>Smallweb supports streaming responses, and websockets. You can use the <code>Response</code> class to create a streaming response, and the <code>WebSocket</code> class to create a websocket server.</p>
-<pre><code class="language-ts">export default function(): Response {
-  let timer: number | undefined = undefined;
-  const body = new ReadableStream({
-    start(controller) {
-      timer = setInterval(() =&gt; {
-        const message = `It is ${new Date().toISOString()}\n`;
-        controller.enqueue(new TextEncoder().encode(message));
-      }, 1000);
-    },
-    cancel() {
-      if (timer !== undefined) {
-        clearInterval(timer);
-      }
-    },
-  });
-  return new Response(body, {
+<p>Of course, you can define both an <code>http.ts</code> and a <code>cli.ts</code> file in the same folder.</p>
+<h2 id="setting-env-variables"><a class="header" href="#setting-env-variables">Setting env variables</a></h2>
+<p>You can set environment variables for your app by creating a file called <code>.env</code> in the folder.</p>
+<p>Here is an example of a <code>.env</code> file:</p>
+<pre><code class="language-env">NAME=world
+</code></pre>
+<p>You can access the environment variables in your app using the <code>Deno.env</code> object:</p>
+<pre><code class="language-ts">// File: ~/www/demo/http.ts
+export default function () {
+  const name = Deno.env.get("NAME") || "world";
+
+  return new Response(`Hello, ${name}!`, {
     headers: {
-      &quot;content-type&quot;: &quot;text/plain&quot;,
-      &quot;x-content-type-options&quot;: &quot;nosniff&quot;,
+      "Content-Type": "text/plain",
     },
   });
 }
-</code></pre>
-<h2 id="setting-up-environment-variables"><a class="header" href="#setting-up-environment-variables">Setting up environment variables</a></h2>
-<p>Smallweb supports environment variables, which can be set in the <code>.env</code> file in the root of the app.</p>
-<pre><code class="language-console">$ cat ~/www/env-example/.env
-PASSWORD=secret
-</code></pre>
-<h2 id="cli-commands"><a class="header" href="#cli-commands">Cli commands</a></h2>
-<p>If you create a <code>cli.[js,ts,tsx,jsx]</code> module in the root of your app, smallweb will treat it as a CLI command. When you run <code>smallweb run &lt;app&gt;</code>, smallweb will call the exported function with the arguments passed on the command line.</p>
-<pre><code class="language-ts">// hello/cli.ts
-const [name] = Deno.args;
-console.log(`Hello, ${name}!`);
-</code></pre>
-<pre><code class="language-console">$ smallweb run hello Alice
-Hello, Alice!
 </code></pre>
 
                     </main>
@@ -270,7 +279,7 @@ Hello, Alice!
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="localhost/localhost.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="localhost/localhost.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -284,7 +293,7 @@ Hello, Alice!
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="localhost/localhost.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="localhost/localhost.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

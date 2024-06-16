@@ -3,17 +3,13 @@
 
 :root {
     --sidebar-width: 300px;
+    --sidebar-resize-indicator-width: 8px;
+    --sidebar-resize-indicator-space: 2px;
     --page-padding: 15px;
     --content-max-width: 750px;
     --menu-bar-height: 50px;
-    
     --mono-font: "Source Code Pro", Consolas, "Ubuntu Mono", Menlo, "DejaVu Sans Mono", monospace, monospace;
     --code-font-size: 0.875em /* please adjust the ace font size accordingly in editor.js */
-
-    /* axomdbook mods to add some more knobs to themes */
-    --title-fg: var(--fg);
-    --subtitle-fg: var(--title-fg);
-    --main-font: "Open Sans", sans-serif;
 }
 
 /* Themes */
@@ -44,6 +40,8 @@
     --quote-bg: hsl(226, 15%, 17%);
     --quote-border: hsl(226, 15%, 22%);
 
+    --warning-border: #ff8e00;
+
     --table-border-color: hsl(210, 25%, 13%);
     --table-header-bg: hsl(210, 25%, 28%);
     --table-alternate-bg: hsl(210, 25%, 11%);
@@ -56,6 +54,8 @@
     --searchresults-border-color: #888;
     --searchresults-li-bg: #252932;
     --search-mark-bg: #e3b171;
+
+    --color-scheme: dark;
 }
 
 .coal {
@@ -84,6 +84,8 @@
     --quote-bg: hsl(234, 21%, 18%);
     --quote-border: hsl(234, 21%, 23%);
 
+    --warning-border: #ff8e00;
+
     --table-border-color: hsl(200, 7%, 13%);
     --table-header-bg: hsl(200, 7%, 28%);
     --table-alternate-bg: hsl(200, 7%, 11%);
@@ -96,6 +98,8 @@
     --searchresults-border-color: #98a3ad;
     --searchresults-li-bg: #2b2b2f;
     --search-mark-bg: #355c7d;
+
+    --color-scheme: dark;
 }
 
 .light {
@@ -124,6 +128,8 @@
     --quote-bg: hsl(197, 37%, 96%);
     --quote-border: hsl(197, 37%, 91%);
 
+    --warning-border: #ff8e00;
+
     --table-border-color: hsl(0, 0%, 95%);
     --table-header-bg: hsl(0, 0%, 80%);
     --table-alternate-bg: hsl(0, 0%, 97%);
@@ -136,6 +142,8 @@
     --searchresults-border-color: #888;
     --searchresults-li-bg: #e4f2fe;
     --search-mark-bg: #a2cff5;
+
+    --color-scheme: light;
 }
 
 .navy {
@@ -164,6 +172,8 @@
     --quote-bg: hsl(226, 15%, 17%);
     --quote-border: hsl(226, 15%, 22%);
 
+    --warning-border: #ff8e00;
+
     --table-border-color: hsl(226, 23%, 16%);
     --table-header-bg: hsl(226, 23%, 31%);
     --table-alternate-bg: hsl(226, 23%, 14%);
@@ -176,6 +186,8 @@
     --searchresults-border-color: #5c5c68;
     --searchresults-li-bg: #242430;
     --search-mark-bg: #a2cff5;
+
+    --color-scheme: dark;
 }
 
 .rust {
@@ -204,6 +216,8 @@
     --quote-bg: hsl(60, 5%, 75%);
     --quote-border: hsl(60, 5%, 70%);
 
+    --warning-border: #ff8e00;
+
     --table-border-color: hsl(60, 9%, 82%);
     --table-header-bg: #b3a497;
     --table-alternate-bg: hsl(60, 9%, 84%);
@@ -216,6 +230,8 @@
     --searchresults-border-color: #888;
     --searchresults-li-bg: #dec2a2;
     --search-mark-bg: #e69f67;
+
+    --color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -245,6 +261,8 @@
         --quote-bg: hsl(234, 21%, 18%);
         --quote-border: hsl(234, 21%, 23%);
 
+        --warning-border: #ff8e00;
+
         --table-border-color: hsl(200, 7%, 13%);
         --table-header-bg: hsl(200, 7%, 28%);
         --table-alternate-bg: hsl(200, 7%, 11%);
@@ -259,141 +277,3 @@
         --search-mark-bg: #355c7d;
     }
 }
-
-/* oranda theme gets injected here */
-.oranda-dark {
-    /*
-        This part is just defining constants that are consistent
-        between both oranda themes, which oranda-css should probably
-        be injecting into this file. For now, they're hardcoded.
-      */
-    --dark-color: #141414;
-    --light-color: #ffffff;
-    --link-color: #0284c7;
-    --light-highlight-bg-color: #ededed;
-    --light-highlight-fg-color: #595959;
-    --dark-highlight-bg-color: #595959;
-    --dark-highlight-fg-color: #ededed;
-    --font-face: "Fira Sans", sans-serif;
-
-    /*
-        Here we select which colors/fonts to use for this specific theme.
-        This first block calls a lot of the shots, most other definitions just
-        defer to these values.
-      */
-    --bg: var(--dark-color);
-    --fg: var(--light-color);
-    --well-bg: var(--dark-color);
-    --well-bg-highlight: var(--dark-color);
-    --title-fg: var(--light-color);
-    --subtitle-fg: var(--light-color);
-    --border-color: var(--dark-highlight-fg-color);
-    --main-font: var(--font-face);
-    --mono-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    Liberation Mono, Courier New, monospace;
-
-    --sidebar-bg: var(--bg);
-    --sidebar-fg: var(--fg);
-    --sidebar-non-existant: var(--bg);
-    --sidebar-active: var(--link-color);
-    --sidebar-spacer: var(--border-color);
-
-    --scrollbar: default;
-
-    --icons: var(--light-color);
-    --icons-hover: var(--light-color);
-
-    --links: var(--link-color);
-    --links-hover: var(--link-color);
-
-    --inline-code-color: var(--link-color);
-
-    --theme-popup-bg: var(--well-bg);
-    --theme-popup-border: var(--border-color);
-    --theme-hover: var(--well-bg-highlight);
-
-    --quote-bg: var(--bg);
-    --quote-border: var(--border-color);
-
-    --table-border-color: var(--border-color);
-    --table-header-bg: var(--well-bg-highlight);
-    --table-alternate-bg: var(--well-bg);
-
-    --searchbar-border-color: var(--border-color);
-    --searchbar-bg: var(--well-bg);
-    --searchbar-fg: var(--fg);
-    --searchbar-shadow-color: var(--border-color);
-    --searchresults-header-fg: var(--title-fg);
-    --searchresults-border-color: var(--border-color);
-    --searchresults-li-bg: var(--well-bg);
-    --search-mark-bg: var(--links);
-}
-
-.oranda-light {
-    /*
-        This part is just defining constants that are consistent
-        between both oranda themes, which fringe/oranda-css should probably
-        be injecting into this file. For now, they're hardcoded.
-      */
-    --dark-color: #141414;
-    --light-color: #ffffff;
-    --link-color: #0284c7;
-    --light-highlight-bg-color: #ededed;
-    --light-highlight-fg-color: #595959;
-    --dark-highlight-bg-color: #595959;
-    --dark-highlight-fg-color: #ededed;
-    --font-face: "Fira Sans", sans-serif;
-
-    /*
-        Here we select which colors/fonts to use for this specific theme.
-        This first block calls a lot of the shots, most other definitions just
-        defer to these values.
-      */
-    --bg: var(--light-color);
-    --fg: var(--dark-color);
-    --well-bg: var(--light-color);
-    --well-bg-highlight: var(--light-color);
-    --title-fg: var(--dark-color);
-    --subtitle-fg: var(--dark-color);
-    --border-color: var(--dark-color);
-    --main-font: var(--font-face);
-    --mono-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    Liberation Mono, Courier New, monospace;
-
-    --sidebar-bg: var(--bg);
-    --sidebar-fg: var(--fg);
-    --sidebar-non-existant: var(--bg);
-    --sidebar-active: var(--link-color);
-    --sidebar-spacer: var(--border-color);
-
-    --scrollbar: default;
-
-    --icons: var(--dark-color);
-    --icons-hover: var(--dark-color);
-
-    --links: var(--link-color);
-    --links-hover: var(--link-color);
-
-    --inline-code-color: var(--link-color);
-
-    --theme-popup-bg: var(--well-bg);
-    --theme-popup-border: var(--border-color);
-    --theme-hover: var(--well-bg-highlight);
-
-    --quote-bg: var(--bg);
-    --quote-border: var(--border-color);
-
-    --table-border-color: var(--border-color);
-    --table-header-bg: var(--well-bg-highlight);
-    --table-alternate-bg: var(--well-bg);
-
-    --searchbar-border-color: var(--border-color);
-    --searchbar-bg: var(--well-bg);
-    --searchbar-fg: var(--fg);
-    --searchbar-shadow-color: var(--border-color);
-    --searchresults-header-fg: var(--title-fg);
-    --searchresults-border-color: var(--border-color);
-    --searchresults-li-bg: var(--well-bg);
-    --search-mark-bg: var(--links);
-}
-
