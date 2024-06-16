@@ -1,156 +1,136 @@
-## Http servers
+Every smallweb app is defined as a folder in the `~/www` directory. The folder name will be used as the subdomain of the website. Dependending on your configuration, the `~/www/demo` folder could be served at:
 
-A smallweb app can be as simple as a single module, exporting a single function. This function will be called with the request object, and should return a response object.
+- `https://demo.localhost`
+- `https://demo.<your-domain>` (ex: <https://demo.pomdtr.me>)
+- `https://demo-<your-username`.smallweb.run` if you are using the tunneling service
 
-By default, smallweb will look for a module called `http.[js,ts,tsx,jsx]` in the root of the app.
+Depending on the contend of the folder, the app can define:
+
+- a static website
+- an http server
+- a cli command
+- a combination of the above
+
+## Creating a static website
+
+If the folder contains a file called `index.html`, it will be served as the root of the website.
+
+Any other file in the folder will be served as a static file.
+
+Here is an example of a simple static website:
+
+```html
+<!-- File: ~/www/demo/index.html -->
+<!DOCTYPE html>
+
+My first <strong>Smallweb</strong> website!
+```
+
+A lot of static websites are distributed as github repositories. You can easily clone a repository in the `~/www` folder to create a new website. For example, you can clone the [sqlime](https://github.com/nalgeon/sqlime) repository to self-host your own sqlite playground:
+
+```sh
+git clone https://github.com/nalgeon/sqlime ~/www/sqlime
+```
+
+## Hosting an HTTP server
+
+Often, you will want to create a dynamic website. For this, you can create a file called `http.ts` in the folder. This file should export a default function that takes a `Request` object and returns a `Response` object.
+
+Here is an example of a simple HTTP server:
 
 ```ts
-// basic/http.ts
-export default function(req: Request): Response {
-    const url = new URL(req.url);
-    const name = url.searchParams.get("name") || "world";
+// File: ~/www/demo/http.ts
 
-    return new Response(`Hello, ${name}!`);
+export default function (request: Request) {
+  const url = new URL(request.url);
+  const name = url.searchParams.get("name") || "world";
+
+  return new Response(`Hello, ${name}!`, {
+    headers: {
+      "Content-Type": "text/plain",
+    },
+  });
 }
 ```
 
-To run serve this app, you use the smallweb CLI:
+Smallweb use the [deno](https://deno.com) runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with `npm:` or `jsr:`.
 
-```bash
-smallweb basic tutorial
-```
+As an example, the following code snippet use the `@hono/hono` extract params from the request url, and render jsx:
 
-## Remote Dependencies
+```tsx
+// File: ~/www/hono/http.tsx
+/** @jsxImportSource jsr:@hono/hono/jsx **/
 
-To use a dependency from npm or jsr, just import it.
-
-```ts
-import { uppercase } from "npm:lodash-es"
-
-export default function(req: Request): Response {
-    const url = new URL(req.url);
-    const name = url.searchParams.get("name") || "world";
-
-    return new Response(`Hello, ${uppercase(name)}!`);
-}
-
-```
-
-## Advanced Routing
-
-Of course, most apps will need more advanced routing. Smallweb integrates well with modern routing libraries like [hono](https://hono.dev).
-
-```ts
-import { Hono } from "jsr:@hono/hono";
+import { Hono } from "@hono/hono";
 
 const app = new Hono();
 
-app.get("/", (c) => {
-    return c.json({ message: "Hello, world!" });
-});
+app.get("/", c => c.html(<h1>Hello, world!</h1>));
 
-app.get("/:name", (c) => {
-    const { name } = c.param();
-    return c.json({ message: `Hello, ${name}!` });
-});
+app.get("/:name", c => c.html(<h1>Hello, {c.req.param("name")}!</h1>));
 
 export default app.fetch;
 ```
 
-No need to run a run an install command, deno will automatically fetch the dependencies when you run the app.
+No need to run an install command, or configure typescript. Just copy-paste the snippet at `~/www/hono/http.tsx`, and open the corresponding url in your browser.
 
-Just use `smallweb serve hono` to start the server.
+You are not limited to serving html responses. Smallweb is perfect for creating APIs, or small services (ex: discord/telegram bots, webhooks, etc)...
 
-## Using JSX
+## Registering a CLI command
 
-Smallweb also supports JSX, which allows you to write HTML in your JavaScript files.
+To add a cli command to your app, just create a file called `cli.[js,ts,jsx,tsx]` in the folder.
 
-```jsx
-// jsx/hello.tsx
-
-// this line defines which variant of JSX to use
-/** @jsxImportSource https://esm.sh/preact */
-
-import { render } from "https://esm.sh/preact-render-to-string";
-
-export default function(req) {
-    const url = new URL(req.url);
-    const name = url.searchParams.get("name") || "world";
-
-    return new Response(render(<h1>Hello, {name}!</h1>), {
-        headers: { "Content-Type": "text/html" },
-    });
-}
-```
-
-## Serving Static Files
-
-If you only want to serve static files, you can omit the `http` module, and smallweb will serve the files in the root of the app (an `index.html` file need to be present, and will be served by default).
-
-```console
-$ tree ~/www/static-example
-~/www/static-example
-├── index.html
-└── style.css
-$ cat ~/www/static-example/index.html
-<!DOCTYPE html>
-<link rel="stylesheet" href="style.css">
-<h1>Hello, world!</h1>
-```
-
-```bash
-smallweb serve static-example
-```
-
-## Streaming and Websockets
-
-Smallweb supports streaming responses, and websockets. You can use the `Response` class to create a streaming response, and the `WebSocket` class to create a websocket server.
+Here is an example of a simple cli command:
 
 ```ts
-export default function(): Response {
-  let timer: number | undefined = undefined;
-  const body = new ReadableStream({
-    start(controller) {
-      timer = setInterval(() => {
-        const message = `It is ${new Date().toISOString()}\n`;
-        controller.enqueue(new TextEncoder().encode(message));
-      }, 1000);
-    },
-    cancel() {
-      if (timer !== undefined) {
-        clearInterval(timer);
-      }
-    },
-  });
-  return new Response(body, {
+// File: ~/www/demo/cli.ts
+import { parseArgs } from "jsr:@std/cli/parse-args";
+
+const flags = parseArgs(Deno.args, {
+  string: ["name"],
+});
+
+console.log(`Hello, ${flags.name || "world"}!`);
+```
+
+To run the command, you can use the `smallweb run` command:
+
+```sh
+$ smallweb run demo --name smallweb
+Hello, smallweb!
+```
+
+And if you want the command to be available globally, you can use the `smallweb install` command:
+
+```sh
+$ smallweb install demo
+$ demo --name smallweb
+Hello, smallweb!
+```
+
+Of course, you can define both an `http.ts` and a `cli.ts` file in the same folder.
+
+## Setting env variables
+
+You can set environment variables for your app by creating a file called `.env` in the folder.
+
+Here is an example of a `.env` file:
+
+```env
+NAME=world
+```
+
+You can access the environment variables in your app using the `Deno.env` object:
+
+```ts
+// File: ~/www/demo/http.ts
+export default function () {
+  const name = Deno.env.get("NAME") || "world";
+
+  return new Response(`Hello, ${name}!`, {
     headers: {
-      "content-type": "text/plain",
-      "x-content-type-options": "nosniff",
+      "Content-Type": "text/plain",
     },
   });
 }
-```
-
-## Setting up environment variables
-
-Smallweb supports environment variables, which can be set in the `.env` file in the root of the app.
-
-```console
-$ cat ~/www/env-example/.env
-PASSWORD=secret
-```
-
-## Cli commands
-
-If you create a `cli.[js,ts,tsx,jsx]` module in the root of your app, smallweb will treat it as a CLI command. When you run `smallweb run <app>`, smallweb will call the exported function with the arguments passed on the command line.
-
-```ts
-// hello/cli.ts
-const [name] = Deno.args;
-console.log(`Hello, ${name}!`);
-```
-
-```console
-$ smallweb run hello Alice
-Hello, Alice!
 ```

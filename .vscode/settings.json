@@ -2,6 +2,5 @@
     "deno.enable": true,
     "search.exclude": {
         "docs/book": true,
-        "public": true,
     }
 }

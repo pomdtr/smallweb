@@ -10,25 +10,22 @@ go install github.com/pomdtr/smallweb@latest
 
 or download the latest release from the [releases page](https://github.com/pomdtr/smallweb/releases).
 
-## Initializing the `www` folder
+## Your first smallweb apps
 
-```bash
-smallweb init
-```
+Smallweb maps each folder in `~/www` to a new app. Feel free to clone one of the following repositories to get started:
 
-This will create a new folder in your home directory called `www`, and a few examples websites in it to get you started.
+TODO: Add a list of smallweb apps
 
-## Serving the websites
+You can find new smallweb apps by searching for the `smallweb-app` topic on github.
 
-There are a few options to host the websites:
+Once you have cloned a few of them, you can publish them using the free tunneling service.
 
-- [Setup a local environment](./localhost/localhost.md)
-- [With Cloudflare Tunnel](./cloudflare/tunnel.md)
+First, create an account with the `smallweb auth signup` command. Then, run `smallweb tunnel` to expose your websites to the internet. Each of your apps will be available at `https://<app-name>-<user-name>.smallweb.run`: Every request will be routed to your local device, and handled by the smallweb evaluation server.
 
-But the simplest way to get started is to use the tunneling service provided by smallweb:
+## Hosting your own smallweb server
 
-1. Create a smallweb account by running `smallweb auth login`
+The tunneling service is not meant for production use. As such, you are encouraged to host your own smallweb server.
 
-2. Start a new tunnel with `smallweb tunnel`
+If you want your apps to be available on the internet, you'll need to buy a domain name, and point it to your server. You can find more information on how to do this in the [documentation](./cloudflare/tunnel.md).
 
-You can access a dashboard listing all your apps at `https://<username>.smallweb.run`, and all your websites will be served from `https://<app>-<username>.smallweb.run`.
+If you prefer your to keep your apps local to your device, you can learn how to host your apps as `https://<app>.localhost` address in [this guide](./localhost/localhost.md). This option does not requires a domain name (or a server), but your app will only be available on your local device.

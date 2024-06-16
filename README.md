@@ -4,17 +4,18 @@ Smallweb is a lightweight web server based on [Deno](https://deno.com). It is in
 
 ## A self-hosted serveless platform
 
-Smallweb maps each folder in `~/www` to a subdomain: `~/www/example` will be mapped `https://example.localhost` on your local device, and `https://example.<your-domain>` on your homelab / VPS.
+Smallweb maps each folder in `~/www` folder to an unique domain. Ex: `~/www/example` will be mapped to:
 
-Each http request is sandboxed in a single deno subprocess by the smallweb evaluation server. If there is no activity on your website, no resources will be used on your server, making it a great solution for low-traffic websites.
+- `https://example.localhost` on your local device
+- `https://example.<your-domain>` on your homelab / VPS
 
-Creating a new website becomes as simple a creating a folder and opening the corresponding url. And since servers are mapped to text files, you can manage them using standard unix tools like `cp`, `mv` or `rm`.
+Creating a new website becomes as simple a creating a folder and opening the corresponding url in your browser. No need to configure a build step, or start a development server. And since servers are mapped to folders, you can manage them using standard unix tools like `cp`, `mv` or `rm`.
+
+Since each http request is sandboxed in a single deno subprocess by the smallweb evaluation server. If there is no activity on your website, no resources will be used on your server, making it a great solution for low-traffic websites.
 
 ## Installation
 
 All the instructions are written in the [getting started guide](https://pomdtr.github.io/smallweb/book).
-
-Smallweb comes with an (optional) tunneling service, which allows you to quickly expose your websites to the internet without the need to configure your router or buy a domain name. But you are encouraged to use your own domain name and server, as the tunneling service is not meant for production use.
 
 ## Demo
 
