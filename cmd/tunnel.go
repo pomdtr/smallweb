@@ -17,6 +17,7 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/keygen"
+	"github.com/gorilla/handlers"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pomdtr/smallweb/client"
 	"github.com/pomdtr/smallweb/proxy"
@@ -155,12 +156,13 @@ func NewCmdTunnel() *cobra.Command {
 					}
 
 					worker, err := client.NewWorker(app)
+					handler := handlers.LoggingHandler(os.Stderr, worker)
 					if err != nil {
 						rw.WriteHeader(http.StatusInternalServerError)
 						return
 					}
 
-					worker.ServeHTTP(rw, r)
+					handler.ServeHTTP(rw, r)
 				}),
 			}
 

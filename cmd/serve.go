@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gorilla/handlers"
 	"github.com/pomdtr/smallweb/client"
 	"github.com/spf13/cobra"
 )
@@ -39,9 +40,10 @@ func NewCmdServe() *cobra.Command {
 					return fmt.Errorf("failed to create client: %v", err)
 				}
 
+				handler := handlers.LoggingHandler(os.Stderr, worker)
 				server := http.Server{
 					Addr:    fmt.Sprintf(":%d", port),
-					Handler: worker,
+					Handler: handler,
 				}
 
 				fmt.Fprintln(os.Stderr, "Listening on", server.Addr)
@@ -65,7 +67,8 @@ func NewCmdServe() *cobra.Command {
 						return
 					}
 
-					worker.ServeHTTP(w, r)
+					handler := handlers.LoggingHandler(os.Stderr, worker)
+					handler.ServeHTTP(w, r)
 				}),
 			}
 
