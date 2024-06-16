@@ -25,41 +25,43 @@ The following snippet is stored at `~/www/demo/main.ts` on my raspberrypi 400, a
 /** @jsxImportSource npm:preact */
 import { render } from "npm:preact-render-to-string";
 
-export default function () {
-  return new Response(
-    render(
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8" />
-          <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0"
-          />
-          <title>Smallweb - Host websites from your internet folder</title>
-          <link
-            href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
-            rel="stylesheet"
-          />
-        </head>
-        <body class="bg-white flex items-center justify-center min-h-screen text-black">
-          <div class="border-4 border-black p-10 text-center">
-            <h1 class="text-6xl font-extrabold mb-4">Smallweb</h1>
-            <p class="text-2xl mb-6">Host websites from your internet folder</p>
-            <a
-              href="https://github.com/pomdtr/smallweb"
-              class="px-8 py-3 bg-black text-white font-bold border-4 border-black hover:bg-white hover:text-black transition duration-300"
-            >
-              Get Started
-            </a>
-          </div>
-        </body>
-      </html>,
-    ),
-    {
-      headers: {
-        "Content-Type": "text/html",
+export default {
+  fetch() {
+    return new Response(
+      render(
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1.0"
+            />
+            <title>Smallweb - Host websites from your internet folder</title>
+            <link
+              href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
+              rel="stylesheet"
+            />
+          </head>
+          <body class="bg-white flex items-center justify-center min-h-screen text-black">
+            <div class="border-4 border-black p-10 text-center">
+              <h1 class="text-6xl font-extrabold mb-4">Smallweb</h1>
+              <p class="text-2xl mb-6">Host websites from your internet folder</p>
+              <a
+                href="https://github.com/pomdtr/smallweb"
+                class="px-8 py-3 bg-black text-white font-bold border-4 border-black hover:bg-white hover:text-black transition duration-300"
+              >
+                Get Started
+              </a>
+            </div>
+          </body>
+        </html>,
+      ),
+      {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+        },
       },
-    },
-  );
+    );
+  }
 }
 ```
