@@ -33,7 +33,7 @@ func NewCmdLog() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app := args[0]
-			logFile := path.Join(client.LogsHome, app)
+			logFile := path.Join(client.SmallwebDir, "logs", app+".log")
 			f, err := os.Open(logFile)
 			if err != nil {
 				if os.IsNotExist(err) {

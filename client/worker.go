@@ -21,11 +21,12 @@ import (
 )
 
 var EXTENSIONS = []string{".js", ".ts", ".jsx", ".tsx"}
+var SMALLWEB_ROOT string
+var SmallwebDir string
+
 var dataHome = path.Join(xdg.DataHome, "smallweb")
 var cacheHome = path.Join(xdg.CacheHome, "smallweb")
-var LogsHome = path.Join(cacheHome, "logs")
 var sandboxPath = path.Join(dataHome, "sandbox.ts")
-var SMALLWEB_ROOT string
 
 //go:embed deno/sandbox.ts
 var sandboxBytes []byte
@@ -48,7 +49,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	if err := os.MkdirAll(LogsHome, 0755); err != nil {
+	if err := os.MkdirAll(cacheHome, 0755); err != nil {
 		log.Fatal(err)
 	}
 
@@ -62,8 +63,14 @@ func init() {
 	} else if home, err := os.UserHomeDir(); err == nil {
 		SMALLWEB_ROOT = path.Join(home, "www")
 	} else {
-		SMALLWEB_ROOT = "/www"
+		log.Fatal(fmt.Errorf("could not determine smallweb root, please set SMALLWEB_ROOT"))
 	}
+
+	SmallwebDir = path.Join(SMALLWEB_ROOT, ".smallweb")
+	if err := os.MkdirAll(filepath.Join(SmallwebDir, "logs"), 0755); err != nil {
+		log.Fatalf("could not create logs directory: %v", err)
+	}
+
 }
 
 func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
@@ -191,7 +198,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logFile, err := os.OpenFile(filepath.Join(cacheHome, "logs", me.alias), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logFile, err := os.OpenFile(filepath.Join(SmallwebDir, "logs", me.alias+".log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

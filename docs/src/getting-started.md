@@ -12,15 +12,25 @@ or download the latest release from the [releases page](https://github.com/pomdt
 
 ## Your first smallweb apps
 
-Smallweb maps each folder in `~/www` to a new app. Feel free to clone one of the following repositories to get started:
+Smallweb maps each folder in `~/www` to a new app. You can find new smallweb apps by searching for the `smallweb-app` topic on github. You can start by cloning one of these repositories in the `~/www` folder.
 
-TODO: Add a list of smallweb apps
+- [Simple Landing Page](https://github.com/pomdtr/smallweb-landing-example)
 
-You can find new smallweb apps by searching for the `smallweb-app` topic on github.
+    ```sh
+    git clone https://github.com/pomdtr/smallweb-landing-example ~/www/landing
+    ```
 
-Once you have cloned a few of them, you can publish them using the free tunneling service.
+- [Blog using hono](https://github.com/pomdtr/smallweb-blog-example)
 
-First, create an account with the `smallweb auth signup` command. Then, run `smallweb tunnel` to expose your websites to the internet. Each of your apps will be available at `https://<app-name>-<user-name>.smallweb.run`: Every request will be routed to your local device, and handled by the smallweb evaluation server.
+    ```sh
+    git clone https://github.com/pomdtr/smallweb-blog-example ~/www/blog
+    ```
+
+Once you have cloned a few of them, you can publish them using the free tunneling service:
+
+1. First, create an account with the `smallweb auth signup` command.
+2. Then, run `smallweb tunnel` to expose your websites to the internet.
+3. Open the an app in your browser by visiting `https://<app>.<your-username>.smallweb.run`.
 
 ## Hosting your own smallweb server
 
