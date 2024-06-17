@@ -17,7 +17,6 @@ func NewCmdRoot() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdInstall())
-	cmd.AddCommand(NewCmdLog())
 	cmd.AddCommand(NewCmdServe())
 	cmd.AddCommand(NewCmdTunnel())
 	cmd.AddCommand(NewCmdAuth())

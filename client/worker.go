@@ -66,11 +66,6 @@ func init() {
 		log.Fatal(fmt.Errorf("could not determine smallweb root, please set SMALLWEB_ROOT"))
 	}
 
-	SmallwebDir = path.Join(SMALLWEB_ROOT, ".smallweb")
-	if err := os.MkdirAll(filepath.Join(SmallwebDir, "logs"), 0755); err != nil {
-		log.Fatalf("could not create logs directory: %v", err)
-	}
-
 }
 
 func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
@@ -178,12 +173,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
+	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -198,24 +188,10 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logFile, err := os.OpenFile(filepath.Join(SmallwebDir, "logs", me.alias+".log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer logFile.Close()
-
 	go func() {
 		for scanner.Scan() {
-			logFile.WriteString(scanner.Text() + "\n")
-			if err := scanner.Err(); err != nil {
-				break
-			}
+			os.Stdout.WriteString(scanner.Text() + "\n")
 		}
-	}()
-
-	go func() {
-		io.Copy(logFile, stderr)
 	}()
 
 	// handle websockets
