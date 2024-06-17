@@ -34,22 +34,24 @@ git clone https://github.com/nalgeon/sqlime ~/www/sqlime
 
 ## Hosting an HTTP server
 
-Often, you will want to create a dynamic website. For this, you can create a file called `main.[js,ts,jsx,tsx]` in the folder. This file should export a default function that takes a `Request` object and returns a `Response` object.
+Often, you will want to create a dynamic website. For this, you can create a file called `main.[js,ts,jsx,tsx]` in the folder. This file should export a default object with a `fetch` method that takes a `Request` object as argument, and returns a `Response` object.
 
 Here is an example of a simple HTTP server:
 
 ```ts
 // File: ~/www/demo/main.ts
 
-export default function (request: Request) {
-  const url = new URL(request.url);
-  const name = url.searchParams.get("name") || "world";
+export default {
+  fetch(request: Request) {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name") || "world";
 
-  return new Response(`Hello, ${name}!`, {
-    headers: {
-      "Content-Type": "text/plain",
-    },
-  });
+    return new Response(`Hello, ${name}!`, {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  },
 }
 ```
 
@@ -69,7 +71,7 @@ app.get("/", c => c.html(<h1>Hello, world!</h1>));
 
 app.get("/:name", c => c.html(<h1>Hello, {c.req.param("name")}!</h1>));
 
-export default app.fetch;
+export default app;
 ```
 
 No need to run an install command, or configure typescript. Just copy-paste the snippet at `~/www/hono/main.tsx`, and open the corresponding url in your browser.
