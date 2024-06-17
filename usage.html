@@ -205,19 +205,21 @@ My first &lt;strong&gt;Smallweb&lt;/strong&gt; website!
 <pre><code class="language-sh">git clone https://github.com/nalgeon/sqlime ~/www/sqlime
 </code></pre>
 <h2 id="hosting-an-http-server"><a class="header" href="#hosting-an-http-server">Hosting an HTTP server</a></h2>
-<p>Often, you will want to create a dynamic website. For this, you can create a file called <code>main.[js,ts,jsx,tsx]</code> in the folder. This file should export a default function that takes a <code>Request</code> object and returns a <code>Response</code> object.</p>
+<p>Often, you will want to create a dynamic website. For this, you can create a file called <code>main.[js,ts,jsx,tsx]</code> in the folder. This file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
 <p>Here is an example of a simple HTTP server:</p>
 <pre><code class="language-ts">// File: ~/www/demo/main.ts
 
-export default function (request: Request) {
-  const url = new URL(request.url);
-  const name = url.searchParams.get("name") || "world";
+export default {
+  fetch(request: Request) {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name") || "world";
 
-  return new Response(`Hello, ${name}!`, {
-    headers: {
-      "Content-Type": "text/plain",
-    },
-  });
+    return new Response(`Hello, ${name}!`, {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  },
 }
 </code></pre>
 <p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
@@ -233,7 +235,7 @@ app.get("/", c =&gt; c.html(&lt;h1&gt;Hello, world!&lt;/h1&gt;));
 
 app.get("/:name", c =&gt; c.html(&lt;h1&gt;Hello, {c.req.param("name")}!&lt;/h1&gt;));
 
-export default app.fetch;
+export default app;
 </code></pre>
 <p>No need to run an install command, or configure typescript. Just copy-paste the snippet at <code>~/www/hono/main.tsx</code>, and open the corresponding url in your browser.</p>
 <p>You are not limited to serving html responses. Smallweb is perfect for creating APIs, or small services (ex: discord/telegram bots, webhooks, etc)...</p>
