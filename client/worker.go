@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
@@ -239,24 +241,41 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", freeport, r.URL.String()), r.Body)
+	var protocol string
+	if r.TLS == nil {
+		protocol = "http"
+	} else {
+		protocol = "https"
+	}
+
+	request, err := http.NewRequest(r.Method, fmt.Sprintf("%s://%s%s", protocol, r.Host, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	for k, v := range r.Header {
 		for _, vv := range v {
 			request.Header.Add(k, vv)
 		}
 	}
 
-	resp, err := http.DefaultClient.Do(request)
+	tr := &http.Transport{
+		Dial: func(network, addr string) (net.Conn, error) {
+			return net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", freeport))
+		},
+	}
+	client := http.Client{Transport: tr}
+
+	start := time.Now()
+	resp, err := client.Do(request)
+	duration := time.Since(start)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
+
+	fmt.Fprintf(os.Stderr, "%s %s %d %dms\n", request.Method, request.URL.String(), resp.StatusCode, duration.Milliseconds())
 
 	for k, v := range resp.Header {
 		for _, vv := range v {

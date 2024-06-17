@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gorilla/handlers"
 	"github.com/pomdtr/smallweb/client"
 	"github.com/spf13/cobra"
 )
@@ -33,13 +32,12 @@ func NewCmdServe() *cobra.Command {
 						app = parts[0]
 					}
 
-					worker, err := client.NewWorker(app)
+					handler, err := client.NewWorker(app)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
 					}
 
-					handler := handlers.LoggingHandler(os.Stderr, worker)
 					handler.ServeHTTP(w, r)
 				}),
 			}
