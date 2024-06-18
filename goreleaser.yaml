@@ -33,7 +33,7 @@ brews:
   - name: smallweb
     homepage: https://pomdtr.github.io/smallweb
     service: |
-      run [ opt_bin/"smallweb", "serve", "--port=7777" ]
+      run [ opt_bin/"smallweb", "serve" ]
       keep_alive true
       working_dir HOMEBREW_PREFIX
       log_path var/"log/smallweb.log"

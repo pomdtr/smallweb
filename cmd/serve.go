@@ -46,6 +46,6 @@ func NewCmdServe() *cobra.Command {
 			return server.ListenAndServe()
 		},
 	}
-	cmd.Flags().IntP("port", "p", 8000, "Port to listen on")
+	cmd.Flags().IntP("port", "p", 7777, "Port to listen on")
 	return cmd
 }
