@@ -3,6 +3,7 @@ package client
 import (
 	"bufio"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -20,7 +21,192 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/pomdtr/smallweb/proxy"
+	"github.com/tailscale/hujson"
 )
+
+type Config struct {
+	Permissions Permissions `json:"permissions"`
+}
+
+type Permissions struct {
+	All   bool       `json:"all"`
+	Read  Permission `json:"read"`
+	Write Permission `json:"write"`
+	Net   Permission `json:"net"`
+	Env   Permission `json:"env"`
+	Run   Permission `json:"run"`
+	Sys   Permission `json:"sys"`
+	Ffi   Permission `json:"ffi"`
+}
+
+type Permission struct {
+	All   bool     `json:"all"`
+	Allow []string `json:"allow"`
+	Deny  []string `json:"deny"`
+}
+
+func (p *Permission) UnmarshalJSON(data []byte) error {
+	var all bool
+	if err := json.Unmarshal(data, &all); err == nil {
+		p.All = all
+		return nil
+	}
+
+	var allow []string
+	if err := json.Unmarshal(data, &allow); err == nil {
+		p.Allow = allow
+		return nil
+	}
+
+	if err := json.Unmarshal(data, &p.Allow); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var defaultPermissions = Permissions{
+	Read: Permission{
+		Allow: []string{"."}, // allow to read from current directory
+	},
+	Write: Permission{
+		Allow: []string{"."},           // allow to write to current directory
+		Deny:  []string{"./deno.json"}, // deny writing to deno.json, which is used to store permissions
+	},
+	Net: Permission{
+		All: true,
+	},
+	Env: Permission{
+		All: true,
+	},
+}
+
+func (p *Permissions) Flags(rootDir string) []string {
+	if p.All {
+		return []string{"--allow-all"}
+	}
+
+	flags := []string{}
+
+	if p.Read.All {
+		flags = append(flags, "--allow-read")
+	} else {
+		if len(p.Read.Allow) > 0 {
+			var allow []string
+			for _, path := range p.Read.Allow {
+				if filepath.IsAbs(path) {
+					allow = append(allow, path)
+					continue
+				}
+
+				allow = append(allow, filepath.Join(rootDir, path))
+			}
+
+			flags = append(flags, "--allow-read="+strings.Join(allow, ","))
+		}
+		if len(p.Read.Deny) > 0 {
+			var deny []string
+			for _, path := range p.Read.Deny {
+				if filepath.IsAbs(path) {
+					deny = append(deny, path)
+					continue
+				}
+
+				deny = append(deny, filepath.Join(rootDir, path))
+			}
+
+			flags = append(flags, "--deny-read="+strings.Join(deny, ","))
+		}
+	}
+
+	if p.Write.All {
+		flags = append(flags, "--allow-write")
+	} else {
+		if len(p.Write.Allow) > 0 {
+			var allow []string
+			for _, path := range p.Write.Allow {
+				if filepath.IsAbs(path) {
+					allow = append(allow, path)
+					continue
+				}
+
+				allow = append(allow, filepath.Join(rootDir, path))
+			}
+
+			flags = append(flags, "--allow-write="+strings.Join(allow, ","))
+		}
+		if len(p.Write.Deny) > 0 {
+			var deny []string
+			for _, path := range p.Write.Deny {
+				if filepath.IsAbs(path) {
+					deny = append(deny, path)
+					continue
+				}
+
+				deny = append(deny, filepath.Join(rootDir, path))
+			}
+
+			flags = append(flags, "--deny-write="+strings.Join(deny, ","))
+		}
+	}
+
+	if p.Net.All {
+		flags = append(flags, "--allow-net")
+	} else {
+		if len(p.Net.Allow) > 0 {
+			flags = append(flags, "--allow-net="+strings.Join(p.Net.Allow, ","))
+		}
+		if len(p.Net.Deny) > 0 {
+			flags = append(flags, "--deny-net="+strings.Join(p.Net.Deny, ","))
+		}
+	}
+
+	if p.Env.All {
+		flags = append(flags, "--allow-env")
+	} else {
+		if len(p.Env.Allow) > 0 {
+			flags = append(flags, "--allow-env="+strings.Join(p.Env.Allow, ","))
+		}
+		if len(p.Env.Deny) > 0 {
+			flags = append(flags, "--deny-env="+strings.Join(p.Env.Deny, ","))
+		}
+	}
+
+	if p.Run.All {
+		flags = append(flags, "--allow-run")
+	} else {
+		if len(p.Run.Allow) > 0 {
+			flags = append(flags, "--allow-run="+strings.Join(p.Run.Allow, ","))
+		}
+		if len(p.Run.Deny) > 0 {
+			flags = append(flags, "--deny-run="+strings.Join(p.Run.Deny, ","))
+		}
+	}
+
+	if p.Sys.All {
+		flags = append(flags, "--allow-sys")
+	} else {
+		if len(p.Sys.Allow) > 0 {
+			flags = append(flags, "--allow-sys="+strings.Join(p.Sys.Allow, ","))
+		}
+		if len(p.Sys.Deny) > 0 {
+			flags = append(flags, "--deny-sys="+strings.Join(p.Sys.Deny, ","))
+		}
+	}
+
+	if p.Ffi.All {
+		flags = append(flags, "--allow-ffi")
+	} else {
+		if len(p.Ffi.Allow) > 0 {
+			flags = append(flags, "--allow-ffi="+strings.Join(p.Ffi.Allow, ","))
+		}
+		if len(p.Ffi.Deny) > 0 {
+			flags = append(flags, "--deny-ffi="+strings.Join(p.Ffi.Deny, ","))
+		}
+	}
+
+	return flags
+}
 
 var EXTENSIONS = []string{".js", ".ts", ".jsx", ".tsx"}
 var SMALLWEB_ROOT string
@@ -130,6 +316,47 @@ func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
 
 var upgrader = websocket.Upgrader{} // use default options
 
+func (me *Worker) LoadPermission() (*Permissions, error) {
+	var configBytes []byte
+	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.json"); exists(configPath) {
+		b, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not read deno.json: %v", err)
+		}
+		configBytes = b
+	} else if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.jsonc"); exists(configPath) {
+		rawBytes, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not read deno.json: %v", err)
+		}
+
+		standardBytes, err := hujson.Standardize(rawBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not standardize deno.jsonc: %v", err)
+		}
+
+		configBytes = standardBytes
+	} else {
+		return &defaultPermissions, nil
+	}
+
+	var DenoConfig map[string]json.RawMessage
+	if err := json.Unmarshal(configBytes, &DenoConfig); err != nil {
+		return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+	}
+
+	if _, ok := DenoConfig["smallweb"]; !ok {
+		return &defaultPermissions, nil
+	}
+
+	var config Config
+	if err := json.Unmarshal(DenoConfig["smallweb"], &config); err != nil {
+		return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+	}
+
+	return &config.Permissions, nil
+}
+
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if me.entrypoints.Http == "" {
 		http.NotFound(w, r)
@@ -149,7 +376,16 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd, err := me.Cmd("run", "--allow-env", "--allow-net", "--allow-read=.", "--allow-write=.", "--deny-write=./deno.json", sandboxPath, "--entrypoint", me.entrypoints.Http, "--port", strconv.Itoa(freeport))
+	permissions, err := me.LoadPermission()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	args := []string{"run"}
+	args = append(args, permissions.Flags(rootDir)...)
+	args = append(args, sandboxPath, "--entrypoint", me.entrypoints.Http, "--port", strconv.Itoa(freeport))
+	cmd, err := me.Cmd(args...)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

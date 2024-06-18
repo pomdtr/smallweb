@@ -75,7 +75,6 @@
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "serve",
-                "websockets"
             ]
         },
         {

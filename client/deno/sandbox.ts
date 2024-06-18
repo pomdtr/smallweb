@@ -11,6 +11,18 @@ if (!port || !entrypoint) {
   Deno.exit(1);
 }
 
+const mod = await import(entrypoint);
+if (!mod.default || typeof mod.default !== "object") {
+  console.error("Mod does not have a default export");
+  Deno.exit(1);
+}
+
+const handler = mod.default;
+if (!("fetch" in handler) || typeof handler.fetch !== "function") {
+  console.error("Mod has no fetch function");
+  Deno.exit(1);
+}
+
 const server = Deno.serve(
   {
     port: parseInt(port),
@@ -24,16 +36,6 @@ const server = Deno.serve(
     queueMicrotask(async () => {
       await server.shutdown();
     });
-
-    const mod = await import(entrypoint);
-    if (!mod.default || typeof mod.default !== "object") {
-      return new Response("Mod has no default export", { status: 500 });
-    }
-
-    const handler = mod.default;
-    if (!("fetch" in handler) || typeof handler.fetch !== "function") {
-      return new Response("Mod has no fetch function", { status: 500 });
-    }
 
     try {
       const resp = await handler.fetch(req);
