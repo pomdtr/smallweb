@@ -149,7 +149,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd, err := me.Cmd("run", "--allow-all", sandboxPath, "--entrypoint", me.entrypoints.Http, "--port", strconv.Itoa(freeport))
+	cmd, err := me.Cmd("run", "--allow-env", "--allow-net", "--allow-read=.", "--allow-write=.", "--deny-write=./deno.json", sandboxPath, "--entrypoint", me.entrypoints.Http, "--port", strconv.Itoa(freeport))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
