@@ -51,4 +51,7 @@ sudo brew services start dnsmasq
 cat <<EOF | sudo tee -a /etc/resolver/localhost
 nameserver 127.0.0.1
 EOF
+
+# restart your dns
+sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
 ```
