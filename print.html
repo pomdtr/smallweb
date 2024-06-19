@@ -320,6 +320,10 @@ curl -fsSL https://deno.land/install.sh | sh
 # Install Smallweb
 brew install pomdtr/tap/smallweb
 
+# Install a dummy smallweb app
+mkdir ~/www
+git clone https://github.com/pomdtr/smallweb-hono-example ~/www/hono-example
+
 # Start the evaluation server
 brew services start smallweb
 
@@ -361,6 +365,7 @@ EOF
 # restart your dns
 sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
 </code></pre>
+<p>If everything was worked, you should have access to the hono example at https://hono-example.localhost</p>
 <div style="break-before: page; page-break-before: always;"></div><p>Cloudflare Tunnel is a <strong>free</strong> service that allows you to expose your local server to the internet, without having to expose your local IP address.</p>
 <p>Additionally, it provides some protection against DDoS attacks, and allows you to use Cloudflare's other services like Access.</p>
 <h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
