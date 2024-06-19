@@ -20,8 +20,6 @@ brew services start smallweb
 # Install caddy
 brew install caddy
 
-# Add caddy certificates to your keychain
-caddy trust
 
 # *.localhost request will be handled by smallweb
 cat <<EOF > /opt/homebrew/etc/Caddyfile
@@ -37,6 +35,8 @@ EOF
 # Start the caddy service
 brew services start caddy
 
+# Add caddy certificates to your keychain
+caddy trust
 
 # Install dsnmasq
 brew install dnsmasq
