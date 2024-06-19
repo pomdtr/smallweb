@@ -22,10 +22,10 @@ Additionally, it provides some protection against DDoS attacks, and allows you t
 
     ![alt text](./wildcard.png)
 
-1. Start the smallweb server.
+1. Make sure that smallweb is running on your device
 
 ```ts
-smallweb server --port 7777
+smallweb serve
 ```
 
 ## Next Steps
