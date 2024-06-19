@@ -52,6 +52,7 @@ echo "address=/.localhost/127.0.0.1" > /opt/homebrew/etc/dnsmasq.conf
 sudo brew services start dnsmasq
 
 # Use dnsmasq to resolve *.localhost requests
+sudo mkdir -p /etc/resolver
 cat <<EOF | sudo tee -a /etc/resolver/localhost
 nameserver 127.0.0.1
 EOF
