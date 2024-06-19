@@ -61,4 +61,4 @@ EOF
 sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
 ```
 
-If everything was worked, you should have access to the hono example at https://hono-example.localhost
+You should now have access to the hono example at <https://hono-example.localhost>.
