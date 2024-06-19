@@ -14,6 +14,10 @@ curl -fsSL https://deno.land/install.sh | sh
 # Install Smallweb
 brew install pomdtr/tap/smallweb
 
+# Install a dummy smallweb app
+mkdir ~/www
+git clone https://github.com/pomdtr/smallweb-hono-example ~/www/hono-example
+
 # Start the evaluation server
 brew services start smallweb
 
@@ -55,3 +59,5 @@ EOF
 # restart your dns
 sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
 ```
+
+If everything was worked, you should have access to the hono example at https://hono-example.localhost
