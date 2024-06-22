@@ -66,19 +66,7 @@ func (p *Permission) UnmarshalJSON(data []byte) error {
 }
 
 var defaultPermissions = Permissions{
-	Read: Permission{
-		Allow: []string{"."}, // allow to read from current directory
-	},
-	Write: Permission{
-		Allow: []string{"."},           // allow to write to current directory
-		Deny:  []string{"./deno.json"}, // deny writing to deno.json, which is used to store permissions
-	},
-	Net: Permission{
-		All: true,
-	},
-	Env: Permission{
-		All: true,
-	},
+	All: true,
 }
 
 func (p *Permissions) Flags(rootDir string) []string {
