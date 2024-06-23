@@ -370,7 +370,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	args := []string{"run"}
+	args := []string{"run", "--unstable-kv", "--unstable-temporal"}
 	args = append(args, permissions.Flags(rootDir)...)
 	args = append(args, sandboxPath, "--entrypoint", me.entrypoints.Http, "--port", strconv.Itoa(freeport))
 	cmd, err := me.Cmd(args...)
