@@ -7,14 +7,13 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -201,11 +200,10 @@ var SMALLWEB_ROOT string
 var SmallwebDir string
 
 var dataHome = path.Join(xdg.DataHome, "smallweb")
-var cacheHome = path.Join(xdg.CacheHome, "smallweb")
-var sandboxPath = path.Join(dataHome, "sandbox.ts")
 
 //go:embed deno/sandbox.ts
 var sandboxBytes []byte
+var sandboxTemplate = template.Must(template.New("sandbox").Parse(string(sandboxBytes)))
 
 type FetchInput struct {
 	Entrypoint string     `json:"entrypoint"`
@@ -222,15 +220,6 @@ func exists(path string) bool {
 
 func init() {
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := os.MkdirAll(cacheHome, 0755); err != nil {
-		log.Fatal(err)
-	}
-
-	// refresh sandbox code
-	if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
 		log.Fatal(err)
 	}
 
@@ -370,9 +359,32 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tempfile, err := os.CreateTemp("", "sandbox.ts")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	defer os.Remove(tempfile.Name())
+
+	host := r.Host
+	protocol := r.Header.Get("X-Forwarded-Proto")
+	if protocol == "" {
+		protocol = "http"
+	}
+
+	url := fmt.Sprintf("%s://%s%s", protocol, host, r.URL.String())
+	if err := sandboxTemplate.Execute(tempfile, map[string]interface{}{
+		"Port":       freeport,
+		"ModURL":     me.entrypoints.Http,
+		"RequestURL": url,
+	}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	args := []string{"run", "--unstable-kv", "--unstable-temporal"}
 	args = append(args, permissions.Flags(rootDir)...)
-	args = append(args, sandboxPath, "--entrypoint", me.entrypoints.Http, "--port", strconv.Itoa(freeport))
+	args = append(args, tempfile.Name())
+
 	cmd, err := me.Cmd(args...)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -465,30 +477,23 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var protocol string
-	if r.TLS == nil {
-		protocol = "http"
-	} else {
-		protocol = "https"
-	}
-
-	request, err := http.NewRequest(r.Method, fmt.Sprintf("%s://%s%s", protocol, r.Host, r.URL.String()), r.Body)
+	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://localhost:%d%s", freeport, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	for k, v := range r.Header {
 		for _, vv := range v {
 			request.Header.Add(k, vv)
 		}
 	}
 
-	tr := &http.Transport{
-		Dial: func(network, addr string) (net.Conn, error) {
-			return net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", freeport))
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
 		},
 	}
-	client := http.Client{Transport: tr}
 
 	start := time.Now()
 	resp, err := client.Do(request)
@@ -499,8 +504,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	fmt.Fprintf(os.Stderr, "%s %s %d %dms\n", request.Method, request.URL.String(), resp.StatusCode, duration.Milliseconds())
-
+	fmt.Fprintf(os.Stderr, "%s %s %d %dms\n", r.Method, url, resp.StatusCode, duration.Milliseconds())
 	for k, v := range resp.Header {
 		for _, vv := range v {
 			w.Header().Add(k, vv)

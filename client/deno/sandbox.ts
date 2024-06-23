@@ -1,31 +1,6 @@
-import { parseArgs } from "jsr:@std/cli";
-
-const { port, entrypoint } = parseArgs(Deno.args, {
-  string: ["port", "entrypoint"],
-});
-
-if (!port || !entrypoint) {
-  console.error(
-    "Usage: deno run -A sandbox.ts --port=<port> --entrypoint=<entrypoint>"
-  );
-  Deno.exit(1);
-}
-
-const mod = await import(entrypoint);
-if (!mod.default || typeof mod.default !== "object") {
-  console.error("Mod does not have a default export");
-  Deno.exit(1);
-}
-
-const handler = mod.default;
-if (!("fetch" in handler) || typeof handler.fetch !== "function") {
-  console.error("Mod has no fetch function");
-  Deno.exit(1);
-}
-
 const server = Deno.serve(
   {
-    port: parseInt(port),
+    port: parseInt("{{ .Port }}"),
     onListen: () => {
       // This line will signal that the server is ready to the go
       console.log("READY");
@@ -38,7 +13,25 @@ const server = Deno.serve(
     });
 
     try {
-      const resp = await handler.fetch(req);
+      const mod = await import("{{ .ModURL }}");
+      if (!mod.default || typeof mod.default !== "object") {
+        console.error("Mod does not export a default object");
+        Deno.exit(1);
+      }
+
+      const handler = mod.default;
+      if (!("fetch" in handler) || typeof handler.fetch !== "function") {
+        console.error("Mod has no fetch function");
+        Deno.exit(1);
+      }
+
+      const resp = await handler.fetch(
+        new Request("{{ .RequestURL }}", {
+          method: req.method,
+          headers: req.headers,
+          body: req.body,
+        }),
+      );
       if (!(resp instanceof Response)) {
         return new Response("Mod did not return a Response", { status: 500 });
       }
@@ -51,5 +44,5 @@ const server = Deno.serve(
 
       return new Response("Unknown error", { status: 500 });
     }
-  }
+  },
 );
