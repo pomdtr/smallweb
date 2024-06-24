@@ -3,6 +3,6 @@ services:
     image: pomdtrr/smallweb
     volumes:
       - ~/www:/www
-    command: ["serve", "/www"]
+    command: ["up"]
     ports:
-      - 4321:4321
+      - 7777:7777
