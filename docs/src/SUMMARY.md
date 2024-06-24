@@ -1,6 +1,6 @@
 # Summary
 
-- [Getting Started](./getting-started.md)
+[Getting Started](./getting-started.md)
 
 # Hosting
 
@@ -10,5 +10,9 @@
 # Guides
 
 - [REST API with Hono]()
+
+---
+
+[CLI Reference](./cli.md)
 
 <!-- markdownlint-disable-file -->

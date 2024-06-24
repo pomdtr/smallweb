@@ -6,13 +6,15 @@ import (
 
 func NewCmdRoot() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "smallweb",
+		Use:   "smallweb",
+		Short: "Host websites from your internet folder",
 	}
 
 	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdDump())
+	cmd.AddCommand(NewCmdDocs())
 
 	return cmd
 }
