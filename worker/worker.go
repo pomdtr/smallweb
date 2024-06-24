@@ -368,6 +368,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd.Dir = appDir
+	cmd.Env = os.Environ()
 	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
 		if err != nil {
@@ -375,7 +376,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cmd.Env = os.Environ()
 		for key, value := range envMap {
 			cmd.Env = append(cmd.Env, key+"="+value)
 		}
@@ -388,7 +388,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cmd.Env = os.Environ()
 		for key, value := range envMap {
 			cmd.Env = append(cmd.Env, key+"="+value)
 		}
@@ -548,13 +547,13 @@ func (me *Worker) Run(runArgs []string) error {
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 
+	command.Env = os.Environ()
 	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
 		if err != nil {
 			return fmt.Errorf("could not read .env file: %v", err)
 		}
 
-		command.Env = os.Environ()
 		for key, value := range envMap {
 			command.Env = append(command.Env, key+"="+value)
 		}
@@ -566,7 +565,6 @@ func (me *Worker) Run(runArgs []string) error {
 			return fmt.Errorf("could not read .env file: %v", err)
 		}
 
-		command.Env = os.Environ()
 		for key, value := range envMap {
 			command.Env = append(command.Env, key+"="+value)
 		}
