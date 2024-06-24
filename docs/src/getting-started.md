@@ -88,7 +88,7 @@ Of course, you can define both an `main.ts` and a `cli.ts` file in the same fold
 
 ### Setting env variables
 
-You can set environment variables for your app by creating a file called `.env` in the folder.
+You can set environment variables for your app by creating a file called `.env` in the application folder.
 
 Here is an example of a `.env` file:
 
@@ -112,6 +112,8 @@ export default function (req: Request) {
   });
 }
 ```
+
+If you want to set an environment variable for all your apps, you can create a `.env` file in the `~/www` directory.
 
 ## Next steps
 
