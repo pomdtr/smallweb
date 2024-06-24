@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Localhost setup - Smallweb</title>
+        <title>Val Town - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -12,21 +12,21 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="../favicon.svg">
-        <link rel="shortcut icon" href="../favicon.png">
-        <link rel="stylesheet" href="../css/variables.css">
-        <link rel="stylesheet" href="../css/general.css">
-        <link rel="stylesheet" href="../css/chrome.css">
-        <link rel="stylesheet" href="../css/print.css" media="print">
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="../fonts/fonts.css">
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="../highlight.css">
-        <link rel="stylesheet" href="../tomorrow-night.css">
-        <link rel="stylesheet" href="../ayu-highlight.css">
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -35,7 +35,7 @@
     <div id="body-container">
         <!-- Provide site root to javascript -->
         <script>
-            var path_to_root = "../";
+            var path_to_root = "";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html" class="active"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">3.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">4.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> REST API with Hono</div></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">3.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html" class="active"><strong aria-hidden="true">4.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> REST API with Hono</div></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -144,13 +144,13 @@
                     <h1 class="menu-title">Smallweb</h1>
 
                     <div class="right-buttons">
-                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/localhost/localhost.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/val-town.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,98 +179,32 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
-<p>At the end of this process, each folder in <code>~/www</code> will be mapped to domain with a <code>.localhost</code> suffix. For example, the folder <code>~/www/example</code> will be accessible at <code>https://example.localhost</code>.</p>
-<p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
-<p>If you want to expose your apps to the internet instead, you can follow the <a href="../cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
-<h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
-<p>The following diagram illustrates the architecture of the local setup:</p>
-<p><img src="./architecture.excalidraw.png" alt="Localhost architecture" /></p>
-<p>The components needed are:</p>
-<ul>
-<li>a dns server to map <code>.localhost</code> domains to <code>127.0.0.1</code> ip address (dnsmasq)</li>
-<li>a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)</li>
-<li>a service to map each domain to the corresponding folder in ~/www, and spawn a deno subprocess for each request (smallweb)</li>
-<li>a runtime to evaluate the application code (deno)</li>
-</ul>
-<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<p>In the future, we might provide a script to automate this process, but for now, it's a manual process.</p>
-<h3 id="install-brew-required-to-install-smallweb-deno-caddy-and-dnsmasq"><a class="header" href="#install-brew-required-to-install-smallweb-deno-caddy-and-dnsmasq">Install Brew (required to install smallweb, deno, caddy, and dnsmasq)</a></h3>
-<p>We'll use brew to install the required tools. If you don't have brew installed, you can run the following command:</p>
-<pre><code class="language-sh">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-</code></pre>
-<h3 id="install-deno-required-to-run-smallweb-apps"><a class="header" href="#install-deno-required-to-run-smallweb-apps">Install Deno (required to run smallweb apps)</a></h3>
-<pre><code class="language-sh">brew install deno
-</code></pre>
-<h3 id="install-smallweb"><a class="header" href="#install-smallweb">Install smallweb</a></h3>
-<pre><code class="language-sh">brew install pomdtr/tap/smallweb
+                        <h1 id="val-town"><a class="header" href="#val-town">Val Town</a></h1>
+<p>Val Town is a social website to write and deploy TypeScript.</p>
+<p>Val Town and Smallweb can easily interop. For example, to use an http val in smallweb, you can use the following snippet:</p>
+<pre><code class="language-ts">// Assuming that the val export a handler function
+import handler from "https://esm.town/v/&lt;username&gt;/&lt;val&gt;"
 
-# Create a dummy app to make sure smallweb is working
-mkdir -p ~/www
-CAT &lt;&lt;EOF &gt; ~/www/example.ts
 export default {
-  fetch() {
-    return new Response("Smallweb is running", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
-  }
-}
-EOF
-
-# run smallweb in the background
-smallweb service install
+  fetch: handler,
+};
 </code></pre>
-<h3 id="install-caddy-redirect-localhost-to-localhost7777"><a class="header" href="#install-caddy-redirect-localhost-to-localhost7777">Install Caddy (redirect *.localhost to localhost:7777)</a></h3>
-<pre><code class="language-sh"># Install caddy
-brew install caddy
+<p>You can also go the other way around. A great way to achieve this is to push you smallweb app to a github repository, and use the raw url to import the app in Val Town.</p>
+<pre><code class="language-ts">import handler from "https://raw.githubusercontent.com/&lt;username&gt;/&lt;repo&gt;/&lt;branch&gt;/mod.ts"
 
-# Write caddy configuration
-cat &lt;&lt;EOF &gt; /opt/homebrew/etc/Caddyfile
-*.localhost {
-  tls internal {
-    on_demand
-  }
-
-  reverse_proxy localhost:7777
-}
-EOF
-
-# Run caddy in the background
-brew services start caddy
-
-# Add caddy https certificates to your keychain
-caddy trust
+export default handler
 </code></pre>
-<h3 id="install-dnsmasq-map-localhost-address-to-127001"><a class="header" href="#install-dnsmasq-map-localhost-address-to-127001">Install dnsmasq (map *.localhost address to 127.0.0.1)</a></h3>
-<pre><code class="language-sh"># Install dsnmasq
-brew install dnsmasq
-
-# Write dnsmasq configuration
-echo "address=/.localhost/127.0.0.1" &gt;&gt; /opt/homebrew/etc/dnsmasq.conf
-
-# Run dnsmasq in the background
-sudo brew services start dnsmasq
-
-# Indicates to the system to use dnsmasq for .localhost domains
-sudo mkdir -p /etc/resolver
-cat &lt;&lt;EOF | sudo tee -a /etc/resolver/localhost
-nameserver 127.0.0.1
-EOF
-</code></pre>
-<h2 id="testing-the-local-setup"><a class="header" href="#testing-the-local-setup">Testing the local setup</a></h2>
-<p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
+<p>You can also push reusable block to <a href="https://jsr.io">JSR</a>, and access them from both Val Town and Smallweb.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../getting-started.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="deno-deploy.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../cloudflare/tunnel.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="cli.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -280,11 +214,11 @@ EOF
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../getting-started.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="deno-deploy.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../cloudflare/tunnel.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="cli.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
@@ -299,13 +233,13 @@ EOF
         </script>
 
 
-        <script src="../elasticlunr.min.js"></script>
-        <script src="../mark.min.js"></script>
-        <script src="../searcher.js"></script>
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
 
-        <script src="../clipboard.min.js"></script>
-        <script src="../highlight.js"></script>
-        <script src="../book.js"></script>
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
 
