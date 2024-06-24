@@ -10,10 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCmdServe() *cobra.Command {
+func NewCmdUp() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "serve",
-		Short: "Serve a smallweb app",
+		Use:   "up",
+		Short: "Start the smallweb evaluation server",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := setupDenoIfRequired(); err != nil {

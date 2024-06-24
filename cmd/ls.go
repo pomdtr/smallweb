@@ -66,8 +66,8 @@ func NewCmdList() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:     "list",
-		Aliases: []string{"ls"},
+		Use:     "ls",
+		Aliases: []string{"list"},
 		Short:   "List all apps",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apps, err := func() ([]string, error) {

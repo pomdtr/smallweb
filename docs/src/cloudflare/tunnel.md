@@ -25,7 +25,7 @@ Additionally, it provides some protection against DDoS attacks, and allows you t
 1. Make sure that smallweb is running on your device
 
 ```ts
-smallweb serve
+smallweb up
 ```
 
 ## Next Steps

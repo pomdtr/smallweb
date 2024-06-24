@@ -1,12 +1,12 @@
 {
     "configurations": [
         {
-            "name": "smallweb serve",
+            "name": "smallweb up",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "args": [
-                "serve",
+                "up",
             ]
         },
         {
