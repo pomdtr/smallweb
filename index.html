@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="getting-started.html" class="active"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">2.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">3.</strong> Cloudflare setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><div><strong aria-hidden="true">4.</strong> REST API with Hono</div></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html" class="active">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><div><strong aria-hidden="true">3.</strong> REST API with Hono</div></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -243,7 +243,7 @@ Hello, smallweb!
 </code></pre>
 <p>Of course, you can define both an <code>main.ts</code> and a <code>cli.ts</code> file in the same folder.</p>
 <h3 id="setting-env-variables"><a class="header" href="#setting-env-variables">Setting env variables</a></h3>
-<p>You can set environment variables for your app by creating a file called <code>.env</code> in the folder.</p>
+<p>You can set environment variables for your app by creating a file called <code>.env</code> in the application folder.</p>
 <p>Here is an example of a <code>.env</code> file:</p>
 <pre><code class="language-env">BEARER_TOKEN=SECURE_TOKEN
 </code></pre>
@@ -261,6 +261,7 @@ export default function (req: Request) {
   });
 }
 </code></pre>
+<p>If you want to set an environment variable for all your apps, you can create a <code>.env</code> file in the <code>~/www</code> directory.</p>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
 <p>If you've read this far, you have already learned the whole smallweb API. You can now start building your own apps, by looking at the examples below:</p>
 <blockquote>
