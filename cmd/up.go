@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pomdtr/smallweb/client"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ func NewCmdUp() *cobra.Command {
 						app = parts[0]
 					}
 
-					handler, err := client.NewWorker(app)
+					handler, err := worker.NewWorker(app)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return

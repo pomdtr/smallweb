@@ -7,12 +7,13 @@ import (
 	"runtime"
 
 	"github.com/charmbracelet/huh"
-	"github.com/pomdtr/smallweb/client"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
 
 func installDeno() error {
 	// if we are on windows, we need to use the powershell script
+
 	if runtime.GOOS == "windows" {
 		return exec.Command("powershell", "-c", "irm https://deno.land/install.ps1 | iex").Run()
 	}
@@ -29,7 +30,7 @@ func installDeno() error {
 }
 
 func setupDenoIfRequired() error {
-	if _, err := client.DenoExecutable(); err == nil {
+	if _, err := worker.DenoExecutable(); err == nil {
 		return nil
 	}
 
@@ -77,7 +78,7 @@ func NewCmdRun() *cobra.Command {
 				return err
 			}
 
-			worker, err := client.NewWorker(args[0])
+			worker, err := worker.NewWorker(args[0])
 			if err != nil {
 				return err
 			}

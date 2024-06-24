@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/pomdtr/smallweb/client"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ func listApps(kind ...AppKind) ([]string, error) {
 	}
 
 	apps := make(map[string]struct{})
-	entries, err := os.ReadDir(path.Join(client.SMALLWEB_ROOT))
+	entries, err := os.ReadDir(path.Join(worker.SMALLWEB_ROOT))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dir: %v", err)
 	}
@@ -33,18 +33,18 @@ func listApps(kind ...AppKind) ([]string, error) {
 			continue
 		}
 
-		for _, extension := range client.EXTENSIONS {
+		for _, extension := range worker.EXTENSIONS {
 			for _, k := range kind {
 				switch k {
 				case AppKindHTTP:
-					if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "main"+extension)) {
+					if worker.FileExists(path.Join(worker.SMALLWEB_ROOT, entry.Name(), "main"+extension)) {
 						apps[entry.Name()] = struct{}{}
 					}
-					if exists(path.Join(client.SMALLWEB_ROOT, entry.Name(), "index.html")) {
+					if worker.FileExists(path.Join(worker.SMALLWEB_ROOT, entry.Name(), "index.html")) {
 						apps[entry.Name()] = struct{}{}
 					}
 				case AppKindCLI:
-					if exists(path.Join(client.SMALLWEB_ROOT, "cli", extension)) {
+					if worker.FileExists(path.Join(worker.SMALLWEB_ROOT, "cli", extension)) {
 						apps[entry.Name()] = struct{}{}
 					}
 				}

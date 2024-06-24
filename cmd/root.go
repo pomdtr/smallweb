@@ -1,15 +1,8 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
 )
-
-func exists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}
 
 func NewCmdRoot() *cobra.Command {
 	cmd := &cobra.Command{
@@ -19,6 +12,7 @@ func NewCmdRoot() *cobra.Command {
 	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdList())
+	cmd.AddCommand(NewCmdService())
 
 	return cmd
 }

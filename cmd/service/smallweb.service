@@ -1,0 +1,14 @@
+[Unit]
+Description=Smallweb
+After=network.target
+
+
+[Service]
+Type=simple
+ExecStart={{ .ExecPath }} up
+Restart=always
+RestartSec=10
+WorkingDirectory=/home/pomdtr/
+
+[Install]
+WantedBy=default.target

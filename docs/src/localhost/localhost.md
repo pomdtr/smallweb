@@ -18,6 +18,9 @@ brew install pomdtr/tap/smallweb
 mkdir ~/www
 git clone https://github.com/pomdtr/smallweb-hono-example ~/www/hono-example
 
+# Start the smallweb service
+smallweb service install
+
 # Install caddy
 brew install caddy
 
@@ -55,12 +58,6 @@ EOF
 
 # restart your dns
 sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
-```
-
-Now start the smallweb evaluation server:
-
-```bash
-smallweb up
 ```
 
 You should now have access to the hono example at <https://hono-example.localhost>.

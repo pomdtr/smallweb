@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>Label</key>
+        <string>com.pomdtr.smallweb</string>
+        <key>ProgramArguments</key>
+        <array>
+            <string>{{ .ExecPath }}</string>
+            <string>up</string>
+        </array>
+        <key>RunAtLoad</key>
+        <true />
+        <key>StandardOutPath</key>
+        <string>/Users/pomdtr/Library/Logs/smallweb.log</string>
+        <key>StandardErrorPath</key>
+        <string>/Users/pomdtr/Library/Logs/smallweb.log</string>
+        <key>WorkingDirectory</key>
+        <string>/Users/pomdtr/</string>
+    </dict>
+</plist>

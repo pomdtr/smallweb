@@ -1,4 +1,4 @@
-package client
+package worker
 
 import (
 	"bufio"
@@ -213,7 +213,7 @@ type FetchInput struct {
 	Method     string     `json:"method"`
 }
 
-func fileExists(path string) bool {
+func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
@@ -239,13 +239,13 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 		Http: func() string {
 			for _, ext := range EXTENSIONS {
 				entrypoint := path.Join(SMALLWEB_ROOT, name, "main"+ext)
-				if fileExists(entrypoint) {
+				if FileExists(entrypoint) {
 					return entrypoint
 				}
 			}
 
 			entrypoint := path.Join(SMALLWEB_ROOT, name, "index.html")
-			if fileExists(entrypoint) {
+			if FileExists(entrypoint) {
 				return entrypoint
 			}
 			return ""
@@ -253,7 +253,7 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 		Cli: func() string {
 			for _, ext := range EXTENSIONS {
 				entrypoint := path.Join(SMALLWEB_ROOT, name, "cli"+ext)
-				if fileExists(entrypoint) {
+				if FileExists(entrypoint) {
 					return entrypoint
 				}
 			}
@@ -295,13 +295,13 @@ var upgrader = websocket.Upgrader{} // use default options
 
 func (me *Worker) LoadPermission() (*Permissions, error) {
 	var configBytes []byte
-	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.json"); fileExists(configPath) {
+	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.json"); FileExists(configPath) {
 		b, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
 		}
 		configBytes = b
-	} else if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.jsonc"); fileExists(configPath) {
+	} else if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.jsonc"); FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -392,7 +392,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd.Dir = rootDir
-	if fileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
+	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
@@ -405,7 +405,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if fileExists(filepath.Join(rootDir, ".env")) {
+	if FileExists(filepath.Join(rootDir, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(rootDir, ".env"))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
@@ -566,7 +566,7 @@ func (me *Worker) Run(runArgs []string) error {
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 
-	if fileExists(filepath.Join(rootDir, ".env")) {
+	if FileExists(filepath.Join(rootDir, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(rootDir, ".env"))
 		if err != nil {
 			return fmt.Errorf("could not read .env file: %v", err)
@@ -586,18 +586,23 @@ func DenoExecutable() (string, error) {
 		return env, nil
 	}
 
+	if denoPath, err := exec.LookPath("deno"); err == nil {
+		return denoPath, nil
+	}
+
 	homedir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
 
-	if denoPath, err := exec.LookPath("deno"); err == nil {
-		return denoPath, nil
-	}
-
-	denoPath := filepath.Join(homedir, ".deno", "bin", "deno")
-	if fileExists(denoPath) {
-		return denoPath, nil
+	for _, candidate := range []string{
+		filepath.Join(homedir, ".deno", "bin", "deno"),
+		"/opt/homebrew/bin/deno",
+		"/usr/local/bin/deno",
+	} {
+		if FileExists(candidate) {
+			return candidate, nil
+		}
 	}
 
 	return "", fmt.Errorf("deno executable not found")
