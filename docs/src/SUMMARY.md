@@ -2,10 +2,16 @@
 
 [Getting Started](./getting-started.md)
 
-# Hosting
+# Self-Hosting
 
 - [Localhost setup](./localhost/localhost.md)
 - [Cloudflare setup](./cloudflare/tunnel.md)
+
+# Moving to the cloud
+
+- [Deno Deploy](./deno-deploy.md)
+- [Val Town](./val-town.md)
+
 
 # Guides
 

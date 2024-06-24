@@ -6,11 +6,26 @@ This setup is useful for developing and testing smallweb apps locally, without h
 
 If you want to expose your apps to the internet instead, you can follow the [Cloudflare Tunnel setup guide](../cloudflare/tunnel.md).
 
+## Architecture
+
+The following diagram illustrates the architecture of the local setup:
+
+![Localhost architecture](./architecture.excalidraw.png)
+
+The components needed are:
+
+- a dns server to map `.localhost` domains to `127.0.0.1` ip address (dnsmasq)
+- a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)
+- a service to map each domain to the corresponding folder in ~/www, and spawn a deno subprocess for each request (smallweb)
+- a runtime to evaluate the application code (deno)
+
 ## Installation
 
 In the future, we might provide a script to automate this process, but for now, it's a manual process.
 
 ### Install Brew (required to install smallweb, deno, caddy, and dnsmasq)
+
+We'll use brew to install the required tools. If you don't have brew installed, you can run the following command:
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -27,9 +42,24 @@ brew install deno
 ```sh
 brew install pomdtr/tap/smallweb
 
+# Create a dummy app to make sure smallweb is working
+mkdir -p ~/www
+CAT <<EOF > ~/www/example.ts
+export default {
+  fetch() {
+    return new Response("Smallweb is running", {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+}
+EOF
+
 # run smallweb in the background
 smallweb service install
 ```
+
 
 ### Install Caddy (redirect *.localhost to localhost:7777)
 
@@ -62,14 +92,18 @@ caddy trust
 brew install dnsmasq
 
 # Write dnsmasq configuration
-echo "address=/.localhost/127.0.0.1" > /opt/homebrew/etc/dnsmasq.conf
+echo "address=/.localhost/127.0.0.1" >> /opt/homebrew/etc/dnsmasq.conf
 
 # Run dnsmasq in the background
 sudo brew services start dnsmasq
 
-# Indicates to use dnsmasq for .localhost domains
+# Indicates to the system to use dnsmasq for .localhost domains
 sudo mkdir -p /etc/resolver
 cat <<EOF | sudo tee -a /etc/resolver/localhost
 nameserver 127.0.0.1
 EOF
 ```
+
+## Testing the local setup
+
+If everything went well, you should be able to access `https://example.localhost` in your browser, and see the message `Smallweb is running`.
