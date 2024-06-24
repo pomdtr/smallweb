@@ -2,7 +2,6 @@ Every smallweb app is defined as a folder in the `~/www` directory. The folder n
 
 - `https://demo.localhost`
 - `https://demo.<your-domain>` (ex: <https://demo.pomdtr.me>)
-- `https://demo-<your-username`.smallweb.run` if you are using the tunneling service
 
 Depending on the contend of the folder, the app can define:
 
