@@ -213,8 +213,8 @@ type FetchInput struct {
 	Method     string     `json:"method"`
 }
 
-func FileExists(path string) bool {
-	_, err := os.Stat(path)
+func FileExists(parts ...string) bool {
+	_, err := os.Stat(filepath.Join(parts...))
 	return err == nil
 }
 
