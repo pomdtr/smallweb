@@ -185,35 +185,13 @@ brew install pomdtr/tap/smallweb
 go install github.com/pomdtr/smallweb@latest
 </code></pre>
 <p>or download the latest release from the <a href="https://github.com/pomdtr/smallweb/releases">releases page</a>.</p>
-<h2 id="your-first-smallweb-apps"><a class="header" href="#your-first-smallweb-apps">Your first smallweb apps</a></h2>
-<p>Smallweb maps each folder in <code>~/www</code> to a new app. You can find new smallweb apps by searching for the <code>smallweb-app</code> topic on github. You can start by cloning one of these repositories in the <code>~/www</code> folder.</p>
-<ul>
-<li>
-<p><a href="https://github.com/pomdtr/smallweb-landing-example">Simple Landing Page</a></p>
-<pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb-landing-example ~/www/landing
-</code></pre>
-</li>
-<li>
-<p><a href="https://github.com/pomdtr/smallweb-blog-example">Blog using hono</a></p>
-<pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb-blog-example ~/www/blog
-</code></pre>
-</li>
-</ul>
-<p>Once you have cloned a few of them, you can publish them using the free tunneling service:</p>
-<ol>
-<li>First, create an account with the <code>smallweb auth signup</code> command.</li>
-<li>Then, run <code>smallweb tunnel</code> to expose your websites to the internet.</li>
-<li>Open the an app in your browser by visiting <code>https://&lt;app&gt;.&lt;your-username&gt;.smallweb.run</code>.</li>
-</ol>
 <h2 id="hosting-your-own-smallweb-server"><a class="header" href="#hosting-your-own-smallweb-server">Hosting your own smallweb server</a></h2>
-<p>The tunneling service is not meant for production use. As such, you are encouraged to host your own smallweb server.</p>
 <p>If you want your apps to be available on the internet, you'll need to buy a domain name, and point it to your server. You can find more information on how to do this in the <a href="./cloudflare/tunnel.html">documentation</a>.</p>
 <p>If you prefer your to keep your apps local to your device, you can learn how to host your apps as <code>https://&lt;app&gt;.localhost</code> address in <a href="./localhost/localhost.html">this guide</a>. This option does not requires a domain name (or a server), but your app will only be available on your local device.</p>
 <div style="break-before: page; page-break-before: always;"></div><p>Every smallweb app is defined as a folder in the <code>~/www</code> directory. The folder name will be used as the subdomain of the website. Dependending on your configuration, the <code>~/www/demo</code> folder could be served at:</p>
 <ul>
 <li><code>https://demo.localhost</code></li>
 <li><code>https://demo.&lt;your-domain&gt;</code> (ex: <a href="https://demo.pomdtr.me">https://demo.pomdtr.me</a>)</li>
-<li><code>https://demo-&lt;your-username</code>.smallweb.run` if you are using the tunneling service</li>
 </ul>
 <p>Depending on the contend of the folder, the app can define:</p>
 <ul>
