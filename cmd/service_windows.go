@@ -2,18 +2,20 @@
 
 package cmd
 
-import (
-	"github.com/spf13/cobra"
-)
+import "fmt"
 
-func NewCmdService() *cobra.Command {
-	cmd := &cobra.Command{
-		Use: "service",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cmd.Println("service command not supported on Windows yet")
-			return nil
-		},
-	}
+func InstallService() error {
+	return fmt.Errorf("service installation is not supported on Windows")
+}
 
-	return cmd
+func UninstallService() error {
+	return fmt.Errorf("service uninstallation is not supported on Windows")
+}
+
+func PrintServiceLogs(_ bool) error {
+	return fmt.Errorf("service status is not supported on Windows")
+}
+
+func ViewServiceStatus() error {
+	return fmt.Errorf("service log is not supported on Windows")
 }

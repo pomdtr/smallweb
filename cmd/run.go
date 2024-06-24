@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"github.com/charmbracelet/huh"
@@ -66,9 +67,19 @@ func NewCmdRun() *cobra.Command {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 
-			apps, err := listApps()
+			entries, err := os.ReadDir(worker.SMALLWEB_ROOT)
 			if err != nil {
-				return nil, cobra.ShellCompDirectiveError
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			var apps []string
+			for _, entry := range entries {
+				for _, extension := range worker.EXTENSIONS {
+					if worker.FileExists(filepath.Join(worker.SMALLWEB_ROOT, entry.Name(), "cli"+extension)) {
+						apps = append(apps, entry.Name())
+						break
+					}
+				}
 			}
 
 			return apps, cobra.ShellCompDirectiveNoFileComp

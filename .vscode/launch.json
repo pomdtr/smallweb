@@ -10,13 +10,21 @@
             ]
         },
         {
-            "name": "smallweb list",
+            "name": "smallweb run",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "args": [
-                "list"
+                "run",
+                "${input:app}"
             ]
+        }
+    ],
+    "inputs": [
+        {
+            "type": "promptString",
+            "id": "app",
+            "description": "Enter the app name",
         }
     ]
 }

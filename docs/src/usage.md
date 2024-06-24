@@ -10,27 +10,6 @@ Depending on the contend of the folder, the app can define:
 - a cli command
 - a combination of the above
 
-## Creating a static website
-
-If the folder contains a file called `index.html`, it will be served as the root of the website.
-
-Any other file in the folder will be served as a static file.
-
-Here is an example of a simple static website:
-
-```html
-<!-- File: ~/www/demo/index.html -->
-<!DOCTYPE html>
-
-My first <strong>Smallweb</strong> website!
-```
-
-A lot of static websites are distributed as github repositories. You can easily clone a repository in the `~/www` folder to create a new website. For example, you can clone the [sqlime](https://github.com/nalgeon/sqlime) repository to self-host your own sqlite playground:
-
-```sh
-git clone https://github.com/nalgeon/sqlime ~/www/sqlime
-```
-
 ## Hosting an HTTP server
 
 Often, you will want to create a dynamic website. For this, you can create a file called `main.[js,ts,jsx,tsx]` in the folder. This file should export a default object with a `fetch` method that takes a `Request` object as argument, and returns a `Response` object.
@@ -76,6 +55,25 @@ export default app;
 No need to run an install command, or configure typescript. Just copy-paste the snippet at `~/www/hono/main.tsx`, and open the corresponding url in your browser.
 
 You are not limited to serving html responses. Smallweb is perfect for creating APIs, or small services (ex: discord/telegram bots, webhooks, etc)...
+
+## Creating a static website
+
+If the folder does not contains a `main.[js,ts,jsx,tsx]` file, Smallweb will serve the folder as a static website. The `index.html` file will be served as the root of the website.
+
+Here is an example of a simple static website:
+
+```html
+<!-- File: ~/www/demo/index.html -->
+<!DOCTYPE html>
+
+My first <strong>Smallweb</strong> website!
+```
+
+A lot of static websites are distributed as github repositories. You can easily clone a repository in the `~/www` folder to create a new website. For example, you can clone the [sqlime](https://github.com/nalgeon/sqlime) repository to self-host your own sqlite playground:
+
+```sh
+git clone https://github.com/nalgeon/sqlime ~/www/sqlime
+```
 
 ## Registering a CLI command
 

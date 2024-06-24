@@ -233,52 +233,18 @@ func init() {
 
 }
 
-func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
-
-	return &WorkerEntrypoints{
-		Http: func() string {
-			for _, ext := range EXTENSIONS {
-				entrypoint := path.Join(SMALLWEB_ROOT, name, "main"+ext)
-				if FileExists(entrypoint) {
-					return entrypoint
-				}
-			}
-
-			entrypoint := path.Join(SMALLWEB_ROOT, name, "index.html")
-			if FileExists(entrypoint) {
-				return entrypoint
-			}
-			return ""
-		}(),
-		Cli: func() string {
-			for _, ext := range EXTENSIONS {
-				entrypoint := path.Join(SMALLWEB_ROOT, name, "cli"+ext)
-				if FileExists(entrypoint) {
-					return entrypoint
-				}
-			}
-			return ""
-		}(),
-	}, nil
-}
-
 type WorkerEntrypoints struct {
 	Http string
 	Cli  string
 }
 
 type Worker struct {
-	alias       string
-	entrypoints WorkerEntrypoints
+	alias string
 }
 
 func NewWorker(alias string) (*Worker, error) {
-	entrypoints, err := inferEntrypoints(alias)
-	if err != nil {
-		return nil, fmt.Errorf("could not infer entrypoint: %v", err)
-	}
 
-	return &Worker{alias: alias, entrypoints: *entrypoints}, nil
+	return &Worker{alias: alias}, nil
 }
 
 func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
@@ -335,14 +301,24 @@ func (me *Worker) LoadPermission() (*Permissions, error) {
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if me.entrypoints.Http == "" {
-		http.NotFound(w, r)
+	var appDir = filepath.Join(SMALLWEB_ROOT, me.alias)
+
+	if !FileExists(filepath.Join(SMALLWEB_ROOT, me.alias)) {
+		http.Error(w, "app not found", http.StatusNotFound)
 		return
 	}
-	rootDir := path.Dir(me.entrypoints.Http)
 
-	if strings.HasSuffix(me.entrypoints.Http, ".html") {
-		fileServer := http.FileServer(http.Dir(rootDir))
+	var entrypoint string
+	for _, extension := range EXTENSIONS {
+		var candidate = filepath.Join(appDir, "main"+extension)
+		if FileExists(candidate) {
+			entrypoint = candidate
+			break
+		}
+	}
+
+	if entrypoint == "" {
+		fileServer := http.FileServer(http.Dir(appDir))
 		fileServer.ServeHTTP(w, r)
 		return
 	}
@@ -374,7 +350,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("%s://%s%s", protocol, host, r.URL.String())
 	if err := sandboxTemplate.Execute(tempfile, map[string]interface{}{
 		"Port":       freeport,
-		"ModURL":     me.entrypoints.Http,
+		"ModURL":     entrypoint,
 		"RequestURL": url,
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -382,7 +358,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	args := []string{"run", "--unstable-kv", "--unstable-temporal"}
-	args = append(args, permissions.Flags(rootDir)...)
+	args = append(args, permissions.Flags(appDir)...)
 	args = append(args, tempfile.Name())
 
 	cmd, err := me.Cmd(args...)
@@ -391,7 +367,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd.Dir = rootDir
+	cmd.Dir = appDir
 	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
 		if err != nil {
@@ -405,8 +381,8 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if FileExists(filepath.Join(rootDir, ".env")) {
-		envMap, err := godotenv.Read(filepath.Join(rootDir, ".env"))
+	if FileExists(filepath.Join(appDir, ".env")) {
+		envMap, err := godotenv.Read(filepath.Join(appDir, ".env"))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
 			return
@@ -549,25 +525,43 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (me *Worker) Run(runArgs []string) error {
-	if me.entrypoints.Cli == "" {
-		return fmt.Errorf("entrypoint not found")
-	}
-	rootDir := filepath.Dir(me.entrypoints.Cli)
+	appDir := filepath.Join(SMALLWEB_ROOT, me.alias)
 
-	args := []string{"run", "--allow-all", me.entrypoints.Cli}
+	var entrypoint string
+	for _, extension := range EXTENSIONS {
+		candidate := filepath.Join(appDir, "cli"+extension)
+		if FileExists(candidate) {
+			entrypoint = candidate
+			break
+		}
+	}
+
+	args := []string{"run", "--allow-all", entrypoint}
 	args = append(args, runArgs...)
 
 	command, err := me.Cmd(args...)
 	if err != nil {
 		return err
 	}
-	command.Dir = rootDir
+	command.Dir = appDir
 	command.Stdin = os.Stdin
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 
-	if FileExists(filepath.Join(rootDir, ".env")) {
-		envMap, err := godotenv.Read(filepath.Join(rootDir, ".env"))
+	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
+		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
+		if err != nil {
+			return fmt.Errorf("could not read .env file: %v", err)
+		}
+
+		command.Env = os.Environ()
+		for key, value := range envMap {
+			command.Env = append(command.Env, key+"="+value)
+		}
+	}
+
+	if FileExists(filepath.Join(appDir, ".env")) {
+		envMap, err := godotenv.Read(filepath.Join(appDir, ".env"))
 		if err != nil {
 			return fmt.Errorf("could not read .env file: %v", err)
 		}
