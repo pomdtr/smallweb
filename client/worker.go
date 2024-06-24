@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -19,7 +20,6 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
-	"github.com/pomdtr/smallweb/proxy"
 	"github.com/tailscale/hujson"
 )
 
@@ -201,7 +201,7 @@ var SmallwebDir string
 
 var dataHome = path.Join(xdg.DataHome, "smallweb")
 
-//go:embed deno/sandbox.ts
+//go:embed sandbox.ts
 var sandboxBytes []byte
 var sandboxTemplate = template.Must(template.New("sandbox").Parse(string(sandboxBytes)))
 
@@ -213,7 +213,7 @@ type FetchInput struct {
 	Method     string     `json:"method"`
 }
 
-func exists(path string) bool {
+func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
@@ -239,13 +239,13 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 		Http: func() string {
 			for _, ext := range EXTENSIONS {
 				entrypoint := path.Join(SMALLWEB_ROOT, name, "main"+ext)
-				if exists(entrypoint) {
+				if fileExists(entrypoint) {
 					return entrypoint
 				}
 			}
 
 			entrypoint := path.Join(SMALLWEB_ROOT, name, "index.html")
-			if exists(entrypoint) {
+			if fileExists(entrypoint) {
 				return entrypoint
 			}
 			return ""
@@ -253,7 +253,7 @@ func inferEntrypoints(name string) (*WorkerEntrypoints, error) {
 		Cli: func() string {
 			for _, ext := range EXTENSIONS {
 				entrypoint := path.Join(SMALLWEB_ROOT, name, "cli"+ext)
-				if exists(entrypoint) {
+				if fileExists(entrypoint) {
 					return entrypoint
 				}
 			}
@@ -295,13 +295,13 @@ var upgrader = websocket.Upgrader{} // use default options
 
 func (me *Worker) LoadPermission() (*Permissions, error) {
 	var configBytes []byte
-	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.json"); exists(configPath) {
+	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.json"); fileExists(configPath) {
 		b, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
 		}
 		configBytes = b
-	} else if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.jsonc"); exists(configPath) {
+	} else if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.jsonc"); fileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -347,7 +347,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	freeport, err := proxy.GetFreePort()
+	freeport, err := GetFreePort()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -392,7 +392,20 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd.Dir = rootDir
-	if exists(filepath.Join(rootDir, ".env")) {
+	if fileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
+		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		cmd.Env = os.Environ()
+		for key, value := range envMap {
+			cmd.Env = append(cmd.Env, key+"="+value)
+		}
+	}
+
+	if fileExists(filepath.Join(rootDir, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(rootDir, ".env"))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
@@ -553,7 +566,7 @@ func (me *Worker) Run(runArgs []string) error {
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 
-	if exists(filepath.Join(rootDir, ".env")) {
+	if fileExists(filepath.Join(rootDir, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(rootDir, ".env"))
 		if err != nil {
 			return fmt.Errorf("could not read .env file: %v", err)
@@ -583,9 +596,24 @@ func DenoExecutable() (string, error) {
 	}
 
 	denoPath := filepath.Join(homedir, ".deno", "bin", "deno")
-	if exists(denoPath) {
+	if fileExists(denoPath) {
 		return denoPath, nil
 	}
 
 	return "", fmt.Errorf("deno executable not found")
+}
+
+// GetFreePort asks the kernel for a free open port that is ready to use.
+func GetFreePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port, nil
 }
