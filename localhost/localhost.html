@@ -181,27 +181,27 @@
                     <main>
                         <p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
 <p>At the end of this process, each folder in <code>~/www</code> will be mapped to domain with a <code>.localhost</code> suffix. For example, the folder <code>~/www/example</code> will be accessible at <code>https://example.localhost</code>.</p>
+<p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
+<p>If you want to expose your apps to the internet instead, you can follow the <a href="../cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<pre><code class="language-bash"># Install Brew (if you haven't already)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+<p>In the future, we might provide a script to automate this process, but for now, it's a manual process.</p>
+<h3 id="install-brew-required-to-install-smallweb-deno-caddy-and-dnsmasq"><a class="header" href="#install-brew-required-to-install-smallweb-deno-caddy-and-dnsmasq">Install Brew (required to install smallweb, deno, caddy, and dnsmasq)</a></h3>
+<pre><code class="language-sh">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+</code></pre>
+<h3 id="install-deno-required-to-run-smallweb-apps"><a class="header" href="#install-deno-required-to-run-smallweb-apps">Install Deno (required to run smallweb apps)</a></h3>
+<pre><code class="language-sh">brew install deno
+</code></pre>
+<h3 id="install-smallweb"><a class="header" href="#install-smallweb">Install smallweb</a></h3>
+<pre><code class="language-sh">brew install pomdtr/tap/smallweb
 
-# Install Deno
-curl -fsSL https://deno.land/install.sh | sh
-
-# Install Smallweb
-brew install pomdtr/tap/smallweb
-
-# Install a dummy smallweb app
-mkdir ~/www
-git clone https://github.com/pomdtr/smallweb-hono-example ~/www/hono-example
-
-# Start the smallweb service
+# run smallweb in the background
 smallweb service install
-
-# Install caddy
+</code></pre>
+<h3 id="install-caddy-redirect-localhost-to-localhost7777"><a class="header" href="#install-caddy-redirect-localhost-to-localhost7777">Install Caddy (redirect *.localhost to localhost:7777)</a></h3>
+<pre><code class="language-sh"># Install caddy
 brew install caddy
 
-# *.localhost request will be handled by smallweb
+# Write caddy configuration
 cat &lt;&lt;EOF &gt; /opt/homebrew/etc/Caddyfile
 *.localhost {
   tls internal {
@@ -212,31 +212,28 @@ cat &lt;&lt;EOF &gt; /opt/homebrew/etc/Caddyfile
 }
 EOF
 
-# Start the caddy service
+# Run caddy in the background
 brew services start caddy
 
-# Add caddy certificates to your keychain
+# Add caddy https certificates to your keychain
 caddy trust
-
-# Install dsnmasq
+</code></pre>
+<h3 id="install-dnsmasq-map-localhost-address-to-127001"><a class="header" href="#install-dnsmasq-map-localhost-address-to-127001">Install dnsmasq (map *.localhost address to 127.0.0.1)</a></h3>
+<pre><code class="language-sh"># Install dsnmasq
 brew install dnsmasq
 
-# Redirect *.localhost requests to the local machine
+# Write dnsmasq configuration
 echo "address=/.localhost/127.0.0.1" &gt; /opt/homebrew/etc/dnsmasq.conf
 
-# Start the dnsmasq service
+# Run dnsmasq in the background
 sudo brew services start dnsmasq
 
-# Use dnsmasq to resolve *.localhost requests
+# Indicates to use dnsmasq for .localhost domains
 sudo mkdir -p /etc/resolver
 cat &lt;&lt;EOF | sudo tee -a /etc/resolver/localhost
 nameserver 127.0.0.1
 EOF
-
-# restart your dns
-sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
 </code></pre>
-<p>You should now have access to the hono example at <a href="https://hono-example.localhost">https://hono-example.localhost</a>.</p>
 
                     </main>
 

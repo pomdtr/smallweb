@@ -191,18 +191,6 @@
 <li>a cli command</li>
 <li>a combination of the above</li>
 </ul>
-<h2 id="creating-a-static-website"><a class="header" href="#creating-a-static-website">Creating a static website</a></h2>
-<p>If the folder contains a file called <code>index.html</code>, it will be served as the root of the website.</p>
-<p>Any other file in the folder will be served as a static file.</p>
-<p>Here is an example of a simple static website:</p>
-<pre><code class="language-html">&lt;!-- File: ~/www/demo/index.html --&gt;
-&lt;!DOCTYPE html&gt;
-
-My first &lt;strong&gt;Smallweb&lt;/strong&gt; website!
-</code></pre>
-<p>A lot of static websites are distributed as github repositories. You can easily clone a repository in the <code>~/www</code> folder to create a new website. For example, you can clone the <a href="https://github.com/nalgeon/sqlime">sqlime</a> repository to self-host your own sqlite playground:</p>
-<pre><code class="language-sh">git clone https://github.com/nalgeon/sqlime ~/www/sqlime
-</code></pre>
 <h2 id="hosting-an-http-server"><a class="header" href="#hosting-an-http-server">Hosting an HTTP server</a></h2>
 <p>Often, you will want to create a dynamic website. For this, you can create a file called <code>main.[js,ts,jsx,tsx]</code> in the folder. This file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
 <p>Here is an example of a simple HTTP server:</p>
@@ -238,6 +226,17 @@ export default app;
 </code></pre>
 <p>No need to run an install command, or configure typescript. Just copy-paste the snippet at <code>~/www/hono/main.tsx</code>, and open the corresponding url in your browser.</p>
 <p>You are not limited to serving html responses. Smallweb is perfect for creating APIs, or small services (ex: discord/telegram bots, webhooks, etc)...</p>
+<h2 id="creating-a-static-website"><a class="header" href="#creating-a-static-website">Creating a static website</a></h2>
+<p>If the folder does not contains a <code>main.[js,ts,jsx,tsx]</code> file, Smallweb will serve the folder as a static website. The <code>index.html</code> file will be served as the root of the website.</p>
+<p>Here is an example of a simple static website:</p>
+<pre><code class="language-html">&lt;!-- File: ~/www/demo/index.html --&gt;
+&lt;!DOCTYPE html&gt;
+
+My first &lt;strong&gt;Smallweb&lt;/strong&gt; website!
+</code></pre>
+<p>A lot of static websites are distributed as github repositories. You can easily clone a repository in the <code>~/www</code> folder to create a new website. For example, you can clone the <a href="https://github.com/nalgeon/sqlime">sqlime</a> repository to self-host your own sqlite playground:</p>
+<pre><code class="language-sh">git clone https://github.com/nalgeon/sqlime ~/www/sqlime
+</code></pre>
 <h2 id="registering-a-cli-command"><a class="header" href="#registering-a-cli-command">Registering a CLI command</a></h2>
 <p>To add a cli command to your app, just create a file called <code>cli.[js,ts,jsx,tsx]</code> in the folder.</p>
 <p>Here is an example of a simple cli command:</p>
