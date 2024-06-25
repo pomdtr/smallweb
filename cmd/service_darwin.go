@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"text/template"
+	"time"
 
 	"github.com/pomdtr/smallweb/worker"
 )
@@ -104,8 +105,14 @@ func RestartService() error {
 		return fmt.Errorf("service not installed")
 	}
 
-	if err := exec.Command("launchctl", "kickstart", "-k", "com.pomdtr.smallweb").Run(); err != nil {
+	if err := exec.Command("launchctl", "stop", "com.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to stop service: %v", err)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	if err := exec.Command("launchctl", "start", "com.pomdtr.smallweb").Run(); err != nil {
+		return fmt.Errorf("failed to start service: %v", err)
 	}
 
 	return nil
