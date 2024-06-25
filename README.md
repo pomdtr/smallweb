@@ -9,9 +9,9 @@ Smallweb maps each folder in `~/www` folder to an unique domain. Ex: `~/www/exam
 - `https://example.localhost` on your local device
 - `https://example.<your-domain>` on your homelab / VPS
 
-Creating a new website becomes as simple a creating a folder and opening the corresponding url in your browser. No need to configure a build step, or start a development server. And since servers are mapped to folders, you can manage them using standard unix tools like `cp`, `mv` or `rm`.
+Creating a new website becomes as simple a creating a folder and opening the corresponding url in your browser. No need to configure a build step, or start a development server. Since servers are mapped to folders, you can manage them using standard unix tools like `cp`, `mv` or `rm`.
 
-Since each http request is sandboxed in a single deno subprocess by the smallweb evaluation server. If there is no activity on your website, no resources will be used on your server, making it a great solution for low-traffic websites.
+Each incoming http request is sandboxed in a single deno subprocess by the smallweb evaluation server. If there is no activity on your website, no resources will be used, making it a great solution for low-traffic websites.
 
 ## Installation
 
@@ -19,7 +19,9 @@ All the instructions are written in the [getting started guide](https://pomdtr.g
 
 ## Demo
 
-The following snippet is stored at `~/www/sqlite-example/main.ts` on my raspberrypi 400, and served at <https://sqlite-example.pomdtr.me>. Any edit to the file is reflected in real-time, without the need to rebuild the project, or restart the server.
+The following snippet is stored at `~/www/sqlite-example/main.ts` on my raspberrypi 400, and served at <https://sqlite-example.pomdtr.me>.
+
+Any edit to the file is reflected in real-time, without the need to rebuild the project, or restart the server.
 
 ```tsx
 // In smallweb, you install applications by just importing them
