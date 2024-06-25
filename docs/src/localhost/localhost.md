@@ -83,6 +83,9 @@ brew services start caddy
 
 # Add caddy https certificates to your keychain
 caddy trust
+
+# Indicate to deno to use the keychain for tls certificates
+echo "DENO_TLS_CA_STORE=system" >> ~/www/.env
 ```
 
 ### Install dnsmasq (map *.localhost address to 127.0.0.1)
