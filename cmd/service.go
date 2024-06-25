@@ -16,6 +16,9 @@ func NewCmdService() *cobra.Command {
 	cmd.AddCommand(NewCmdServiceUninstall())
 	cmd.AddCommand(NewCmdServiceLog())
 	cmd.AddCommand(NewCmdServiceStatus())
+	cmd.AddCommand(NewCmdServiceStart())
+	cmd.AddCommand(NewCmdServiceStop())
+	cmd.AddCommand(NewCmdServiceRestart())
 
 	return cmd
 }
@@ -40,7 +43,36 @@ func NewCmdServiceUninstall() *cobra.Command {
 		},
 	}
 	return cmd
+}
 
+func NewCmdServiceStart() *cobra.Command {
+	return &cobra.Command{
+		Use:   "start",
+		Short: "Start smallweb service",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return StartService()
+		},
+	}
+}
+
+func NewCmdServiceStop() *cobra.Command {
+	return &cobra.Command{
+		Use:   "stop",
+		Short: "Stop smallweb service",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return StopService()
+		},
+	}
+}
+
+func NewCmdServiceRestart() *cobra.Command {
+	return &cobra.Command{
+		Use:   "restart",
+		Short: "Restart smallweb service",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return RestartService()
+		},
+	}
 }
 
 func NewCmdServiceLog() *cobra.Command {

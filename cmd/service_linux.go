@@ -71,6 +71,60 @@ func InstallService() error {
 	return nil
 }
 
+func StartService() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	servicePath := filepath.Join(homeDir, ".config", "systemd", "user", "smallweb.service")
+	if !worker.FileExists(servicePath) {
+		return fmt.Errorf("service not installed")
+	}
+
+	if err := exec.Command("systemctl", "--user", "start", "smallweb.service").Run(); err != nil {
+		return fmt.Errorf("failed to start service: %v", err)
+	}
+
+	return nil
+}
+
+func StopService() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	servicePath := filepath.Join(homeDir, ".config", "systemd", "user", "smallweb.service")
+	if !worker.FileExists(servicePath) {
+		return fmt.Errorf("service not installed")
+	}
+
+	if err := exec.Command("systemctl", "--user", "stop", "smallweb.service").Run(); err != nil {
+		return fmt.Errorf("failed to stop service: %v", err)
+	}
+
+	return nil
+}
+
+func RestartService() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	servicePath := filepath.Join(homeDir, ".config", "systemd", "user", "smallweb.service")
+	if !worker.FileExists(servicePath) {
+		return fmt.Errorf("service not installed")
+	}
+
+	if err := exec.Command("systemctl", "--user", "restart", "smallweb.service").Run(); err != nil {
+		return fmt.Errorf("failed to restart service: %v", err)
+	}
+
+	return nil
+}
+
 func UninstallService() error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
