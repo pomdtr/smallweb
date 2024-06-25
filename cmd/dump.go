@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
@@ -33,6 +34,11 @@ func NewCmdDump() *cobra.Command {
 			apps := make(map[string]App)
 			for _, entry := range entries {
 				if !entry.IsDir() {
+					continue
+				}
+
+				// Skip hidden files
+				if strings.HasPrefix(entry.Name(), ".") {
 					continue
 				}
 
