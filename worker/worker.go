@@ -2,6 +2,7 @@ package worker
 
 import (
 	"bufio"
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -335,20 +336,16 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tempfile, err := os.CreateTemp("", "sandbox.ts")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	defer os.Remove(tempfile.Name())
-
 	host := r.Host
 	protocol := r.Header.Get("X-Forwarded-Proto")
 	if protocol == "" {
 		protocol = "http"
 	}
 
+	var stdin bytes.Buffer
+
 	url := fmt.Sprintf("%s://%s%s", protocol, host, r.URL.String())
-	if err := sandboxTemplate.Execute(tempfile, map[string]interface{}{
+	if err := sandboxTemplate.Execute(&stdin, map[string]interface{}{
 		"Port":       freeport,
 		"ModURL":     entrypoint,
 		"RequestURL": url,
@@ -359,7 +356,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	args := []string{"run", "--unstable-kv", "--unstable-temporal"}
 	args = append(args, permissions.Flags(appDir)...)
-	args = append(args, tempfile.Name())
+	args = append(args, "-")
 
 	cmd, err := me.Cmd(args...)
 	if err != nil {
@@ -368,6 +365,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd.Dir = appDir
+	cmd.Stdin = &stdin
 	cmd.Env = os.Environ()
 	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
