@@ -232,6 +232,13 @@ func init() {
 		log.Fatal(fmt.Errorf("could not determine smallweb root, please set SMALLWEB_ROOT"))
 	}
 
+	// ensure smallweb is in the path
+	executable, err := os.Executable()
+	if err != nil {
+		log.Fatalf("could not determine executable path: %v", err)
+	}
+	os.Setenv("PATH", fmt.Sprintf("%s:%s", filepath.Dir(executable), os.Getenv("PATH")))
+
 }
 
 type WorkerEntrypoints struct {
@@ -367,6 +374,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cmd.Dir = appDir
 	cmd.Stdin = &stdin
 	cmd.Env = os.Environ()
+
 	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
 		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
 		if err != nil {
