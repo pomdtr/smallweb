@@ -104,12 +104,8 @@ func RestartService() error {
 		return fmt.Errorf("service not installed")
 	}
 
-	if err := exec.Command("launchctl", "stop", "com.pomdtr.smallweb").Run(); err != nil {
+	if err := exec.Command("launchctl", "kickstart", "-k", "com.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to stop service: %v", err)
-	}
-
-	if err := exec.Command("launchctl", "start", "com.pomdtr.smallweb").Run(); err != nil {
-		return fmt.Errorf("failed to start service: %v", err)
 	}
 
 	return nil
