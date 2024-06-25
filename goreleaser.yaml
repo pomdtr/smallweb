@@ -14,14 +14,10 @@ builds:
   - env:
       - CGO_ENABLED=0
     goos:
-      - windows
       - linux
       - darwin
 archives:
-  - format_overrides:
-      - goos: windows
-        format: zip
-    files:
+  - files:
       - README.md
       - LICENSE-GPL
       - completions/*

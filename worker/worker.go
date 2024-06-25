@@ -312,7 +312,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var appDir = filepath.Join(SMALLWEB_ROOT, me.alias)
 
 	if !FileExists(filepath.Join(SMALLWEB_ROOT, me.alias)) {
-		http.Error(w, "app not found", http.StatusNotFound)
+		http.Error(w, "", http.StatusNotFound)
 		return
 	}
 
