@@ -19,49 +19,24 @@ All the instructions are written in the [getting started guide](https://pomdtr.g
 
 ## Demo
 
-The following snippet is stored at `~/www/demo/main.ts` on my raspberrypi 400, and served at <https://demo.pomdtr.me>. Any edit to the file is reflected in real-time, without the need to rebuild the project, or restart the server.
+The following snippet is stored at `~/www/sqlite-example/main.ts` on my raspberrypi 400, and served at <https://sqlite-example.pomdtr.me>. Any edit to the file is reflected in real-time, without the need to rebuild the project, or restart the server.
 
 ```tsx
-/** @jsxImportSource npm:preact */
-import { render } from "npm:preact-render-to-string";
+// In smallweb, you install applications by just importing them
+import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
+const handler = serveDatabase({ dbPath: "./chinook.db" });
 
+// You can extends the functionality of your application by adding middlewares
+import { lastlogin } from "jsr:@pomdtr/lastlogin@0.0.3";
+const auth = lastlogin({
+  // accept any email as valid.
+  // In a real application, you would either whitelist emails,
+  // or check the email against a database of users.
+  verifyEmail: (_email) => true,
+});
+
+// This is the final handler that will be executed on each request
 export default {
-  fetch() {
-    return new Response(
-      render(
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1.0"
-            />
-            <title>Smallweb - Host websites from your internet folder</title>
-            <link
-              href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
-              rel="stylesheet"
-            />
-          </head>
-          <body class="bg-white flex items-center justify-center min-h-screen text-black">
-            <div class="border-4 border-black p-10 text-center">
-              <h1 class="text-6xl font-extrabold mb-4">Smallweb</h1>
-              <p class="text-2xl mb-6">Host websites from your internet folder</p>
-              <a
-                href="https://github.com/pomdtr/smallweb"
-                class="px-8 py-3 bg-black text-white font-bold border-4 border-black hover:bg-white hover:text-black transition duration-300"
-              >
-                Get Started
-              </a>
-            </div>
-          </body>
-        </html>,
-      ),
-      {
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-        },
-      },
-    );
-  }
-}
+  fetch: auth(handler),
+};
 ```
