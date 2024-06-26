@@ -18,10 +18,6 @@ var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 
 func InstallService() error {
-	if err := setupDenoIfRequired(); err != nil {
-		return err
-	}
-
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
