@@ -65,8 +65,10 @@ func (p *Permission) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-var defaultPermissions = Permissions{
-	All: true,
+var defaultConfig = Config{
+	Permissions: Permissions{
+		All: true,
+	},
 }
 
 func (p *Permissions) Flags(rootDir string) []string {
@@ -267,45 +269,94 @@ func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) LoadPermission() (*Permissions, error) {
-	var configBytes []byte
-	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.json"); FileExists(configPath) {
-		b, err := os.ReadFile(configPath)
+func (me *Worker) LoadConfig() (*Config, error) {
+	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "smallweb.json"); FileExists(configPath) {
+		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
-			return nil, fmt.Errorf("could not read deno.json: %v", err)
+			return nil, fmt.Errorf("could not read smallweb.json: %v", err)
 		}
-		configBytes = b
-	} else if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.jsonc"); FileExists(configPath) {
+
+		var config Config
+		if err := json.Unmarshal(configBytes, &config); err != nil {
+			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		}
+
+		return &config, nil
+	}
+
+	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "smallweb.jsonc"); FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
 		}
 
-		standardBytes, err := hujson.Standardize(rawBytes)
+		configBytes, err := hujson.Standardize(rawBytes)
 		if err != nil {
 			return nil, fmt.Errorf("could not standardize deno.jsonc: %v", err)
 		}
 
-		configBytes = standardBytes
-	} else {
-		return &defaultPermissions, nil
+		var config Config
+		if err := json.Unmarshal(configBytes, &config); err != nil {
+			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		}
+
+		return &config, nil
 	}
 
-	var DenoConfig map[string]json.RawMessage
-	if err := json.Unmarshal(configBytes, &DenoConfig); err != nil {
-		return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.json"); FileExists(configPath) {
+		denoConfigBytes, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not read deno.json: %v", err)
+		}
+
+		var denoConfig map[string]json.RawMessage
+		if err := json.Unmarshal(denoConfigBytes, &denoConfig); err != nil {
+			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		}
+
+		configBytes, ok := denoConfig["smallweb"]
+		if !ok {
+			return &defaultConfig, nil
+		}
+
+		var config Config
+		if err := json.Unmarshal(configBytes, &config); err != nil {
+			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		}
+
+		return &config, nil
 	}
 
-	if _, ok := DenoConfig["smallweb"]; !ok {
-		return &defaultPermissions, nil
+	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "deno.jsonc"); FileExists(configPath) {
+		rawBytes, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not read deno.json: %v", err)
+		}
+
+		denoConfigBytes, err := hujson.Standardize(rawBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not standardize deno.jsonc: %v", err)
+		}
+
+		var denoConfig map[string]json.RawMessage
+		if err := json.Unmarshal(denoConfigBytes, &denoConfig); err != nil {
+			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		}
+
+		configBytes, ok := denoConfig["smallweb"]
+		if !ok {
+			return &defaultConfig, nil
+		}
+
+		var config Config
+		if err := json.Unmarshal(configBytes, &config); err != nil {
+			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		}
+
+		return &config, nil
 	}
 
-	var config Config
-	if err := json.Unmarshal(DenoConfig["smallweb"], &config); err != nil {
-		return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
-	}
-
-	return &config.Permissions, nil
+	return &defaultConfig, nil
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -337,7 +388,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	permissions, err := me.LoadPermission()
+	config, err := me.LoadConfig()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -362,7 +413,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	args := []string{"run", "--unstable-kv", "--unstable-temporal"}
-	args = append(args, permissions.Flags(appDir)...)
+	args = append(args, config.Permissions.Flags(appDir)...)
 	args = append(args, "-")
 
 	cmd, err := me.Cmd(args...)
