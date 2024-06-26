@@ -58,11 +58,18 @@ func (p *Permission) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	if err := json.Unmarshal(data, &p.Allow); err != nil {
-		return err
+	var object map[string][]string
+	if err := json.Unmarshal(data, &object); err == nil {
+		if allow, ok := object["allow"]; ok {
+			p.Allow = allow
+		}
+		if deny, ok := object["deny"]; ok {
+			p.Deny = deny
+		}
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("could not unmarshal permission")
 }
 
 func (p *Permissions) Flags(rootDir string) []string {
@@ -412,7 +419,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !config.Permissions.All && !config.Permissions.Net.All {
-		config.Permissions.Net.Allow = append(config.Permissions.Net.Allow, fmt.Sprintf("http://localhost:%d", freeport))
+		config.Permissions.Net.Allow = append(config.Permissions.Net.Allow, fmt.Sprintf("0.0.0.0:%d", freeport))
 	}
 
 	host := r.Host
@@ -434,7 +441,8 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	args := []string{"run", "--unstable-kv", "--unstable-temporal"}
-	args = append(args, config.Permissions.Flags(appDir)...)
+	flags := config.Permissions.Flags(appDir)
+	args = append(args, flags...)
 	args = append(args, "-")
 
 	cmd, err := me.Cmd(args...)
