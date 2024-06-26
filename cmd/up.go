@@ -16,10 +16,6 @@ func NewCmdUp() *cobra.Command {
 		Short: "Start the smallweb evaluation server",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := setupDenoIfRequired(); err != nil {
-				return err
-			}
-
 			port, _ := cmd.Flags().GetInt("port")
 			server := http.Server{
 				Addr: fmt.Sprintf(":%d", port),

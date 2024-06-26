@@ -28,6 +28,12 @@ type Config struct {
 	Permissions Permissions `json:"permissions"`
 }
 
+type Permission struct {
+	All   bool     `json:"all"`
+	Allow []string `json:"allow"`
+	Deny  []string `json:"deny"`
+}
+
 type Permissions struct {
 	All   bool       `json:"all"`
 	Read  Permission `json:"read"`
@@ -37,12 +43,6 @@ type Permissions struct {
 	Run   Permission `json:"run"`
 	Sys   Permission `json:"sys"`
 	Ffi   Permission `json:"ffi"`
-}
-
-type Permission struct {
-	All   bool     `json:"all"`
-	Allow []string `json:"allow"`
-	Deny  []string `json:"deny"`
 }
 
 func (p *Permission) UnmarshalJSON(data []byte) error {
@@ -63,12 +63,6 @@ func (p *Permission) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-}
-
-var defaultConfig = Config{
-	Permissions: Permissions{
-		All: true,
-	},
 }
 
 func (p *Permissions) Flags(rootDir string) []string {
@@ -240,7 +234,6 @@ func init() {
 		log.Fatalf("could not determine executable path: %v", err)
 	}
 	os.Setenv("PATH", fmt.Sprintf("%s:%s", filepath.Dir(executable), os.Getenv("PATH")))
-
 }
 
 type WorkerEntrypoints struct {
@@ -270,6 +263,30 @@ func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
 var upgrader = websocket.Upgrader{} // use default options
 
 func (me *Worker) LoadConfig() (*Config, error) {
+	var appDir = filepath.Join(SMALLWEB_ROOT, me.alias)
+	defaultConfig := Config{
+		Permissions: Permissions{
+			Read: Permission{
+				Allow: []string{appDir},
+			},
+			Write: Permission{
+				Allow: []string{appDir},
+				Deny: []string{
+					filepath.Join(appDir, "smallweb.json"),
+					filepath.Join(appDir, "smallweb.jsonc"),
+					filepath.Join(appDir, "deno.json"),
+					filepath.Join(appDir, "deno.jsonc"),
+				},
+			},
+			Net: Permission{
+				All: true,
+			},
+			Env: Permission{
+				All: true,
+			},
+		},
+	}
+
 	if configPath := filepath.Join(SMALLWEB_ROOT, me.alias, "smallweb.json"); FileExists(configPath) {
 		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
@@ -392,6 +409,10 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if !config.Permissions.All && !config.Permissions.Net.All {
+		config.Permissions.Net.Allow = append(config.Permissions.Net.Allow, fmt.Sprintf("http://localhost:%d", freeport))
 	}
 
 	host := r.Host
