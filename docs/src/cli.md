@@ -301,6 +301,34 @@ smallweb service log [flags]
   -h, --help     help for log
 ```
 
+## smallweb service restart
+
+Restart smallweb service
+
+```
+smallweb service restart [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for restart
+```
+
+## smallweb service start
+
+Start smallweb service
+
+```
+smallweb service start [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for start
+```
+
 ## smallweb service status
 
 View service status
@@ -313,6 +341,20 @@ smallweb service status [flags]
 
 ```
   -h, --help   help for status
+```
+
+## smallweb service stop
+
+Stop smallweb service
+
+```
+smallweb service stop [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for stop
 ```
 
 ## smallweb service uninstall

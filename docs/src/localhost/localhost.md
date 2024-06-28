@@ -44,7 +44,7 @@ brew install pomdtr/tap/smallweb
 
 # Create a dummy app to make sure smallweb is working
 mkdir -p ~/www
-CAT <<EOF > ~/www/example.ts
+CAT <<EOF > ~/www/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -59,7 +59,6 @@ EOF
 # run smallweb in the background
 smallweb service install
 ```
-
 
 ### Install Caddy (redirect *.localhost to localhost:7777)
 
