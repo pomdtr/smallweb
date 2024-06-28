@@ -47,7 +47,7 @@ func InstallService() error {
 
 	if err := serviceConfig.Execute(f, map[string]string{
 		"ExecPath": execPath,
-		"Homedir":  homeDir,
+		"HomeDir":  homeDir,
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)
 	}
