@@ -12,10 +12,10 @@
         <key>RunAtLoad</key>
         <true />
         <key>StandardOutPath</key>
-        <string>/Users/pomdtr/Library/Logs/smallweb.log</string>
+        <string>{{ .HomeDir }}/Library/Logs/smallweb.log</string>
         <key>StandardErrorPath</key>
-        <string>/Users/pomdtr/Library/Logs/smallweb.log</string>
+        <string>{{ .HomeDir }}/Library/Logs/smallweb.log</string>
         <key>WorkingDirectory</key>
-        <string>/Users/pomdtr/</string>
+        <string>{{ .HomeDir }}/</string>
     </dict>
 </plist>

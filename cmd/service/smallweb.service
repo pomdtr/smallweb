@@ -8,7 +8,7 @@ Type=simple
 ExecStart={{ .ExecPath }} up
 Restart=always
 RestartSec=10
-WorkingDirectory=/home/pomdtr/
+WorkingDirectory={{ .HomeDir }}
 
 [Install]
 WantedBy=default.target
