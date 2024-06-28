@@ -207,7 +207,7 @@
 
 # Create a dummy app to make sure smallweb is working
 mkdir -p ~/www
-CAT &lt;&lt;EOF &gt; ~/www/example.ts
+CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

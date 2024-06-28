@@ -188,7 +188,7 @@
 <p>Every http request is sandboxed in a single deno subprocess by the smallweb evaluation server. If there is no activity on your website, no resources will be used on your server, making it a great solution for low-traffic websites.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <p>If you want your apps to be available on the internet, you'll need to buy a domain name, and point it to your server.
-You can find more information on how to do this in the <a href="./cloudflare/tunnel.html">documentation</a>.</p>
+You can find more information on to do this in the <a href="./cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
 <p>If you prefer your to keep your apps local to your device, you can learn how to host your apps as <code>https://&lt;app&gt;.localhost</code> address in <a href="./localhost/localhost.html">this guide</a>. This option does not requires a domain name (or a server), but your app will only be available on your local device.</p>
 <p>This guide will assumes that you have followed the <a href="./localhost/localhost.html">localhost setup guide</a>. If you haven't, just replace <code>https://&lt;app&gt;.localhost</code> with <code>https://&lt;app&gt;.&lt;your-domain&gt;</code> in the examples below.</p>
 <h3 id="hosting-a-web-app"><a class="header" href="#hosting-a-web-app">Hosting a web app</a></h3>
@@ -316,7 +316,7 @@ export default function (req: Request) {
 
 # Create a dummy app to make sure smallweb is working
 mkdir -p ~/www
-CAT &lt;&lt;EOF &gt; ~/www/example.ts
+CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -601,25 +601,46 @@ Simply type service help [path to command] for full details.</p>
 <pre><code>  -f, --follow   Follow log output
   -h, --help     help for log
 </code></pre>
+<h2 id="smallweb-service-restart"><a class="header" href="#smallweb-service-restart">smallweb service restart</a></h2>
+<p>Restart smallweb service</p>
+<pre><code>smallweb service restart [flags]
+</code></pre>
+<h3 id="options-15"><a class="header" href="#options-15">Options</a></h3>
+<pre><code>  -h, --help   help for restart
+</code></pre>
+<h2 id="smallweb-service-start"><a class="header" href="#smallweb-service-start">smallweb service start</a></h2>
+<p>Start smallweb service</p>
+<pre><code>smallweb service start [flags]
+</code></pre>
+<h3 id="options-16"><a class="header" href="#options-16">Options</a></h3>
+<pre><code>  -h, --help   help for start
+</code></pre>
 <h2 id="smallweb-service-status"><a class="header" href="#smallweb-service-status">smallweb service status</a></h2>
 <p>View service status</p>
 <pre><code>smallweb service status [flags]
 </code></pre>
-<h3 id="options-15"><a class="header" href="#options-15">Options</a></h3>
+<h3 id="options-17"><a class="header" href="#options-17">Options</a></h3>
 <pre><code>  -h, --help   help for status
+</code></pre>
+<h2 id="smallweb-service-stop"><a class="header" href="#smallweb-service-stop">smallweb service stop</a></h2>
+<p>Stop smallweb service</p>
+<pre><code>smallweb service stop [flags]
+</code></pre>
+<h3 id="options-18"><a class="header" href="#options-18">Options</a></h3>
+<pre><code>  -h, --help   help for stop
 </code></pre>
 <h2 id="smallweb-service-uninstall"><a class="header" href="#smallweb-service-uninstall">smallweb service uninstall</a></h2>
 <p>Uninstall smallweb service</p>
 <pre><code>smallweb service uninstall [flags]
 </code></pre>
-<h3 id="options-16"><a class="header" href="#options-16">Options</a></h3>
+<h3 id="options-19"><a class="header" href="#options-19">Options</a></h3>
 <pre><code>  -h, --help   help for uninstall
 </code></pre>
 <h2 id="smallweb-up"><a class="header" href="#smallweb-up">smallweb up</a></h2>
 <p>Start the smallweb evaluation server</p>
 <pre><code>smallweb up [flags]
 </code></pre>
-<h3 id="options-17"><a class="header" href="#options-17">Options</a></h3>
+<h3 id="options-20"><a class="header" href="#options-20">Options</a></h3>
 <pre><code>  -h, --help       help for up
   -p, --port int   Port to listen on (default 7777)
 </code></pre>
