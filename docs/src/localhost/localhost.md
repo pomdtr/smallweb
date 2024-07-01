@@ -34,16 +34,17 @@ We'll use brew to install the required tools. If you don't have brew installed, 
 ### Install Deno (required to run smallweb apps)
 
 ```sh
+# using brew
 brew install deno
 ```
 
 ### Install smallweb
 
-```sh
-brew install pomdtr/tap/smallweb
+Download the lastest version of smallweb from the [github releases](https://github.com/pomdtr/smallweb/releases/latest), and extract it to a folder in your path.
 
+```sh
 # Create a dummy app to make sure smallweb is working
-mkdir -p ~/www
+mkdir -p ~/www/example
 CAT <<EOF > ~/www/example/main.ts
 export default {
   fetch() {
