@@ -40,7 +40,7 @@ brew install deno
 
 ### Install smallweb
 
-Download the lastest version of smallweb from the [github releases](https://github.com/pomdtr/smallweb/releases/latest), and extract it to a folder in your path.
+Download the lastest version of smallweb from the [github releases](https://github.com/pomdtr/smallweb/releases/latest), and extract the smallweb binary to your $PATH.
 
 ```sh
 # Create a dummy app to make sure smallweb is working
