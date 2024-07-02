@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cloudflare setup - Smallweb</title>
+        <title>Fly.io setup - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html" class="active"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> REST API with Hono</div></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html" class="active"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> REST API with Hono</div></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/cloudflare/tunnel.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/fly/setup.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,48 +179,22 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p>Cloudflare Tunnel is a <strong>free</strong> service that allows you to expose your local server to the internet, without having to expose your local IP address.</p>
-<p>Additionally, it provides some protection against DDoS attacks, and allows you to use Cloudflare's other services like Access.</p>
-<h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
-<ol>
-<li>
-<p>Make sure that you have a domain name that you can manage with Cloudflare.</p>
-</li>
-<li>
-<p>Install smallweb on your server, and register it as a service.</p>
-<pre><code class="language-ts">git clone https://github.com/pomdtr/smallweb
-cd smallweb &amp;&amp; go install
-smallweb service install
+                        <h1 id="hosting-smallweb-on-flyio"><a class="header" href="#hosting-smallweb-on-flyio">Hosting Smallweb on fly.io</a></h1>
+<pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb
+fly launch --no-deploy
+fly deploy
+fly certs create '&lt;your-domain&gt;'
+fly certs create '*.&lt;your-domain&gt;'
 </code></pre>
-</li>
-<li>
-<p>From your cloudflare dashboard, navigate to <code>Zero Trust &gt; Networks &gt; Tunnels</code></p>
-</li>
-<li>
-<p>Click on <code>Create a tunnel</code>, and select the <code>Clouflared</code> option</p>
-</li>
-<li>
-<p>Follow the intructions to install cloudflared, and create a connector on your device.</p>
-</li>
-<li>
-<p>Add a wildcard hostname for your tunnel (ex: <code>*.&lt;your-domain&gt;</code>), and use <code>http://localhost:7777</code> as the origin service.</p>
-<p><img src="./tunnel.png" alt="Tunnel Configuration" /></p>
-</li>
-<li>
-<p>Copy the tunnel ID, and go to <code>Websites &gt; DNS &gt; Records</code>.</p>
-</li>
-<li>
-<p>Add a new <code>CNAME</code> record for your wildcard hostname, with a target of <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</p>
-<p><img src="./dns.png" alt="DNS Configuration" /></p>
-</li>
-</ol>
-<h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
-<p>Create a dummy smallweb app in <code>~/www</code></p>
-<pre><code class="language-sh">mkdir -p ~/www/example
-CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
+<p>Then add the required dns entries to your domain registrar.</p>
+<h2 id="testing-the-setup"><a class="header" href="#testing-the-setup">Testing the setup</a></h2>
+<p>Create a dummy website:</p>
+<pre><code class="language-sh">fly ssh console
+mkdir -p /www/example
+CAT &lt;&lt;EOF &gt; /www/example/main.ts
 export default {
   fetch() {
-    return new Response("Smallweb is running", {
+    return new Response("Smallweb is running on fly.io", {
       headers: {
         "Content-Type": "text/plain",
       },
@@ -229,21 +203,18 @@ export default {
 }
 EOF
 </code></pre>
-<p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
-<h2 id="optional-steps"><a class="header" href="#optional-steps">Optional Steps</a></h2>
-<ul>
-<li>You can protect your tunnel (or specific apps) with Cloudflare Access.</li>
-</ul>
+<p>Then go to <code>https://example.&lt;your-domain&gt;</code>.</p>
+<p>You can access the smallweb logs by running: <code>fly logs</code> in the smallweb directory, or <code>fly logs -a smallweb</code> from anywhere.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../localhost/localhost.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../cloudflare/tunnel.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../fly/setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../deno-deploy.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -253,11 +224,11 @@ EOF
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../localhost/localhost.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../cloudflare/tunnel.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../fly/setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../deno-deploy.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

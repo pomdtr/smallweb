@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">3.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">4.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> REST API with Hono</div></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> REST API with Hono</div></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -475,6 +475,32 @@ EOF
 <ul>
 <li>You can protect your tunnel (or specific apps) with Cloudflare Access.</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="hosting-smallweb-on-flyio"><a class="header" href="#hosting-smallweb-on-flyio">Hosting Smallweb on fly.io</a></h1>
+<pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb
+fly launch --no-deploy
+fly deploy
+fly certs create '&lt;your-domain&gt;'
+fly certs create '*.&lt;your-domain&gt;'
+</code></pre>
+<p>Then add the required dns entries to your domain registrar.</p>
+<h2 id="testing-the-setup"><a class="header" href="#testing-the-setup">Testing the setup</a></h2>
+<p>Create a dummy website:</p>
+<pre><code class="language-sh">fly ssh console
+mkdir -p /www/example
+CAT &lt;&lt;EOF &gt; /www/example/main.ts
+export default {
+  fetch() {
+    return new Response("Smallweb is running on fly.io", {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+}
+EOF
+</code></pre>
+<p>Then go to <code>https://example.&lt;your-domain&gt;</code>.</p>
+<p>You can access the smallweb logs by running: <code>fly logs</code> in the smallweb directory, or <code>fly logs -a smallweb</code> from anywhere.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="deno-deploy"><a class="header" href="#deno-deploy">Deno Deploy</a></h1>
 <p>If one of your websites is starting to get a lot of traffic, you might want to deploy it to a cloud provider.</p>
 <p>Deno Deploy is a cloud platform that allows you to deploy your Deno apps with ease. It's a great choice for smallweb apps, since it's built on top of Deno, and it's very easy to use.</p>
