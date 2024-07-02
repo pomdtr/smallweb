@@ -479,10 +479,13 @@ EOF
 <pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb
 fly launch --no-deploy
 fly deploy
-fly certs create '&lt;your-domain&gt;'
+fly certs create '&lt;your-domain&gt;' # Optional, might be used in the future
 fly certs create '*.&lt;your-domain&gt;'
 </code></pre>
 <p>Then add the required dns entries to your domain registrar.</p>
+<p><img src="fly/./dns.png" alt="DNS Entries" /></p>
+<p>The certificate might take a long time to be issued (~30 mins in my experience).
+You can check the status of the certificates by running <code>fly certs show '*.&lt;your-domain&gt;'</code>.</p>
 <h2 id="testing-the-setup"><a class="header" href="#testing-the-setup">Testing the setup</a></h2>
 <p>Create a dummy website:</p>
 <pre><code class="language-sh">fly ssh console
