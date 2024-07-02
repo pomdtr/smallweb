@@ -4,11 +4,16 @@
 git clone https://github.com/pomdtr/smallweb
 fly launch --no-deploy
 fly deploy
-fly certs create '<your-domain>'
+fly certs create '<your-domain>' # Optional, might be used in the future
 fly certs create '*.<your-domain>'
 ```
 
 Then add the required dns entries to your domain registrar.
+
+![DNS Entries](./dns.png)
+
+The certificate might take a long time to be issued (~30 mins in my experience).
+You can check the status of the certificates by running `fly certs show '*.<your-domain>'`.
 
 ## Testing the setup
 
