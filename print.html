@@ -246,23 +246,6 @@ export default app;
 </code></pre>
 <p>No need to start a development server, or to compile the code. Smallweb will take care of everything for you.</p>
 <p>You can just copy paste this code at <code>~/www/hono-example/main.tsx</code>, and open <code>https://hono-example.localhost</code> in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.</p>
-<h3 id="registering-a-cli-command"><a class="header" href="#registering-a-cli-command">Registering a CLI command</a></h3>
-<p>To add a cli command to your app, just create a file called <code>cli.[js,ts,jsx,tsx]</code> in the folder.</p>
-<p>Here is an example of a simple cli command:</p>
-<pre><code class="language-ts">// File: ~/www/demo/cli.ts
-import { parseArgs } from "jsr:@std/cli/parse-args";
-
-const flags = parseArgs(Deno.args, {
-  string: ["name"],
-});
-
-console.log(`Hello, ${flags.name || "world"}!`);
-</code></pre>
-<p>To run the command, you can use the <code>smallweb run</code> command:</p>
-<pre><code class="language-sh">$ smallweb run demo --name smallweb
-Hello, smallweb!
-</code></pre>
-<p>Of course, you can define both an <code>main.ts</code> and a <code>cli.ts</code> file in the same folder.</p>
 <h3 id="setting-env-variables"><a class="header" href="#setting-env-variables">Setting env variables</a></h3>
 <p>You can set environment variables for your app by creating a file called <code>.env</code> in the application folder.</p>
 <p>Here is an example of a <code>.env</code> file:</p>
@@ -283,11 +266,73 @@ export default function (req: Request) {
 }
 </code></pre>
 <p>If you want to set an environment variable for all your apps, you can create a <code>.env</code> file in the <code>~/www</code> directory.</p>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
-<p>If you've read this far, you have already learned the whole smallweb API. You can now start building your own apps, by looking at the examples below:</p>
-<blockquote>
-<p>TODO: Add examples</p>
-</blockquote>
+<h3 id="configuring-permissions"><a class="header" href="#configuring-permissions">Configuring permissions</a></h3>
+<p>By default, a smallweb app can:</p>
+<ul>
+<li>read and write the current directory</li>
+<li>access environment variables using <code>Deno.env.get</code></li>
+<li>access the network with <code>fetch</code></li>
+</ul>
+<p>If you want to add more permissions to your app (or restrict it even further), you can either:</p>
+<ul>
+<li>add <code>smallweb.json</code> configuration file at the root of the folder</li>
+<li>add a <code>smallweb</code> field in your <code>deno.json</code></li>
+</ul>
+<p>A json schema for the permissions file is available <a href="https://static.pomdtr.me/smallweb.schema.json">here</a>. See the deno docs to learn the <a href="https://docs.deno.com/runtime/manual/basics/permissions">available permissions</a>.</p>
+<p>Here is the default config when no <code>smallweb.json</code> file is present:</p>
+<pre><code class="language-json">{
+  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "permissions": {
+    "env": true,
+    "net": true,
+    "read": ["."],
+    "write": {
+      "allow": ["."],
+      "deny": [ "smallweb.json", "smallweb.jsonc", "deno.json", "deno.jsonc"]
+    }
+  }
+}
+</code></pre>
+<p>If you want to add permissions to run a binary, you should start from it, then add the required permissions:</p>
+<pre><code class="language-jsonc">{
+  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "permissions": {
+    "run": ["/opt/homebrew/bin/gh"], // add the ability to run the gh binary
+    "env": true,
+    "net": true,
+    "read": ["."],
+    "write": {
+      "allow": ["."],
+      "deny": [ "smallweb.json", "smallweb.jsonc", "deno.json", "deno.jsonc"]
+    }
+  }
+}
+</code></pre>
+<p>As a general rule, you should only add permissions that are required for your app to run. The more permissions you add, the more attack surface you expose to potential attackers. If you know what you are doing (or just don't care), you can allow all permissions by setting the <code>all</code> field to <code>true</code>.</p>
+<pre><code class="language-jsonc">{
+  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "permissions": {
+    "all": true // yolo!
+  }
+}
+</code></pre>
+<h3 id="registering-a-cli-command"><a class="header" href="#registering-a-cli-command">Registering a CLI command</a></h3>
+<p>To add a cli command to your app, just create a file called <code>cli.[js,ts,jsx,tsx]</code> in the folder.</p>
+<p>Here is an example of a simple cli command:</p>
+<pre><code class="language-ts">// File: ~/www/demo/cli.ts
+import { parseArgs } from "jsr:@std/cli/parse-args";
+
+const flags = parseArgs(Deno.args, {
+  string: ["name"],
+});
+
+console.log(`Hello, ${flags.name || "world"}!`);
+</code></pre>
+<p>To run the command, you can use the <code>smallweb run</code> command:</p>
+<pre><code class="language-sh">$ smallweb run demo --name smallweb
+Hello, smallweb!
+</code></pre>
+<p>Of course, you can define both an <code>main.ts</code> and a <code>cli.ts</code> file in the same folder.</p>
 <div style="break-before: page; page-break-before: always;"></div><p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
 <p>At the end of this process, each folder in <code>~/www</code> will be mapped to domain with a <code>.localhost</code> suffix. For example, the folder <code>~/www/example</code> will be accessible at <code>https://example.localhost</code>.</p>
 <p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
@@ -310,27 +355,14 @@ export default function (req: Request) {
 </code></pre>
 <h3 id="install-deno-required-to-run-smallweb-apps"><a class="header" href="#install-deno-required-to-run-smallweb-apps">Install Deno (required to run smallweb apps)</a></h3>
 <pre><code class="language-sh"># using brew
-brew install deno
+brew install deno go
 </code></pre>
-<h3 id="install-smallweb"><a class="header" href="#install-smallweb">Install smallweb</a></h3>
-<p>Download the lastest version of smallweb from the <a href="https://github.com/pomdtr/smallweb/releases/latest">github releases</a>, and extract the smallweb binary to your $PATH.</p>
-<pre><code class="language-sh"># Create a dummy app to make sure smallweb is working
-mkdir -p ~/www/example
-CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
-export default {
-  fetch() {
-    return new Response("Smallweb is running", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
-  }
-}
-EOF
-
-# run smallweb in the background
+<h3 id="install-smallweb-and-register-it-as-a-service"><a class="header" href="#install-smallweb-and-register-it-as-a-service">Install smallweb, and register it as a service</a></h3>
+<pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb
+cd smallweb &amp;&amp; go install
 smallweb service install
 </code></pre>
+<p>Download the lastest version of smallweb from the <a href="https://github.com/pomdtr/smallweb/releases/latest">github releases</a>, and extract the smallweb binary to your $PATH.</p>
 <h3 id="install-caddy-redirect-localhost-to-localhost7777"><a class="header" href="#install-caddy-redirect-localhost-to-localhost7777">Install Caddy (redirect *.localhost to localhost:7777)</a></h3>
 <pre><code class="language-sh"># Install caddy
 brew install caddy
@@ -352,6 +384,7 @@ brew services start caddy
 # Add caddy https certificates to your keychain
 caddy trust
 
+mkdir -p ~/www
 # Indicate to deno to use the keychain for tls certificates
 echo "DENO_TLS_CA_STORE=system" &gt;&gt; ~/www/.env
 </code></pre>
@@ -372,35 +405,73 @@ nameserver 127.0.0.1
 EOF
 </code></pre>
 <h2 id="testing-the-local-setup"><a class="header" href="#testing-the-local-setup">Testing the local setup</a></h2>
+<p>First, let's create a dummy smallweb website:</p>
+<pre><code class="language-sh">mkdir -p ~/www/example
+CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
+export default {
+  fetch() {
+    return new Response("Smallweb is running", {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+}
+EOF
+</code></pre>
 <p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><p>Cloudflare Tunnel is a <strong>free</strong> service that allows you to expose your local server to the internet, without having to expose your local IP address.</p>
 <p>Additionally, it provides some protection against DDoS attacks, and allows you to use Cloudflare's other services like Access.</p>
 <h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
 <ol>
 <li>
-<p><a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/">Install cloudflared</a></p>
+<p>Make sure that you have a domain name that you can manage with Cloudflare.</p>
 </li>
 <li>
-<p>Login and create a new tunnel.</p>
-<pre><code class="language-bash">cloudflared tunnel login
-cloudflared tunnel create smallweb
+<p>Install smallweb on your server, and register it as a service.</p>
+<pre><code class="language-ts">git clone https://github.com/pomdtr/smallweb
+cd smallweb &amp;&amp; go install
+smallweb service install
 </code></pre>
 </li>
 <li>
-<p>Add your domain to cloudflare, and setup a wildcard record pointing to the tunnel. You can find the tunnel id by running <code>cloudflared tunnel list</code> command.</p>
-<p><img src="cloudflare/./dns.png" alt="alt text" /></p>
+<p>From your cloudflare dashboard, navigate to <code>Zero Trust &gt; Networks &gt; Tunnels</code></p>
 </li>
 <li>
-<p>Add the wildcard route in your tunnel config, redirecting to <code>localhost:7777</code></p>
-<p><img src="cloudflare/./wildcard.png" alt="alt text" /></p>
+<p>Click on <code>Create a tunnel</code>, and select the <code>Clouflared</code> option</p>
 </li>
 <li>
-<p>Make sure that smallweb is running on your device</p>
+<p>Follow the intructions to install cloudflared, and create a connector on your device.</p>
+</li>
+<li>
+<p>Add a wildcard hostname for your tunnel (ex: <code>*.&lt;your-domain&gt;</code>), and use <code>http://localhost:7777</code> as the origin service.</p>
+<p><img src="cloudflare/./tunnel.png" alt="Tunnel Configuration" /></p>
+</li>
+<li>
+<p>Copy the tunnel ID, and go to <code>Websites &gt; DNS &gt; Records</code>.</p>
+</li>
+<li>
+<p>Add a new <code>CNAME</code> record for your wildcard hostname, with a target of <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</p>
+<p><img src="cloudflare/./dns.png" alt="DNS Configuration" /></p>
 </li>
 </ol>
-<pre><code class="language-ts">smallweb up
+<h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
+<p>Create a dummy smallweb app in <code>~/www</code></p>
+<pre><code class="language-sh">mkdir -p ~/www/example
+CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
+export default {
+  fetch() {
+    return new Response("Smallweb is running", {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+}
+EOF
 </code></pre>
-<h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
+<p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
+<h2 id="optional-steps"><a class="header" href="#optional-steps">Optional Steps</a></h2>
 <ul>
 <li>You can protect your tunnel (or specific apps) with Cloudflare Access.</li>
 </ul>

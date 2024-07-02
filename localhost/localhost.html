@@ -201,27 +201,14 @@
 </code></pre>
 <h3 id="install-deno-required-to-run-smallweb-apps"><a class="header" href="#install-deno-required-to-run-smallweb-apps">Install Deno (required to run smallweb apps)</a></h3>
 <pre><code class="language-sh"># using brew
-brew install deno
+brew install deno go
 </code></pre>
-<h3 id="install-smallweb"><a class="header" href="#install-smallweb">Install smallweb</a></h3>
-<p>Download the lastest version of smallweb from the <a href="https://github.com/pomdtr/smallweb/releases/latest">github releases</a>, and extract the smallweb binary to your $PATH.</p>
-<pre><code class="language-sh"># Create a dummy app to make sure smallweb is working
-mkdir -p ~/www/example
-CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
-export default {
-  fetch() {
-    return new Response("Smallweb is running", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
-  }
-}
-EOF
-
-# run smallweb in the background
+<h3 id="install-smallweb-and-register-it-as-a-service"><a class="header" href="#install-smallweb-and-register-it-as-a-service">Install smallweb, and register it as a service</a></h3>
+<pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb
+cd smallweb &amp;&amp; go install
 smallweb service install
 </code></pre>
+<p>Download the lastest version of smallweb from the <a href="https://github.com/pomdtr/smallweb/releases/latest">github releases</a>, and extract the smallweb binary to your $PATH.</p>
 <h3 id="install-caddy-redirect-localhost-to-localhost7777"><a class="header" href="#install-caddy-redirect-localhost-to-localhost7777">Install Caddy (redirect *.localhost to localhost:7777)</a></h3>
 <pre><code class="language-sh"># Install caddy
 brew install caddy
@@ -243,6 +230,7 @@ brew services start caddy
 # Add caddy https certificates to your keychain
 caddy trust
 
+mkdir -p ~/www
 # Indicate to deno to use the keychain for tls certificates
 echo "DENO_TLS_CA_STORE=system" &gt;&gt; ~/www/.env
 </code></pre>
@@ -263,6 +251,20 @@ nameserver 127.0.0.1
 EOF
 </code></pre>
 <h2 id="testing-the-local-setup"><a class="header" href="#testing-the-local-setup">Testing the local setup</a></h2>
+<p>First, let's create a dummy smallweb website:</p>
+<pre><code class="language-sh">mkdir -p ~/www/example
+CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
+export default {
+  fetch() {
+    return new Response("Smallweb is running", {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+}
+EOF
+</code></pre>
 <p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
 
                     </main>

@@ -248,23 +248,6 @@ export default app;
 </code></pre>
 <p>No need to start a development server, or to compile the code. Smallweb will take care of everything for you.</p>
 <p>You can just copy paste this code at <code>~/www/hono-example/main.tsx</code>, and open <code>https://hono-example.localhost</code> in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.</p>
-<h3 id="registering-a-cli-command"><a class="header" href="#registering-a-cli-command">Registering a CLI command</a></h3>
-<p>To add a cli command to your app, just create a file called <code>cli.[js,ts,jsx,tsx]</code> in the folder.</p>
-<p>Here is an example of a simple cli command:</p>
-<pre><code class="language-ts">// File: ~/www/demo/cli.ts
-import { parseArgs } from "jsr:@std/cli/parse-args";
-
-const flags = parseArgs(Deno.args, {
-  string: ["name"],
-});
-
-console.log(`Hello, ${flags.name || "world"}!`);
-</code></pre>
-<p>To run the command, you can use the <code>smallweb run</code> command:</p>
-<pre><code class="language-sh">$ smallweb run demo --name smallweb
-Hello, smallweb!
-</code></pre>
-<p>Of course, you can define both an <code>main.ts</code> and a <code>cli.ts</code> file in the same folder.</p>
 <h3 id="setting-env-variables"><a class="header" href="#setting-env-variables">Setting env variables</a></h3>
 <p>You can set environment variables for your app by creating a file called <code>.env</code> in the application folder.</p>
 <p>Here is an example of a <code>.env</code> file:</p>
@@ -285,11 +268,73 @@ export default function (req: Request) {
 }
 </code></pre>
 <p>If you want to set an environment variable for all your apps, you can create a <code>.env</code> file in the <code>~/www</code> directory.</p>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
-<p>If you've read this far, you have already learned the whole smallweb API. You can now start building your own apps, by looking at the examples below:</p>
-<blockquote>
-<p>TODO: Add examples</p>
-</blockquote>
+<h3 id="configuring-permissions"><a class="header" href="#configuring-permissions">Configuring permissions</a></h3>
+<p>By default, a smallweb app can:</p>
+<ul>
+<li>read and write the current directory</li>
+<li>access environment variables using <code>Deno.env.get</code></li>
+<li>access the network with <code>fetch</code></li>
+</ul>
+<p>If you want to add more permissions to your app (or restrict it even further), you can either:</p>
+<ul>
+<li>add <code>smallweb.json</code> configuration file at the root of the folder</li>
+<li>add a <code>smallweb</code> field in your <code>deno.json</code></li>
+</ul>
+<p>A json schema for the permissions file is available <a href="https://static.pomdtr.me/smallweb.schema.json">here</a>. See the deno docs to learn the <a href="https://docs.deno.com/runtime/manual/basics/permissions">available permissions</a>.</p>
+<p>Here is the default config when no <code>smallweb.json</code> file is present:</p>
+<pre><code class="language-json">{
+  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "permissions": {
+    "env": true,
+    "net": true,
+    "read": ["."],
+    "write": {
+      "allow": ["."],
+      "deny": [ "smallweb.json", "smallweb.jsonc", "deno.json", "deno.jsonc"]
+    }
+  }
+}
+</code></pre>
+<p>If you want to add permissions to run a binary, you should start from it, then add the required permissions:</p>
+<pre><code class="language-jsonc">{
+  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "permissions": {
+    "run": ["/opt/homebrew/bin/gh"], // add the ability to run the gh binary
+    "env": true,
+    "net": true,
+    "read": ["."],
+    "write": {
+      "allow": ["."],
+      "deny": [ "smallweb.json", "smallweb.jsonc", "deno.json", "deno.jsonc"]
+    }
+  }
+}
+</code></pre>
+<p>As a general rule, you should only add permissions that are required for your app to run. The more permissions you add, the more attack surface you expose to potential attackers. If you know what you are doing (or just don't care), you can allow all permissions by setting the <code>all</code> field to <code>true</code>.</p>
+<pre><code class="language-jsonc">{
+  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "permissions": {
+    "all": true // yolo!
+  }
+}
+</code></pre>
+<h3 id="registering-a-cli-command"><a class="header" href="#registering-a-cli-command">Registering a CLI command</a></h3>
+<p>To add a cli command to your app, just create a file called <code>cli.[js,ts,jsx,tsx]</code> in the folder.</p>
+<p>Here is an example of a simple cli command:</p>
+<pre><code class="language-ts">// File: ~/www/demo/cli.ts
+import { parseArgs } from "jsr:@std/cli/parse-args";
+
+const flags = parseArgs(Deno.args, {
+  string: ["name"],
+});
+
+console.log(`Hello, ${flags.name || "world"}!`);
+</code></pre>
+<p>To run the command, you can use the <code>smallweb run</code> command:</p>
+<pre><code class="language-sh">$ smallweb run demo --name smallweb
+Hello, smallweb!
+</code></pre>
+<p>Of course, you can define both an <code>main.ts</code> and a <code>cli.ts</code> file in the same folder.</p>
 
                     </main>
 

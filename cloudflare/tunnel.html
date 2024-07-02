@@ -184,29 +184,53 @@
 <h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
 <ol>
 <li>
-<p><a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/">Install cloudflared</a></p>
+<p>Make sure that you have a domain name that you can manage with Cloudflare.</p>
 </li>
 <li>
-<p>Login and create a new tunnel.</p>
-<pre><code class="language-bash">cloudflared tunnel login
-cloudflared tunnel create smallweb
+<p>Install smallweb on your server, and register it as a service.</p>
+<pre><code class="language-ts">git clone https://github.com/pomdtr/smallweb
+cd smallweb &amp;&amp; go install
+smallweb service install
 </code></pre>
 </li>
 <li>
-<p>Add your domain to cloudflare, and setup a wildcard record pointing to the tunnel. You can find the tunnel id by running <code>cloudflared tunnel list</code> command.</p>
-<p><img src="./dns.png" alt="alt text" /></p>
+<p>From your cloudflare dashboard, navigate to <code>Zero Trust &gt; Networks &gt; Tunnels</code></p>
 </li>
 <li>
-<p>Add the wildcard route in your tunnel config, redirecting to <code>localhost:7777</code></p>
-<p><img src="./wildcard.png" alt="alt text" /></p>
+<p>Click on <code>Create a tunnel</code>, and select the <code>Clouflared</code> option</p>
 </li>
 <li>
-<p>Make sure that smallweb is running on your device</p>
+<p>Follow the intructions to install cloudflared, and create a connector on your device.</p>
+</li>
+<li>
+<p>Add a wildcard hostname for your tunnel (ex: <code>*.&lt;your-domain&gt;</code>), and use <code>http://localhost:7777</code> as the origin service.</p>
+<p><img src="./tunnel.png" alt="Tunnel Configuration" /></p>
+</li>
+<li>
+<p>Copy the tunnel ID, and go to <code>Websites &gt; DNS &gt; Records</code>.</p>
+</li>
+<li>
+<p>Add a new <code>CNAME</code> record for your wildcard hostname, with a target of <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</p>
+<p><img src="./dns.png" alt="DNS Configuration" /></p>
 </li>
 </ol>
-<pre><code class="language-ts">smallweb up
+<h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
+<p>Create a dummy smallweb app in <code>~/www</code></p>
+<pre><code class="language-sh">mkdir -p ~/www/example
+CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
+export default {
+  fetch() {
+    return new Response("Smallweb is running", {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+}
+EOF
 </code></pre>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
+<h2 id="optional-steps"><a class="header" href="#optional-steps">Optional Steps</a></h2>
 <ul>
 <li>You can protect your tunnel (or specific apps) with Cloudflare Access.</li>
 </ul>
