@@ -1,0 +1,25 @@
+# fly.toml app configuration file generated for smallweb on 2024-07-02T13:57:10+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'smallweb'
+
+[build]
+
+[[mounts]]
+source = 'smallweb_data'
+destination = '/www'
+
+[http_service]
+internal_port = 7777
+force_https = true
+auto_stop_machines = false
+auto_start_machines = false
+min_machines_running = 1
+processes = ['app']
+
+[[vm]]
+cpu_kind = 'shared'
+cpus = 1
+memory_mb = 1024
