@@ -1,33 +1,56 @@
-
 Cloudflare Tunnel is a **free** service that allows you to expose your local server to the internet, without having to expose your local IP address.
 
 Additionally, it provides some protection against DDoS attacks, and allows you to use Cloudflare's other services like Access.
 
 ## Setup
 
-1. [Install cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
+1. Make sure that you have a domain name that you can manage with Cloudflare.
 
-1. Login and create a new tunnel.
+1. Install smallweb on your server, and register it as a service.
 
-    ```bash
-    cloudflared tunnel login
-    cloudflared tunnel create smallweb
+    ```ts
+    git clone https://github.com/pomdtr/smallweb
+    cd smallweb && go install
+    smallweb service install
     ```
 
-1. Add your domain to cloudflare, and setup a wildcard record pointing to the tunnel. You can find the tunnel id by running `cloudflared tunnel list` command.
+1. From your cloudflare dashboard, navigate to `Zero Trust > Networks > Tunnels`
 
-    ![alt text](./dns.png)
+1. Click on `Create a tunnel`, and select the `Clouflared` option
 
-1. Add the wildcard route in your tunnel config, redirecting to `localhost:7777`
+1. Follow the intructions to install cloudflared, and create a connector on your device.
 
-    ![alt text](./wildcard.png)
+1. Add a wildcard hostname for your tunnel (ex: `*.<your-domain>`), and use `http://localhost:7777` as the origin service.
 
-1. Make sure that smallweb is running on your device
+    ![Tunnel Configuration](./tunnel.png)
 
-```ts
-smallweb up
+1. Copy the tunnel ID, and go to `Websites > DNS > Records`.
+
+1. Add a new `CNAME` record for your wildcard hostname, with a target of `<tunnel-id>.cfargotunnel.com`.
+
+    ![DNS Configuration](./dns.png)
+
+## Checking that your tunnel is running
+
+Create a dummy smallweb app in `~/www`
+
+```sh
+mkdir -p ~/www/example
+CAT <<EOF > ~/www/example/main.ts
+export default {
+  fetch() {
+    return new Response("Smallweb is running", {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+}
+EOF
 ```
 
-## Next Steps
+If everything went well, you should be able to access `https://example.localhost` in your browser, and see the message `Smallweb is running`.
+
+## Optional Steps
 
 - You can protect your tunnel (or specific apps) with Cloudflare Access.

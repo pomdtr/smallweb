@@ -35,31 +35,18 @@ We'll use brew to install the required tools. If you don't have brew installed, 
 
 ```sh
 # using brew
-brew install deno
+brew install deno go
 ```
 
-### Install smallweb
-
-Download the lastest version of smallweb from the [github releases](https://github.com/pomdtr/smallweb/releases/latest), and extract the smallweb binary to your $PATH.
+### Install smallweb, and register it as a service
 
 ```sh
-# Create a dummy app to make sure smallweb is working
-mkdir -p ~/www/example
-CAT <<EOF > ~/www/example/main.ts
-export default {
-  fetch() {
-    return new Response("Smallweb is running", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
-  }
-}
-EOF
-
-# run smallweb in the background
+git clone https://github.com/pomdtr/smallweb
+cd smallweb && go install
 smallweb service install
 ```
+
+Download the lastest version of smallweb from the [github releases](https://github.com/pomdtr/smallweb/releases/latest), and extract the smallweb binary to your $PATH.
 
 ### Install Caddy (redirect *.localhost to localhost:7777)
 
@@ -84,6 +71,7 @@ brew services start caddy
 # Add caddy https certificates to your keychain
 caddy trust
 
+mkdir -p ~/www
 # Indicate to deno to use the keychain for tls certificates
 echo "DENO_TLS_CA_STORE=system" >> ~/www/.env
 ```
@@ -108,5 +96,22 @@ EOF
 ```
 
 ## Testing the local setup
+
+First, let's create a dummy smallweb website:
+
+```sh
+mkdir -p ~/www/example
+CAT <<EOF > ~/www/example/main.ts
+export default {
+  fetch() {
+    return new Response("Smallweb is running", {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+}
+EOF
+```
 
 If everything went well, you should be able to access `https://example.localhost` in your browser, and see the message `Smallweb is running`.
