@@ -2,7 +2,7 @@
 
 Hono is a fantastic library to create APIs in smallweb. It's a great match for smallweb, and the framework I recommend for creating APIs.
 
-Below are some examples to get you started, adapted from the official [Hono documentation](
+Below are some examples to get you started, adapted from the official [Hono documentation](https://hono.dev/docs/)
 
 ## Hello world
 
