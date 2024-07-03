@@ -180,7 +180,19 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="installing-apps-from-jsr"><a class="header" href="#installing-apps-from-jsr">Installing Apps from JSR</a></h1>
-<p>In Smallweb, to install an application, you just import it from <a href="https://jsr.io">JSR</a>. Apps can include both a backend and a frontend, and even a cli.</p>
+<p>In Smallweb, we use jsr to distribute apps.
+Think of it as a lightweight alternatives to docker images.</p>
+<p>Apps can includes both the frontend and the backend, and can be installed with a single import statement.
+To upgrade an app, you can just change the version in the import statement.</p>
+<p>Deno will take care of downloading the required modules, and caching them for future use.
+It also gives us a secure way to run untrusted code, since we can restrict the permissions of the app.</p>
+<p>By default, apps can:</p>
+<ul>
+<li>read and write files from their own directory</li>
+<li>access environment variables using <code>Deno.env.get</code></li>
+<li>access the network with <code>fetch</code></li>
+</ul>
+<p>But you can add more permissions to your app (or restrict it even further) by adding a <code>smallweb.json</code> file to the app directory.</p>
 <h2 id="sqlite-explorer"><a class="header" href="#sqlite-explorer">SQLite Explorer</a></h2>
 <p>Create a new file at <code>~/www/sqlite-explorer/main.ts</code> with the following content:</p>
 <pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
@@ -209,6 +221,7 @@ unzip /tmp/chinook.zip -d ~/www/sqlite-explorer
 ├── main.ts
 └── smallweb.json
 </code></pre>
+<p>You can now access your app at <code>https://sqlite-explorer.localhost</code> (or <code>https://sqlite-explorer.&lt;your-domain&gt;</code>).</p>
 <p>If you don't want your database to be public, feel free to wrap it in a auth middleware:</p>
 <pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
 import { lastlogin } from "jsr:@pomdtr/lastlogin";
