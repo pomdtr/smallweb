@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "embed"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -14,7 +15,7 @@ func NewCmdService() *cobra.Command {
 
 	cmd.AddCommand(NewCmdServiceInstall())
 	cmd.AddCommand(NewCmdServiceUninstall())
-	cmd.AddCommand(NewCmdServiceLog())
+	cmd.AddCommand(NewCmdServiceLogs())
 	cmd.AddCommand(NewCmdServiceStatus())
 	cmd.AddCommand(NewCmdServiceStart())
 	cmd.AddCommand(NewCmdServiceStop())
@@ -28,7 +29,12 @@ func NewCmdServiceInstall() *cobra.Command {
 		Use:   "install",
 		Short: "Install smallweb as a service",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return InstallService()
+			if err := InstallService(); err != nil {
+				return err
+			}
+
+			fmt.Println("Service installed successfully")
+			return nil
 		},
 	}
 	return cmd
@@ -39,7 +45,12 @@ func NewCmdServiceUninstall() *cobra.Command {
 		Use:   "uninstall",
 		Short: "Uninstall smallweb service",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return UninstallService()
+			if err := UninstallService(); err != nil {
+				return err
+			}
+
+			fmt.Println("Service uninstalled successfully")
+			return nil
 		},
 	}
 	return cmd
@@ -50,7 +61,12 @@ func NewCmdServiceStart() *cobra.Command {
 		Use:   "start",
 		Short: "Start smallweb service",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return StartService()
+			if err := StartService(); err != nil {
+				return err
+			}
+
+			fmt.Println("Service started successfully")
+			return nil
 		},
 	}
 }
@@ -60,7 +76,11 @@ func NewCmdServiceStop() *cobra.Command {
 		Use:   "stop",
 		Short: "Stop smallweb service",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return StopService()
+			if err := StopService(); err != nil {
+				return err
+			}
+			fmt.Errorf("Service stopped successfully")
+			return nil
 		},
 	}
 }
@@ -70,20 +90,25 @@ func NewCmdServiceRestart() *cobra.Command {
 		Use:   "restart",
 		Short: "Restart smallweb service",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RestartService()
+			if err := RestartService(); err != nil {
+				return err
+			}
+
+			fmt.Println("Service restarted successfully")
+			return nil
 		},
 	}
 }
 
-func NewCmdServiceLog() *cobra.Command {
+func NewCmdServiceLogs() *cobra.Command {
 	var flags struct {
 		follow bool
 	}
 
 	cmd := &cobra.Command{
-		Use:     "log",
+		Use:     "logs",
 		Short:   "Print service logs",
-		Aliases: []string{"logs"},
+		Aliases: []string{"log"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return PrintServiceLogs(flags.follow)
 		},
