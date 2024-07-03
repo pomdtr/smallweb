@@ -15,30 +15,23 @@ Each incoming http request is sandboxed in a single deno subprocess by the small
 
 ## Installation
 
-All the instructions are written in the [getting started guide](https://pomdtr.github.io/smallweb).
+All the instructions are written in the [getting started guide](https://smallweb-docs.pomdtr.me).
 
 ## Demo
 
-The following snippet is stored at `~/www/sqlite-example/main.ts` on my raspberrypi 400, and served at <https://sqlite-example.pomdtr.me>.
-
-Any edit to the file is reflected in real-time, without the need to rebuild the project, or restart the server.
+The following snippet is stored at `~/www/sqlite-example/main.ts` on my raspberrypi 400.
 
 ```tsx
 // In smallweb, you install applications by just importing them
 import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
-const handler = serveDatabase({ dbPath: "./chinook.db" });
-
-// You can extends the functionality of your application by adding middlewares
-import { lastlogin } from "jsr:@pomdtr/lastlogin@0.0.3";
-const auth = lastlogin({
-  // accept any email as valid.
-  // In a real application, you would either whitelist emails,
-  // or check the email against a database of users.
-  verifyEmail: (_email) => true,
-});
-
 // This is the final handler that will be executed on each request
-export default {
-  fetch: auth(handler),
-};
+export default { fetch: serveDatabase({ dbPath: "./chinook.db" }) };
+```
+
+These 2 lines of code provides me a full-featured LibSqlStudio UI at `https://sqlite-example.pomdtr.me`.
+
+As a bonus, I'm also able to use the API endpoint to execute arbitrary SQL queries:
+
+```sh
+curl -X POST https://sqlite-example.pomdtr.me/api/execute -d '{ "statement": "SELECT Name FROM artists LIMIT 10" }'
 ```
