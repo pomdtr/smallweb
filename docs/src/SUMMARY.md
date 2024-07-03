@@ -15,7 +15,8 @@
 
 # Guides
 
-- [REST API with Hono]()
+- [Creating Services with Hono](./guides/hono.md)
+- [Installing Apps from JSR](./guides/jsr.md)
 
 ---
 

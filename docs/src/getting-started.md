@@ -72,7 +72,7 @@ Smallweb use the [deno](https://deno.com) runtime to evaluate the server code. Y
 
 As an example, the following code snippet use the `@hono/hono` extract params from the request url, and render jsx:
 
-```tsx
+```jsx
 // File: ~/www/hono-example/main.tsx
 /** @jsxImportSource jsr:@hono/hono/jsx **/
 
