@@ -43,6 +43,7 @@ brew install deno go
 ```sh
 git clone https://github.com/pomdtr/smallweb
 cd smallweb && go install
+echo "export PATH=$PATH:$(go env GOPATH)/bin" >> ~/.zshrc
 smallweb service install
 ```
 
