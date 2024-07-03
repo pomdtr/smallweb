@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Creating Services with Hono - Smallweb</title>
+        <title>Building a Telegram Bot - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html" class="active"><strong aria-hidden="true">4.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">5.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html"><strong aria-hidden="true">6.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="../guides/astro.html"><strong aria-hidden="true">7.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="../guides/telegram.html"><strong aria-hidden="true">8.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">9.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">10.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">4.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">5.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html"><strong aria-hidden="true">6.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="../guides/astro.html"><strong aria-hidden="true">7.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="../guides/telegram.html" class="active"><strong aria-hidden="true">8.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">9.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">10.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/hono.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/telegram.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,154 +179,96 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="creating-services-with-hono"><a class="header" href="#creating-services-with-hono">Creating Services with Hono</a></h1>
-<p>Hono is a fantastic library to create APIs in smallweb. It's a great match for smallweb, and the framework I recommend for creating APIs.</p>
-<p>Below are some examples to get you started, adapted from the official [Hono documentation](</p>
-<h2 id="hello-world"><a class="header" href="#hello-world">Hello world</a></h2>
-<p>Create a new <code>~/www/hono-example/main.ts</code> file with the following content:</p>
-<pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
+                        <h1 id="building-a-telegram-bot"><a class="header" href="#building-a-telegram-bot">Building a Telegram Bot</a></h1>
+<p>In this guide, we'll build a simple Telegram bot that will echo back any message that is sent to it.</p>
+<p>The telegram API is documented <a href="https://core.telegram.org/bots/api">here</a>.</p>
+<h2 id="create-a-new-bot"><a class="header" href="#create-a-new-bot">Create a new bot</a></h2>
+<p>To create a new bot, you will need to talk to the <a href="https://t.me/botfather">BotFather</a> on Telegram.</p>
+<ol>
+<li>Open Telegram and search for <code>@botfather</code>.</li>
+<li>Send <code>/newbot</code> command to the BotFather.</li>
+<li>Follow the instructions to create a new bot.</li>
+<li>Once you have created the bot, the BotFather will give you a token. Save this token as you will need it later</li>
+</ol>
+<h2 id="create-the-webhook-handler"><a class="header" href="#create-the-webhook-handler">Create the webhook handler</a></h2>
+<p>Create a new file at <code>~/www/telegram-echo-bot/main.ts</code> with the following content:</p>
+<pre><code class="language-ts">const token = Deno.env.get("BOT_TOKEN");
+if (!token) {
+    throw new Error("BOT_TOKEN is required");
+}
 
-const app = new Hono()
+const apiURL = `https://api.telegram.org/bot${token}`;
 
-app.get('/', (c) =&gt; c.text('Hello Deno!'))
+type Update = {
+    update_id: number;
+    message?: {
+        text?: string;
+        chat: {
+            id: number;
+        };
+    };
+};
 
-export default app;
-</code></pre>
-<p>Then navigate to <code>https://hono-example.localhost</code> to see the result.</p>
-<h2 id="routing-requests"><a class="header" href="#routing-requests">Routing Requests</a></h2>
-<pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
-
-const app = new Hono()
-
-// HTTP Methods
-app.get('/', (c) =&gt; c.text('GET /'))
-app.post('/', (c) =&gt; c.text('POST /'))
-app.put('/', (c) =&gt; c.text('PUT /'))
-app.delete('/', (c) =&gt; c.text('DELETE /'))
-
-// Wildcard
-app.get('/wild/*/card', (c) =&gt; {
-  return c.text('GET /wild/*/card')
-})
-
-// Any HTTP methods
-app.all('/hello', (c) =&gt; c.text('Any Method /hello'))
-
-// Custom HTTP method
-app.on('PURGE', '/cache', (c) =&gt; c.text('PURGE Method /cache'))
-
-// Multiple Method
-app.on(['PUT', 'DELETE'], '/post', (c) =&gt;
-  c.text('PUT or DELETE /post')
-)
-
-// Multiple Paths
-app.on('GET', ['/hello', '/ja/hello', '/en/hello'], (c) =&gt;
-  c.text('Hello')
-)
-
-export default app;
-</code></pre>
-<p>More information can be found in the <a href="https://hono.dev/docs/api/routing">Hono documentation</a>.</p>
-<h2 id="middlewares"><a class="header" href="#middlewares">Middlewares</a></h2>
-<p>Hono comes with a mature middleware system:</p>
-<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
-import { logger } from "jsr:@hono/hono/logger";
-import { bearerToken } from "jsr:@hono/hono/bearer-token";
-
-// match any method, all routes
-app.use(logger())
-
-// specify path
-app.use('/posts/*', bearerToken({
-    verify(token) {
-        return token === Deno.env.get('BEARER_TOKEN')
+const handler = async (req: Request) =&gt; {
+    if (req.method === "GET") {
+        return new Response("Telegram bot is up and running");
     }
-}))
 
+    const update: Update = await req.json();
+    await fetch(`${apiURL}/sendMessage`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            chat_id: update.message?.chat.id,
+            text: update.message?.text,
+        }),
+    });
+    return new Response("OK");
+};
 
-app.post('/posts', (c) =&gt; {
-  return c.json({ message: 'Post created' })
-})
-
-export default app;
+export default {
+    fetch: handler,
+};
 </code></pre>
-<p>More information can be found in the <a href="https://hono.dev/docs/guides/middleware">Hono documentation</a>.</p>
-<h2 id="serving-static-files"><a class="header" href="#serving-static-files">Serving static files</a></h2>
-<p>To serve static files, use <code>serveStatic</code> imported from <code>hono/deno</code>.</p>
-<pre><code class="language-ts">import { Hono } from 'hono'
-import { serveStatic } from 'hono/deno'
-
-const app = new Hono()
-
-app.use('/static/*', serveStatic({ root: './' }))
-app.use('/favicon.ico', serveStatic({ path: './favicon.ico' }))
-app.get('/', (c) =&gt; c.text('You can access: /static/hello.txt'))
-app.get('*', serveStatic({ path: './static/fallback.txt' }))
-
-export default app;
+<p>Then create a .env file at <code>~/www/telegram-echo-bot/.env</code> with the following content:</p>
+<pre><code class="language-txt">BOT_TOKEN=&lt;your-token&gt;
 </code></pre>
-<p>For the above code, it will work well with the following directory structure.</p>
-<pre><code class="language-txt">./www/hono-example
-├── favicon.ico
-├── main.ts
-└── static
-    ├── demo
-    │   └── index.html
-    ├── fallback.txt
-    ├── hello.txt
-    └── images
-        └── dinotocat.png
+<h2 id="setup-the-webhook"><a class="header" href="#setup-the-webhook">Setup the webhook</a></h2>
+<pre><code class="language-sh">export BOT_TOKEN=&lt;your-bot-token&gt;
+export WEBHOOK_URL=https://telegram-echo-bot.&lt;your-domain&gt;
+curl -X POST https://api.telegram.org/bot$BOT_TOKEN/setWebhook -d "url=$WEBHOOK_URL"
 </code></pre>
-<h2 id="jsx-support"><a class="header" href="#jsx-support">JSX Support</a></h2>
-<p>If you want to return html from your endpoint, hono comes with built-in support for JSX.</p>
-<pre><code class="language-jsx">// @jsxImportSource jsr:@hono/hono/jsx
+<h2 id="recommendations"><a class="header" href="#recommendations">Recommendations</a></h2>
+<p><a href="https://grammy.dev/">grammY</a> is my recommended library for building complex Telegram bots in Deno.</p>
+<pre><code class="language-ts">import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.26.0/mod.ts";
 
-import { Hono } from 'jsr:@hono/hono'
+// Create an instance of the `Bot` class and pass your bot token to it.
+const bot = new Bot(""); // &lt;-- put your bot token between the ""
 
-const app = new Hono()
+// You can now register listeners on your bot object `bot`.
+// grammY will call the listeners when users send messages to your bot.
 
-app.get('/', (c) =&gt; {
-    return c.html(
-        &lt;html&gt;
-            &lt;head&gt;
-                &lt;title&gt;Hello Deno!&lt;/title&gt;
-            &lt;/head&gt;
-            &lt;body&gt;
-                &lt;h1&gt;Hello Deno!&lt;/h1&gt;
-            &lt;/body&gt;
-        &lt;/html&gt;
-    )
-})
+// Handle the /start command.
+bot.command("start", (ctx) =&gt; ctx.reply("Welcome! Up and running."));
+// Handle other messages.
+bot.on("message", (ctx) =&gt; ctx.reply("Got another message!"));
 
-export default app;
+export default {
+    fetch: webhookCallback(bot)
+}
 </code></pre>
-<p>More information can be found in the <a href="https://hono.dev/docs/guides/jsx">Hono documentation</a></p>
-<h2 id="more"><a class="header" href="#more">More</a></h2>
-<p>This is just a glimpse of what Hono can do. There are many other features available:</p>
-<ul>
-<li><a href="https://hono.dev/docs/guides/rpc">RPC</a></li>
-<li><a href="https://hono.dev/docs/guides/validation">Request Validation</a></li>
-<li><a href="https://hono.dev/docs/guides/error-handling">Error Handling</a></li>
-<li>and more!</li>
-</ul>
-<p>Make sure to visit the <a href="https://hono.dev/docs">Hono documentation</a> for more information.</p>
-<h2 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h2>
-<p>If you're not a fan of Hono, you can also use one the following libraries:</p>
-<ul>
-<li><a href="https://deno.land/x/oak">Oak</a> used to be the most popular library for creating APIs in Deno</li>
-<li><a href="https://deno.land/x/itty_router">itty-router</a> An ultra-tiny API microrouter</li>
-</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../fly/setup.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guides/astro.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../guides/jsr.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../deno-deploy.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -336,11 +278,11 @@ export default app;
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../fly/setup.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guides/astro.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../guides/jsr.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../deno-deploy.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
