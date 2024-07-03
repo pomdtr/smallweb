@@ -1,10 +1,11 @@
 # Installing Apps from JSR
 
-In Smallweb, we use jsr to distribute apps.
+In Smallweb, we use [JSR](https://jsr.io) to distribute webapps.
 Think of it as a lightweight alternatives to docker images.
 
 Apps can includes both the frontend and the backend, and can be installed with a single import statement.
-To upgrade an app, you can just change the version in the import statement.
+To upgrade an app, you just change the version in the import statement.
+To uninstall an app, you can just delete the folder.
 
 Deno will take care of downloading the required modules, and caching them for future use.
 It also gives us a secure way to run untrusted code, since we can restrict the permissions of the app.

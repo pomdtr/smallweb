@@ -8,17 +8,18 @@
 - [Cloudflare setup](./cloudflare/tunnel.md)
 - [Fly.io setup](./fly/setup.md)
 
-# Moving to the cloud
-
-- [Deno Deploy](./deno-deploy.md)
-- [Val Town](./val-town.md)
-
 # Guides
 
 - [Creating Services with Hono](./guides/hono.md)
 - [Installing Apps from JSR](./guides/jsr.md)
 - [Integrating with Vite](./guides/vite.md)
 - [Integrating with Astro](./guides/astro.md)
+- [Building a Telegram Bot](./guides/telegram.md)
+
+# Moving to the cloud
+
+- [Deno Deploy](./deno-deploy.md)
+- [Val Town](./val-town.md)
 
 ---
 
