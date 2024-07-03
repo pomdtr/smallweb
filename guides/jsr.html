@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cloudflare setup - Smallweb</title>
+        <title>Installing Apps from JSR - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html" class="active"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html" class="active"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/cloudflare/tunnel.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/jsr.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,71 +179,95 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p>Cloudflare Tunnel is a <strong>free</strong> service that allows you to expose your local server to the internet, without having to expose your local IP address.</p>
-<p>Additionally, it provides some protection against DDoS attacks, and allows you to use Cloudflare's other services like Access.</p>
-<h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
-<ol>
-<li>
-<p>Make sure that you have a domain name that you can manage with Cloudflare.</p>
-</li>
-<li>
-<p>Install smallweb on your server, and register it as a service.</p>
-<pre><code class="language-ts">git clone https://github.com/pomdtr/smallweb
-cd smallweb &amp;&amp; go install
-smallweb service install
+                        <h1 id="installing-apps-from-jsr"><a class="header" href="#installing-apps-from-jsr">Installing Apps from JSR</a></h1>
+<p>In Smallweb, to install an application, you just import it from <a href="https://jsr.io">JSR</a>. Apps can include both a backend and a frontend, and even a cli.</p>
+<h2 id="sqlite-explorer"><a class="header" href="#sqlite-explorer">SQLite Explorer</a></h2>
+<p>Create a new file at <code>~/www/sqlite-explorer/main.ts</code> with the following content:</p>
+<pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
+
+const handler = serveDatabase({ dbPath: "./chinook.db" });
+
+export default { fetch: handler };
 </code></pre>
-</li>
-<li>
-<p>From your cloudflare dashboard, navigate to <code>Zero Trust &gt; Networks &gt; Tunnels</code></p>
-</li>
-<li>
-<p>Click on <code>Create a tunnel</code>, and select the <code>Clouflared</code> option</p>
-</li>
-<li>
-<p>Follow the intructions to install cloudflared, and create a connector on your device.</p>
-</li>
-<li>
-<p>Add a wildcard hostname for your tunnel (ex: <code>*.&lt;your-domain&gt;</code>), and use <code>http://localhost:7777</code> as the origin service.</p>
-<p><img src="./tunnel.png" alt="Tunnel Configuration" /></p>
-</li>
-<li>
-<p>Copy the tunnel ID, and go to <code>Websites &gt; DNS &gt; Records</code>.</p>
-</li>
-<li>
-<p>Add a new <code>CNAME</code> record for your wildcard hostname, with a target of <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</p>
-<p><img src="./dns.png" alt="DNS Configuration" /></p>
-</li>
-</ol>
-<h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
-<p>Create a dummy smallweb app in <code>~/www</code></p>
-<pre><code class="language-sh">mkdir -p ~/www/example
-CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
-export default {
-  fetch() {
-    return new Response("Smallweb is running", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
-  }
+<p>Then download a sample database using:</p>
+<pre><code class="language-txt">curl https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip -o /tmp/chinook.zip
+unzip /tmp/chinook.zip -d ~/www/sqlite-explorer
+</code></pre>
+<p>This application needs some specific permissions to run, so we'll need to configure them in <code>~/www/sqlite-explorer/smallweb.json</code>.</p>
+<pre><code class="language-json">{
+    "permissions": {
+        "read": ["."],
+        "write": ["."],
+        "ffi": true,
+        "sys": true
+    }
 }
-EOF
 </code></pre>
-<p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
-<h2 id="optional-steps"><a class="header" href="#optional-steps">Optional Steps</a></h2>
-<ul>
-<li>You can protect your tunnel (or specific apps) with Cloudflare Access.</li>
-</ul>
+<p>Here is what the ~/www/sqlite-explorer folder should look like:</p>
+<pre><code class="language-txt">~/www/sqlite-explorer
+├── chinook.db
+├── main.ts
+└── smallweb.json
+</code></pre>
+<p>If you don't want your database to be public, feel free to wrap it in a auth middleware:</p>
+<pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
+import { lastlogin } from "jsr:@pomdtr/lastlogin";
+
+const handler = serveDatabase({ dbPath: "./chinook.db" });
+const auth = lastlogin({
+  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
+});
+
+export default { fetch: auth(handler) };
+</code></pre>
+<p>And then set the required environment variable in your <code>.env</code> file:</p>
+<pre><code class="language-txt">EMAIL=pomdtr@example.com
+</code></pre>
+<h2 id="visual-studio-code"><a class="header" href="#visual-studio-code">Visual Studio Code</a></h2>
+<p>Create a new file at <code>~/www/vscode/main.ts</code> with the following content:</p>
+<pre><code class="language-ts">import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
+import { LocalFS } from "jsr:@smallweb/vscode@0.0.2/local-fs";
+import { lastlogin } from "jsr:@pomdtr/lastlogin";
+
+const fs = new LocalFS("..");
+const vscode = new VSCode({ fs });
+const auth = lastlogin({
+  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
+});
+
+export default {
+  fetch: auth(vscode.fetch),
+};
+</code></pre>
+<p>Here every parts is swappable: you can use a different fs, or a different auth middleware.</p>
+<p>For example, the library also provides fs to manage your val.town blobs:</p>
+<pre><code class="language-ts">import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
+import { ValTownFS } from "jsr:@smallweb/vscode@0.0.2/val-town";
+import { lastlogin } from "jsr:@pomdtr/lastlogin";
+
+const fs = new ValTownFS(Deno.env.get("VALTOWN_TOKEN")!);
+const vscode = new VSCode({ fs });
+const auth = lastlogin({
+  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
+});
+
+export default {
+  fetch: auth(vscode.fetch),
+};
+</code></pre>
+<p>To use it, you'll need to set the required environment variables in your <code>.env</code> file:</p>
+<pre><code class="language-txt">VALTOWN_TOKEN=&lt;your-token&gt;
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../localhost/localhost.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guides/hono.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../fly/setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../cli.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -253,11 +277,11 @@ EOF
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../localhost/localhost.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guides/hono.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../fly/setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../cli.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><div><strong aria-hidden="true">6.</strong> REST API with Hono</div></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -231,7 +231,7 @@ export default {
 <p>To access the server, open <code>https://example-server.localhost</code> in your browser.</p>
 <p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
 <p>As an example, the following code snippet use the <code>@hono/hono</code> extract params from the request url, and render jsx:</p>
-<pre><code class="language-tsx">// File: ~/www/hono-example/main.tsx
+<pre><code class="language-jsx">// File: ~/www/hono-example/main.tsx
 /** @jsxImportSource jsr:@hono/hono/jsx **/
 
 import { Hono } from "@hono/hono";
@@ -537,6 +537,223 @@ export default {
 export default handler
 </code></pre>
 <p>You can also push reusable block to <a href="https://jsr.io">JSR</a>, and access them from both Val Town and Smallweb.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="creating-services-with-hono"><a class="header" href="#creating-services-with-hono">Creating Services with Hono</a></h1>
+<p>Hono is a fantastic library to create APIs in smallweb. It's a great match for smallweb, and the framework I recommend for creating APIs.</p>
+<p>Below are some examples to get you started, adapted from the official [Hono documentation](</p>
+<h2 id="hello-world"><a class="header" href="#hello-world">Hello world</a></h2>
+<p>Create a new <code>~/www/hono-example/main.ts</code> file with the following content:</p>
+<pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
+
+const app = new Hono()
+
+app.get('/', (c) =&gt; c.text('Hello Deno!'))
+
+export default app;
+</code></pre>
+<p>Then navigate to <code>https://hono-example.localhost</code> to see the result.</p>
+<h2 id="routing-requests"><a class="header" href="#routing-requests">Routing Requests</a></h2>
+<pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
+
+const app = new Hono()
+
+// HTTP Methods
+app.get('/', (c) =&gt; c.text('GET /'))
+app.post('/', (c) =&gt; c.text('POST /'))
+app.put('/', (c) =&gt; c.text('PUT /'))
+app.delete('/', (c) =&gt; c.text('DELETE /'))
+
+// Wildcard
+app.get('/wild/*/card', (c) =&gt; {
+  return c.text('GET /wild/*/card')
+})
+
+// Any HTTP methods
+app.all('/hello', (c) =&gt; c.text('Any Method /hello'))
+
+// Custom HTTP method
+app.on('PURGE', '/cache', (c) =&gt; c.text('PURGE Method /cache'))
+
+// Multiple Method
+app.on(['PUT', 'DELETE'], '/post', (c) =&gt;
+  c.text('PUT or DELETE /post')
+)
+
+// Multiple Paths
+app.on('GET', ['/hello', '/ja/hello', '/en/hello'], (c) =&gt;
+  c.text('Hello')
+)
+
+export default app;
+</code></pre>
+<p>More information can be found in the <a href="https://hono.dev/docs/api/routing">Hono documentation</a>.</p>
+<h2 id="middlewares"><a class="header" href="#middlewares">Middlewares</a></h2>
+<p>Hono comes with a mature middleware system:</p>
+<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
+import { logger } from "jsr:@hono/hono/logger";
+import { bearerToken } from "jsr:@hono/hono/bearer-token";
+
+// match any method, all routes
+app.use(logger())
+
+// specify path
+app.use('/posts/*', bearerToken({
+    verify(token) {
+        return token === Deno.env.get('BEARER_TOKEN')
+    }
+}))
+
+
+app.post('/posts', (c) =&gt; {
+  return c.json({ message: 'Post created' })
+})
+
+export default app;
+</code></pre>
+<p>More information can be found in the <a href="https://hono.dev/docs/guides/middleware">Hono documentation</a>.</p>
+<h2 id="serving-static-files"><a class="header" href="#serving-static-files">Serving static files</a></h2>
+<p>To serve static files, use <code>serveStatic</code> imported from <code>hono/deno</code>.</p>
+<pre><code class="language-ts">import { Hono } from 'hono'
+import { serveStatic } from 'hono/deno'
+
+const app = new Hono()
+
+app.use('/static/*', serveStatic({ root: './' }))
+app.use('/favicon.ico', serveStatic({ path: './favicon.ico' }))
+app.get('/', (c) =&gt; c.text('You can access: /static/hello.txt'))
+app.get('*', serveStatic({ path: './static/fallback.txt' }))
+
+export default app;
+</code></pre>
+<p>For the above code, it will work well with the following directory structure.</p>
+<pre><code class="language-txt">./www/hono-example
+├── favicon.ico
+├── main.ts
+└── static
+    ├── demo
+    │   └── index.html
+    ├── fallback.txt
+    ├── hello.txt
+    └── images
+        └── dinotocat.png
+</code></pre>
+<h2 id="jsx-support"><a class="header" href="#jsx-support">JSX Support</a></h2>
+<p>If you want to return html from your endpoint, hono comes with built-in support for JSX.</p>
+<pre><code class="language-jsx">// @jsxImportSource jsr:@hono/hono/jsx
+
+import { Hono } from 'jsr:@hono/hono'
+
+const app = new Hono()
+
+app.get('/', (c) =&gt; {
+    return c.html(
+        &lt;html&gt;
+            &lt;head&gt;
+                &lt;title&gt;Hello Deno!&lt;/title&gt;
+            &lt;/head&gt;
+            &lt;body&gt;
+                &lt;h1&gt;Hello Deno!&lt;/h1&gt;
+            &lt;/body&gt;
+        &lt;/html&gt;
+    )
+})
+
+export default app;
+</code></pre>
+<p>More information can be found in the <a href="https://hono.dev/docs/guides/jsx">Hono documentation</a></p>
+<h2 id="more"><a class="header" href="#more">More</a></h2>
+<p>This is just a glimpse of what Hono can do. There are many other features available:</p>
+<ul>
+<li><a href="https://hono.dev/docs/guides/rpc">RPC</a></li>
+<li><a href="https://hono.dev/docs/guides/validation">Request Validation</a></li>
+<li><a href="https://hono.dev/docs/guides/error-handling">Error Handling</a></li>
+<li>and more!</li>
+</ul>
+<p>Make sure to visit the <a href="https://hono.dev/docs">Hono documentation</a> for more information.</p>
+<h2 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h2>
+<p>If you're not a fan of Hono, you can also use one the following libraries:</p>
+<ul>
+<li><a href="https://deno.land/x/oak">Oak</a> used to be the most popular library for creating APIs in Deno</li>
+<li><a href="https://deno.land/x/itty_router">itty-router</a> An ultra-tiny API microrouter</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="installing-apps-from-jsr"><a class="header" href="#installing-apps-from-jsr">Installing Apps from JSR</a></h1>
+<p>In Smallweb, to install an application, you just import it from <a href="https://jsr.io">JSR</a>. Apps can include both a backend and a frontend, and even a cli.</p>
+<h2 id="sqlite-explorer"><a class="header" href="#sqlite-explorer">SQLite Explorer</a></h2>
+<p>Create a new file at <code>~/www/sqlite-explorer/main.ts</code> with the following content:</p>
+<pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
+
+const handler = serveDatabase({ dbPath: "./chinook.db" });
+
+export default { fetch: handler };
+</code></pre>
+<p>Then download a sample database using:</p>
+<pre><code class="language-txt">curl https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip -o /tmp/chinook.zip
+unzip /tmp/chinook.zip -d ~/www/sqlite-explorer
+</code></pre>
+<p>This application needs some specific permissions to run, so we'll need to configure them in <code>~/www/sqlite-explorer/smallweb.json</code>.</p>
+<pre><code class="language-json">{
+    "permissions": {
+        "read": ["."],
+        "write": ["."],
+        "ffi": true,
+        "sys": true
+    }
+}
+</code></pre>
+<p>Here is what the ~/www/sqlite-explorer folder should look like:</p>
+<pre><code class="language-txt">~/www/sqlite-explorer
+├── chinook.db
+├── main.ts
+└── smallweb.json
+</code></pre>
+<p>If you don't want your database to be public, feel free to wrap it in a auth middleware:</p>
+<pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
+import { lastlogin } from "jsr:@pomdtr/lastlogin";
+
+const handler = serveDatabase({ dbPath: "./chinook.db" });
+const auth = lastlogin({
+  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
+});
+
+export default { fetch: auth(handler) };
+</code></pre>
+<p>And then set the required environment variable in your <code>.env</code> file:</p>
+<pre><code class="language-txt">EMAIL=pomdtr@example.com
+</code></pre>
+<h2 id="visual-studio-code"><a class="header" href="#visual-studio-code">Visual Studio Code</a></h2>
+<p>Create a new file at <code>~/www/vscode/main.ts</code> with the following content:</p>
+<pre><code class="language-ts">import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
+import { LocalFS } from "jsr:@smallweb/vscode@0.0.2/local-fs";
+import { lastlogin } from "jsr:@pomdtr/lastlogin";
+
+const fs = new LocalFS("..");
+const vscode = new VSCode({ fs });
+const auth = lastlogin({
+  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
+});
+
+export default {
+  fetch: auth(vscode.fetch),
+};
+</code></pre>
+<p>Here every parts is swappable: you can use a different fs, or a different auth middleware.</p>
+<p>For example, the library also provides fs to manage your val.town blobs:</p>
+<pre><code class="language-ts">import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
+import { ValTownFS } from "jsr:@smallweb/vscode@0.0.2/val-town";
+import { lastlogin } from "jsr:@pomdtr/lastlogin";
+
+const fs = new ValTownFS(Deno.env.get("VALTOWN_TOKEN")!);
+const vscode = new VSCode({ fs });
+const auth = lastlogin({
+  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
+});
+
+export default {
+  fetch: auth(vscode.fetch),
+};
+</code></pre>
+<p>To use it, you'll need to set the required environment variables in your <code>.env</code> file:</p>
+<pre><code class="language-txt">VALTOWN_TOKEN=&lt;your-token&gt;
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-reference"><a class="header" href="#cli-reference">CLI Reference</a></h1>
 <h2 id="smallweb"><a class="header" href="#smallweb">smallweb</a></h2>
 <p>Host websites from your internet folder</p>

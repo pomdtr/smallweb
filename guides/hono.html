@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cloudflare setup - Smallweb</title>
+        <title>Creating Services with Hono - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html" class="active"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html" class="active"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/cloudflare/tunnel.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/hono.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,71 +179,154 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p>Cloudflare Tunnel is a <strong>free</strong> service that allows you to expose your local server to the internet, without having to expose your local IP address.</p>
-<p>Additionally, it provides some protection against DDoS attacks, and allows you to use Cloudflare's other services like Access.</p>
-<h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
-<ol>
-<li>
-<p>Make sure that you have a domain name that you can manage with Cloudflare.</p>
-</li>
-<li>
-<p>Install smallweb on your server, and register it as a service.</p>
-<pre><code class="language-ts">git clone https://github.com/pomdtr/smallweb
-cd smallweb &amp;&amp; go install
-smallweb service install
+                        <h1 id="creating-services-with-hono"><a class="header" href="#creating-services-with-hono">Creating Services with Hono</a></h1>
+<p>Hono is a fantastic library to create APIs in smallweb. It's a great match for smallweb, and the framework I recommend for creating APIs.</p>
+<p>Below are some examples to get you started, adapted from the official [Hono documentation](</p>
+<h2 id="hello-world"><a class="header" href="#hello-world">Hello world</a></h2>
+<p>Create a new <code>~/www/hono-example/main.ts</code> file with the following content:</p>
+<pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
+
+const app = new Hono()
+
+app.get('/', (c) =&gt; c.text('Hello Deno!'))
+
+export default app;
 </code></pre>
-</li>
-<li>
-<p>From your cloudflare dashboard, navigate to <code>Zero Trust &gt; Networks &gt; Tunnels</code></p>
-</li>
-<li>
-<p>Click on <code>Create a tunnel</code>, and select the <code>Clouflared</code> option</p>
-</li>
-<li>
-<p>Follow the intructions to install cloudflared, and create a connector on your device.</p>
-</li>
-<li>
-<p>Add a wildcard hostname for your tunnel (ex: <code>*.&lt;your-domain&gt;</code>), and use <code>http://localhost:7777</code> as the origin service.</p>
-<p><img src="./tunnel.png" alt="Tunnel Configuration" /></p>
-</li>
-<li>
-<p>Copy the tunnel ID, and go to <code>Websites &gt; DNS &gt; Records</code>.</p>
-</li>
-<li>
-<p>Add a new <code>CNAME</code> record for your wildcard hostname, with a target of <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</p>
-<p><img src="./dns.png" alt="DNS Configuration" /></p>
-</li>
-</ol>
-<h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
-<p>Create a dummy smallweb app in <code>~/www</code></p>
-<pre><code class="language-sh">mkdir -p ~/www/example
-CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
-export default {
-  fetch() {
-    return new Response("Smallweb is running", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
-  }
-}
-EOF
+<p>Then navigate to <code>https://hono-example.localhost</code> to see the result.</p>
+<h2 id="routing-requests"><a class="header" href="#routing-requests">Routing Requests</a></h2>
+<pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
+
+const app = new Hono()
+
+// HTTP Methods
+app.get('/', (c) =&gt; c.text('GET /'))
+app.post('/', (c) =&gt; c.text('POST /'))
+app.put('/', (c) =&gt; c.text('PUT /'))
+app.delete('/', (c) =&gt; c.text('DELETE /'))
+
+// Wildcard
+app.get('/wild/*/card', (c) =&gt; {
+  return c.text('GET /wild/*/card')
+})
+
+// Any HTTP methods
+app.all('/hello', (c) =&gt; c.text('Any Method /hello'))
+
+// Custom HTTP method
+app.on('PURGE', '/cache', (c) =&gt; c.text('PURGE Method /cache'))
+
+// Multiple Method
+app.on(['PUT', 'DELETE'], '/post', (c) =&gt;
+  c.text('PUT or DELETE /post')
+)
+
+// Multiple Paths
+app.on('GET', ['/hello', '/ja/hello', '/en/hello'], (c) =&gt;
+  c.text('Hello')
+)
+
+export default app;
 </code></pre>
-<p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
-<h2 id="optional-steps"><a class="header" href="#optional-steps">Optional Steps</a></h2>
+<p>More information can be found in the <a href="https://hono.dev/docs/api/routing">Hono documentation</a>.</p>
+<h2 id="middlewares"><a class="header" href="#middlewares">Middlewares</a></h2>
+<p>Hono comes with a mature middleware system:</p>
+<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
+import { logger } from "jsr:@hono/hono/logger";
+import { bearerToken } from "jsr:@hono/hono/bearer-token";
+
+// match any method, all routes
+app.use(logger())
+
+// specify path
+app.use('/posts/*', bearerToken({
+    verify(token) {
+        return token === Deno.env.get('BEARER_TOKEN')
+    }
+}))
+
+
+app.post('/posts', (c) =&gt; {
+  return c.json({ message: 'Post created' })
+})
+
+export default app;
+</code></pre>
+<p>More information can be found in the <a href="https://hono.dev/docs/guides/middleware">Hono documentation</a>.</p>
+<h2 id="serving-static-files"><a class="header" href="#serving-static-files">Serving static files</a></h2>
+<p>To serve static files, use <code>serveStatic</code> imported from <code>hono/deno</code>.</p>
+<pre><code class="language-ts">import { Hono } from 'hono'
+import { serveStatic } from 'hono/deno'
+
+const app = new Hono()
+
+app.use('/static/*', serveStatic({ root: './' }))
+app.use('/favicon.ico', serveStatic({ path: './favicon.ico' }))
+app.get('/', (c) =&gt; c.text('You can access: /static/hello.txt'))
+app.get('*', serveStatic({ path: './static/fallback.txt' }))
+
+export default app;
+</code></pre>
+<p>For the above code, it will work well with the following directory structure.</p>
+<pre><code class="language-txt">./www/hono-example
+├── favicon.ico
+├── main.ts
+└── static
+    ├── demo
+    │   └── index.html
+    ├── fallback.txt
+    ├── hello.txt
+    └── images
+        └── dinotocat.png
+</code></pre>
+<h2 id="jsx-support"><a class="header" href="#jsx-support">JSX Support</a></h2>
+<p>If you want to return html from your endpoint, hono comes with built-in support for JSX.</p>
+<pre><code class="language-jsx">// @jsxImportSource jsr:@hono/hono/jsx
+
+import { Hono } from 'jsr:@hono/hono'
+
+const app = new Hono()
+
+app.get('/', (c) =&gt; {
+    return c.html(
+        &lt;html&gt;
+            &lt;head&gt;
+                &lt;title&gt;Hello Deno!&lt;/title&gt;
+            &lt;/head&gt;
+            &lt;body&gt;
+                &lt;h1&gt;Hello Deno!&lt;/h1&gt;
+            &lt;/body&gt;
+        &lt;/html&gt;
+    )
+})
+
+export default app;
+</code></pre>
+<p>More information can be found in the <a href="https://hono.dev/docs/guides/jsx">Hono documentation</a></p>
+<h2 id="more"><a class="header" href="#more">More</a></h2>
+<p>This is just a glimpse of what Hono can do. There are many other features available:</p>
 <ul>
-<li>You can protect your tunnel (or specific apps) with Cloudflare Access.</li>
+<li><a href="https://hono.dev/docs/guides/rpc">RPC</a></li>
+<li><a href="https://hono.dev/docs/guides/validation">Request Validation</a></li>
+<li><a href="https://hono.dev/docs/guides/error-handling">Error Handling</a></li>
+<li>and more!</li>
+</ul>
+<p>Make sure to visit the <a href="https://hono.dev/docs">Hono documentation</a> for more information.</p>
+<h2 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h2>
+<p>If you're not a fan of Hono, you can also use one the following libraries:</p>
+<ul>
+<li><a href="https://deno.land/x/oak">Oak</a> used to be the most popular library for creating APIs in Deno</li>
+<li><a href="https://deno.land/x/itty_router">itty-router</a> An ultra-tiny API microrouter</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../localhost/localhost.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../val-town.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../fly/setup.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guides/jsr.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -253,11 +336,11 @@ EOF
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../localhost/localhost.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../val-town.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../fly/setup.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guides/jsr.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
