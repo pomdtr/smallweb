@@ -16,9 +16,9 @@ Every http request is sandboxed in a single deno subprocess by the smallweb eval
 If you want your apps to be available on the internet, you'll need to buy a domain name, and point it to your server.
 You can find more information on to do this in the [Cloudflare Tunnel setup guide](./cloudflare/tunnel.md).
 
-If you prefer your to keep your apps local to your device, you can learn how to host your apps as `https://<app>.localhost` address in [this guide](./localhost/localhost.md). This option does not requires a domain name (or a server), but your app will only be available on your local device.
+If you prefer your to keep your apps local to your device, you can learn how to host your apps as `https://<app>.localhost` address in [this guide](./localhost/macos.md). This option does not requires a domain name (or a server), but your app will only be available on your local device.
 
-This guide will assumes that you have followed the [localhost setup guide](./localhost/localhost.md). If you haven't, just replace `https://<app>.localhost` with `https://<app>.<your-domain>` in the examples below.
+This guide will assumes that you have followed the [localhost setup guide](./localhost/macos.md). If you haven't, just replace `https://<app>.localhost` with `https://<app>.<your-domain>` in the examples below.
 
 ### Hosting a web app
 

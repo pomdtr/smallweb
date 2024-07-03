@@ -73,21 +73,29 @@ export WEBHOOK_URL=https://telegram-echo-bot.<your-domain>
 curl -X POST https://api.telegram.org/bot$BOT_TOKEN/setWebhook -d "url=$WEBHOOK_URL"
 ```
 
-## Recommendations
+You're all set! Now you can send messages to your bot and it will echo them back to you.
 
-[grammY](https://grammy.dev/) is my recommended library for building complex Telegram bots in Deno.
+## Next steps
+
+If you want to build more complex bots, you can take a look at the [grammY](https://grammy.dev) library. It provides a high-level API to interact with the Telegram API.
 
 ```ts
 import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.26.0/mod.ts";
 
+const token = Deno.env.get("BOT_TOKEN");
+if (!token) {
+    throw new Error("BOT_TOKEN is required");
+}
+
 // Create an instance of the `Bot` class and pass your bot token to it.
-const bot = new Bot(""); // <-- put your bot token between the ""
+const bot = new Bot(token); // <-- put your bot token between the ""
 
 // You can now register listeners on your bot object `bot`.
 // grammY will call the listeners when users send messages to your bot.
 
 // Handle the /start command.
 bot.command("start", (ctx) => ctx.reply("Welcome! Up and running."));
+
 // Handle other messages.
 bot.on("message", (ctx) => ctx.reply("Got another message!"));
 

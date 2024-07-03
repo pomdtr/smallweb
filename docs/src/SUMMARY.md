@@ -4,7 +4,7 @@
 
 # Self-Hosting
 
-- [Localhost setup](./localhost/localhost.md)
+- [Localhost setup (Mac OS)](./localhost/macos.md)
 - [Cloudflare setup](./cloudflare/tunnel.md)
 - [Fly.io setup](./fly/setup.md)
 

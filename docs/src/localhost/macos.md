@@ -23,22 +23,16 @@ The components needed are:
 
 In the future, we might provide a script to automate this process, but for now, it's a manual process.
 
-### Install Brew (required to install smallweb, deno, caddy, and dnsmasq)
-
-We'll use brew to install the required tools. If you don't have brew installed, you can run the following command:
+### Install Required Dependencies
 
 ```sh
+# install homebrew (if not already installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# install all required dependencies
+brew install deno go caddy dnsmasq
 ```
 
-### Install Deno (required to run smallweb apps)
-
-```sh
-# using brew
-brew install deno go
-```
-
-### Install smallweb, and register it as a service
+### Install Smallweb
 
 ```sh
 git clone https://github.com/pomdtr/smallweb
@@ -47,14 +41,9 @@ echo "export PATH=$PATH:$(go env GOPATH)/bin" >> ~/.zshrc
 smallweb service install
 ```
 
-Download the lastest version of smallweb from the [github releases](https://github.com/pomdtr/smallweb/releases/latest), and extract the smallweb binary to your $PATH.
-
-### Install Caddy (redirect *.localhost to localhost:7777)
+### Setup Caddy
 
 ```sh
-# Install caddy
-brew install caddy
-
 # Write caddy configuration
 cat <<EOF > /opt/homebrew/etc/Caddyfile
 *.localhost {
@@ -77,12 +66,9 @@ mkdir -p ~/www
 echo "DENO_TLS_CA_STORE=system" >> ~/www/.env
 ```
 
-### Install dnsmasq (map *.localhost address to 127.0.0.1)
+### Setup dnsmasq
 
 ```sh
-# Install dsnmasq
-brew install dnsmasq
-
 # Write dnsmasq configuration
 echo "address=/.localhost/127.0.0.1" >> /opt/homebrew/etc/dnsmasq.conf
 
@@ -96,7 +82,7 @@ nameserver 127.0.0.1
 EOF
 ```
 
-## Testing the local setup
+## Testing the setup
 
 First, let's create a dummy smallweb website:
 

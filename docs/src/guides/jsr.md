@@ -90,7 +90,7 @@ import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
 import { LocalFS } from "jsr:@smallweb/vscode@0.0.2/local-fs";
 import { lastlogin } from "jsr:@pomdtr/lastlogin";
 
-const fs = new LocalFS("..");
+const fs = new LocalFS(".");
 const vscode = new VSCode({ fs });
 const auth = lastlogin({
   verifyEmail: (email) => email === Deno.env.get("EMAIL"),
