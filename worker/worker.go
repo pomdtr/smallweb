@@ -675,6 +675,7 @@ func DenoExecutable() (string, error) {
 
 	for _, candidate := range []string{
 		filepath.Join(homedir, ".deno", "bin", "deno"),
+		"/home/linuxbrew/.linuxbrew/bin/deno",
 		"/opt/homebrew/bin/deno",
 		"/usr/local/bin/deno",
 	} {
