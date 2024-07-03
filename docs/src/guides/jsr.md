@@ -1,6 +1,21 @@
 # Installing Apps from JSR
 
-In Smallweb, to install an application, you just import it from [JSR](https://jsr.io). Apps can include both a backend and a frontend, and even a cli.
+In Smallweb, we use jsr to distribute apps.
+Think of it as a lightweight alternatives to docker images.
+
+Apps can includes both the frontend and the backend, and can be installed with a single import statement.
+To upgrade an app, you can just change the version in the import statement.
+
+Deno will take care of downloading the required modules, and caching them for future use.
+It also gives us a secure way to run untrusted code, since we can restrict the permissions of the app.
+
+By default, apps can:
+
+- read and write files from their own directory
+- access environment variables using `Deno.env.get`
+- access the network with `fetch`
+
+But you can add more permissions to your app (or restrict it even further) by adding a `smallweb.json` file to the app directory.
 
 ## SQLite Explorer
 
@@ -42,6 +57,8 @@ Here is what the ~/www/sqlite-explorer folder should look like:
 ├── main.ts
 └── smallweb.json
 ```
+
+You can now access your app at `https://sqlite-explorer.localhost` (or `https://sqlite-explorer.<your-domain>`).
 
 If you don't want your database to be public, feel free to wrap it in a auth middleware:
 
