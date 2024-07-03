@@ -17,6 +17,7 @@
 
 - [Creating Services with Hono](./guides/hono.md)
 - [Installing Apps from JSR](./guides/jsr.md)
+- [Integrating with Vite](./guides/vite.md)
 
 ---
 
