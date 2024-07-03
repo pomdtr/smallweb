@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">4.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">5.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">6.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="guides/astro.html"><strong aria-hidden="true">7.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="guides/telegram.html"><strong aria-hidden="true">8.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">9.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">10.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/macos.html"><strong aria-hidden="true">1.</strong> Localhost setup (Mac OS)</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">4.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">5.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">6.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="guides/astro.html"><strong aria-hidden="true">7.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="guides/telegram.html"><strong aria-hidden="true">8.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">9.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">10.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -189,8 +189,8 @@
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <p>If you want your apps to be available on the internet, you'll need to buy a domain name, and point it to your server.
 You can find more information on to do this in the <a href="./cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
-<p>If you prefer your to keep your apps local to your device, you can learn how to host your apps as <code>https://&lt;app&gt;.localhost</code> address in <a href="./localhost/localhost.html">this guide</a>. This option does not requires a domain name (or a server), but your app will only be available on your local device.</p>
-<p>This guide will assumes that you have followed the <a href="./localhost/localhost.html">localhost setup guide</a>. If you haven't, just replace <code>https://&lt;app&gt;.localhost</code> with <code>https://&lt;app&gt;.&lt;your-domain&gt;</code> in the examples below.</p>
+<p>If you prefer your to keep your apps local to your device, you can learn how to host your apps as <code>https://&lt;app&gt;.localhost</code> address in <a href="./localhost/macos.html">this guide</a>. This option does not requires a domain name (or a server), but your app will only be available on your local device.</p>
+<p>This guide will assumes that you have followed the <a href="./localhost/macos.html">localhost setup guide</a>. If you haven't, just replace <code>https://&lt;app&gt;.localhost</code> with <code>https://&lt;app&gt;.&lt;your-domain&gt;</code> in the examples below.</p>
 <h3 id="hosting-a-web-app"><a class="header" href="#hosting-a-web-app">Hosting a web app</a></h3>
 <p>Every folder in the <code>~/www</code> directory is served statically by default. If the folder contains an <code>index.html</code> file, it will be served as the default page. Otherwise, the folder content will be listed.</p>
 <p>To create a new website, just create a folder in the <code>~/www</code> directory, and add an <code>index.html</code> file in it.</p>
@@ -349,26 +349,20 @@ Hello, smallweb!
 </ul>
 <h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
 <p>In the future, we might provide a script to automate this process, but for now, it's a manual process.</p>
-<h3 id="install-brew-required-to-install-smallweb-deno-caddy-and-dnsmasq"><a class="header" href="#install-brew-required-to-install-smallweb-deno-caddy-and-dnsmasq">Install Brew (required to install smallweb, deno, caddy, and dnsmasq)</a></h3>
-<p>We'll use brew to install the required tools. If you don't have brew installed, you can run the following command:</p>
-<pre><code class="language-sh">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+<h3 id="install-required-dependencies"><a class="header" href="#install-required-dependencies">Install Required Dependencies</a></h3>
+<pre><code class="language-sh"># install homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# install all required dependencies
+brew install deno go caddy dnsmasq
 </code></pre>
-<h3 id="install-deno-required-to-run-smallweb-apps"><a class="header" href="#install-deno-required-to-run-smallweb-apps">Install Deno (required to run smallweb apps)</a></h3>
-<pre><code class="language-sh"># using brew
-brew install deno go
-</code></pre>
-<h3 id="install-smallweb-and-register-it-as-a-service"><a class="header" href="#install-smallweb-and-register-it-as-a-service">Install smallweb, and register it as a service</a></h3>
+<h3 id="install-smallweb"><a class="header" href="#install-smallweb">Install Smallweb</a></h3>
 <pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb
 cd smallweb &amp;&amp; go install
 echo "export PATH=$PATH:$(go env GOPATH)/bin" &gt;&gt; ~/.zshrc
 smallweb service install
 </code></pre>
-<p>Download the lastest version of smallweb from the <a href="https://github.com/pomdtr/smallweb/releases/latest">github releases</a>, and extract the smallweb binary to your $PATH.</p>
-<h3 id="install-caddy-redirect-localhost-to-localhost7777"><a class="header" href="#install-caddy-redirect-localhost-to-localhost7777">Install Caddy (redirect *.localhost to localhost:7777)</a></h3>
-<pre><code class="language-sh"># Install caddy
-brew install caddy
-
-# Write caddy configuration
+<h3 id="setup-caddy"><a class="header" href="#setup-caddy">Setup Caddy</a></h3>
+<pre><code class="language-sh"># Write caddy configuration
 cat &lt;&lt;EOF &gt; /opt/homebrew/etc/Caddyfile
 *.localhost {
   tls internal {
@@ -389,11 +383,8 @@ mkdir -p ~/www
 # Indicate to deno to use the keychain for tls certificates
 echo "DENO_TLS_CA_STORE=system" &gt;&gt; ~/www/.env
 </code></pre>
-<h3 id="install-dnsmasq-map-localhost-address-to-127001"><a class="header" href="#install-dnsmasq-map-localhost-address-to-127001">Install dnsmasq (map *.localhost address to 127.0.0.1)</a></h3>
-<pre><code class="language-sh"># Install dsnmasq
-brew install dnsmasq
-
-# Write dnsmasq configuration
+<h3 id="setup-dnsmasq"><a class="header" href="#setup-dnsmasq">Setup dnsmasq</a></h3>
+<pre><code class="language-sh"># Write dnsmasq configuration
 echo "address=/.localhost/127.0.0.1" &gt;&gt; /opt/homebrew/etc/dnsmasq.conf
 
 # Run dnsmasq in the background
@@ -405,7 +396,7 @@ cat &lt;&lt;EOF | sudo tee -a /etc/resolver/localhost
 nameserver 127.0.0.1
 EOF
 </code></pre>
-<h2 id="testing-the-local-setup"><a class="header" href="#testing-the-local-setup">Testing the local setup</a></h2>
+<h2 id="testing-the-setup"><a class="header" href="#testing-the-setup">Testing the setup</a></h2>
 <p>First, let's create a dummy smallweb website:</p>
 <pre><code class="language-sh">mkdir -p ~/www/example
 CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
@@ -487,7 +478,7 @@ fly certs create '*.&lt;your-domain&gt;'
 <p><img src="fly/./dns.png" alt="DNS Entries" /></p>
 <p>The certificate might take a long time to be issued (~30 mins in my experience).
 You can check the status of the certificates by running <code>fly certs show '*.&lt;your-domain&gt;'</code>.</p>
-<h2 id="testing-the-setup"><a class="header" href="#testing-the-setup">Testing the setup</a></h2>
+<h2 id="testing-the-setup-1"><a class="header" href="#testing-the-setup-1">Testing the setup</a></h2>
 <p>Create a dummy website:</p>
 <pre><code class="language-sh">fly ssh console
 mkdir -p /www/example
@@ -707,7 +698,7 @@ export default { fetch: auth(handler) };
 import { LocalFS } from "jsr:@smallweb/vscode@0.0.2/local-fs";
 import { lastlogin } from "jsr:@pomdtr/lastlogin";
 
-const fs = new LocalFS("..");
+const fs = new LocalFS(".");
 const vscode = new VSCode({ fs });
 const auth = lastlogin({
   verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
@@ -926,18 +917,25 @@ export default {
 export WEBHOOK_URL=https://telegram-echo-bot.&lt;your-domain&gt;
 curl -X POST https://api.telegram.org/bot$BOT_TOKEN/setWebhook -d "url=$WEBHOOK_URL"
 </code></pre>
-<h2 id="recommendations"><a class="header" href="#recommendations">Recommendations</a></h2>
-<p><a href="https://grammy.dev/">grammY</a> is my recommended library for building complex Telegram bots in Deno.</p>
+<p>You're all set! Now you can send messages to your bot and it will echo them back to you.</p>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
+<p>If you want to build more complex bots, you can take a look at the <a href="https://grammy.dev">grammY</a> library. It provides a high-level API to interact with the Telegram API.</p>
 <pre><code class="language-ts">import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.26.0/mod.ts";
 
+const token = Deno.env.get("BOT_TOKEN");
+if (!token) {
+    throw new Error("BOT_TOKEN is required");
+}
+
 // Create an instance of the `Bot` class and pass your bot token to it.
-const bot = new Bot(""); // &lt;-- put your bot token between the ""
+const bot = new Bot(token); // &lt;-- put your bot token between the ""
 
 // You can now register listeners on your bot object `bot`.
 // grammY will call the listeners when users send messages to your bot.
 
 // Handle the /start command.
 bot.command("start", (ctx) =&gt; ctx.reply("Welcome! Up and running."));
+
 // Handle other messages.
 bot.on("message", (ctx) =&gt; ctx.reply("Got another message!"));
 
