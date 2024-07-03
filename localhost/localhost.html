@@ -206,6 +206,7 @@ brew install deno go
 <h3 id="install-smallweb-and-register-it-as-a-service"><a class="header" href="#install-smallweb-and-register-it-as-a-service">Install smallweb, and register it as a service</a></h3>
 <pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb
 cd smallweb &amp;&amp; go install
+echo "export PATH=$PATH:$(go env GOPATH)/bin" &gt;&gt; ~/.zshrc
 smallweb service install
 </code></pre>
 <p>Download the lastest version of smallweb from the <a href="https://github.com/pomdtr/smallweb/releases/latest">github releases</a>, and extract the smallweb binary to your $PATH.</p>
