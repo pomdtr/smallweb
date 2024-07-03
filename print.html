@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">8.</strong> Integrating with Vite</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -766,6 +766,79 @@ export default {
 </code></pre>
 <p>To use it, you'll need to set the required environment variables in your <code>.env</code> file:</p>
 <pre><code class="language-txt">VALTOWN_TOKEN=&lt;your-token&gt;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="integrating-with-vite"><a class="header" href="#integrating-with-vite">Integrating with Vite</a></h1>
+<p>Smallweb can easily integrate with <a href="https://vitejs.dev">vite</a> to provide a fast development experience.</p>
+<h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
+<p>Our project will have the following structure:</p>
+<pre><code class="language-txt">~/www/vite-example
+├── .vscode/
+│   └── settings.json
+├── main.ts
+└── frontend/
+    └── &lt;vite project&gt;
+</code></pre>
+<p>Let's create the project, and initialize the vite frontend:</p>
+<pre><code class="language-sh">mkdir -p ~/www/vite-example
+cd ~/www/vite-example
+npm create vite@latest frontend
+cd frontend &amp;&amp; npm install &amp;&amp; npm run build
+</code></pre>
+<p>Then we'll create the main.ts file:</p>
+<pre><code class="language-ts">import { serveDir } from "jsr:@std/http/file-server";
+
+const handler = (req: Request) =&gt; {
+    return serveDir(req, {
+        fsRoot: "./frontend/dist",
+    });
+};
+
+export default {
+    fetch: handler,
+};
+</code></pre>
+<p>And setup the <code>.vscode/settings.json</code> config:</p>
+<pre><code class="language-json">{
+    "deno.enable": true,
+    "deno.disablePaths": [
+        "frontend"
+    ],
+}
+</code></pre>
+<p>Once everything is setup, you should be able to access the website at <code>https://vite-example.localhost</code>.</p>
+<h2 id="adding-api-endpoints"><a class="header" href="#adding-api-endpoints">Adding api endpoints</a></h2>
+<p>You can modify the <code>main.ts</code> file to add api endpoints. <a href="https://hono.dev">Hono</a> pairs well with vite for this.</p>
+<p>If you need a store small amounts of data, <a href="https://kv.deno.dev">Deno KV</a> is a good option.</p>
+<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
+
+const app = new Hono();
+
+const kv = await Deno.openKv()
+
+// register api endpoints
+app.get("/posts", async (c) =&gt; {
+    const posts = await kv.list(["posts"])
+    );
+
+    return c.json(posts.value);
+});
+
+app.get("/posts/:id", async (c) =&gt; {
+    const post = await kv.get(["posts", c.req.param("id")]);
+    return c.json(post.value);
+});
+
+app.post("/posts", async (c) =&gt; {
+    const post = await c.req.json();
+    await kv.set(["posts", post.id], post);
+
+    return c.json(post, { status: 201 });
+});
+
+// serve the frontend
+app.get('*', serveStatic({ root: './frontend/dist' }))
+
+export default app;
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-reference"><a class="header" href="#cli-reference">CLI Reference</a></h1>
 <h2 id="smallweb"><a class="header" href="#smallweb">smallweb</a></h2>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Fly.io setup - Smallweb</title>
+        <title>Integrating with Vite - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html" class="active"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html"><strong aria-hidden="true">8.</strong> Integrating with Vite</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">1.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">4.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">5.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html" class="active"><strong aria-hidden="true">8.</strong> Integrating with Vite</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/fly/setup.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/vite.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,45 +179,89 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="hosting-smallweb-on-flyio"><a class="header" href="#hosting-smallweb-on-flyio">Hosting Smallweb on fly.io</a></h1>
-<pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb
-fly launch --no-deploy
-fly deploy
-fly certs create '&lt;your-domain&gt;' # Optional, might be used in the future
-fly certs create '*.&lt;your-domain&gt;'
+                        <h1 id="integrating-with-vite"><a class="header" href="#integrating-with-vite">Integrating with Vite</a></h1>
+<p>Smallweb can easily integrate with <a href="https://vitejs.dev">vite</a> to provide a fast development experience.</p>
+<h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
+<p>Our project will have the following structure:</p>
+<pre><code class="language-txt">~/www/vite-example
+├── .vscode/
+│   └── settings.json
+├── main.ts
+└── frontend/
+    └── &lt;vite project&gt;
 </code></pre>
-<p>Then add the required dns entries to your domain registrar.</p>
-<p><img src="./dns.png" alt="DNS Entries" /></p>
-<p>The certificate might take a long time to be issued (~30 mins in my experience).
-You can check the status of the certificates by running <code>fly certs show '*.&lt;your-domain&gt;'</code>.</p>
-<h2 id="testing-the-setup"><a class="header" href="#testing-the-setup">Testing the setup</a></h2>
-<p>Create a dummy website:</p>
-<pre><code class="language-sh">fly ssh console
-mkdir -p /www/example
-CAT &lt;&lt;EOF &gt; /www/example/main.ts
-export default {
-  fetch() {
-    return new Response("Smallweb is running on fly.io", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
+<p>Let's create the project, and initialize the vite frontend:</p>
+<pre><code class="language-sh">mkdir -p ~/www/vite-example
+cd ~/www/vite-example
+npm create vite@latest frontend
+cd frontend &amp;&amp; npm install &amp;&amp; npm run build
+</code></pre>
+<p>Then we'll create the main.ts file:</p>
+<pre><code class="language-ts">import { serveDir } from "jsr:@std/http/file-server";
+
+const handler = (req: Request) =&gt; {
+    return serveDir(req, {
+        fsRoot: "./frontend/dist",
     });
-  }
-}
-EOF
+};
+
+export default {
+    fetch: handler,
+};
 </code></pre>
-<p>Then go to <code>https://example.&lt;your-domain&gt;</code>.</p>
-<p>You can access the smallweb logs by running: <code>fly logs</code> in the smallweb directory, or <code>fly logs -a smallweb</code> from anywhere.</p>
+<p>And setup the <code>.vscode/settings.json</code> config:</p>
+<pre><code class="language-json">{
+    "deno.enable": true,
+    "deno.disablePaths": [
+        "frontend"
+    ],
+}
+</code></pre>
+<p>Once everything is setup, you should be able to access the website at <code>https://vite-example.localhost</code>.</p>
+<h2 id="adding-api-endpoints"><a class="header" href="#adding-api-endpoints">Adding api endpoints</a></h2>
+<p>You can modify the <code>main.ts</code> file to add api endpoints. <a href="https://hono.dev">Hono</a> pairs well with vite for this.</p>
+<p>If you need a store small amounts of data, <a href="https://kv.deno.dev">Deno KV</a> is a good option.</p>
+<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
+
+const app = new Hono();
+
+const kv = await Deno.openKv()
+
+// register api endpoints
+app.get("/posts", async (c) =&gt; {
+    const posts = await kv.list(["posts"])
+    );
+
+    return c.json(posts.value);
+});
+
+app.get("/posts/:id", async (c) =&gt; {
+    const post = await kv.get(["posts", c.req.param("id")]);
+    return c.json(post.value);
+});
+
+app.post("/posts", async (c) =&gt; {
+    const post = await c.req.json();
+    await kv.set(["posts", post.id], post);
+
+    return c.json(post, { status: 201 });
+});
+
+// serve the frontend
+app.get('*', serveStatic({ root: './frontend/dist' }))
+
+export default app;
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../cloudflare/tunnel.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guides/jsr.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../deno-deploy.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../cli.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -227,11 +271,11 @@ EOF
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../cloudflare/tunnel.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guides/jsr.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../deno-deploy.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../cli.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
