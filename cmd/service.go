@@ -2,7 +2,6 @@ package cmd
 
 import (
 	_ "embed"
-	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -33,7 +32,7 @@ func NewCmdServiceInstall() *cobra.Command {
 				return err
 			}
 
-			fmt.Println("Service installed successfully")
+			cmd.Println("Service installed successfully")
 			return nil
 		},
 	}
@@ -49,7 +48,7 @@ func NewCmdServiceUninstall() *cobra.Command {
 				return err
 			}
 
-			fmt.Println("Service uninstalled successfully")
+			cmd.Println("Service uninstalled successfully")
 			return nil
 		},
 	}
@@ -65,7 +64,7 @@ func NewCmdServiceStart() *cobra.Command {
 				return err
 			}
 
-			fmt.Println("Service started successfully")
+			cmd.Println("Service started successfully")
 			return nil
 		},
 	}
@@ -79,7 +78,7 @@ func NewCmdServiceStop() *cobra.Command {
 			if err := StopService(); err != nil {
 				return err
 			}
-			fmt.Errorf("Service stopped successfully")
+			cmd.Println("Service stopped successfully")
 			return nil
 		},
 	}
@@ -94,7 +93,7 @@ func NewCmdServiceRestart() *cobra.Command {
 				return err
 			}
 
-			fmt.Println("Service restarted successfully")
+			cmd.Println("Service restarted successfully")
 			return nil
 		},
 	}
