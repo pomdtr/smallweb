@@ -1,4 +1,4 @@
-FROM golang:1.22.3 as builder
+FROM golang:1.22.3-alpine as builder
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
@@ -7,7 +7,7 @@ COPY cmd/ ./cmd/
 COPY worker ./worker
 RUN CGO_ENABLED=0 GOOS=linux go build -o /smallweb
 
-FROM denoland/deno:1.44.1
+FROM denoland/deno:alpine-1.44.1
 COPY --from=builder /smallweb /usr/local/bin/smallweb
 
 WORKDIR /www
