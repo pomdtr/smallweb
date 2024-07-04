@@ -7,7 +7,7 @@ COPY cmd/ ./cmd/
 COPY worker ./worker
 RUN CGO_ENABLED=0 GOOS=linux go build -o /smallweb
 
-FROM denoland/deno:alpine-1.44.1
+FROM denoland/deno:1.44.1
 COPY --from=builder /smallweb /usr/local/bin/smallweb
 
 WORKDIR /www
