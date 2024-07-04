@@ -188,9 +188,18 @@
 </li>
 <li>
 <p>Install smallweb on your server, and register it as a service.</p>
-<pre><code class="language-ts">git clone https://github.com/pomdtr/smallweb
-cd smallweb &amp;&amp; go install
+<pre><code class="language-ts">// install deno and go
+curl -fsSL https://deno.land/install.sh | sh
+curl -sS https://webi.sh/golang | sh
+
+// clone and install smallweb
+git clone https://github.com/pomdtr/smallweb &amp;&amp; cd smallweb &amp;&amp; go install
+
+// register smallweb as a service
 smallweb service install
+
+// make sure that the server service is running
+smallweb service status
 </code></pre>
 </li>
 <li>
@@ -229,7 +238,7 @@ export default {
 }
 EOF
 </code></pre>
-<p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
+<p>If everything went well, you should be able to access <code>https://example.&lt;your-domain&gt;</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
 <h2 id="optional-steps"><a class="header" href="#optional-steps">Optional Steps</a></h2>
 <ul>
 <li>You can protect your tunnel (or specific apps) with Cloudflare Access.</li>
