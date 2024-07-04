@@ -5,14 +5,15 @@ before:
     - go mod tidy
     - rm -rf completions
     - mkdir completions
-    - sh -c 'go run . completion "bash" >./completions/{{ .ProjectName }}.bash'
-    - sh -c 'go run . completion "zsh" >./completions/{{ .ProjectName }}.zsh'
-    - sh -c 'go run . completion "fish" >./completions/{{ .ProjectName }}.fish'
+    - sh -c 'go run . completion "bash" >./completions/smallweb.bash'
+    - sh -c 'go run . completion "zsh" >./completions/smallweb.zsh'
+    - sh -c 'go run . completion "fish" >./completions/smallweb.fish'
 changelog:
   disable: true
 builds:
   - env:
       - CGO_ENABLED=0
+    binary: smallweb
     goos:
       - linux
       - darwin
