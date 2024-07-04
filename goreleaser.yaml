@@ -25,9 +25,13 @@ checksum:
   name_template: "checksums.txt"
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
+release:
+  github:
+    owner: pomdtr
+    name: smallweb-releases
 brews:
   - name: smallweb
-    homepage: https://pomdtr.github.io/smallweb
+    homepage: https://smallweb-docs.pomdtr.me
     repository:
       owner: pomdtr
       name: homebrew-tap
