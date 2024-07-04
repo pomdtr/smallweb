@@ -65,7 +65,7 @@ And setup the `.vscode/settings.json` config:
 {
     "deno.enable": true,
     "deno.disablePaths": [
-        "frontend"
+        "app"
     ],
 }
 ```
