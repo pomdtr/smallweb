@@ -1,19 +1,19 @@
 version: 2
 # Make sure to check the documentation at https://goreleaser.com
+project_name: smallweb
 before:
   hooks:
     - go mod tidy
     - rm -rf completions
     - mkdir completions
-    - sh -c 'go run . completion "bash" >./completions/smallweb.bash'
-    - sh -c 'go run . completion "zsh" >./completions/smallweb.zsh'
-    - sh -c 'go run . completion "fish" >./completions/smallweb.fish'
+    - sh -c 'go run . completion "bash" >./completions/{{ .ProjectName }}.bash'
+    - sh -c 'go run . completion "zsh" >./completions/{{ .ProjectName }}.zsh'
+    - sh -c 'go run . completion "fish" >./completions/{{ .ProjectName }}.fish'
 changelog:
   disable: true
 builds:
   - env:
       - CGO_ENABLED=0
-    binary: smallweb
     goos:
       - linux
       - darwin
