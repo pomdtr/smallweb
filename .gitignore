@@ -1,7 +1,4 @@
 .DS_Store
-dist/
-completions/
-public/
-data/
-*.db
-.env
+/dist/
+/completions/
+/.env
