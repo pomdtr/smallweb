@@ -27,17 +27,20 @@ cd frontend && npm install && npm run build
 Then we'll create the main.ts file:
 
 ```ts
-import { serveDir } from "jsr:@std/http/file-server";
+import { Hono } from "jsr:@hono/hono";
+import { serveStatic } from "jsr:@hono/hono/deno"
 
-const handler = (req: Request) => {
-    return serveDir(req, {
-        fsRoot: "./frontend/dist",
-    });
-};
+const app = new Hono();
 
-export default {
-    fetch: handler,
-};
+// example api endpoint
+app.get("/api/hello", (c) => {
+  return c.json({ body: "Hello, World!" });
+});
+
+// serve the frontend
+app.get('*', serveStatic({ root: './frontend/dist' }))
+
+export default app;
 ```
 
 And setup the `.vscode/settings.json` config:
@@ -52,42 +55,3 @@ And setup the `.vscode/settings.json` config:
 ```
 
 Once everything is setup, you should be able to access the website at `https://vite-example.localhost`.
-
-## Adding api endpoints
-
-You can modify the `main.ts` file to add api endpoints. [Hono](https://hono.dev) pairs well with vite for this.
-
-If you need a store small amounts of data, [Deno KV](https://kv.deno.dev) is a good option.
-
-```ts
-import { Hono } from "jsr:@hono/hono";
-
-const app = new Hono();
-
-const kv = await Deno.openKv()
-
-// register api endpoints
-app.get("/posts", async (c) => {
-    const posts = await kv.list(["posts"])
-    );
-
-    return c.json(posts.value);
-});
-
-app.get("/posts/:id", async (c) => {
-    const post = await kv.get(["posts", c.req.param("id")]);
-    return c.json(post.value);
-});
-
-app.post("/posts", async (c) => {
-    const post = await c.req.json();
-    await kv.set(["posts", post.id], post);
-
-    return c.json(post, { status: 201 });
-});
-
-// serve the frontend
-app.get('*', serveStatic({ root: './frontend/dist' }))
-
-export default app;
-```
