@@ -43,7 +43,7 @@ app.get('*', serveStatic({ root: './frontend/dist' }))
 export default app;
 ```
 
-And setup the `.vscode/settings.json` config:
+If you are using vscode, make sure to setup the `.vscode/settings.json` config:
 
 ```json
 {
