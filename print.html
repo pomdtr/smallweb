@@ -745,17 +745,20 @@ npm create vite@latest frontend
 cd frontend &amp;&amp; npm install &amp;&amp; npm run build
 </code></pre>
 <p>Then we'll create the main.ts file:</p>
-<pre><code class="language-ts">import { serveDir } from "jsr:@std/http/file-server";
+<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
+import { serveStatic } from "jsr:@hono/hono/deno"
 
-const handler = (req: Request) =&gt; {
-    return serveDir(req, {
-        fsRoot: "./frontend/dist",
-    });
-};
+const app = new Hono();
 
-export default {
-    fetch: handler,
-};
+// example api endpoint
+app.get("/api/hello", (c) =&gt; {
+  return c.json({ body: "Hello, World!" });
+});
+
+// serve the frontend
+app.get('*', serveStatic({ root: './frontend/dist' }))
+
+export default app;
 </code></pre>
 <p>And setup the <code>.vscode/settings.json</code> config:</p>
 <pre><code class="language-json">{
@@ -766,40 +769,6 @@ export default {
 }
 </code></pre>
 <p>Once everything is setup, you should be able to access the website at <code>https://vite-example.localhost</code>.</p>
-<h2 id="adding-api-endpoints"><a class="header" href="#adding-api-endpoints">Adding api endpoints</a></h2>
-<p>You can modify the <code>main.ts</code> file to add api endpoints. <a href="https://hono.dev">Hono</a> pairs well with vite for this.</p>
-<p>If you need a store small amounts of data, <a href="https://kv.deno.dev">Deno KV</a> is a good option.</p>
-<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
-
-const app = new Hono();
-
-const kv = await Deno.openKv()
-
-// register api endpoints
-app.get("/posts", async (c) =&gt; {
-    const posts = await kv.list(["posts"])
-    );
-
-    return c.json(posts.value);
-});
-
-app.get("/posts/:id", async (c) =&gt; {
-    const post = await kv.get(["posts", c.req.param("id")]);
-    return c.json(post.value);
-});
-
-app.post("/posts", async (c) =&gt; {
-    const post = await c.req.json();
-    await kv.set(["posts", post.id], post);
-
-    return c.json(post, { status: 201 });
-});
-
-// serve the frontend
-app.get('*', serveStatic({ root: './frontend/dist' }))
-
-export default app;
-</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="integrating-with-astro"><a class="header" href="#integrating-with-astro">Integrating with Astro</a></h1>
 <h2 id="project-structure-1"><a class="header" href="#project-structure-1">Project Structure</a></h2>
 <p>Our project will have the following structure:</p>
