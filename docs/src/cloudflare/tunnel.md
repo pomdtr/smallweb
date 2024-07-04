@@ -9,9 +9,18 @@ Additionally, it provides some protection against DDoS attacks, and allows you t
 1. Install smallweb on your server, and register it as a service.
 
     ```ts
-    git clone https://github.com/pomdtr/smallweb
-    cd smallweb && go install
+    // install deno and go
+    curl -fsSL https://deno.land/install.sh | sh
+    curl -sS https://webi.sh/golang | sh
+
+    // clone and install smallweb
+    git clone https://github.com/pomdtr/smallweb && cd smallweb && go install
+
+    // register smallweb as a service
     smallweb service install
+
+    // make sure that the server service is running
+    smallweb service status
     ```
 
 1. From your cloudflare dashboard, navigate to `Zero Trust > Networks > Tunnels`
@@ -49,7 +58,7 @@ export default {
 EOF
 ```
 
-If everything went well, you should be able to access `https://example.localhost` in your browser, and see the message `Smallweb is running`.
+If everything went well, you should be able to access `https://example.<your-domain>` in your browser, and see the message `Smallweb is running`.
 
 ## Optional Steps
 
