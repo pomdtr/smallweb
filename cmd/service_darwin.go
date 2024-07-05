@@ -187,7 +187,6 @@ func ViewServiceStatus() error {
 	if err != nil {
 		return fmt.Errorf("service is not running")
 	}
-	fmt.Println("Service is running")
 	fmt.Println(string(out))
 	return nil
 }
