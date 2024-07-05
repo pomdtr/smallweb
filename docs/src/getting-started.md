@@ -20,11 +20,21 @@ If you prefer your to keep your apps local to your device, you can learn how to 
 
 This guide will assumes that you have followed the [localhost setup guide](./localhost/macos.md). If you haven't, just replace `https://<app>.localhost` with `https://<app>.<your-domain>` in the examples below.
 
-### Hosting a web app
 
-Every folder in the `~/www` directory is served statically by default. If the folder contains an `index.html` file, it will be served as the default page. Otherwise, the folder content will be listed.
+### Hosting a static website
 
-To create a new website, just create a folder in the `~/www` directory, and add an `index.html` file in it.
+Every folder in the `~/www` directory is served statically by default.
+
+The simplest smallweb app you can create is just a folder with a text file in it.
+
+```sh
+mkdir -p ~/www/example-website
+echo "Hello, world!" > ~/www/example-website/hello.txt
+```
+
+If you open `https://hello-world.localhost/hello.txt` in your browser, you should see the content of the file.
+
+If the folder contains an `index.html` file (or a `dist/index.html` file), it will be served as the root of the website.
 
 ```html
 <!-- File: ~/www/example-website/index.html -->
@@ -44,8 +54,6 @@ To create a new website, just create a folder in the `~/www` directory, and add 
 </body>
 </html>
 ```
-
-To access the website, open `https://example-website.localhost` in your browser.
 
 If you want to serve dynamic content instead, you'll need to create a file called `main.[js,ts,jsx,tsx]` at the root of the folder. The file should export a default object with a `fetch` method that takes a `Request` object as argument, and returns a `Response` object.
 
@@ -133,13 +141,13 @@ If you want to add more permissions to your app (or restrict it even further), y
 - add `smallweb.json` configuration file at the root of the folder
 - add a `smallweb` field in your `deno.json`
 
-A json schema for the permissions file is available [here](https://static.pomdtr.me/smallweb.schema.json). See the deno docs to learn the [available permissions](https://docs.deno.com/runtime/manual/basics/permissions).
+A json schema for the permissions file is available [here](https://assets.smallweb.run/smallweb.schema.json). See the deno docs to learn the [available permissions](https://docs.deno.com/runtime/manual/basics/permissions).
 
 Here is the default config when no `smallweb.json` file is present:
 
 ```json
 {
-  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "$schema": "https://assets.smallweb.run/smallweb.schema.json",
   "permissions": {
     "env": true,
     "net": true,
@@ -156,7 +164,7 @@ If you want to add permissions to run a binary, you should start from it, then a
 
 ```jsonc
 {
-  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "$schema": "https://assets.smallweb.run/smallweb.schema.json",
   "permissions": {
     "run": ["/opt/homebrew/bin/gh"], // add the ability to run the gh binary
     "env": true,
@@ -174,7 +182,7 @@ As a general rule, you should only add permissions that are required for your ap
 
 ```jsonc
 {
-  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "$schema": "https://assets.smallweb.run/smallweb.schema.json",
   "permissions": {
     "all": true // yolo!
   }
