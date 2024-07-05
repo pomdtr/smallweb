@@ -353,12 +353,10 @@ Hello, smallweb!
 <pre><code class="language-sh"># install homebrew (if not already installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 # install all required dependencies
-brew install deno go caddy dnsmasq
+brew install deno caddy dnsmasq
 </code></pre>
 <h3 id="install-smallweb"><a class="header" href="#install-smallweb">Install Smallweb</a></h3>
-<pre><code class="language-sh">git clone https://github.com/pomdtr/smallweb
-cd smallweb &amp;&amp; go install
-echo "export PATH=$PATH:$(go env GOPATH)/bin" &gt;&gt; ~/.zshrc
+<pre><code class="language-sh">brew install pomdtr/tap/smallweb
 smallweb service install
 </code></pre>
 <h3 id="setup-caddy"><a class="header" href="#setup-caddy">Setup Caddy</a></h3>
@@ -421,12 +419,11 @@ EOF
 </li>
 <li>
 <p>Install smallweb on your server, and register it as a service.</p>
-<pre><code class="language-ts">// install deno and go
+<pre><code class="language-ts">// install deno
 curl -fsSL https://deno.land/install.sh | sh
-curl -sS https://webi.sh/golang | sh
 
-// clone and install smallweb
-git clone https://github.com/pomdtr/smallweb &amp;&amp; cd smallweb &amp;&amp; go install
+// install smallweb
+curl -sSfL https://assets.smallweb.run/install.sh | sh
 
 // register smallweb as a service
 smallweb service install
