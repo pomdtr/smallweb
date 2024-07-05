@@ -4,10 +4,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCmdRoot() *cobra.Command {
+func NewCmdRoot(version string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "smallweb",
-		Short: "Host websites from your internet folder",
+		Use:     "smallweb",
+		Short:   "Host websites from your internet folder",
+		Version: version,
 	}
 
 	cmd.AddCommand(NewCmdUp())
