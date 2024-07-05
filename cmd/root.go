@@ -12,7 +12,6 @@ func NewCmdRoot(version string) *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdUp())
-	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdDump())
 	cmd.AddCommand(NewCmdDocs())

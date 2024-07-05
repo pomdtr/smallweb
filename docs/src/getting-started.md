@@ -180,29 +180,3 @@ As a general rule, you should only add permissions that are required for your ap
   }
 }
 ```
-
-### Registering a CLI command
-
-To add a cli command to your app, just create a file called `cli.[js,ts,jsx,tsx]` in the folder.
-
-Here is an example of a simple cli command:
-
-```ts
-// File: ~/www/demo/cli.ts
-import { parseArgs } from "jsr:@std/cli/parse-args";
-
-const flags = parseArgs(Deno.args, {
-  string: ["name"],
-});
-
-console.log(`Hello, ${flags.name || "world"}!`);
-```
-
-To run the command, you can use the `smallweb run` command:
-
-```sh
-$ smallweb run demo --name smallweb
-Hello, smallweb!
-```
-
-Of course, you can define both an `main.ts` and a `cli.ts` file in the same folder.
