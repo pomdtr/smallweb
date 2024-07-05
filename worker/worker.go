@@ -401,6 +401,12 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if entrypoint == "" {
+		if FileExists(filepath.Join(appDir, "dist", "index.html")) {
+			fileServer := http.FileServer(http.Dir(filepath.Join(appDir, "dist")))
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
 		fileServer := http.FileServer(http.Dir(appDir))
 		fileServer.ServeHTTP(w, r)
 		return
