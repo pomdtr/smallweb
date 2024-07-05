@@ -25,7 +25,6 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdUpgrade())
 
 	path := os.Getenv("PATH")
-	commands := make(map[string]*cobra.Command)
 	for _, dir := range filepath.SplitList(path) {
 		entries, err := os.ReadDir(dir)
 		if err != nil {
@@ -45,7 +44,11 @@ func NewCmdRoot(version string) *cobra.Command {
 				}
 
 				name := strings.TrimPrefix(entry.Name(), "smallweb-")
-				commands[name] = &cobra.Command{
+				if HasCommand(cmd, name) {
+					continue
+				}
+
+				cmd.AddCommand(&cobra.Command{
 					Use:                name,
 					SilenceUsage:       true,
 					Short:              fmt.Sprintf("Extension %s", name),
@@ -57,16 +60,21 @@ func NewCmdRoot(version string) *cobra.Command {
 						command.Stderr = os.Stderr
 						return command.Run()
 					},
-				}
+				})
 			}
 		}
 	}
 
-	for _, command := range commands {
-		cmd.AddCommand(command)
-	}
-
 	return cmd
+}
+
+func HasCommand(cmd *cobra.Command, name string) bool {
+	for _, c := range cmd.Commands() {
+		if c.Name() == name {
+			return true
+		}
+	}
+	return false
 }
 
 func isExecutable(path string) (bool, error) {
