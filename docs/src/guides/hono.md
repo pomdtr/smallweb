@@ -126,7 +126,7 @@ For the above code, it will work well with the following directory structure.
 If you want to return html from your endpoint, hono comes with built-in support for JSX.
 
 ```jsx
-// @jsxImportSource jsr:@hono/hono/jsx
+/** @jsxImportSource jsr:@hono/hono/jsx */
 
 import { Hono } from 'jsr:@hono/hono'
 
