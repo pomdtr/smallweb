@@ -181,46 +181,14 @@
                     <main>
                         <h1 id="integrating-with-vite"><a class="header" href="#integrating-with-vite">Integrating with Vite</a></h1>
 <p>Smallweb can easily integrate with <a href="https://vitejs.dev">vite</a> to provide a fast development experience.</p>
-<h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
-<p>Our project will have the following structure:</p>
-<pre><code class="language-txt">~/www/vite-example
-├── .vscode/
-│   └── settings.json
-├── main.ts
-└── frontend/
-    └── &lt;vite project&gt;
+<p>You can just create a vite project in the <code>~/www</code> directory.</p>
+<pre><code class="language-sh">cd ~/www
+npm create vite@latest vite-project
+cd vite-project
+npm install
+npm run build
 </code></pre>
-<p>Let's create the project, and initialize the vite frontend:</p>
-<pre><code class="language-sh">mkdir -p ~/www/vite-example
-cd ~/www/vite-example
-npm create vite@latest frontend
-cd frontend &amp;&amp; npm install &amp;&amp; npm run build
-</code></pre>
-<p>Then we'll create the main.ts file:</p>
-<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
-import { serveStatic } from "jsr:@hono/hono/deno"
-
-const app = new Hono();
-
-// example api endpoint
-app.get("/api/hello", (c) =&gt; {
-  return c.json({ body: "Hello, World!" });
-});
-
-// serve the frontend
-app.get('*', serveStatic({ root: './frontend/dist' }))
-
-export default app;
-</code></pre>
-<p>If you are using vscode, make sure to setup the <code>.vscode/settings.json</code> config:</p>
-<pre><code class="language-json">{
-    "deno.enable": true,
-    "deno.disablePaths": [
-        "frontend"
-    ],
-}
-</code></pre>
-<p>Once everything is setup, you should be able to access the website at <code>https://vite-example.localhost</code>.</p>
+<p>The build command will generate a <code>dist</code> directory with the static files. Since your project is in the <code>~/www</code> directory, Smallweb will serve the files at <code>https://vite-project.localhost</code>.</p>
 
                     </main>
 

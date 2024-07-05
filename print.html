@@ -191,9 +191,14 @@
 You can find more information on to do this in the <a href="./cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
 <p>If you prefer your to keep your apps local to your device, you can learn how to host your apps as <code>https://&lt;app&gt;.localhost</code> address in <a href="./localhost/macos.html">this guide</a>. This option does not requires a domain name (or a server), but your app will only be available on your local device.</p>
 <p>This guide will assumes that you have followed the <a href="./localhost/macos.html">localhost setup guide</a>. If you haven't, just replace <code>https://&lt;app&gt;.localhost</code> with <code>https://&lt;app&gt;.&lt;your-domain&gt;</code> in the examples below.</p>
-<h3 id="hosting-a-web-app"><a class="header" href="#hosting-a-web-app">Hosting a web app</a></h3>
-<p>Every folder in the <code>~/www</code> directory is served statically by default. If the folder contains an <code>index.html</code> file, it will be served as the default page. Otherwise, the folder content will be listed.</p>
-<p>To create a new website, just create a folder in the <code>~/www</code> directory, and add an <code>index.html</code> file in it.</p>
+<h3 id="hosting-a-static-website"><a class="header" href="#hosting-a-static-website">Hosting a static website</a></h3>
+<p>Every folder in the <code>~/www</code> directory is served statically by default.</p>
+<p>The simplest smallweb app you can create is just a folder with a text file in it.</p>
+<pre><code class="language-sh">mkdir -p ~/www/example-website
+echo "Hello, world!" &gt; ~/www/example-website/hello.txt
+</code></pre>
+<p>If you open <code>https://hello-world.localhost/hello.txt</code> in your browser, you should see the content of the file.</p>
+<p>If the folder contains an <code>index.html</code> file (or a <code>dist/index.html</code> file), it will be served as the root of the website.</p>
 <pre><code class="language-html">&lt;!-- File: ~/www/example-website/index.html --&gt;
 &lt;!DOCTYPE html&gt;
 &lt;html lang="en"&gt;
@@ -211,7 +216,6 @@ You can find more information on to do this in the <a href="./cloudflare/tunnel.
 &lt;/body&gt;
 &lt;/html&gt;
 </code></pre>
-<p>To access the website, open <code>https://example-website.localhost</code> in your browser.</p>
 <p>If you want to serve dynamic content instead, you'll need to create a file called <code>main.[js,ts,jsx,tsx]</code> at the root of the folder. The file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
 <pre><code class="language-ts">// File: ~/www/example-server/main.ts
 
@@ -278,10 +282,10 @@ export default function (req: Request) {
 <li>add <code>smallweb.json</code> configuration file at the root of the folder</li>
 <li>add a <code>smallweb</code> field in your <code>deno.json</code></li>
 </ul>
-<p>A json schema for the permissions file is available <a href="https://static.pomdtr.me/smallweb.schema.json">here</a>. See the deno docs to learn the <a href="https://docs.deno.com/runtime/manual/basics/permissions">available permissions</a>.</p>
+<p>A json schema for the permissions file is available <a href="https://assets.smallweb.run/smallweb.schema.json">here</a>. See the deno docs to learn the <a href="https://docs.deno.com/runtime/manual/basics/permissions">available permissions</a>.</p>
 <p>Here is the default config when no <code>smallweb.json</code> file is present:</p>
 <pre><code class="language-json">{
-  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "$schema": "https://assets.smallweb.run/smallweb.schema.json",
   "permissions": {
     "env": true,
     "net": true,
@@ -295,7 +299,7 @@ export default function (req: Request) {
 </code></pre>
 <p>If you want to add permissions to run a binary, you should start from it, then add the required permissions:</p>
 <pre><code class="language-jsonc">{
-  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "$schema": "https://assets.smallweb.run/smallweb.schema.json",
   "permissions": {
     "run": ["/opt/homebrew/bin/gh"], // add the ability to run the gh binary
     "env": true,
@@ -310,29 +314,12 @@ export default function (req: Request) {
 </code></pre>
 <p>As a general rule, you should only add permissions that are required for your app to run. The more permissions you add, the more attack surface you expose to potential attackers. If you know what you are doing (or just don't care), you can allow all permissions by setting the <code>all</code> field to <code>true</code>.</p>
 <pre><code class="language-jsonc">{
-  "$schema": "https://static.pomdtr.me/smallweb.schema.json",
+  "$schema": "https://assets.smallweb.run/smallweb.schema.json",
   "permissions": {
     "all": true // yolo!
   }
 }
 </code></pre>
-<h3 id="registering-a-cli-command"><a class="header" href="#registering-a-cli-command">Registering a CLI command</a></h3>
-<p>To add a cli command to your app, just create a file called <code>cli.[js,ts,jsx,tsx]</code> in the folder.</p>
-<p>Here is an example of a simple cli command:</p>
-<pre><code class="language-ts">// File: ~/www/demo/cli.ts
-import { parseArgs } from "jsr:@std/cli/parse-args";
-
-const flags = parseArgs(Deno.args, {
-  string: ["name"],
-});
-
-console.log(`Hello, ${flags.name || "world"}!`);
-</code></pre>
-<p>To run the command, you can use the <code>smallweb run</code> command:</p>
-<pre><code class="language-sh">$ smallweb run demo --name smallweb
-Hello, smallweb!
-</code></pre>
-<p>Of course, you can define both an <code>main.ts</code> and a <code>cli.ts</code> file in the same folder.</p>
 <div style="break-before: page; page-break-before: always;"></div><p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
 <p>At the end of this process, each folder in <code>~/www</code> will be mapped to domain with a <code>.localhost</code> suffix. For example, the folder <code>~/www/example</code> will be accessible at <code>https://example.localhost</code>.</p>
 <p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
@@ -735,48 +722,16 @@ export default {
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="integrating-with-vite"><a class="header" href="#integrating-with-vite">Integrating with Vite</a></h1>
 <p>Smallweb can easily integrate with <a href="https://vitejs.dev">vite</a> to provide a fast development experience.</p>
-<h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
-<p>Our project will have the following structure:</p>
-<pre><code class="language-txt">~/www/vite-example
-├── .vscode/
-│   └── settings.json
-├── main.ts
-└── frontend/
-    └── &lt;vite project&gt;
+<p>You can just create a vite project in the <code>~/www</code> directory.</p>
+<pre><code class="language-sh">cd ~/www
+npm create vite@latest vite-project
+cd vite-project
+npm install
+npm run build
 </code></pre>
-<p>Let's create the project, and initialize the vite frontend:</p>
-<pre><code class="language-sh">mkdir -p ~/www/vite-example
-cd ~/www/vite-example
-npm create vite@latest frontend
-cd frontend &amp;&amp; npm install &amp;&amp; npm run build
-</code></pre>
-<p>Then we'll create the main.ts file:</p>
-<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
-import { serveStatic } from "jsr:@hono/hono/deno"
-
-const app = new Hono();
-
-// example api endpoint
-app.get("/api/hello", (c) =&gt; {
-  return c.json({ body: "Hello, World!" });
-});
-
-// serve the frontend
-app.get('*', serveStatic({ root: './frontend/dist' }))
-
-export default app;
-</code></pre>
-<p>If you are using vscode, make sure to setup the <code>.vscode/settings.json</code> config:</p>
-<pre><code class="language-json">{
-    "deno.enable": true,
-    "deno.disablePaths": [
-        "frontend"
-    ],
-}
-</code></pre>
-<p>Once everything is setup, you should be able to access the website at <code>https://vite-example.localhost</code>.</p>
+<p>The build command will generate a <code>dist</code> directory with the static files. Since your project is in the <code>~/www</code> directory, Smallweb will serve the files at <code>https://vite-project.localhost</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="integrating-with-astro"><a class="header" href="#integrating-with-astro">Integrating with Astro</a></h1>
-<h2 id="project-structure-1"><a class="header" href="#project-structure-1">Project Structure</a></h2>
+<h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
 <p>Our project will have the following structure:</p>
 <pre><code class="language-txt">~/www/astro-example
 ├── .vscode/
