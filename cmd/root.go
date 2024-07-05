@@ -6,12 +6,13 @@ import (
 
 func NewCmdRoot(version string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "smallweb",
-		Short:   "Host websites from your internet folder",
-		Version: version,
+		Use:                "smallweb",
+		Short:              "Host websites from your internet folder",
+		DisableFlagParsing: true,
+		Version:            version,
 	}
 
-	cmd.AddCommand(NewCmdUp())
+	cmd.AddCommand(NewCmdServe())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdDump())
 	cmd.AddCommand(NewCmdDocs())

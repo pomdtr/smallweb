@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pomdtr/smallweb/worker"
@@ -16,9 +17,7 @@ type Tree struct {
 }
 
 type App struct {
-	Cli  string `json:"cli,omitempty"`
 	Name string `json:"name"`
-	Main string `json:"main,omitempty"`
 }
 
 func NewCmdDump() *cobra.Command {
@@ -46,18 +45,13 @@ func NewCmdDump() *cobra.Command {
 					Name: entry.Name(),
 				}
 
-				for _, extension := range worker.EXTENSIONS {
-					if worker.FileExists(worker.SMALLWEB_ROOT, entry.Name(), "cli"+extension) {
-						app.Cli = "cli" + extension
+				for _, candidate := range worker.CANDIDATES {
+					if worker.FileExists(filepath.Join(worker.SMALLWEB_ROOT, entry.Name(), candidate)) {
+						app.Name = entry.Name()
+						apps[entry.Name()] = app
+						break
 					}
-
-					if worker.FileExists(worker.SMALLWEB_ROOT, entry.Name(), "main"+extension) {
-						app.Main = "main" + extension
-					}
-
 				}
-
-				apps[entry.Name()] = app
 			}
 
 			tree := Tree{

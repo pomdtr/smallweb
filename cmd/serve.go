@@ -10,11 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCmdUp() *cobra.Command {
+func NewCmdServe() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "up",
-		Short: "Start the smallweb evaluation server",
-		Args:  cobra.NoArgs,
+		Use:     "serve",
+		Short:   "Start the smallweb evaluation server",
+		Aliases: []string{"up"},
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			port, _ := cmd.Flags().GetInt("port")
 			server := http.Server{

@@ -199,7 +199,7 @@ func (p *Permissions) Flags(rootDir string) []string {
 	return flags
 }
 
-var EXTENSIONS = []string{".js", ".ts", ".jsx", ".tsx"}
+var CANDIDATES = []string{"main.js", "main.ts", "main.jsx", "main.tsx", "dist/index.html", "index.html"}
 var SMALLWEB_ROOT string
 var SmallwebDir string
 
@@ -241,11 +241,6 @@ func init() {
 		log.Fatalf("could not determine executable path: %v", err)
 	}
 	os.Setenv("PATH", fmt.Sprintf("%s:%s", filepath.Dir(executable), os.Getenv("PATH")))
-}
-
-type WorkerEntrypoints struct {
-	Http string
-	Cli  string
 }
 
 type Worker struct {
@@ -392,30 +387,54 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var entrypoint string
-	for _, extension := range EXTENSIONS {
-		var candidate = filepath.Join(appDir, "main"+extension)
-		if FileExists(candidate) {
-			entrypoint = candidate
+	for _, candidate := range CANDIDATES {
+		path := filepath.Join(appDir, candidate)
+		if FileExists(path) {
+			entrypoint = path
 			break
 		}
 	}
 
 	if entrypoint == "" {
-		if FileExists(filepath.Join(appDir, "dist", "index.html")) {
-			fileServer := http.FileServer(http.Dir(filepath.Join(appDir, "dist")))
-			fileServer.ServeHTTP(w, r)
-			return
-		}
-
 		fileServer := http.FileServer(http.Dir(appDir))
 		fileServer.ServeHTTP(w, r)
 		return
 	}
 
-	freeport, err := GetFreePort()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if strings.HasSuffix(entrypoint, ".html") {
+		server := http.FileServer(http.Dir(filepath.Dir(entrypoint)))
+		server.ServeHTTP(w, r)
 		return
+	}
+
+	envMap := make(map[string]string)
+	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
+		e, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		for key, value := range e {
+			envMap[key] = value
+		}
+	}
+
+	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
+		e, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		for key, value := range e {
+			envMap[key] = value
+		}
+	}
+
+	env := os.Environ()
+	for key, value := range envMap {
+		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
 
 	config, err := me.LoadConfig()
@@ -424,6 +443,11 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	freeport, err := GetFreePort()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if !config.Permissions.All && !config.Permissions.Net.All {
 		config.Permissions.Net.Allow = append(config.Permissions.Net.Allow, fmt.Sprintf("0.0.0.0:%d", freeport))
 	}
@@ -434,9 +458,9 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		protocol = "http"
 	}
 
-	var stdin bytes.Buffer
-
 	url := fmt.Sprintf("%s://%s%s", protocol, host, r.URL.String())
+
+	var stdin bytes.Buffer
 	if err := sandboxTemplate.Execute(&stdin, map[string]interface{}{
 		"Port":       freeport,
 		"ModURL":     entrypoint,
@@ -459,31 +483,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	cmd.Dir = appDir
 	cmd.Stdin = &stdin
-	cmd.Env = os.Environ()
-
-	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
-		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		for key, value := range envMap {
-			cmd.Env = append(cmd.Env, key+"="+value)
-		}
-	}
-
-	if FileExists(filepath.Join(appDir, ".env")) {
-		envMap, err := godotenv.Read(filepath.Join(appDir, ".env"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		for key, value := range envMap {
-			cmd.Env = append(cmd.Env, key+"="+value)
-		}
-	}
+	cmd.Env = env
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -613,56 +613,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-}
-
-func (me *Worker) Run(runArgs []string) error {
-	appDir := filepath.Join(SMALLWEB_ROOT, me.alias)
-
-	var entrypoint string
-	for _, extension := range EXTENSIONS {
-		candidate := filepath.Join(appDir, "cli"+extension)
-		if FileExists(candidate) {
-			entrypoint = candidate
-			break
-		}
-	}
-
-	args := []string{"run", "--allow-all", entrypoint}
-	args = append(args, runArgs...)
-
-	command, err := me.Cmd(args...)
-	if err != nil {
-		return err
-	}
-	command.Dir = appDir
-	command.Stdin = os.Stdin
-	command.Stdout = os.Stdout
-	command.Stderr = os.Stderr
-
-	command.Env = os.Environ()
-	if FileExists(filepath.Join(SMALLWEB_ROOT, ".env")) {
-		envMap, err := godotenv.Read(filepath.Join(SMALLWEB_ROOT, ".env"))
-		if err != nil {
-			return fmt.Errorf("could not read .env file: %v", err)
-		}
-
-		for key, value := range envMap {
-			command.Env = append(command.Env, key+"="+value)
-		}
-	}
-
-	if FileExists(filepath.Join(appDir, ".env")) {
-		envMap, err := godotenv.Read(filepath.Join(appDir, ".env"))
-		if err != nil {
-			return fmt.Errorf("could not read .env file: %v", err)
-		}
-
-		for key, value := range envMap {
-			command.Env = append(command.Env, key+"="+value)
-		}
-	}
-
-	return command.Run()
 }
 
 func DenoExecutable() (string, error) {
