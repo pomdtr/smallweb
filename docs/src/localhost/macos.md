@@ -29,15 +29,13 @@ In the future, we might provide a script to automate this process, but for now, 
 # install homebrew (if not already installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 # install all required dependencies
-brew install deno go caddy dnsmasq
+brew install deno caddy dnsmasq
 ```
 
 ### Install Smallweb
 
 ```sh
-git clone https://github.com/pomdtr/smallweb
-cd smallweb && go install
-echo "export PATH=$PATH:$(go env GOPATH)/bin" >> ~/.zshrc
+brew install pomdtr/tap/smallweb
 smallweb service install
 ```
 

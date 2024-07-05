@@ -9,12 +9,11 @@ Additionally, it provides some protection against DDoS attacks, and allows you t
 1. Install smallweb on your server, and register it as a service.
 
     ```ts
-    // install deno and go
+    // install deno
     curl -fsSL https://deno.land/install.sh | sh
-    curl -sS https://webi.sh/golang | sh
 
-    // clone and install smallweb
-    git clone https://github.com/pomdtr/smallweb && cd smallweb && go install
+    // install smallweb
+    curl -sSfL https://assets.smallweb.run/install.sh | sh
 
     // register smallweb as a service
     smallweb service install
