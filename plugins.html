@@ -3,8 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Page not found - Smallweb</title>
-        <base href="/smallweb/">
+        <title>Plugins - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -89,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="custom-domains.html"><strong aria-hidden="true">1.</strong> Custom Domains</a></li><li class="chapter-item expanded "><a href="plugins.html"><strong aria-hidden="true">2.</strong> Plugins</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/macos.html"><strong aria-hidden="true">3.</strong> Localhost setup (Mac OS)</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">4.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">5.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">8.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="guides/astro.html"><strong aria-hidden="true">9.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="guides/telegram.html"><strong aria-hidden="true">10.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">11.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">12.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="custom-domains.html"><strong aria-hidden="true">1.</strong> Custom Domains</a></li><li class="chapter-item expanded "><a href="plugins.html" class="active"><strong aria-hidden="true">2.</strong> Plugins</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/macos.html"><strong aria-hidden="true">3.</strong> Localhost setup (Mac OS)</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">4.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">5.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">8.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="guides/astro.html"><strong aria-hidden="true">9.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="guides/telegram.html"><strong aria-hidden="true">10.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">11.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">12.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -151,6 +150,9 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/plugins.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
 
                     </div>
                 </div>
@@ -177,14 +179,31 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="document-not-found-404"><a class="header" href="#document-not-found-404">Document not found (404)</a></h1>
-<p>This URL is invalid, sorry. Please use the navigation bar or search to continue.</p>
+                        <h1 id="smallweb-plugins"><a class="header" href="#smallweb-plugins">Smallweb Plugins</a></h1>
+<p>The smallweb CLI can be extennded with plugins. To create a new plugin, just add a binary to your PATH that starts with <code>smallweb-</code> and the CLI will automatically detect it.</p>
+<p>For example, if you create a new <code>smallweb-open</code> file with the following content:</p>
+<pre><code class="language-sh">#!/bin/sh
+
+if [ -z "$1" ]; then
+  echo "Usage: smallweb open &lt;app&gt;" &gt;&amp;2
+  exit 1
+fi
+
+exec open "https://$1.localhost"
+</code></pre>
+<p>And make it executable with <code>chmod +x smallweb-open</code>, you will be able to run <code>smallweb open my-app</code> to open <code>https://my-app.localhost</code> in your default browser.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="custom-domains.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
+                            <a rel="next prefetch" href="localhost/macos.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -192,7 +211,13 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="custom-domains.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
 
+                    <a rel="next prefetch" href="localhost/macos.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>

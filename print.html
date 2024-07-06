@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/macos.html"><strong aria-hidden="true">1.</strong> Localhost setup (Mac OS)</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">2.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">3.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">4.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">5.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">6.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="guides/astro.html"><strong aria-hidden="true">7.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="guides/telegram.html"><strong aria-hidden="true">8.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">9.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">10.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="custom-domains.html"><strong aria-hidden="true">1.</strong> Custom Domains</a></li><li class="chapter-item expanded "><a href="plugins.html"><strong aria-hidden="true">2.</strong> Plugins</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/macos.html"><strong aria-hidden="true">3.</strong> Localhost setup (Mac OS)</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">4.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="fly/setup.html"><strong aria-hidden="true">5.</strong> Fly.io setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">8.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="guides/astro.html"><strong aria-hidden="true">9.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="guides/telegram.html"><strong aria-hidden="true">10.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">11.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">12.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -320,6 +320,25 @@ export default function (req: Request) {
   }
 }
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="custom-domains"><a class="header" href="#custom-domains">Custom Domains</a></h1>
+<p>To configure a custom domain for your smallweb app, you'll just need to create a <code>CNAME</code> file in the root of your project, with the domain name you want to use.</p>
+<p>For example, if you want to use <code>example.com</code>, create a file named <code>CNAME</code> with the following content:</p>
+<pre><code class="language-txt">example.com
+</code></pre>
+<p>Then, you'll need to configure your DNS provider to point your domain to the smallweb server. You can do this by creating a <code>CNAME</code> record that points to the smallweb server's domain.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="smallweb-plugins"><a class="header" href="#smallweb-plugins">Smallweb Plugins</a></h1>
+<p>The smallweb CLI can be extennded with plugins. To create a new plugin, just add a binary to your PATH that starts with <code>smallweb-</code> and the CLI will automatically detect it.</p>
+<p>For example, if you create a new <code>smallweb-open</code> file with the following content:</p>
+<pre><code class="language-sh">#!/bin/sh
+
+if [ -z "$1" ]; then
+  echo "Usage: smallweb open &lt;app&gt;" &gt;&amp;2
+  exit 1
+fi
+
+exec open "https://$1.localhost"
+</code></pre>
+<p>And make it executable with <code>chmod +x smallweb-open</code>, you will be able to run <code>smallweb open my-app</code> to open <code>https://my-app.localhost</code> in your default browser.</p>
 <div style="break-before: page; page-break-before: always;"></div><p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
 <p>At the end of this process, each folder in <code>~/www</code> will be mapped to domain with a <code>.localhost</code> suffix. For example, the folder <code>~/www/example</code> will be accessible at <code>https://example.localhost</code>.</p>
 <p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
