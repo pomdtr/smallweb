@@ -183,10 +183,12 @@ func PrintServiceLogs(follow bool) error {
 }
 
 func ViewServiceStatus() error {
-	out, err := exec.Command("launchctl", "list", "com.pomdtr.smallweb").CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("service is not running")
+	cmd := exec.Command("launchctl", "list", "com.pomdtr.smallweb")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to execute launchctl: %v", err)
 	}
-	fmt.Println(string(out))
+
 	return nil
 }
