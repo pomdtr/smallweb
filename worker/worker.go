@@ -657,3 +657,42 @@ func GetFreePort() (int, error) {
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
+
+// TODO: cache this
+func WorkerFromHost(host string) (*Worker, error) {
+	entries, err := os.ReadDir(SMALLWEB_ROOT)
+	if err != nil {
+		return nil, err
+	}
+
+	apps := map[string]struct{}{}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		apps[entry.Name()] = struct{}{}
+
+		cnamePath := filepath.Join(SMALLWEB_ROOT, entry.Name(), "CNAME")
+		if !FileExists(cnamePath) {
+			continue
+		}
+
+		cnameBytes, err := os.ReadFile(cnamePath)
+		if err != nil {
+			return nil, err
+		}
+
+		if strings.TrimSpace(string(cnameBytes)) == host {
+			return NewWorker(entry.Name())
+		}
+
+	}
+
+	var key = strings.Split(host, ".")[0]
+	if _, ok := apps[key]; !ok {
+		return nil, fmt.Errorf("app not found")
+	}
+
+	return NewWorker(key)
+}

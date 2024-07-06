@@ -8,16 +8,6 @@
             "args": [
                 "up",
             ]
-        },
-        {
-            "name": "smallweb run",
-            "type": "go",
-            "request": "launch",
-            "program": "${workspaceFolder}/main.go",
-            "args": [
-                "run",
-                "${input:app}"
-            ]
         }
     ],
     "inputs": [
