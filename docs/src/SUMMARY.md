@@ -2,6 +2,11 @@
 
 [Getting Started](./getting-started.md)
 
+# Core Concepts
+
+- [Custom Domains](./custom-domains.md)
+- [Plugins](./plugins.md)
+
 # Self-Hosting
 
 - [Localhost setup (Mac OS)](./localhost/macos.md)
