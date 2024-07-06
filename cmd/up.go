@@ -13,6 +13,7 @@ func NewCmdUp() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "up",
 		Short:   "Start the smallweb evaluation server",
+		GroupID: CoreGroupID,
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

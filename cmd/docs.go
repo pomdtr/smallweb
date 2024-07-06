@@ -10,9 +10,10 @@ import (
 
 func NewCmdDocs() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:    "docs",
-		Short:  "Generate smallweb cli documentation",
-		Hidden: true,
+		Use:     "docs",
+		Short:   "Generate smallweb cli documentation",
+		GroupID: CoreGroupID,
+		Hidden:  true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			doc, err := buildDoc(cmd.Root())

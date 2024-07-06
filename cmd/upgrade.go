@@ -34,8 +34,9 @@ func IsUnderHomebrew() bool {
 
 func NewCmdUpgrade() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "upgrade",
-		Short: "Upgrade to the latest version",
+		Use:     "upgrade",
+		Short:   "Upgrade to the latest version",
+		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			latest, err := fetchLatestVersion()
 			if err != nil {

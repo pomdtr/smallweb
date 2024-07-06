@@ -22,8 +22,9 @@ type App struct {
 
 func NewCmdDump() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "dump",
-		Short: "Print the smallweb app tree",
+		Use:     "dump",
+		Short:   "Print the smallweb app tree",
+		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			entries, err := os.ReadDir(worker.SMALLWEB_ROOT)
 			if err != nil {

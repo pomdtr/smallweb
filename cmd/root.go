@@ -10,12 +10,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	CoreGroupID      = "core"
+	ExtensionGroupID = "extension"
+)
+
 func NewCmdRoot(version string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "smallweb",
 		Short:   "Host websites from your internet folder",
 		Version: version,
 	}
+	cmd.AddGroup(&cobra.Group{
+		ID:    CoreGroupID,
+		Title: "Core Commands",
+	}, &cobra.Group{
+		ID:    ExtensionGroupID,
+		Title: "Extension Commands",
+	})
 
 	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdService())
@@ -52,6 +64,7 @@ func NewCmdRoot(version string) *cobra.Command {
 					Use:                name,
 					SilenceUsage:       true,
 					Short:              fmt.Sprintf("Extension %s", name),
+					GroupID:            ExtensionGroupID,
 					DisableFlagParsing: true,
 					RunE: func(cmd *cobra.Command, args []string) error {
 						command := exec.Command(entrypoint, args...)
