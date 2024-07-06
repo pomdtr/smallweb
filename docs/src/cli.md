@@ -182,6 +182,21 @@ smallweb completion zsh [flags]
       --no-descriptions   disable completion descriptions
 ```
 
+## smallweb create
+
+Create a new smallweb app
+
+```
+smallweb create <app> [flags]
+```
+
+### Options
+
+```
+  -h, --help              help for create
+  -t, --template string   The template to use
+```
+
 ## smallweb docs
 
 Generate smallweb cli documentation
@@ -229,18 +244,18 @@ smallweb help [command] [flags]
   -h, --help   help for help
 ```
 
-## smallweb run
+## smallweb open
 
-Run a smallweb app cli
+Extension open
 
 ```
-smallweb run <alias> [args...] [flags]
+smallweb open [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for run
+  -h, --help   help for open
 ```
 
 ## smallweb service
@@ -286,19 +301,19 @@ smallweb service install [flags]
   -h, --help   help for install
 ```
 
-## smallweb service log
+## smallweb service logs
 
 Print service logs
 
 ```
-smallweb service log [flags]
+smallweb service logs [flags]
 ```
 
 ### Options
 
 ```
   -f, --follow   Follow log output
-  -h, --help     help for log
+  -h, --help     help for logs
 ```
 
 ## smallweb service restart
@@ -384,6 +399,20 @@ smallweb up [flags]
 ```
   -h, --help       help for up
   -p, --port int   Port to listen on (default 7777)
+```
+
+## smallweb upgrade
+
+Upgrade to the latest version
+
+```
+smallweb upgrade [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for upgrade
 ```
 
 

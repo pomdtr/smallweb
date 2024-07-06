@@ -31,7 +31,7 @@ import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
 export default { fetch: serveDatabase({ dbPath: "./chinook.db" }) };
 ```
 
-These 2 lines of code provides me a full-featured LibSqlStudio UI at `https://sqlite-example.smallweb.run`.
+These 2 lines of code provides me a full-featured LibSqlStudio UI that you can access at <https://sqlite-example.smallweb.run>.
 
 As a bonus, I'm also able to use the API endpoint to execute arbitrary SQL queries:
 
