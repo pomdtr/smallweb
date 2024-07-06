@@ -78,7 +78,7 @@ func Update() error {
 	var updateCmd string
 
 	if IsUnderHomebrew() {
-		updateCmd = "brew upgrade smallweb"
+		updateCmd = "brew update && brew upgrade smallweb"
 	} else {
 		updateCmd = "curl -sSfL \"https://assets.smallweb.run/install.sh\" | sh"
 	}
