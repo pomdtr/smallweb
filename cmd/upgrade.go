@@ -46,7 +46,7 @@ func NewCmdUpgrade() *cobra.Command {
 			version := cmd.Root().Version
 			fmt.Printf("Current version: %s, latest version: %s\n", version, latest)
 			if version == "dev" {
-				fmt.Println("You're compiling from source. How much more up2date do you want to be?")
+				fmt.Println("You're compiling from source. Please update manually.")
 				return nil
 			} else if version >= latest {
 				fmt.Printf("version %s is already latest\n", version)
@@ -90,5 +90,8 @@ func Update() error {
 	if err != nil {
 		return fmt.Errorf("failed to execute update command: %w", err)
 	}
+
+	fmt.Println("Update completed successfully")
+	fmt.Println("Use `smallweb service restart` to restart the service")
 	return nil
 }

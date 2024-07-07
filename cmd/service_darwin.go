@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"text/template"
-	"time"
 
 	"github.com/pomdtr/smallweb/worker"
 )
@@ -96,24 +95,10 @@ func StopService() error {
 }
 
 func RestartService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
+	service := fmt.Sprintf("gui/%d/com.pomdtr.smallweb", os.Getuid())
 
-	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if !worker.FileExists(servicePath) {
-		return fmt.Errorf("service not installed")
-	}
-
-	if err := exec.Command("launchctl", "stop", "com.pomdtr.smallweb").Run(); err != nil {
-		return fmt.Errorf("failed to stop service: %v", err)
-	}
-
-	time.Sleep(2 * time.Second)
-
-	if err := exec.Command("launchctl", "start", "com.pomdtr.smallweb").Run(); err != nil {
-		return fmt.Errorf("failed to start service: %v", err)
+	if err := exec.Command("launchctl", "kickstart", "-k", service).Run(); err != nil {
+		return fmt.Errorf("failed to restart service: %v", err)
 	}
 
 	return nil
