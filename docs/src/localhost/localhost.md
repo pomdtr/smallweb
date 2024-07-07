@@ -19,29 +19,34 @@ The components needed are:
 - a service to map each domain to the corresponding folder in ~/www, and spawn a deno subprocess for each request (smallweb)
 - a runtime to evaluate the application code (deno)
 
-## Installation
+## MacOS setup
 
 In the future, we might provide a script to automate this process, but for now, it's a manual process.
 
-### Install Required Dependencies
+### Install Brew
 
 ```sh
 # install homebrew (if not already installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-# install all required dependencies
-brew install deno caddy dnsmasq
 ```
 
-### Install Smallweb
+### Install Deno {#install-deno-macos}
+
+```sh
+brew install deno
+```
+
+### Setup Smallweb {#setup-smallweb-macos}
 
 ```sh
 brew install pomdtr/tap/smallweb
 smallweb service install
 ```
 
-### Setup Caddy
+### Setup Caddy {#setup-caddy-macos}
 
 ```sh
+brew install caddy
 # Write caddy configuration
 cat <<EOF > /opt/homebrew/etc/Caddyfile
 *.localhost {
@@ -67,6 +72,8 @@ echo "DENO_TLS_CA_STORE=system" >> ~/www/.env
 ### Setup dnsmasq
 
 ```sh
+brew install dnsmasq
+
 # Write dnsmasq configuration
 echo "address=/.localhost/127.0.0.1" >> /opt/homebrew/etc/dnsmasq.conf
 
@@ -80,7 +87,70 @@ nameserver 127.0.0.1
 EOF
 ```
 
-## Testing the setup
+## Testing the setup {#testing-the-setup-macos}
+
+First, let's create a dummy smallweb website:
+
+```sh
+mkdir -p ~/www/example
+CAT <<EOF > ~/www/example/main.ts
+export default {
+  fetch() {
+    return new Response("Smallweb is running", {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  }
+}
+EOF
+```
+
+If everything went well, you should be able to access `https://example.localhost` in your browser, and see the message `Smallweb is running`.
+
+## Ubuntu / Debian setup
+
+### Install Deno {#install-deno-ubuntu}
+
+```sh
+curl -fsSL https://deno.land/install.sh | sh
+# add ~/.deno/bin to PATH
+echo "export PATH=\$PATH:\$HOME/.deno/bin" >> ~/.bashrc
+```
+
+### Setup Smallweb {#setup-smallweb-ubuntu}
+
+```sh
+curl -FsSL https://assets.smallweb.run/install.sh | sh
+# add ~/.local/bin to PATH
+echo "export PATH=\$PATH:\$HOME/.local/bin" >> ~/.bashrc
+smallweb service install
+```
+
+### Setup Caddy {#setup-caddy-ubuntu}
+
+```sh
+sudo apt install -y caddy
+
+# Write caddy configuration
+cat <<EOF > /etc/caddy/Caddyfile
+*.localhost {
+  tls internal {
+    on_demand
+  }
+
+  reverse_proxy localhost:7777
+}
+EOF
+
+sudo systemctl restart caddy
+
+caddy trust
+mkdir -p ~/www
+echo "DENO_TLS_CA_STORE=system" >> ~/www/.env
+```
+
+### Testing the setup {#testing-setup-ubuntu}
 
 First, let's create a dummy smallweb website:
 

@@ -9,9 +9,9 @@
 
 # Self-Hosting
 
-- [Localhost setup (Mac OS)](./localhost/macos.md)
+- [Localhost setup](./localhost/localhost.md)
 - [Cloudflare setup](./cloudflare/tunnel.md)
-- [Fly.io setup](./fly/setup.md)
+- [Hetzner setup]()
 
 # Guides
 
