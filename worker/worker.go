@@ -601,7 +601,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if n > 0 {
 			_, writeErr := w.Write(buf[:n])
 			if writeErr != nil {
-				log.Printf("Error writing response: %v", writeErr)
 				return
 			}
 			flusher.Flush() // flush the buffer to the client
