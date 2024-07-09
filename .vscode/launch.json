@@ -8,13 +8,24 @@
             "args": [
                 "up",
             ]
+        },
+        {
+            "name": "smallweb dump",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.go",
+            "args": [
+                "dump",
+                "${input:base}"
+            ]
         }
     ],
     "inputs": [
         {
             "type": "promptString",
-            "id": "app",
-            "description": "Enter the app name",
+            "id": "base",
+            "description": "Enter the base name",
+            "default": "localhost"
         }
     ]
 }
