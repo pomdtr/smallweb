@@ -10,7 +10,7 @@
 
 - [Localhost setup](./localhost/localhost.md)
 - [Cloudflare setup](./cloudflare/tunnel.md)
-- [Fresh VM setup](./vps.md)
+- [VPS Setup](./vps.md)
 
 # Guides
 
@@ -22,6 +22,7 @@
 
 # Moving to the cloud
 
+- [Smallweb Cloud]()
 - [Deno Deploy](./deno-deploy.md)
 - [Val Town](./val-town.md)
 
