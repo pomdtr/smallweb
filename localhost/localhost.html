@@ -180,7 +180,6 @@
                 <div id="content" class="content">
                     <main>
                         <p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
-<p>At the end of this process, each folder in <code>~/localhost</code> will be mapped to domain with a <code>.localhost</code> suffix. For example, the folder <code>~/localhost/example</code> will be accessible at <code>https://example.localhost</code>.</p>
 <p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
 <p>If you want to expose your apps to the internet instead, you can follow the <a href="../cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
 <h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
@@ -190,7 +189,7 @@
 <ul>
 <li>a dns server to map <code>.localhost</code> domains to <code>127.0.0.1</code> ip address (dnsmasq)</li>
 <li>a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)</li>
-<li>a service to map each domain to the corresponding folder in ~/localhost, and spawn a deno subprocess for each request (smallweb)</li>
+<li>a service to map each domain to the corresponding folder in ~/smallweb, and spawn a deno subprocess for each request (smallweb)</li>
 <li>a runtime to evaluate the application code (deno)</li>
 </ul>
 <h2 id="macos-setup"><a class="header" href="#macos-setup">MacOS setup</a></h2>
@@ -225,9 +224,9 @@ brew services start caddy
 # Add caddy https certificates to your keychain
 caddy trust
 
-mkdir -p ~/localhost
+mkdir -p ~/smallweb
 # Indicate to deno to use the keychain for tls certificates
-echo "DENO_TLS_CA_STORE=system" &gt;&gt; ~/localhost/.env
+echo "DENO_TLS_CA_STORE=system" &gt;&gt; ~/smallweb/.env
 </code></pre>
 <h3 id="setup-dnsmasq"><a class="header" href="#setup-dnsmasq">Setup dnsmasq</a></h3>
 <pre><code class="language-sh">brew install dnsmasq
@@ -246,8 +245,8 @@ EOF
 </code></pre>
 <h2 id="testing-the-setup-macos"><a class="header" href="#testing-the-setup-macos">Testing the setup</a></h2>
 <p>First, let's create a dummy smallweb website:</p>
-<pre><code class="language-sh">mkdir -p ~/localhost/example
-CAT &lt;&lt;EOF &gt; ~/localhost/example/main.ts
+<pre><code class="language-sh">mkdir -p ~/smallweb/example.localhost
+CAT &lt;&lt;EOF &gt; ~/smallweb/example.localhost/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -289,12 +288,11 @@ EOF
 sudo systemctl restart caddy
 
 caddy trust
-mkdir -p ~/localhost
 </code></pre>
 <h3 id="testing-setup-ubuntu"><a class="header" href="#testing-setup-ubuntu">Testing the setup</a></h3>
 <p>First, let's create a dummy smallweb website:</p>
-<pre><code class="language-sh">mkdir -p ~/localhost/example
-CAT &lt;&lt;EOF &gt; ~/localhost/example/main.ts
+<pre><code class="language-sh">mkdir -p ~/smallweb/example.localhost
+CAT &lt;&lt;EOF &gt; ~/smallweb/example.localhost/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

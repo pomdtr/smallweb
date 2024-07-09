@@ -182,7 +182,7 @@
                         <h1 id="integrating-with-astro"><a class="header" href="#integrating-with-astro">Integrating with Astro</a></h1>
 <h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
 <p>Our project will have the following structure:</p>
-<pre><code class="language-txt">~/localhost/astro-example
+<pre><code class="language-txt">~/smallweb/astro-example.localhost
 ├── .vscode/
 │   └── settings.json
 ├── main.ts
@@ -190,8 +190,8 @@
     └── &lt;astro project&gt;
 </code></pre>
 <p>Let's create the project, and initialize the astro frontend:</p>
-<pre><code class="language-sh">mkdir -p ~/localhost/astro-example
-cd ~/localhost/astro-example
+<pre><code class="language-sh">mkdir -p ~/smallweb/astro-example.localhost
+cd ~/smallweb/astro-example.localhost
 npm create astro@latest app
 </code></pre>
 <p>In order to enable ssr, we'll need run <code>npm install @deno/astro-adapter</code>, then update the astro.config.mjs file:</p>
@@ -234,7 +234,7 @@ export default {
     ],
 }
 </code></pre>
-<p>Now that everything is setup, we can just run <code>npm run build</code> in the <code>~/localhost/astro-example/app</code> directory, and access the website at <code>https://astro-example.localhost</code>.</p>
+<p>Now that everything is setup, we can just run <code>npm run build</code> in the <code>~/smallweb/astro-example.localhost/app</code> directory, and access the website at <code>https://astro-example.localhost</code>.</p>
 
                     </main>
 
