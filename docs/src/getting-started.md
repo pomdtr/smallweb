@@ -21,8 +21,8 @@ This guide will assumes that you have followed the [localhost setup guide](./loc
 The simplest smallweb app you can create is just a folder with a text file in it.
 
 ```sh
-mkdir -p ~/localhost/example-website
-echo "Hello, world!" > ~/localhost/example-website/hello.txt
+mkdir -p ~/smalleb/example-website.localhost
+echo "Hello, world!" > ~/smalleb/example-website.localhost/hello.txt
 ```
 
 If you open `https://hello-world.localhost/hello.txt` in your browser, you should see the content of the file.
@@ -30,7 +30,7 @@ If you open `https://hello-world.localhost/hello.txt` in your browser, you shoul
 If the folder contains an `index.html` file (or a `dist/index.html` file), it will be served as the root of the website.
 
 ```html
-<!-- File: ~/localhost/example-website/index.html -->
+<!-- File: ~/smallweb/example-website.localhost/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,7 +51,7 @@ If the folder contains an `index.html` file (or a `dist/index.html` file), it wi
 If you want to serve dynamic content instead, you'll need to create a file called `main.[js,ts,jsx,tsx]` at the root of the folder. The file should export a default object with a `fetch` method that takes a `Request` object as argument, and returns a `Response` object.
 
 ```ts
-// File: ~/localhost/example-server/main.ts
+// File: ~/smallweb/example-server.localhost/main.ts
 
 export default {
   fetch(request: Request) {
@@ -74,7 +74,7 @@ Smallweb use the [deno](https://deno.com) runtime to evaluate the server code. Y
 As an example, the following code snippet use the `@hono/hono` extract params from the request url, and render jsx:
 
 ```jsx
-// File: ~/localhost/hono-example/main.tsx
+// File: ~/smallweb/hono-example.localhost/main.tsx
 /** @jsxImportSource jsr:@hono/hono/jsx **/
 
 import { Hono } from "@hono/hono";
@@ -90,7 +90,7 @@ export default app;
 
 No need to start a development server, or to compile the code. Smallweb will take care of everything for you.
 
-You can just copy paste this code at `~/localhost/hono-example/main.tsx`, and open `https://hono-example.localhost` in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.
+You can just copy paste this code at `~/smallweb/hono-example.localhost/main.tsx`, and open `https://hono-example.localhost` in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.
 
 ### Setting env variables
 
@@ -105,7 +105,7 @@ BEARER_TOKEN=SECURE_TOKEN
 Use the `Deno.env.get` method to access the environment variables in your app:
 
 ```ts
-// File: ~/localhost/demo/main.ts
+// File: ~/smallweb/demo.localhost/main.ts
 export default function (req: Request) {
   if (req.headers.get("Authorization") !== `Bearer ${Deno.env.get("BEARER_TOKEN")}`) {
     return new Response("Unauthorized", { status: 401 });
@@ -119,7 +119,7 @@ export default function (req: Request) {
 }
 ```
 
-If you want to set an environment variable for all your apps, you can create a `.env` file in the `~/localhost` directory.
+If you want to set an environment variable for all your apps, you can create a `.env` file in the `~/smallweb` directory.
 
 ### Configuring permissions
 

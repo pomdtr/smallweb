@@ -20,7 +20,7 @@ But you can add more permissions to your app (or restrict it even further) by ad
 
 ## SQLite Explorer
 
-Create a new file at `~/localhost/sqlite-explorer/main.ts` with the following content:
+Create a new file at `~/smallweb/sqlite-explorer.localhost/main.ts` with the following content:
 
 ```ts
 import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
@@ -34,10 +34,10 @@ Then download a sample database using:
 
 ```txt
 curl https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip -o /tmp/chinook.zip
-unzip /tmp/chinook.zip -d ~/localhost/sqlite-explorer
+unzip /tmp/chinook.zip -d ~/smallweb/sqlite-explorer.localhost
 ```
 
-This application needs some specific permissions to run, so we'll need to configure them in `~/localhost/sqlite-explorer/smallweb.json`.
+This application needs some specific permissions to run, so we'll need to configure them in `~/smallweb/sqlite-explorer.localhost/smallweb.json`.
 
 ```json
 {
@@ -50,10 +50,10 @@ This application needs some specific permissions to run, so we'll need to config
 }
 ```
 
-Here is what the ~/localhost/sqlite-explorer folder should look like:
+Here is what the ~/smallweb/sqlite-example.localhost folder should look like:
 
 ```txt
-~/localhost/sqlite-explorer
+~/smallweb/sqlite-example.localhost
 ├── chinook.db
 ├── main.ts
 └── smallweb.json
@@ -83,7 +83,7 @@ EMAIL=pomdtr@example.com
 
 ## Visual Studio Code
 
-Create a new file at `~/localhost/vscode/main.ts` with the following content:
+Create a new file at `~/smallweb/vscode.localhost/main.ts` with the following content:
 
 ```ts
 import { VSCode } from "jsr:@smallweb/vscode@0.0.2";

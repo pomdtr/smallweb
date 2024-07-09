@@ -1,7 +1,5 @@
 This page will guide you through the process of setting up your local environment for smallweb on MacOS.
 
-At the end of this process, each folder in `~/localhost` will be mapped to domain with a `.localhost` suffix. For example, the folder `~/localhost/example` will be accessible at `https://example.localhost`.
-
 This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.
 
 If you want to expose your apps to the internet instead, you can follow the [Cloudflare Tunnel setup guide](../cloudflare/tunnel.md).
@@ -16,7 +14,7 @@ The components needed are:
 
 - a dns server to map `.localhost` domains to `127.0.0.1` ip address (dnsmasq)
 - a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)
-- a service to map each domain to the corresponding folder in ~/localhost, and spawn a deno subprocess for each request (smallweb)
+- a service to map each domain to the corresponding folder in ~/smallweb, and spawn a deno subprocess for each request (smallweb)
 - a runtime to evaluate the application code (deno)
 
 ## MacOS setup
@@ -64,9 +62,9 @@ brew services start caddy
 # Add caddy https certificates to your keychain
 caddy trust
 
-mkdir -p ~/localhost
+mkdir -p ~/smallweb
 # Indicate to deno to use the keychain for tls certificates
-echo "DENO_TLS_CA_STORE=system" >> ~/localhost/.env
+echo "DENO_TLS_CA_STORE=system" >> ~/smallweb/.env
 ```
 
 ### Setup dnsmasq
@@ -92,8 +90,8 @@ EOF
 First, let's create a dummy smallweb website:
 
 ```sh
-mkdir -p ~/localhost/example
-CAT <<EOF > ~/localhost/example/main.ts
+mkdir -p ~/smallweb/example.localhost
+CAT <<EOF > ~/smallweb/example.localhost/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -146,7 +144,6 @@ EOF
 sudo systemctl restart caddy
 
 caddy trust
-mkdir -p ~/localhost
 ```
 
 ### Testing the setup {#testing-setup-ubuntu}
@@ -154,8 +151,8 @@ mkdir -p ~/localhost
 First, let's create a dummy smallweb website:
 
 ```sh
-mkdir -p ~/localhost/example
-CAT <<EOF > ~/localhost/example/main.ts
+mkdir -p ~/smallweb/example.localhost
+CAT <<EOF > ~/smallweb/example.localhost/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

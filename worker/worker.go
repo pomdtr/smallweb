@@ -229,7 +229,7 @@ func init() {
 	if env, ok := os.LookupEnv("SMALLWEB_ROOT"); ok {
 		SMALLWEB_ROOT = env
 	} else if homeDir, err := os.UserHomeDir(); err == nil {
-		SMALLWEB_ROOT = homeDir
+		SMALLWEB_ROOT = filepath.Join(homeDir, "smallweb")
 	} else {
 		log.Fatal(fmt.Errorf("could not determine smallweb root, please set SMALLWEB_ROOT"))
 	}
@@ -649,20 +649,10 @@ func GetFreePort() (int, error) {
 
 // TODO: cache this
 func WorkerFromHost(host string) (*Worker, error) {
-	rootDir := filepath.Join(SMALLWEB_ROOT, host, "www")
-	if Exists(rootDir) {
-		return NewWorker(rootDir)
-	}
-
-	parts := strings.SplitN(host, ".", 2)
-	if len(parts) == 1 {
+	rootDir := filepath.Join(SMALLWEB_ROOT, host)
+	if !Exists(rootDir) {
 		return nil, fmt.Errorf("could not determine worker from host")
 	}
 
-	rootDir = filepath.Join(SMALLWEB_ROOT, parts[1], parts[0])
-	if Exists(rootDir) {
-		return NewWorker(rootDir)
-	}
-
-	return nil, fmt.Errorf("could not determine worker from host")
+	return NewWorker(rootDir)
 }

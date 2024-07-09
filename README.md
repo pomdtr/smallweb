@@ -4,8 +4,8 @@ Smallweb is a lightweight web server based on [Deno](https://deno.com). It is in
 
 Smallweb maps hostnames to folder in your home directory:
 
-- `example.localhost` will be mapped to "~/localhost/example"
-- `example.smallweb.run` will be mapped to "~/smallweb.run/example"
+- `example.localhost` will be mapped to "~/smallweb/example.localhost"
+- `example.smallweb.run` will be mapped to "~/smallweb/example.smallweb.run"
 
 Creating a new website becomes as simple a creating a folder and opening the corresponding url in your browser. No need to configure a build step (unless you want to), or start a development server. And since servers are mapped to folders, you can manage them using standard unix tools like `cp`, `mv` or `rm`.
 

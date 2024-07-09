@@ -35,6 +35,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdDump())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCreate())
+	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdUpgrade())
 
 	path := os.Getenv("PATH")

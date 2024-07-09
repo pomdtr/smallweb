@@ -18,18 +18,17 @@ type Tree struct {
 
 type App struct {
 	Name string `json:"name"`
+	Url  string `json:"url"`
 	Root string `json:"root"`
 }
 
 func NewCmdDump() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "dump <base>",
+		Use:     "dump",
 		Short:   "Print the smallweb app tree",
-		Args:    cobra.ExactArgs(1),
 		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := filepath.Join(worker.SMALLWEB_ROOT, args[0])
-			entries, err := os.ReadDir(rootDir)
+			entries, err := os.ReadDir(worker.SMALLWEB_ROOT)
 			if err != nil {
 				return fmt.Errorf("failed to read directory: %w", err)
 			}
@@ -47,7 +46,8 @@ func NewCmdDump() *cobra.Command {
 
 				apps[entry.Name()] = App{
 					Name: entry.Name(),
-					Root: filepath.Join(rootDir, entry.Name()),
+					Url:  fmt.Sprintf("https://%s", entry.Name()),
+					Root: filepath.Join(worker.SMALLWEB_ROOT, entry.Name()),
 				}
 			}
 
