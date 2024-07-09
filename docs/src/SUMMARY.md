@@ -4,14 +4,13 @@
 
 # Core Concepts
 
-- [Custom Domains](./custom-domains.md)
 - [Plugins](./plugins.md)
 
 # Self-Hosting
 
 - [Localhost setup](./localhost/localhost.md)
 - [Cloudflare setup](./cloudflare/tunnel.md)
-- [Fresh VM setup](./vm.md)
+- [Fresh VM setup](./vps.md)
 
 # Guides
 

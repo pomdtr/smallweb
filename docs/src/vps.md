@@ -1,4 +1,4 @@
-# Fresh VM Setup
+# VPS Setup
 
 If you're using a Debian-based VM, you can follow these steps to setup smallweb, assuming you're logged in as root.
 
