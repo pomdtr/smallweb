@@ -11,7 +11,7 @@
 
 - [Localhost setup](./localhost/localhost.md)
 - [Cloudflare setup](./cloudflare/tunnel.md)
-- [Hetzner setup]()
+- [Fresh VM setup](./vm.md)
 
 # Guides
 
