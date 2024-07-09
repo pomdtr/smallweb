@@ -225,9 +225,9 @@ smallweb service status
 <p>If you also want to manage your apex domain using smallweb, you can add another hostname to your tunnel:</p>
 <p><img src="./apex.png" alt="Apex Domain Configuration" /></p>
 <h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
-<p>Create a dummy smallweb app in <code>~/www</code></p>
-<pre><code class="language-sh">mkdir -p ~/www/example
-CAT &lt;&lt;EOF &gt; ~/www/example/main.ts
+<p>Create a dummy smallweb app in <code>~/localhost</code></p>
+<pre><code class="language-sh">mkdir -p ~/localhost/example
+CAT &lt;&lt;EOF &gt; ~/localhost/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

@@ -180,28 +180,21 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="getting-started"><a class="header" href="#getting-started">Getting started</a></h1>
-<h2 id="why-smallweb"><a class="header" href="#why-smallweb">Why Smallweb?</a></h2>
-<p>Smallweb maps each folder in <code>~/www</code> folder to an unique domain. Ex: <code>~/www/example</code> will be mapped to:</p>
-<ul>
-<li><code>https://example.localhost</code> on your local device</li>
-<li><code>https://example.&lt;your-domain&gt;</code> on your homelab / VPS</li>
-</ul>
-<p>Creating a new website becomes as simple a creating a folder and opening the corresponding url in your browser. No need to configure a build step, or start a development server. And since servers are mapped to folders, you can manage them using standard unix tools like <code>cp</code>, <code>mv</code> or <code>rm</code>.</p>
-<p>Every http request is sandboxed in a single deno subprocess by the smallweb evaluation server. If there is no activity on your website, no resources will be used on your server, making it a great solution for low-traffic websites.</p>
+<h2 id="why-smallweb-"><a class="header" href="#why-smallweb-">Why Smallweb ?</a></h2>
+<p>See <a href="https://readme.smallweb.run">https://readme.smallweb.run</a> for a quick overview of the project.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <p>If you want your apps to be available on the internet, you'll need to buy a domain name, and point it to your server.
 You can find more information on to do this in the <a href="./cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
 <p>If you prefer your to keep your apps local to your device, you can learn how to host your apps as <code>https://&lt;app&gt;.localhost</code> address in <a href="./localhost/localhost.html">this guide</a>. This option does not requires a domain name (or a server), but your app will only be available on your local device.</p>
 <p>This guide will assumes that you have followed the <a href="./localhost/localhost.html">localhost setup guide</a>. If you haven't, just replace <code>https://&lt;app&gt;.localhost</code> with <code>https://&lt;app&gt;.&lt;your-domain&gt;</code> in the examples below.</p>
 <h3 id="hosting-a-static-website"><a class="header" href="#hosting-a-static-website">Hosting a static website</a></h3>
-<p>Every folder in the <code>~/www</code> directory is served statically by default.</p>
 <p>The simplest smallweb app you can create is just a folder with a text file in it.</p>
-<pre><code class="language-sh">mkdir -p ~/www/example-website
-echo "Hello, world!" &gt; ~/www/example-website/hello.txt
+<pre><code class="language-sh">mkdir -p ~/localhost/example-website
+echo "Hello, world!" &gt; ~/localhost/example-website/hello.txt
 </code></pre>
 <p>If you open <code>https://hello-world.localhost/hello.txt</code> in your browser, you should see the content of the file.</p>
 <p>If the folder contains an <code>index.html</code> file (or a <code>dist/index.html</code> file), it will be served as the root of the website.</p>
-<pre><code class="language-html">&lt;!-- File: ~/www/example-website/index.html --&gt;
+<pre><code class="language-html">&lt;!-- File: ~/localhost/example-website/index.html --&gt;
 &lt;!DOCTYPE html&gt;
 &lt;html lang="en"&gt;
 &lt;head&gt;
@@ -219,7 +212,7 @@ echo "Hello, world!" &gt; ~/www/example-website/hello.txt
 &lt;/html&gt;
 </code></pre>
 <p>If you want to serve dynamic content instead, you'll need to create a file called <code>main.[js,ts,jsx,tsx]</code> at the root of the folder. The file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
-<pre><code class="language-ts">// File: ~/www/example-server/main.ts
+<pre><code class="language-ts">// File: ~/localhost/example-server/main.ts
 
 export default {
   fetch(request: Request) {
@@ -237,7 +230,7 @@ export default {
 <p>To access the server, open <code>https://example-server.localhost</code> in your browser.</p>
 <p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
 <p>As an example, the following code snippet use the <code>@hono/hono</code> extract params from the request url, and render jsx:</p>
-<pre><code class="language-jsx">// File: ~/www/hono-example/main.tsx
+<pre><code class="language-jsx">// File: ~/localhost/hono-example/main.tsx
 /** @jsxImportSource jsr:@hono/hono/jsx **/
 
 import { Hono } from "@hono/hono";
@@ -251,14 +244,14 @@ app.get("/:name", c =&gt; c.html(&lt;h1&gt;Hello, {c.req.param("name")}!&lt;/h1&
 export default app;
 </code></pre>
 <p>No need to start a development server, or to compile the code. Smallweb will take care of everything for you.</p>
-<p>You can just copy paste this code at <code>~/www/hono-example/main.tsx</code>, and open <code>https://hono-example.localhost</code> in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.</p>
+<p>You can just copy paste this code at <code>~/localhost/hono-example/main.tsx</code>, and open <code>https://hono-example.localhost</code> in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.</p>
 <h3 id="setting-env-variables"><a class="header" href="#setting-env-variables">Setting env variables</a></h3>
 <p>You can set environment variables for your app by creating a file called <code>.env</code> in the application folder.</p>
 <p>Here is an example of a <code>.env</code> file:</p>
 <pre><code class="language-env">BEARER_TOKEN=SECURE_TOKEN
 </code></pre>
 <p>Use the <code>Deno.env.get</code> method to access the environment variables in your app:</p>
-<pre><code class="language-ts">// File: ~/www/demo/main.ts
+<pre><code class="language-ts">// File: ~/localhost/demo/main.ts
 export default function (req: Request) {
   if (req.headers.get("Authorization") !== `Bearer ${Deno.env.get("BEARER_TOKEN")}`) {
     return new Response("Unauthorized", { status: 401 });
@@ -271,7 +264,7 @@ export default function (req: Request) {
   });
 }
 </code></pre>
-<p>If you want to set an environment variable for all your apps, you can create a <code>.env</code> file in the <code>~/www</code> directory.</p>
+<p>If you want to set an environment variable for all your apps, you can create a <code>.env</code> file in the <code>~/localhost</code> directory.</p>
 <h3 id="configuring-permissions"><a class="header" href="#configuring-permissions">Configuring permissions</a></h3>
 <p>By default, a smallweb app can:</p>
 <ul>

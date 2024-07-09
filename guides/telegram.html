@@ -191,7 +191,7 @@
 <li>Once you have created the bot, the BotFather will give you a token. Save this token as you will need it later</li>
 </ol>
 <h2 id="create-the-webhook-handler"><a class="header" href="#create-the-webhook-handler">Create the webhook handler</a></h2>
-<p>Create a new file at <code>~/www/telegram-echo-bot/main.ts</code> with the following content:</p>
+<p>Create a new file at <code>~/localhost/telegram-echo-bot/main.ts</code> with the following content:</p>
 <pre><code class="language-ts">const token = Deno.env.get("BOT_TOKEN");
 if (!token) {
     throw new Error("BOT_TOKEN is required");
@@ -232,7 +232,7 @@ export default {
     fetch: handler,
 };
 </code></pre>
-<p>Then create a .env file at <code>~/www/telegram-echo-bot/.env</code> with the following content:</p>
+<p>Then create a .env file at <code>~/localhost/telegram-echo-bot/.env</code> with the following content:</p>
 <pre><code class="language-txt">BOT_TOKEN=&lt;your-token&gt;
 </code></pre>
 <h2 id="setup-the-webhook"><a class="header" href="#setup-the-webhook">Setup the webhook</a></h2>
