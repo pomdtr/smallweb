@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="../custom-domains.html"><strong aria-hidden="true">1.</strong> Custom Domains</a></li><li class="chapter-item expanded "><a href="../plugins.html"><strong aria-hidden="true">2.</strong> Plugins</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">3.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html" class="active"><strong aria-hidden="true">4.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">5.</strong> Hetzner setup</div></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html"><strong aria-hidden="true">8.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="../guides/astro.html"><strong aria-hidden="true">9.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="../guides/telegram.html"><strong aria-hidden="true">10.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">11.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">12.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="../custom-domains.html"><strong aria-hidden="true">1.</strong> Custom Domains</a></li><li class="chapter-item expanded "><a href="../plugins.html"><strong aria-hidden="true">2.</strong> Plugins</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">3.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html" class="active"><strong aria-hidden="true">4.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../vm.html"><strong aria-hidden="true">5.</strong> Fresh VM setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">6.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">7.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html"><strong aria-hidden="true">8.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="../guides/astro.html"><strong aria-hidden="true">9.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="../guides/telegram.html"><strong aria-hidden="true">10.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">11.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">12.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -219,9 +219,11 @@ smallweb service status
 </li>
 <li>
 <p>Add a new <code>CNAME</code> record for your wildcard hostname, with a target of <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</p>
-<p><img src="./dns.png" alt="DNS Configuration" /></p>
 </li>
 </ol>
+<p><img src="./dns.png" alt="DNS Configuration" /></p>
+<p>If you also want to manage your apex domain using smallweb, you can add another hostname to your tunnel:</p>
+<p><img src="./apex.png" alt="Apex Domain Configuration" /></p>
 <h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
 <p>Create a dummy smallweb app in <code>~/www</code></p>
 <pre><code class="language-sh">mkdir -p ~/www/example
@@ -251,7 +253,7 @@ EOF
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../guides/hono.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../vm.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -265,7 +267,7 @@ EOF
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../guides/hono.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../vm.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
