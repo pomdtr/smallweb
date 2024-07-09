@@ -44,11 +44,11 @@ If you also want to manage your apex domain using smallweb, you can add another 
 
 ## Checking that your tunnel is running
 
-Create a dummy smallweb app in `~/www`
+Create a dummy smallweb app in `~/localhost`
 
 ```sh
-mkdir -p ~/www/example
-CAT <<EOF > ~/www/example/main.ts
+mkdir -p ~/localhost/example
+CAT <<EOF > ~/localhost/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

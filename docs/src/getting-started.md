@@ -1,15 +1,8 @@
 # Getting started
 
-## Why Smallweb?
+## Why Smallweb ?
 
-Smallweb maps each folder in `~/www` folder to an unique domain. Ex: `~/www/example` will be mapped to:
-
-- `https://example.localhost` on your local device
-- `https://example.<your-domain>` on your homelab / VPS
-
-Creating a new website becomes as simple a creating a folder and opening the corresponding url in your browser. No need to configure a build step, or start a development server. And since servers are mapped to folders, you can manage them using standard unix tools like `cp`, `mv` or `rm`.
-
-Every http request is sandboxed in a single deno subprocess by the smallweb evaluation server. If there is no activity on your website, no resources will be used on your server, making it a great solution for low-traffic websites.
+See <https://readme.smallweb.run> for a quick overview of the project.
 
 ## Installation
 
@@ -23,13 +16,11 @@ This guide will assumes that you have followed the [localhost setup guide](./loc
 
 ### Hosting a static website
 
-Every folder in the `~/www` directory is served statically by default.
-
 The simplest smallweb app you can create is just a folder with a text file in it.
 
 ```sh
-mkdir -p ~/www/example-website
-echo "Hello, world!" > ~/www/example-website/hello.txt
+mkdir -p ~/localhost/example-website
+echo "Hello, world!" > ~/localhost/example-website/hello.txt
 ```
 
 If you open `https://hello-world.localhost/hello.txt` in your browser, you should see the content of the file.
@@ -37,7 +28,7 @@ If you open `https://hello-world.localhost/hello.txt` in your browser, you shoul
 If the folder contains an `index.html` file (or a `dist/index.html` file), it will be served as the root of the website.
 
 ```html
-<!-- File: ~/www/example-website/index.html -->
+<!-- File: ~/localhost/example-website/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -58,7 +49,7 @@ If the folder contains an `index.html` file (or a `dist/index.html` file), it wi
 If you want to serve dynamic content instead, you'll need to create a file called `main.[js,ts,jsx,tsx]` at the root of the folder. The file should export a default object with a `fetch` method that takes a `Request` object as argument, and returns a `Response` object.
 
 ```ts
-// File: ~/www/example-server/main.ts
+// File: ~/localhost/example-server/main.ts
 
 export default {
   fetch(request: Request) {
@@ -81,7 +72,7 @@ Smallweb use the [deno](https://deno.com) runtime to evaluate the server code. Y
 As an example, the following code snippet use the `@hono/hono` extract params from the request url, and render jsx:
 
 ```jsx
-// File: ~/www/hono-example/main.tsx
+// File: ~/localhost/hono-example/main.tsx
 /** @jsxImportSource jsr:@hono/hono/jsx **/
 
 import { Hono } from "@hono/hono";
@@ -97,7 +88,7 @@ export default app;
 
 No need to start a development server, or to compile the code. Smallweb will take care of everything for you.
 
-You can just copy paste this code at `~/www/hono-example/main.tsx`, and open `https://hono-example.localhost` in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.
+You can just copy paste this code at `~/localhost/hono-example/main.tsx`, and open `https://hono-example.localhost` in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.
 
 ### Setting env variables
 
@@ -112,7 +103,7 @@ BEARER_TOKEN=SECURE_TOKEN
 Use the `Deno.env.get` method to access the environment variables in your app:
 
 ```ts
-// File: ~/www/demo/main.ts
+// File: ~/localhost/demo/main.ts
 export default function (req: Request) {
   if (req.headers.get("Authorization") !== `Bearer ${Deno.env.get("BEARER_TOKEN")}`) {
     return new Response("Unauthorized", { status: 401 });
@@ -126,7 +117,7 @@ export default function (req: Request) {
 }
 ```
 
-If you want to set an environment variable for all your apps, you can create a `.env` file in the `~/www` directory.
+If you want to set an environment variable for all your apps, you can create a `.env` file in the `~/localhost` directory.
 
 ### Configuring permissions
 

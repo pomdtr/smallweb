@@ -15,7 +15,7 @@ To create a new bot, you will need to talk to the [BotFather](https://t.me/botfa
 
 ## Create the webhook handler
 
-Create a new file at `~/www/telegram-echo-bot/main.ts` with the following content:
+Create a new file at `~/localhost/telegram-echo-bot/main.ts` with the following content:
 
 ```ts
 const token = Deno.env.get("BOT_TOKEN");
@@ -59,7 +59,7 @@ export default {
 };
 ```
 
-Then create a .env file at `~/www/telegram-echo-bot/.env` with the following content:
+Then create a .env file at `~/localhost/telegram-echo-bot/.env` with the following content:
 
 ```txt
 BOT_TOKEN=<your-token>

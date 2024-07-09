@@ -1,8 +1,0 @@
-services:
-  smallweb:
-    image: pomdtrr/smallweb
-    volumes:
-      - ~/www:/www
-    command: ["up"]
-    ports:
-      - 7777:7777

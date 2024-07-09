@@ -25,7 +25,7 @@ func InstallService() error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if worker.FileExists(servicePath) {
+	if worker.Exists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
 
@@ -65,7 +65,7 @@ func StartService() error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if !worker.FileExists(servicePath) {
+	if !worker.Exists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
@@ -83,7 +83,7 @@ func StopService() error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if !worker.FileExists(servicePath) {
+	if !worker.Exists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
@@ -111,7 +111,7 @@ func UninstallService() error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if !worker.FileExists(servicePath) {
+	if !worker.Exists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
@@ -134,16 +134,16 @@ func PrintServiceLogs(follow bool) error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if !worker.FileExists(servicePath) {
+	if !worker.Exists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
-	if !worker.FileExists(servicePath) {
+	if !worker.Exists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
 	logPath := filepath.Join(homeDir, "Library", "Logs", "smallweb.log")
-	if !worker.FileExists(logPath) {
+	if !worker.Exists(logPath) {
 		return fmt.Errorf("log file not found")
 	}
 

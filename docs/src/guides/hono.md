@@ -6,7 +6,7 @@ Below are some examples to get you started, adapted from the official [Hono docu
 
 ## Hello world
 
-Create a new `~/www/hono-example/main.ts` file with the following content:
+Create a new `~/localhost/hono-example/main.ts` file with the following content:
 
 ```ts
 import { Hono } from 'jsr:@hono/hono'
