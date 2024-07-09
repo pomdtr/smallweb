@@ -17,9 +17,10 @@ const (
 
 func NewCmdRoot(version string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "smallweb",
-		Short:   "Host websites from your internet folder",
-		Version: version,
+		Use:          "smallweb",
+		Short:        "Host websites from your internet folder",
+		Version:      version,
+		SilenceUsage: true,
 	}
 	cmd.AddGroup(&cobra.Group{
 		ID:    CoreGroupID,
@@ -62,7 +63,6 @@ func NewCmdRoot(version string) *cobra.Command {
 
 				cmd.AddCommand(&cobra.Command{
 					Use:                name,
-					SilenceUsage:       true,
 					Short:              fmt.Sprintf("Extension %s", name),
 					GroupID:            ExtensionGroupID,
 					DisableFlagParsing: true,
