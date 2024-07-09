@@ -1,6 +1,6 @@
 This page will guide you through the process of setting up your local environment for smallweb on MacOS.
 
-At the end of this process, each folder in `~/www` will be mapped to domain with a `.localhost` suffix. For example, the folder `~/www/example` will be accessible at `https://example.localhost`.
+At the end of this process, each folder in `~/localhost` will be mapped to domain with a `.localhost` suffix. For example, the folder `~/localhost/example` will be accessible at `https://example.localhost`.
 
 This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.
 
@@ -16,7 +16,7 @@ The components needed are:
 
 - a dns server to map `.localhost` domains to `127.0.0.1` ip address (dnsmasq)
 - a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)
-- a service to map each domain to the corresponding folder in ~/www, and spawn a deno subprocess for each request (smallweb)
+- a service to map each domain to the corresponding folder in ~/localhost, and spawn a deno subprocess for each request (smallweb)
 - a runtime to evaluate the application code (deno)
 
 ## MacOS setup
@@ -64,9 +64,9 @@ brew services start caddy
 # Add caddy https certificates to your keychain
 caddy trust
 
-mkdir -p ~/www
+mkdir -p ~/localhost
 # Indicate to deno to use the keychain for tls certificates
-echo "DENO_TLS_CA_STORE=system" >> ~/www/.env
+echo "DENO_TLS_CA_STORE=system" >> ~/localhost/.env
 ```
 
 ### Setup dnsmasq
@@ -92,8 +92,8 @@ EOF
 First, let's create a dummy smallweb website:
 
 ```sh
-mkdir -p ~/www/example
-CAT <<EOF > ~/www/example/main.ts
+mkdir -p ~/localhost/example
+CAT <<EOF > ~/localhost/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -146,8 +146,7 @@ EOF
 sudo systemctl restart caddy
 
 caddy trust
-mkdir -p ~/www
-echo "DENO_TLS_CA_STORE=system" >> ~/www/.env
+mkdir -p ~/localhost
 ```
 
 ### Testing the setup {#testing-setup-ubuntu}
@@ -155,8 +154,8 @@ echo "DENO_TLS_CA_STORE=system" >> ~/www/.env
 First, let's create a dummy smallweb website:
 
 ```sh
-mkdir -p ~/www/example
-CAT <<EOF > ~/www/example/main.ts
+mkdir -p ~/localhost/example
+CAT <<EOF > ~/localhost/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
