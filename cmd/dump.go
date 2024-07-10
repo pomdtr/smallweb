@@ -22,51 +22,60 @@ type App struct {
 	Root string `json:"root"`
 }
 
+func ListApps() ([]App, error) {
+	domains, err := os.ReadDir(worker.SMALLWEB_ROOT)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory: %w", err)
+	}
+
+	apps := make([]App, 0)
+	for _, domain := range domains {
+		if !domain.IsDir() {
+			continue
+		}
+
+		// Skip hidden files
+		if strings.HasPrefix(domain.Name(), ".") {
+			continue
+		}
+
+		subdomain, err := os.ReadDir(filepath.Join(worker.SMALLWEB_ROOT, domain.Name()))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read directory: %w", err)
+		}
+
+		for _, subdomain := range subdomain {
+			if !subdomain.IsDir() {
+				continue
+			}
+
+			// Skip hidden files
+			if strings.HasPrefix(subdomain.Name(), ".") {
+				continue
+			}
+
+			apps = append(apps, App{
+				Name: fmt.Sprintf("%s.%s", subdomain.Name(), domain.Name()),
+				Url:  fmt.Sprintf("https://%s.%s", subdomain.Name(), domain.Name()),
+				Root: filepath.Join(worker.SMALLWEB_ROOT, domain.Name(), subdomain.Name()),
+			})
+
+		}
+
+	}
+
+	return apps, nil
+}
+
 func NewCmdDump() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "dump",
 		Short:   "Print the smallweb app tree",
 		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domains, err := os.ReadDir(worker.SMALLWEB_ROOT)
+			apps, err := ListApps()
 			if err != nil {
-				return fmt.Errorf("failed to read directory: %w", err)
-			}
-
-			apps := make([]App, 0)
-			for _, domain := range domains {
-				if !domain.IsDir() {
-					continue
-				}
-
-				// Skip hidden files
-				if strings.HasPrefix(domain.Name(), ".") {
-					continue
-				}
-
-				subdomain, err := os.ReadDir(filepath.Join(worker.SMALLWEB_ROOT, domain.Name()))
-				if err != nil {
-					return fmt.Errorf("failed to read directory: %w", err)
-				}
-
-				for _, subdomain := range subdomain {
-					if !subdomain.IsDir() {
-						continue
-					}
-
-					// Skip hidden files
-					if strings.HasPrefix(subdomain.Name(), ".") {
-						continue
-					}
-
-					apps = append(apps, App{
-						Name: subdomain.Name(),
-						Url:  fmt.Sprintf("https://%s.%s", subdomain.Name(), domain.Name()),
-						Root: filepath.Join(worker.SMALLWEB_ROOT, domain.Name(), subdomain.Name()),
-					})
-
-				}
-
+				return fmt.Errorf("failed to list apps: %w", err)
 			}
 
 			tree := Tree{

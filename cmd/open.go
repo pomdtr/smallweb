@@ -15,7 +15,29 @@ func NewCmdOpen() *cobra.Command {
 	return &cobra.Command{
 		Use:   "open",
 		Short: "Open the current smallweb app in the browser",
+		Args:  cobra.MaximumNArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			apps, err := ListApps()
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
+			}
+
+			var completions []string
+			for _, app := range apps {
+				completions = append(completions, app.Name)
+			}
+
+			return completions, cobra.ShellCompDirectiveNoFileComp
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				if err := browser.OpenURL(fmt.Sprintf("https://%s", args[0])); err != nil {
+					return fmt.Errorf("failed to open browser: %v", err)
+				}
+
+				return nil
+			}
+
 			dir, err := os.Getwd()
 			if err != nil {
 				return fmt.Errorf("failed to get current directory: %v", err)
