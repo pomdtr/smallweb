@@ -35,6 +35,7 @@ checksum:
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 release:
+  prerelease: auto
   github:
     owner: pomdtr
     name: smallweb-releases
