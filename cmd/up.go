@@ -6,10 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
+
+var RESERVED_TLD = []string{".test", ".example", ".invalid", ".localhost"}
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
@@ -40,11 +44,39 @@ func NewCmdUp() *cobra.Command {
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					handler, err := worker.WorkerFromHost(r.Host)
-					if err != nil {
+					var handler http.Handler
+					for _, tld := range RESERVED_TLD {
+						if strings.HasSuffix(r.Host, tld) {
+							domain := tld[1:]
+							subdomain := strings.TrimSuffix(r.Host, tld)
+
+							appDir := filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)
+							if !worker.Exists(appDir) {
+								w.WriteHeader(http.StatusNotFound)
+								return
+							}
+
+							handler = worker.NewWorker(appDir)
+							handler.ServeHTTP(w, r)
+							return
+						}
+					}
+
+					parts := strings.Split(r.Host, ".")
+					domain := strings.Join(parts[len(parts)-2:], ".")
+					if len(parts) == 2 {
+						http.Redirect(w, r, fmt.Sprintf("https://www.%s", domain), http.StatusMovedPermanently)
+						return
+					}
+
+					subdomain := strings.Join(parts[:len(parts)-2], ".")
+					appDir := filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)
+					if !worker.Exists(appDir) {
 						w.WriteHeader(http.StatusNotFound)
 						return
 					}
+
+					handler = worker.NewWorker(appDir)
 					handler.ServeHTTP(w, r)
 				}),
 			}

@@ -246,8 +246,8 @@ type Worker struct {
 	rootDir string
 }
 
-func NewWorker(rootDir string) (*Worker, error) {
-	return &Worker{rootDir: rootDir}, nil
+func NewWorker(rootDir string) *Worker {
+	return &Worker{rootDir: rootDir}
 }
 
 func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
@@ -645,43 +645,4 @@ func GetFreePort() (int, error) {
 	}
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port, nil
-}
-
-var RESERVED_TLD = []string{".test", ".example", ".invalid", ".localhost"}
-
-func WorkerFromHost(host string) (*Worker, error) {
-	for _, tld := range RESERVED_TLD {
-		if strings.HasSuffix(host, tld) {
-			domain := tld[1:]
-			subdomain := strings.TrimSuffix(host, tld)
-
-			if appDir := filepath.Join(SMALLWEB_ROOT, domain, subdomain); Exists(appDir) {
-				return NewWorker(appDir)
-			}
-
-			return nil, fmt.Errorf("no app found for %s", host)
-		}
-	}
-
-	parts := strings.Split(host, ".")
-	domain := strings.Join(parts[len(parts)-2:], ".")
-	if len(parts) == 2 {
-		if appDir := filepath.Join(SMALLWEB_ROOT, domain, "@"); Exists(appDir) {
-			return NewWorker(appDir)
-		}
-
-		if appDir := filepath.Join(SMALLWEB_ROOT, domain, "www"); Exists(appDir) {
-			return NewWorker(appDir)
-		}
-
-		return nil, fmt.Errorf("no app found for %s", host)
-	}
-
-	subdomain := strings.Join(parts[:len(parts)-2], ".")
-	appDir := filepath.Join(SMALLWEB_ROOT, domain, subdomain)
-	if !Exists(appDir) {
-		return nil, fmt.Errorf("no app found for %s", host)
-	}
-
-	return NewWorker(appDir)
 }

@@ -12,8 +12,8 @@ import (
 )
 
 type Tree struct {
-	Root string         `json:"root"`
-	Apps map[string]App `json:"apps"`
+	Root string `json:"root"`
+	Apps []App  `json:"apps"`
 }
 
 type App struct {
@@ -28,27 +28,45 @@ func NewCmdDump() *cobra.Command {
 		Short:   "Print the smallweb app tree",
 		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			entries, err := os.ReadDir(worker.SMALLWEB_ROOT)
+			domains, err := os.ReadDir(worker.SMALLWEB_ROOT)
 			if err != nil {
 				return fmt.Errorf("failed to read directory: %w", err)
 			}
 
-			apps := make(map[string]App)
-			for _, entry := range entries {
-				if !entry.IsDir() {
+			apps := make([]App, 0)
+			for _, domain := range domains {
+				if !domain.IsDir() {
 					continue
 				}
 
 				// Skip hidden files
-				if strings.HasPrefix(entry.Name(), ".") {
+				if strings.HasPrefix(domain.Name(), ".") {
 					continue
 				}
 
-				apps[entry.Name()] = App{
-					Name: entry.Name(),
-					Url:  fmt.Sprintf("https://%s", entry.Name()),
-					Root: filepath.Join(worker.SMALLWEB_ROOT, entry.Name()),
+				subdomain, err := os.ReadDir(filepath.Join(worker.SMALLWEB_ROOT, domain.Name()))
+				if err != nil {
+					return fmt.Errorf("failed to read directory: %w", err)
 				}
+
+				for _, subdomain := range subdomain {
+					if !subdomain.IsDir() {
+						continue
+					}
+
+					// Skip hidden files
+					if strings.HasPrefix(subdomain.Name(), ".") {
+						continue
+					}
+
+					apps = append(apps, App{
+						Name: subdomain.Name(),
+						Url:  fmt.Sprintf("https://%s.%s", subdomain.Name(), domain.Name()),
+						Root: filepath.Join(worker.SMALLWEB_ROOT, domain.Name(), subdomain.Name()),
+					})
+
+				}
+
 			}
 
 			tree := Tree{
