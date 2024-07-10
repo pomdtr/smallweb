@@ -410,8 +410,8 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if Exists(filepath.Join(me.rootDir, ".env")) {
-		e, err := godotenv.Read(me.rootDir, ".env")
+	if envPath := filepath.Join(me.rootDir, ".env"); Exists(envPath) {
+		e, err := godotenv.Read(envPath)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
 			return
@@ -678,9 +678,10 @@ func WorkerFromHost(host string) (*Worker, error) {
 	}
 
 	subdomain := strings.Join(parts[:len(parts)-2], ".")
-	if appDir := filepath.Join(SMALLWEB_ROOT, domain, subdomain); !Exists(appDir) {
+	appDir := filepath.Join(SMALLWEB_ROOT, domain, subdomain)
+	if !Exists(appDir) {
 		return nil, fmt.Errorf("no app found for %s", host)
 	}
 
-	return NewWorker(filepath.Join(SMALLWEB_ROOT, domain))
+	return NewWorker(appDir)
 }
