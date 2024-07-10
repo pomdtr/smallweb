@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -647,12 +648,9 @@ func GetFreePort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
-// TODO: cache this
 func WorkerFromHost(host string) (*Worker, error) {
-	rootDir := filepath.Join(SMALLWEB_ROOT, host)
-	if !Exists(rootDir) {
-		return nil, fmt.Errorf("could not determine worker from host")
-	}
-
-	return NewWorker(rootDir)
+	parts := strings.Split(host, ".")
+	slices.Reverse(parts)
+	basename := strings.Join(parts, ".")
+	return NewWorker(filepath.Join(SMALLWEB_ROOT, basename))
 }
