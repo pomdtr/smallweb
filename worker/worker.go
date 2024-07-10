@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -648,9 +647,40 @@ func GetFreePort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
+var RESERVED_TLD = []string{".test", ".example", ".invalid", ".localhost"}
+
 func WorkerFromHost(host string) (*Worker, error) {
+	for _, tld := range RESERVED_TLD {
+		if strings.HasSuffix(host, tld) {
+			domain := tld[1:]
+			subdomain := strings.TrimSuffix(host, tld)
+
+			if appDir := filepath.Join(SMALLWEB_ROOT, domain, subdomain); Exists(appDir) {
+				return NewWorker(appDir)
+			}
+
+			return nil, fmt.Errorf("no app found for %s", host)
+		}
+	}
+
 	parts := strings.Split(host, ".")
-	slices.Reverse(parts)
-	basename := strings.Join(parts, ".")
-	return NewWorker(filepath.Join(SMALLWEB_ROOT, basename))
+	domain := strings.Join(parts[len(parts)-2:], ".")
+	if len(parts) == 2 {
+		if appDir := filepath.Join(SMALLWEB_ROOT, domain, "@"); Exists(appDir) {
+			return NewWorker(appDir)
+		}
+
+		if appDir := filepath.Join(SMALLWEB_ROOT, domain, "www"); Exists(appDir) {
+			return NewWorker(appDir)
+		}
+
+		return nil, fmt.Errorf("no app found for %s", host)
+	}
+
+	subdomain := strings.Join(parts[:len(parts)-2], ".")
+	if appDir := filepath.Join(SMALLWEB_ROOT, domain, subdomain); !Exists(appDir) {
+		return nil, fmt.Errorf("no app found for %s", host)
+	}
+
+	return NewWorker(filepath.Join(SMALLWEB_ROOT, domain))
 }

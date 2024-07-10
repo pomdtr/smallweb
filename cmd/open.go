@@ -3,8 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path"
-	"slices"
+	"path/filepath"
 	"strings"
 
 	"github.com/cli/browser"
@@ -30,9 +29,14 @@ func NewCmdOpen() *cobra.Command {
 				return fmt.Errorf("directory is not a smallweb app")
 			}
 
-			parts := strings.Split(path.Base(dir), ".")
-			slices.Reverse(parts)
-			hostname := strings.Join(parts, ".")
+			var hostname string
+			if basename := filepath.Base(dir); basename == "@" {
+				hostname = filepath.Base(filepath.Dir(dir))
+			} else {
+				subdomain := filepath.Base(dir)
+				domain := filepath.Base(filepath.Dir(dir))
+				hostname = fmt.Sprintf("%s.%s", subdomain, domain)
+			}
 
 			if err := browser.OpenURL(fmt.Sprintf("https://%s", hostname)); err != nil {
 				return fmt.Errorf("failed to open browser: %v", err)
