@@ -11,15 +11,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Tree struct {
-	Root string `json:"root"`
-	Apps []App  `json:"apps"`
-}
-
 type App struct {
 	Name string `json:"name"`
 	Url  string `json:"url"`
-	Root string `json:"root"`
+	Path string `json:"path"`
 }
 
 func ListApps() ([]App, error) {
@@ -57,7 +52,7 @@ func ListApps() ([]App, error) {
 			apps = append(apps, App{
 				Name: fmt.Sprintf("%s.%s", subdomain.Name(), domain.Name()),
 				Url:  fmt.Sprintf("https://%s.%s", subdomain.Name(), domain.Name()),
-				Root: filepath.Join(worker.SMALLWEB_ROOT, domain.Name(), subdomain.Name()),
+				Path: filepath.Join(worker.SMALLWEB_ROOT, domain.Name(), subdomain.Name()),
 			})
 
 		}
@@ -69,23 +64,19 @@ func ListApps() ([]App, error) {
 
 func NewCmdDump() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "dump",
-		Short:   "Print the smallweb app tree",
+		Use:     "list",
+		Short:   "List all smallweb apps",
 		GroupID: CoreGroupID,
+		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apps, err := ListApps()
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
 
-			tree := Tree{
-				Root: worker.SMALLWEB_ROOT,
-				Apps: apps,
-			}
-
 			encoder := json.NewEncoder(cmd.OutOrStdout())
 			encoder.SetIndent("", "  ")
-			if err := encoder.Encode(tree); err != nil {
+			if err := encoder.Encode(apps); err != nil {
 				return fmt.Errorf("failed to encode tree: %w", err)
 			}
 
