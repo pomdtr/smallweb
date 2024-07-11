@@ -15,14 +15,13 @@ If you prefer your to keep your apps local to your device, you can learn how to 
 
 This guide will assumes that you have followed the [localhost setup guide](./localhost/localhost.md). If you haven't, just replace `https://<app>.localhost` with `https://<app>.<your-domain>` in the examples below.
 
-
 ### Hosting a static website
 
 The simplest smallweb app you can create is just a folder with a text file in it.
 
 ```sh
-mkdir -p ~/smalleb/example-website.localhost
-echo "Hello, world!" > ~/smalleb/example-website.localhost/hello.txt
+mkdir -p ~/smallweb/localhost/example-website
+echo "Hello, world!" > ~/smallweb/localhost/example-website/hello.txt
 ```
 
 If you open `https://hello-world.localhost/hello.txt` in your browser, you should see the content of the file.
