@@ -12,4 +12,4 @@ npm install
 npm run build
 ```
 
-The build command will generate a `dist` directory with the static files. Since your project is in the `~/smallweb/vite-project.localhost` directory, Smallweb will serve the files at `https://vite-project.localhost`.
+The build command will generate a `dist` directory with the static files. Since your project is in the `~/smallweb/localhost/vite-project` directory, Smallweb will serve the files at `https://vite-project.localhost`.

@@ -5,7 +5,7 @@
 Our project will have the following structure:
 
 ```txt
-~/smallweb/astro-example.localhost
+~/smallweb/localhost/astro-example
 ├── .vscode/
 │   └── settings.json
 ├── main.ts
@@ -16,8 +16,8 @@ Our project will have the following structure:
 Let's create the project, and initialize the astro frontend:
 
 ```sh
-mkdir -p ~/smallweb/astro-example.localhost
-cd ~/smallweb/astro-example.localhost
+mkdir -p ~/smallweb/localhost/astro-example
+cd ~/smallweb/localhost/astro-example
 npm create astro@latest app
 ```
 
@@ -70,4 +70,4 @@ If you are using vscode, make sure to setup the `.vscode/settings.json` config:
 }
 ```
 
-Now that everything is setup, we can just run `npm run build` in the `~/smallweb/astro-example.localhost/app` directory, and access the website at `https://astro-example.localhost`.
+Now that everything is setup, we can just run `npm run build` in the `~/smallweb/localhost/astro-example/app` directory, and access the website at `https://localhost/astro-example`.

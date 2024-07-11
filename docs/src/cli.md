@@ -10,6 +10,20 @@ Host websites from your internet folder
   -h, --help   help for smallweb
 ```
 
+## smallweb capture
+
+Extension capture
+
+```
+smallweb capture [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for capture
+```
+
 ## smallweb completion
 
 Generate the autocompletion script for the specified shell
@@ -211,20 +225,6 @@ smallweb docs [flags]
   -h, --help   help for docs
 ```
 
-## smallweb dump
-
-Print the smallweb app tree
-
-```
-smallweb dump [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for dump
-```
-
 ## smallweb help
 
 Help about any command
@@ -244,9 +244,25 @@ smallweb help [command] [flags]
   -h, --help   help for help
 ```
 
+## smallweb list
+
+List all smallweb apps
+
+```
+smallweb list [flags]
+```
+
+### Options
+
+```
+      --domain string   filter by domain
+  -h, --help            help for list
+      --json            output as json
+```
+
 ## smallweb open
 
-Extension open
+Open the current smallweb app in the browser
 
 ```
 smallweb open [flags]
@@ -397,8 +413,14 @@ smallweb up [flags]
 ### Options
 
 ```
-  -h, --help       help for up
-  -p, --port int   Port to listen on (default 7777)
+  -h, --help                     help for up
+      --host string              Host to listen on (default "localhost")
+  -p, --port int                 Port to listen on
+      --tls                      Enable TLS
+      --tls-ca-cert string       TLS CA certificate file path
+      --tls-cert string          TLS certificate file path
+      --tls-client-auth string   TLS client auth mode (require, request, verify) (default "require")
+      --tls-key string           TLS key file path
 ```
 
 ## smallweb upgrade

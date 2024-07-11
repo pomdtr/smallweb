@@ -6,7 +6,7 @@ Below are some examples to get you started, adapted from the official [Hono docu
 
 ## Hello world
 
-Create a new `~/smallweb/hono-example.localhost/main.ts` file with the following content:
+Create a new `~/smallweb/localhost/hono-example/main.ts` file with the following content:
 
 ```ts
 import { Hono } from 'jsr:@hono/hono'
@@ -18,7 +18,7 @@ app.get('/', (c) => c.text('Hello Deno!'))
 export default app;
 ```
 
-Then navigate to `https://hono-example.localhost` to see the result.
+Then navigate to `https://localhost/hono-example` to see the result.
 
 ## Routing Requests
 

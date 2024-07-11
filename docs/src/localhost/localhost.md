@@ -90,8 +90,8 @@ EOF
 First, let's create a dummy smallweb website:
 
 ```sh
-mkdir -p ~/smallweb/example.localhost
-CAT <<EOF > ~/smallweb/example.localhost/main.ts
+mkdir -p ~/smallweb/localhost/example
+CAT <<EOF > ~/smallweb/localhost/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -151,8 +151,8 @@ caddy trust
 First, let's create a dummy smallweb website:
 
 ```sh
-mkdir -p ~/smallweb/example.localhost
-CAT <<EOF > ~/smallweb/example.localhost/main.ts
+mkdir -p ~/smallweb/localhost/example
+CAT <<EOF > ~/smallweb/localhost/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

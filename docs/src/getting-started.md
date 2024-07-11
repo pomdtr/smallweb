@@ -30,7 +30,7 @@ If you open `https://hello-world.localhost/hello.txt` in your browser, you shoul
 If the folder contains an `index.html` file (or a `dist/index.html` file), it will be served as the root of the website.
 
 ```html
-<!-- File: ~/smallweb/example-website.localhost/index.html -->
+<!-- File: ~/smallweb/localhost/example-website/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,7 +51,7 @@ If the folder contains an `index.html` file (or a `dist/index.html` file), it wi
 If you want to serve dynamic content instead, you'll need to create a file called `main.[js,ts,jsx,tsx]` at the root of the folder. The file should export a default object with a `fetch` method that takes a `Request` object as argument, and returns a `Response` object.
 
 ```ts
-// File: ~/smallweb/example-server.localhost/main.ts
+// File: ~/smallweb/localhost/example-server/main.ts
 
 export default {
   fetch(request: Request) {
@@ -74,7 +74,7 @@ Smallweb use the [deno](https://deno.com) runtime to evaluate the server code. Y
 As an example, the following code snippet use the `@hono/hono` extract params from the request url, and render jsx:
 
 ```jsx
-// File: ~/smallweb/hono-example.localhost/main.tsx
+// File: ~/smallweb/localhost/hono-example/main.tsx
 /** @jsxImportSource jsr:@hono/hono/jsx **/
 
 import { Hono } from "@hono/hono";
@@ -90,5 +90,5 @@ export default app;
 
 No need to start a development server, or to compile the code. Smallweb will take care of everything for you.
 
-You can just copy paste this code at `~/smallweb/hono-example.localhost/main.tsx`, and open `https://hono-example.localhost` in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.
+You can just copy paste this code at `~/smallweb/localhost/hono-example/main.tsx`, and open `https://hono-example.localhost` in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.
 
