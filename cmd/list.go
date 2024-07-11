@@ -7,8 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cli/go-gh/v2/pkg/tableprinter"
+	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 type App struct {
@@ -17,29 +20,33 @@ type App struct {
 	Path string `json:"path"`
 }
 
-func ListApps() ([]App, error) {
-	domains, err := os.ReadDir(worker.SMALLWEB_ROOT)
+func ListApps(domain string) ([]App, error) {
+	entries, err := os.ReadDir(worker.SMALLWEB_ROOT)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %w", err)
 	}
 
 	apps := make([]App, 0)
-	for _, domain := range domains {
-		if !domain.IsDir() {
+	for _, entry := range entries {
+		if !entry.IsDir() {
 			continue
 		}
 
 		// Skip hidden files
-		if strings.HasPrefix(domain.Name(), ".") {
+		if strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
 
-		subdomain, err := os.ReadDir(filepath.Join(worker.SMALLWEB_ROOT, domain.Name()))
+		if domain != "" && entry.Name() != domain {
+			continue
+		}
+
+		subdomains, err := os.ReadDir(filepath.Join(worker.SMALLWEB_ROOT, entry.Name()))
 		if err != nil {
 			return nil, fmt.Errorf("failed to read directory: %w", err)
 		}
 
-		for _, subdomain := range subdomain {
+		for _, subdomain := range subdomains {
 			if !subdomain.IsDir() {
 				continue
 			}
@@ -50,9 +57,9 @@ func ListApps() ([]App, error) {
 			}
 
 			apps = append(apps, App{
-				Name: fmt.Sprintf("%s.%s", subdomain.Name(), domain.Name()),
-				Url:  fmt.Sprintf("https://%s.%s", subdomain.Name(), domain.Name()),
-				Path: filepath.Join(worker.SMALLWEB_ROOT, domain.Name(), subdomain.Name()),
+				Name: fmt.Sprintf("%s.%s", subdomain.Name(), entry.Name()),
+				Url:  fmt.Sprintf("https://%s.%s", subdomain.Name(), entry.Name()),
+				Path: filepath.Join(worker.SMALLWEB_ROOT, entry.Name(), subdomain.Name()),
 			})
 
 		}
@@ -63,25 +70,85 @@ func ListApps() ([]App, error) {
 }
 
 func NewCmdDump() *cobra.Command {
+	var flags struct {
+		json   bool
+		domain string
+	}
+
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List all smallweb apps",
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := ListApps()
+			apps, err := ListApps(flags.domain)
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
 
-			encoder := json.NewEncoder(cmd.OutOrStdout())
-			encoder.SetIndent("", "  ")
-			if err := encoder.Encode(apps); err != nil {
-				return fmt.Errorf("failed to encode tree: %w", err)
+			if flags.json {
+				encoder := json.NewEncoder(os.Stdout)
+				encoder.SetIndent("", "  ")
+				if err := encoder.Encode(apps); err != nil {
+					return fmt.Errorf("failed to encode tree: %w", err)
+				}
+
+				return nil
 			}
 
-			return nil
+			if len(apps) == 0 {
+				cmd.Println("No apps found")
+				return nil
+			}
+
+			var printer tableprinter.TablePrinter
+			if isatty.IsTerminal(os.Stdout.Fd()) {
+				width, _, err := term.GetSize(int(os.Stdout.Fd()))
+				if err != nil {
+					return fmt.Errorf("failed to get terminal size: %w", err)
+				}
+
+				printer = tableprinter.New(os.Stdout, true, width)
+			} else {
+				printer = tableprinter.New(os.Stdout, false, 0)
+			}
+
+			printer.AddHeader([]string{"Name", "URL", "Path"})
+			for _, app := range apps {
+				printer.AddField(app.Name)
+				printer.AddField(app.Url)
+				printer.AddField(app.Path)
+				printer.EndRow()
+			}
+
+			return printer.Render()
 		},
 	}
+
+	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
+	cmd.Flags().StringVar(&flags.domain, "domain", "", "filter by domain")
+	cmd.RegisterFlagCompletionFunc("domain", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		entries, err := os.ReadDir(worker.SMALLWEB_ROOT)
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+
+		var completions []string
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+
+			// Skip hidden files
+			if strings.HasPrefix(entry.Name(), ".") {
+				continue
+			}
+
+			completions = append(completions, entry.Name())
+		}
+
+		return completions, cobra.ShellCompDirectiveNoFileComp
+	})
+
 	return cmd
 }
