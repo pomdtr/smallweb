@@ -72,7 +72,7 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					if subdomain == "" {
-						http.Redirect(w, r, fmt.Sprintf("https://www.%s", domain), http.StatusMovedPermanently)
+						http.Redirect(w, r, fmt.Sprintf("https://www.%s", domain), http.StatusTemporaryRedirect)
 						return
 					}
 
