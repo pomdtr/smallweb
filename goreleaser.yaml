@@ -41,7 +41,7 @@ release:
     name: smallweb-releases
 brews:
   - name: smallweb
-    homepage: https://smallweb-docs.pomdtr.me
+    homepage: https://smallweb.run
     repository:
       owner: pomdtr
       name: homebrew-tap
