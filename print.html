@@ -188,8 +188,8 @@ You can find more information on to do this in the <a href="./cloudflare/tunnel.
 <p>This guide will assumes that you have followed the <a href="./localhost/localhost.html">localhost setup guide</a>. If you haven't, just replace <code>https://&lt;app&gt;.localhost</code> with <code>https://&lt;app&gt;.&lt;your-domain&gt;</code> in the examples below.</p>
 <h3 id="hosting-a-static-website"><a class="header" href="#hosting-a-static-website">Hosting a static website</a></h3>
 <p>The simplest smallweb app you can create is just a folder with a text file in it.</p>
-<pre><code class="language-sh">mkdir -p ~/smalleb/example-website.localhost
-echo "Hello, world!" &gt; ~/smalleb/example-website.localhost/hello.txt
+<pre><code class="language-sh">mkdir -p ~/smallweb/localhost/example-website
+echo "Hello, world!" &gt; ~/smallweb/localhost/example-website/hello.txt
 </code></pre>
 <p>If you open <code>https://hello-world.localhost/hello.txt</code> in your browser, you should see the content of the file.</p>
 <p>If the folder contains an <code>index.html</code> file (or a <code>dist/index.html</code> file), it will be served as the root of the website.</p>
