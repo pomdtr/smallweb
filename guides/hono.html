@@ -183,7 +183,7 @@
 <p>Hono is a fantastic library to create APIs in smallweb. It's a great match for smallweb, and the framework I recommend for creating APIs.</p>
 <p>Below are some examples to get you started, adapted from the official <a href="https://hono.dev/docs/">Hono documentation</a></p>
 <h2 id="hello-world"><a class="header" href="#hello-world">Hello world</a></h2>
-<p>Create a new <code>~/smallweb/hono-example.localhost/main.ts</code> file with the following content:</p>
+<p>Create a new <code>~/smallweb/localhost/hono-example/main.ts</code> file with the following content:</p>
 <pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
 
 const app = new Hono()
@@ -192,7 +192,7 @@ app.get('/', (c) =&gt; c.text('Hello Deno!'))
 
 export default app;
 </code></pre>
-<p>Then navigate to <code>https://hono-example.localhost</code> to see the result.</p>
+<p>Then navigate to <code>https://localhost/hono-example</code> to see the result.</p>
 <h2 id="routing-requests"><a class="header" href="#routing-requests">Routing Requests</a></h2>
 <pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
 

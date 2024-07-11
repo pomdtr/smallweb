@@ -245,8 +245,8 @@ EOF
 </code></pre>
 <h2 id="testing-the-setup-macos"><a class="header" href="#testing-the-setup-macos">Testing the setup</a></h2>
 <p>First, let's create a dummy smallweb website:</p>
-<pre><code class="language-sh">mkdir -p ~/smallweb/example.localhost
-CAT &lt;&lt;EOF &gt; ~/smallweb/example.localhost/main.ts
+<pre><code class="language-sh">mkdir -p ~/smallweb/localhost/example
+CAT &lt;&lt;EOF &gt; ~/smallweb/localhost/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -291,8 +291,8 @@ caddy trust
 </code></pre>
 <h3 id="testing-setup-ubuntu"><a class="header" href="#testing-setup-ubuntu">Testing the setup</a></h3>
 <p>First, let's create a dummy smallweb website:</p>
-<pre><code class="language-sh">mkdir -p ~/smallweb/example.localhost
-CAT &lt;&lt;EOF &gt; ~/smallweb/example.localhost/main.ts
+<pre><code class="language-sh">mkdir -p ~/smallweb/localhost/example
+CAT &lt;&lt;EOF &gt; ~/smallweb/localhost/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

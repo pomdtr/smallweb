@@ -185,12 +185,19 @@
 <h3 id="options"><a class="header" href="#options">Options</a></h3>
 <pre><code>  -h, --help   help for smallweb
 </code></pre>
+<h2 id="smallweb-capture"><a class="header" href="#smallweb-capture">smallweb capture</a></h2>
+<p>Extension capture</p>
+<pre><code>smallweb capture [flags]
+</code></pre>
+<h3 id="options-1"><a class="header" href="#options-1">Options</a></h3>
+<pre><code>  -h, --help   help for capture
+</code></pre>
 <h2 id="smallweb-completion"><a class="header" href="#smallweb-completion">smallweb completion</a></h2>
 <p>Generate the autocompletion script for the specified shell</p>
 <h3 id="synopsis"><a class="header" href="#synopsis">Synopsis</a></h3>
 <p>Generate the autocompletion script for smallweb for the specified shell.
 See each sub-command's help for details on how to use the generated script.</p>
-<h3 id="options-1"><a class="header" href="#options-1">Options</a></h3>
+<h3 id="options-2"><a class="header" href="#options-2">Options</a></h3>
 <pre><code>  -h, --help   help for completion
 </code></pre>
 <h2 id="smallweb-completion-bash"><a class="header" href="#smallweb-completion-bash">smallweb completion bash</a></h2>
@@ -212,7 +219,7 @@ If it is not installed already, you can install it via your OS's package manager
 <p>You will need to start a new shell for this setup to take effect.</p>
 <pre><code>smallweb completion bash
 </code></pre>
-<h3 id="options-2"><a class="header" href="#options-2">Options</a></h3>
+<h3 id="options-3"><a class="header" href="#options-3">Options</a></h3>
 <pre><code>  -h, --help              help for bash
       --no-descriptions   disable completion descriptions
 </code></pre>
@@ -229,7 +236,7 @@ If it is not installed already, you can install it via your OS's package manager
 <p>You will need to start a new shell for this setup to take effect.</p>
 <pre><code>smallweb completion fish [flags]
 </code></pre>
-<h3 id="options-3"><a class="header" href="#options-3">Options</a></h3>
+<h3 id="options-4"><a class="header" href="#options-4">Options</a></h3>
 <pre><code>  -h, --help              help for fish
       --no-descriptions   disable completion descriptions
 </code></pre>
@@ -240,7 +247,7 @@ If it is not installed already, you can install it via your OS's package manager
 Simply type completion help [path to command] for full details.</p>
 <pre><code>smallweb completion help [command] [flags]
 </code></pre>
-<h3 id="options-4"><a class="header" href="#options-4">Options</a></h3>
+<h3 id="options-5"><a class="header" href="#options-5">Options</a></h3>
 <pre><code>  -h, --help   help for help
 </code></pre>
 <h2 id="smallweb-completion-powershell"><a class="header" href="#smallweb-completion-powershell">smallweb completion powershell</a></h2>
@@ -254,7 +261,7 @@ Simply type completion help [path to command] for full details.</p>
 to your powershell profile.</p>
 <pre><code>smallweb completion powershell [flags]
 </code></pre>
-<h3 id="options-5"><a class="header" href="#options-5">Options</a></h3>
+<h3 id="options-6"><a class="header" href="#options-6">Options</a></h3>
 <pre><code>  -h, --help              help for powershell
       --no-descriptions   disable completion descriptions
 </code></pre>
@@ -279,7 +286,7 @@ to enable it.  You can execute the following once:</p>
 <p>You will need to start a new shell for this setup to take effect.</p>
 <pre><code>smallweb completion zsh [flags]
 </code></pre>
-<h3 id="options-6"><a class="header" href="#options-6">Options</a></h3>
+<h3 id="options-7"><a class="header" href="#options-7">Options</a></h3>
 <pre><code>  -h, --help              help for zsh
       --no-descriptions   disable completion descriptions
 </code></pre>
@@ -287,7 +294,7 @@ to enable it.  You can execute the following once:</p>
 <p>Create a new smallweb app</p>
 <pre><code>smallweb create &lt;app&gt; [flags]
 </code></pre>
-<h3 id="options-7"><a class="header" href="#options-7">Options</a></h3>
+<h3 id="options-8"><a class="header" href="#options-8">Options</a></h3>
 <pre><code>  -h, --help              help for create
   -t, --template string   The template to use
 </code></pre>
@@ -295,15 +302,8 @@ to enable it.  You can execute the following once:</p>
 <p>Generate smallweb cli documentation</p>
 <pre><code>smallweb docs [flags]
 </code></pre>
-<h3 id="options-8"><a class="header" href="#options-8">Options</a></h3>
-<pre><code>  -h, --help   help for docs
-</code></pre>
-<h2 id="smallweb-dump"><a class="header" href="#smallweb-dump">smallweb dump</a></h2>
-<p>Print the smallweb app tree</p>
-<pre><code>smallweb dump [flags]
-</code></pre>
 <h3 id="options-9"><a class="header" href="#options-9">Options</a></h3>
-<pre><code>  -h, --help   help for dump
+<pre><code>  -h, --help   help for docs
 </code></pre>
 <h2 id="smallweb-help"><a class="header" href="#smallweb-help">smallweb help</a></h2>
 <p>Help about any command</p>
@@ -315,16 +315,25 @@ Simply type smallweb help [path to command] for full details.</p>
 <h3 id="options-10"><a class="header" href="#options-10">Options</a></h3>
 <pre><code>  -h, --help   help for help
 </code></pre>
-<h2 id="smallweb-open"><a class="header" href="#smallweb-open">smallweb open</a></h2>
-<p>Extension open</p>
-<pre><code>smallweb open [flags]
+<h2 id="smallweb-list"><a class="header" href="#smallweb-list">smallweb list</a></h2>
+<p>List all smallweb apps</p>
+<pre><code>smallweb list [flags]
 </code></pre>
 <h3 id="options-11"><a class="header" href="#options-11">Options</a></h3>
+<pre><code>      --domain string   filter by domain
+  -h, --help            help for list
+      --json            output as json
+</code></pre>
+<h2 id="smallweb-open"><a class="header" href="#smallweb-open">smallweb open</a></h2>
+<p>Open the current smallweb app in the browser</p>
+<pre><code>smallweb open [flags]
+</code></pre>
+<h3 id="options-12"><a class="header" href="#options-12">Options</a></h3>
 <pre><code>  -h, --help   help for open
 </code></pre>
 <h2 id="smallweb-service"><a class="header" href="#smallweb-service">smallweb service</a></h2>
 <p>Manage smallweb service</p>
-<h3 id="options-12"><a class="header" href="#options-12">Options</a></h3>
+<h3 id="options-13"><a class="header" href="#options-13">Options</a></h3>
 <pre><code>  -h, --help   help for service
 </code></pre>
 <h2 id="smallweb-service-help"><a class="header" href="#smallweb-service-help">smallweb service help</a></h2>
@@ -334,21 +343,21 @@ Simply type smallweb help [path to command] for full details.</p>
 Simply type service help [path to command] for full details.</p>
 <pre><code>smallweb service help [command] [flags]
 </code></pre>
-<h3 id="options-13"><a class="header" href="#options-13">Options</a></h3>
+<h3 id="options-14"><a class="header" href="#options-14">Options</a></h3>
 <pre><code>  -h, --help   help for help
 </code></pre>
 <h2 id="smallweb-service-install"><a class="header" href="#smallweb-service-install">smallweb service install</a></h2>
 <p>Install smallweb as a service</p>
 <pre><code>smallweb service install [flags]
 </code></pre>
-<h3 id="options-14"><a class="header" href="#options-14">Options</a></h3>
+<h3 id="options-15"><a class="header" href="#options-15">Options</a></h3>
 <pre><code>  -h, --help   help for install
 </code></pre>
 <h2 id="smallweb-service-logs"><a class="header" href="#smallweb-service-logs">smallweb service logs</a></h2>
 <p>Print service logs</p>
 <pre><code>smallweb service logs [flags]
 </code></pre>
-<h3 id="options-15"><a class="header" href="#options-15">Options</a></h3>
+<h3 id="options-16"><a class="header" href="#options-16">Options</a></h3>
 <pre><code>  -f, --follow   Follow log output
   -h, --help     help for logs
 </code></pre>
@@ -356,50 +365,56 @@ Simply type service help [path to command] for full details.</p>
 <p>Restart smallweb service</p>
 <pre><code>smallweb service restart [flags]
 </code></pre>
-<h3 id="options-16"><a class="header" href="#options-16">Options</a></h3>
+<h3 id="options-17"><a class="header" href="#options-17">Options</a></h3>
 <pre><code>  -h, --help   help for restart
 </code></pre>
 <h2 id="smallweb-service-start"><a class="header" href="#smallweb-service-start">smallweb service start</a></h2>
 <p>Start smallweb service</p>
 <pre><code>smallweb service start [flags]
 </code></pre>
-<h3 id="options-17"><a class="header" href="#options-17">Options</a></h3>
+<h3 id="options-18"><a class="header" href="#options-18">Options</a></h3>
 <pre><code>  -h, --help   help for start
 </code></pre>
 <h2 id="smallweb-service-status"><a class="header" href="#smallweb-service-status">smallweb service status</a></h2>
 <p>View service status</p>
 <pre><code>smallweb service status [flags]
 </code></pre>
-<h3 id="options-18"><a class="header" href="#options-18">Options</a></h3>
+<h3 id="options-19"><a class="header" href="#options-19">Options</a></h3>
 <pre><code>  -h, --help   help for status
 </code></pre>
 <h2 id="smallweb-service-stop"><a class="header" href="#smallweb-service-stop">smallweb service stop</a></h2>
 <p>Stop smallweb service</p>
 <pre><code>smallweb service stop [flags]
 </code></pre>
-<h3 id="options-19"><a class="header" href="#options-19">Options</a></h3>
+<h3 id="options-20"><a class="header" href="#options-20">Options</a></h3>
 <pre><code>  -h, --help   help for stop
 </code></pre>
 <h2 id="smallweb-service-uninstall"><a class="header" href="#smallweb-service-uninstall">smallweb service uninstall</a></h2>
 <p>Uninstall smallweb service</p>
 <pre><code>smallweb service uninstall [flags]
 </code></pre>
-<h3 id="options-20"><a class="header" href="#options-20">Options</a></h3>
+<h3 id="options-21"><a class="header" href="#options-21">Options</a></h3>
 <pre><code>  -h, --help   help for uninstall
 </code></pre>
 <h2 id="smallweb-up"><a class="header" href="#smallweb-up">smallweb up</a></h2>
 <p>Start the smallweb evaluation server</p>
 <pre><code>smallweb up [flags]
 </code></pre>
-<h3 id="options-21"><a class="header" href="#options-21">Options</a></h3>
-<pre><code>  -h, --help       help for up
-  -p, --port int   Port to listen on (default 7777)
+<h3 id="options-22"><a class="header" href="#options-22">Options</a></h3>
+<pre><code>  -h, --help                     help for up
+      --host string              Host to listen on (default "localhost")
+  -p, --port int                 Port to listen on
+      --tls                      Enable TLS
+      --tls-ca-cert string       TLS CA certificate file path
+      --tls-cert string          TLS certificate file path
+      --tls-client-auth string   TLS client auth mode (require, request, verify) (default "require")
+      --tls-key string           TLS key file path
 </code></pre>
 <h2 id="smallweb-upgrade"><a class="header" href="#smallweb-upgrade">smallweb upgrade</a></h2>
 <p>Upgrade to the latest version</p>
 <pre><code>smallweb upgrade [flags]
 </code></pre>
-<h3 id="options-22"><a class="header" href="#options-22">Options</a></h3>
+<h3 id="options-23"><a class="header" href="#options-23">Options</a></h3>
 <pre><code>  -h, --help   help for upgrade
 </code></pre>
 <!-- markdownlint-disable-file -->

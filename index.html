@@ -195,7 +195,7 @@ echo "Hello, world!" &gt; ~/smalleb/example-website.localhost/hello.txt
 </code></pre>
 <p>If you open <code>https://hello-world.localhost/hello.txt</code> in your browser, you should see the content of the file.</p>
 <p>If the folder contains an <code>index.html</code> file (or a <code>dist/index.html</code> file), it will be served as the root of the website.</p>
-<pre><code class="language-html">&lt;!-- File: ~/smallweb/example-website.localhost/index.html --&gt;
+<pre><code class="language-html">&lt;!-- File: ~/smallweb/localhost/example-website/index.html --&gt;
 &lt;!DOCTYPE html&gt;
 &lt;html lang="en"&gt;
 &lt;head&gt;
@@ -213,7 +213,7 @@ echo "Hello, world!" &gt; ~/smalleb/example-website.localhost/hello.txt
 &lt;/html&gt;
 </code></pre>
 <p>If you want to serve dynamic content instead, you'll need to create a file called <code>main.[js,ts,jsx,tsx]</code> at the root of the folder. The file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
-<pre><code class="language-ts">// File: ~/smallweb/example-server.localhost/main.ts
+<pre><code class="language-ts">// File: ~/smallweb/localhost/example-server/main.ts
 
 export default {
   fetch(request: Request) {
@@ -231,7 +231,7 @@ export default {
 <p>To access the server, open <code>https://example-server.localhost</code> in your browser.</p>
 <p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
 <p>As an example, the following code snippet use the <code>@hono/hono</code> extract params from the request url, and render jsx:</p>
-<pre><code class="language-jsx">// File: ~/smallweb/hono-example.localhost/main.tsx
+<pre><code class="language-jsx">// File: ~/smallweb/localhost/hono-example/main.tsx
 /** @jsxImportSource jsr:@hono/hono/jsx **/
 
 import { Hono } from "@hono/hono";
@@ -245,7 +245,7 @@ app.get("/:name", c =&gt; c.html(&lt;h1&gt;Hello, {c.req.param("name")}!&lt;/h1&
 export default app;
 </code></pre>
 <p>No need to start a development server, or to compile the code. Smallweb will take care of everything for you.</p>
-<p>You can just copy paste this code at <code>~/smallweb/hono-example.localhost/main.tsx</code>, and open <code>https://hono-example.localhost</code> in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.</p>
+<p>You can just copy paste this code at <code>~/smallweb/localhost/hono-example/main.tsx</code>, and open <code>https://hono-example.localhost</code> in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.</p>
 
                     </main>
 
