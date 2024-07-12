@@ -13,29 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func SplitHost(host string) (string, string, error) {
-	// Special TLDs, as per RFC 2606
-	parts := strings.Split(host, ".")
-	if len(parts) < 2 || len(parts) > 3 {
-		return "", "", fmt.Errorf("invalid host")
-	}
-
-	tld := parts[len(parts)-1]
-	if tld == "localhost" || tld == "test" || tld == "example" || tld == "invalid" {
-		if len(parts) > 2 {
-			return "", "", fmt.Errorf("invalid host")
-		}
-
-		return tld, parts[0], nil
-	}
-
-	if len(parts) == 2 {
-		return parts[0] + "." + parts[1], "", nil
-	}
-
-	return parts[1] + "." + parts[2], parts[0], nil
-}
-
 func NewCmdUp() *cobra.Command {
 	var flags struct {
 		host          string
@@ -65,25 +42,20 @@ func NewCmdUp() *cobra.Command {
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					domain, subdomain, err := SplitHost(r.Host)
-					if err != nil {
-						w.WriteHeader(http.StatusBadRequest)
+					if worker.Exists(filepath.Join(worker.SMALLWEB_ROOT, r.Host, "www")) {
+						http.Redirect(w, r, fmt.Sprintf("https://www.%s", r.Host), http.StatusTemporaryRedirect)
 						return
 					}
 
-					if subdomain == "" {
-						http.Redirect(w, r, fmt.Sprintf("https://www.%s", domain), http.StatusTemporaryRedirect)
-						return
-					}
-
-					var handler http.Handler
+					parts := strings.SplitN(r.Host, ".", 2)
+					subdomain, domain := parts[0], parts[1]
 					appDir := filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)
-					if !worker.Exists(appDir) {
+					if !worker.Exists(filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)) {
 						w.WriteHeader(http.StatusNotFound)
 						return
 					}
 
-					handler = worker.NewWorker(appDir)
+					handler := worker.NewWorker(appDir)
 					handler.ServeHTTP(w, r)
 				}),
 			}
