@@ -181,17 +181,17 @@
                     <main>
                         <h1 id="smallweb-plugins"><a class="header" href="#smallweb-plugins">Smallweb Plugins</a></h1>
 <p>The smallweb CLI can be extennded with plugins. To create a new plugin, just add a binary to your PATH that starts with <code>smallweb-</code> and the CLI will automatically detect it.</p>
-<p>For example, if you create a new <code>smallweb-open</code> file with the following content:</p>
+<p>For example, if you create a new <code>smallweb-choose</code> file in your PATH with the following content:</p>
 <pre><code class="language-sh">#!/bin/sh
 
-if [ -z "$1" ]; then
-  echo "Usage: smallweb open &lt;app&gt;" &gt;&amp;2
-  exit 1
-fi
-
-exec open "https://$1.localhost"
+smallweb ls | fzf --with-nth=1 | cut -f2 | xargs open
 </code></pre>
-<p>And make it executable with <code>chmod +x smallweb-open</code>, you will be able to run <code>smallweb open my-app</code> to open <code>https://my-app.localhost</code> in your default browser.</p>
+<p>And make it executable with <code>chmod +x smallweb-choose</code>, you will be able to run <code>smallweb choose</code> and get an interactive list of your apps to choose from, which will then be opened in your default browser.</p>
+<h2 id="example-plugins"><a class="header" href="#example-plugins">Example Plugins</a></h2>
+<p><a href="https://github.com/iamseeley/simpl-site">simpl-site</a> can be installed as a smallweb plugin. You can install it using the following command:</p>
+<pre><code class="language-sh">deno install -Agf jsr:@iamseeley/simpl-site/smallweb-simpl-site
+</code></pre>
+<p>You will then be able to run <code>smallweb simpl-site</code> to create a new static site.</p>
 
                     </main>
 
