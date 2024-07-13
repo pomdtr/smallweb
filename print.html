@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="env.html"><strong aria-hidden="true">1.</strong> Set Environment Variables</a></li><li class="chapter-item expanded "><a href="permissions.html"><strong aria-hidden="true">2.</strong> Configure Permissions</a></li><li class="chapter-item expanded "><a href="plugins.html"><strong aria-hidden="true">3.</strong> Install Plugins</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">4.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">5.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="vps.html"><strong aria-hidden="true">6.</strong> VPS Setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">7.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">8.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">9.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="guides/astro.html"><strong aria-hidden="true">10.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="guides/telegram.html"><strong aria-hidden="true">11.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><div><strong aria-hidden="true">12.</strong> Smallweb Cloud</div></li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">13.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">14.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="env.html"><strong aria-hidden="true">1.</strong> Set Environment Variables</a></li><li class="chapter-item expanded "><a href="permissions.html"><strong aria-hidden="true">2.</strong> Configure Permissions</a></li><li class="chapter-item expanded "><a href="cron.html"><strong aria-hidden="true">3.</strong> Create Cron Jobs</a></li><li class="chapter-item expanded "><a href="plugins.html"><strong aria-hidden="true">4.</strong> Install Plugins</a></li><li class="chapter-item expanded "><a href="tooling.html"><strong aria-hidden="true">5.</strong> Tools</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">6.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">7.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="vps.html"><strong aria-hidden="true">8.</strong> VPS Setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">9.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">10.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">11.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="guides/astro.html"><strong aria-hidden="true">12.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="guides/telegram.html"><strong aria-hidden="true">13.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><div><strong aria-hidden="true">14.</strong> Smallweb Cloud</div></li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">16.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -314,6 +314,45 @@ export default function (req: Request) {
   }
 }
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="cron-tasks"><a class="header" href="#cron-tasks">Cron Tasks</a></h1>
+<p>You can register configure cron tasks from your <code>smallweb.json[c]</code> or the <code>smallweb</code> field from your <code>deno.json[c]</code>.</p>
+<pre><code class="language-json">{
+    "crons": [
+        {
+            "name": "refresh-cache",
+            "schedule": "0 0 * * *",
+            "command": "./refresh-cache.ts",
+            "args": []
+        }
+    ]
+}
+</code></pre>
+<p>The schedule field is a cron expression that defines when the task should run. It follows the standard cron syntax, with five fields separated by spaces. You can also use the following shortcuts:</p>
+<ul>
+<li><code>@hourly</code>: Run once an hour, at the beginning of the hour.</li>
+<li><code>@daily</code>: Run once a day, at midnight.</li>
+<li><code>@weekly</code>: Run once a week, at midnight on Sunday.</li>
+<li><code>@monthly</code>: Run once a month, at midnight on the first day of the month.</li>
+<li><code>@yearly</code>: Run once a year, at midnight on January 1st.</li>
+</ul>
+<p>Cron tasks can be defined in any language, as long as the file is executable and has the appropriate shebang line. You'll probably want to use deno as the runtime, more information on how to do that can be found in the <a href="https://docs.deno.com/runtime/tutorials/hashbang/">deno docs</a>.</p>
+<p>You can trigger a cron task manually by running the following command:</p>
+<pre><code class="language-sh">smallweb cron trigger &lt;cron&gt;
+</code></pre>
+<p>If you're not in the app directory, you can specify the app name with the <code>--app</code> flag:</p>
+<pre><code class="language-sh">smallweb cron trigger --app &lt;app&gt; &lt;cron&gt;
+</code></pre>
+<p>If you want to see a list of all cron tasks, you can run:</p>
+<pre><code class="language-sh">smallweb cron list
+</code></pre>
+<p>If you're not in the app directory, you can specify the app name with the <code>--app</code> flag, or use the <code>--all</code> flag to list all cron tasks:</p>
+<pre><code class="language-sh"># list all cron tasks
+smallweb cron list --all
+# list all cron tasks for a specific domain
+smallweb cron list --domain &lt;domain&gt;
+# list all cron tasks for a specific app
+smallweb cron list --app &lt;app&gt;
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="smallweb-plugins"><a class="header" href="#smallweb-plugins">Smallweb Plugins</a></h1>
 <p>The smallweb CLI can be extennded with plugins. To create a new plugin, just add a binary to your PATH that starts with <code>smallweb-</code> and the CLI will automatically detect it.</p>
 <p>For example, if you create a new <code>smallweb-choose</code> file in your PATH with the following content:</p>
@@ -329,6 +368,27 @@ smallweb ls | cut -f1 | fzf | xargs smallweb open
 <pre><code class="language-sh">deno install -Agf jsr:@iamseeley/simpl-site/smallweb-simpl-site
 </code></pre>
 <p>You will then be able to run <code>smallweb simpl-site</code> to create a new static site.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="tooling"><a class="header" href="#tooling">Tooling</a></h1>
+<h2 id="visual-studio-code"><a class="header" href="#visual-studio-code">Visual Studio Code</a></h2>
+<p>You can add a JSON schema to your Visual Studio Code settings to get autocompletion and validation for your <code>smallweb.json</code> files.</p>
+<pre><code class="language-json">{
+  "json.schemas": [
+    {
+      "url": "https://schema.smallweb.run",
+      "fileMatch": [
+        "smallweb.json",
+        "smallweb.jsonc"
+      ]
+    }
+  ]
+}
+</code></pre>
+<h2 id="additional-tooling"><a class="header" href="#additional-tooling">Additional Tooling</a></h2>
+<ul>
+<li><a href="https://tailscale.com/">Tailscale</a> - A VPN to connect to all your smallweb instances.</li>
+<li><a href="https://mutagen.io/">Mutagen</a> - A tool to keep your local and remote files in sync.</li>
+<li><a href="https://www.cloudflare.com/products/tunnel/">Cloudflare Tunnel</a> - A way to expose your smallweb instance to the internet.</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
 <p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
 <p>If you want to expose your apps to the internet instead, you can follow the <a href="localhost/../cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
@@ -755,7 +815,7 @@ export default { fetch: auth(handler) };
 <p>And then set the required environment variable in your <code>.env</code> file:</p>
 <pre><code class="language-txt">EMAIL=pomdtr@example.com
 </code></pre>
-<h2 id="visual-studio-code"><a class="header" href="#visual-studio-code">Visual Studio Code</a></h2>
+<h2 id="visual-studio-code-1"><a class="header" href="#visual-studio-code-1">Visual Studio Code</a></h2>
 <p>Create a new file at <code>~/smallweb/localhost/vscode/main.ts</code> with the following content:</p>
 <pre><code class="language-ts">import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
 import { LocalFS } from "jsr:@smallweb/vscode@0.0.2/local-fs";
