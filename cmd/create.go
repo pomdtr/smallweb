@@ -13,14 +13,14 @@ type Inputs struct {
 	Template string
 }
 
-func (i *Inputs) Fill() error {
+func (me *Inputs) Fill() error {
 	var fields []huh.Field
 
-	if i.Name == "" {
-		fields = append(fields, huh.NewInput().Title("Choose a name").Value(&i.Name))
+	if me.Name == "" {
+		fields = append(fields, huh.NewInput().Title("Choose a name").Value(&me.Name))
 	}
 
-	if i.Template == "" {
+	if me.Template == "" {
 		templates, err := templates.List()
 		if err != nil {
 			return fmt.Errorf("failed to list templates: %w", err)
@@ -31,7 +31,7 @@ func (i *Inputs) Fill() error {
 			options = append(options, huh.NewOption(template, template))
 		}
 
-		fields = append(fields, huh.NewSelect[string]().Title("Choose a template").Options(options...).Value(&i.Template))
+		fields = append(fields, huh.NewSelect[string]().Title("Choose a template").Options(options...).Value(&me.Template))
 	}
 
 	if len(fields) == 0 {

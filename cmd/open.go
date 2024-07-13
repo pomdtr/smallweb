@@ -17,7 +17,7 @@ func NewCmdOpen() *cobra.Command {
 		Short: "Open the current smallweb app in the browser",
 		Args:  cobra.MaximumNArgs(1),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			apps, err := ListApps("")
+			apps, err := ListApps()
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
 			}

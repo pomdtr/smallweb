@@ -20,7 +20,7 @@ type App struct {
 	Path string `json:"path"`
 }
 
-func ListApps(domain string) ([]App, error) {
+func ListApps() ([]App, error) {
 	entries, err := os.ReadDir(worker.SMALLWEB_ROOT)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %w", err)
@@ -34,10 +34,6 @@ func ListApps(domain string) ([]App, error) {
 
 		// Skip hidden files
 		if strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-
-		if domain != "" && entry.Name() != domain {
 			continue
 		}
 
@@ -69,6 +65,24 @@ func ListApps(domain string) ([]App, error) {
 	return apps, nil
 }
 
+func listAppsWithDomain(domain string) ([]App, error) {
+	apps, err := ListApps()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list apps: %w", err)
+	}
+
+	var filtered []App
+	for _, app := range apps {
+		if !strings.HasSuffix(app.Name, "."+domain) {
+			continue
+		}
+
+		filtered = append(filtered, app)
+	}
+
+	return filtered, nil
+}
+
 func NewCmdDump() *cobra.Command {
 	var flags struct {
 		json   bool
@@ -81,9 +95,19 @@ func NewCmdDump() *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := ListApps(flags.domain)
-			if err != nil {
-				return fmt.Errorf("failed to list apps: %w", err)
+			var apps []App
+			if flags.domain != "" {
+				var err error
+				apps, err = listAppsWithDomain(flags.domain)
+				if err != nil {
+					return fmt.Errorf("failed to list apps: %w", err)
+				}
+			} else {
+				var err error
+				apps, err = ListApps()
+				if err != nil {
+					return fmt.Errorf("failed to list apps: %w", err)
+				}
 			}
 
 			if flags.json {

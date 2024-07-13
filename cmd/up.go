@@ -113,7 +113,7 @@ func NewCmdUp() *cobra.Command {
 				fmt.Fprintln(os.Stderr, "Running cron jobs")
 				entry := c.Entries()[0]
 
-				apps, err := ListApps("")
+				apps, err := ListApps()
 				if err != nil {
 					fmt.Println(err)
 					return
