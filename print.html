@@ -476,7 +476,7 @@ EOF
 echo "export PATH=\$PATH:\$HOME/.deno/bin" &gt;&gt; ~/.bashrc
 </code></pre>
 <h3 id="setup-smallweb-ubuntu"><a class="header" href="#setup-smallweb-ubuntu">Setup Smallweb</a></h3>
-<pre><code class="language-sh">curl -FsSL https://assets.smallweb.run/install.sh | sh
+<pre><code class="language-sh">curl -FsSL https://install.smallweb.run | sh
 # add ~/.local/bin to PATH
 echo "export PATH=\$PATH:\$HOME/.local/bin" &gt;&gt; ~/.bashrc
 smallweb service install
@@ -528,7 +528,7 @@ EOF
 curl -fsSL https://deno.land/install.sh | sh
 
 // install smallweb
-curl -sSfL https://assets.smallweb.run/install.sh | sh
+curl -sSfL https://install.smallweb.run | sh
 
 // register smallweb as a service
 smallweb service install
@@ -609,7 +609,7 @@ sudo apt update &amp;&amp; sudo apt install unzip
 curl -fsSL https://deno.land/install.sh | sh # install deno
 
 # install smallweb
-curl -sSfL https://assets.smallweb.run/install.sh | sh # install smallweb
+curl -sSfL https://install.smallweb.run | sh # install smallweb
 
 # start the smallweb service
 smallweb service install
