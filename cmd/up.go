@@ -49,6 +49,11 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					parts := strings.SplitN(r.Host, ".", 2)
+					if len(parts) != 2 {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
 					subdomain, domain := parts[0], parts[1]
 					appDir := filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)
 					if !worker.Exists(filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)) {

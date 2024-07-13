@@ -300,6 +300,10 @@ func NewCmdCronTrigger() *cobra.Command {
 			}
 
 			parts := strings.SplitN(app, ".", 2)
+			if len(parts) != 2 {
+				return fmt.Errorf("invalid app name")
+			}
+
 			subdomain, domain := parts[0], parts[1]
 
 			appDir := filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)
