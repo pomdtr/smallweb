@@ -25,7 +25,15 @@ import (
 )
 
 type Config struct {
+	Entrypoint  string      `json:"entrypoint"`
+	Crons       []Cron      `json:"crons"`
 	Permissions Permissions `json:"permissions"`
+}
+
+type Cron struct {
+	Schedule string   `json:"schedule"`
+	Command  string   `json:"command"`
+	Args     []string `json:"args"`
 }
 
 type Permission struct {
@@ -199,7 +207,6 @@ func (p *Permissions) Flags(rootDir string) []string {
 	return flags
 }
 
-var CANDIDATES = []string{"main.js", "main.ts", "main.jsx", "main.tsx", "dist/index.html", "index.html"}
 var SMALLWEB_ROOT string
 
 var dataHome = path.Join(xdg.DataHome, "smallweb")
@@ -207,14 +214,6 @@ var dataHome = path.Join(xdg.DataHome, "smallweb")
 //go:embed sandbox.ts
 var sandboxBytes []byte
 var sandboxTemplate = template.Must(template.New("sandbox").Parse(string(sandboxBytes)))
-
-type FetchInput struct {
-	Entrypoint string     `json:"entrypoint"`
-	Port       int        `json:"port"`
-	Url        string     `json:"url"`
-	Headers    [][]string `json:"headers"`
-	Method     string     `json:"method"`
-}
 
 func Exists(parts ...string) bool {
 	_, err := os.Stat(filepath.Join(parts...))
@@ -233,13 +232,6 @@ func init() {
 	} else {
 		log.Fatal(fmt.Errorf("could not determine smallweb root, please set SMALLWEB_ROOT"))
 	}
-
-	// ensure smallweb is in the path
-	executable, err := os.Executable()
-	if err != nil {
-		log.Fatalf("could not determine executable path: %v", err)
-	}
-	os.Setenv("PATH", fmt.Sprintf("%s:%s", filepath.Dir(executable), os.Getenv("PATH")))
 }
 
 type Worker struct {
@@ -248,16 +240,6 @@ type Worker struct {
 
 func NewWorker(rootDir string) *Worker {
 	return &Worker{rootDir: rootDir}
-}
-
-func (me *Worker) Cmd(args ...string) (*exec.Cmd, error) {
-	deno, err := DenoExecutable()
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := exec.Command(deno, args...)
-	return cmd, nil
 }
 
 var upgrader = websocket.Upgrader{} // use default options
@@ -375,34 +357,23 @@ func (me *Worker) LoadConfig() (*Config, error) {
 	return &defaultConfig, nil
 }
 
-func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var entrypoint string
-	for _, candidate := range CANDIDATES {
-		path := filepath.Join(me.rootDir, candidate)
-		if Exists(path) {
-			entrypoint = path
-			break
+func (me *Worker) LoadEnv() ([]string, error) {
+	envMap := make(map[string]string)
+	if envPath := filepath.Join(SMALLWEB_ROOT, ".env"); Exists(envPath) {
+		e, err := godotenv.Read(envPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not read .env file: %v", err)
+		}
+
+		for key, value := range e {
+			envMap[key] = value
 		}
 	}
 
-	if entrypoint == "" {
-		fileServer := http.FileServer(http.Dir(me.rootDir))
-		fileServer.ServeHTTP(w, r)
-		return
-	}
-
-	if strings.HasSuffix(entrypoint, ".html") {
-		server := http.FileServer(http.Dir(filepath.Dir(entrypoint)))
-		server.ServeHTTP(w, r)
-		return
-	}
-
-	envMap := make(map[string]string)
 	if envPath := filepath.Join(me.rootDir, "..", ".env"); Exists(envPath) {
 		e, err := godotenv.Read(envPath)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
-			return
+			return nil, fmt.Errorf("could not read .env file: %v", err)
 		}
 
 		for key, value := range e {
@@ -413,8 +384,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if envPath := filepath.Join(me.rootDir, ".env"); Exists(envPath) {
 		e, err := godotenv.Read(envPath)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("could not read .env file: %v", err), http.StatusInternalServerError)
-			return
+			return nil, fmt.Errorf("could not read .env file: %v", err)
 		}
 
 		for key, value := range e {
@@ -427,9 +397,61 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
 
+	PATH := os.Getenv("PATH")
+	if _, err := exec.LookPath("deno"); err != nil {
+		deno, err := DenoExecutable()
+		if err != nil {
+			return nil, err
+		}
+
+		PATH = fmt.Sprintf("%s:%s", filepath.Dir(deno), PATH)
+	}
+
+	smallweb, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+
+	if execPath, err := exec.LookPath("smallweb"); err != nil || execPath != smallweb {
+		PATH = fmt.Sprintf("%s:%s", filepath.Dir(smallweb), PATH)
+	}
+
+	env = append(env, fmt.Sprintf("PATH=%s", PATH))
+	return env, nil
+}
+
+func (me *Worker) inferEntrypoint() string {
+	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx", "dist/index.html", "index.html"} {
+		path := filepath.Join(me.rootDir, candidate)
+		if Exists(path) {
+			return path
+		}
+	}
+
+	return ""
+}
+
+func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	config, err := me.LoadConfig()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	entrypoint := config.Entrypoint
+	if entrypoint == "" {
+		entrypoint = me.inferEntrypoint()
+	}
+
+	if entrypoint == "" {
+		fileServer := http.FileServer(http.Dir(me.rootDir))
+		fileServer.ServeHTTP(w, r)
+		return
+	}
+
+	if strings.HasSuffix(entrypoint, ".html") {
+		server := http.FileServer(http.Dir(filepath.Dir(entrypoint)))
+		server.ServeHTTP(w, r)
 		return
 	}
 
@@ -465,12 +487,13 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	args = append(args, flags...)
 	args = append(args, "-")
 
-	cmd, err := me.Cmd(args...)
+	env, err := me.LoadEnv()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	cmd := exec.Command("deno", args...)
 	cmd.Dir = me.rootDir
 	cmd.Stdin = &stdin
 	cmd.Env = env
@@ -602,6 +625,21 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+func (me *Worker) Run(command string, args ...string) error {
+	env, err := me.LoadEnv()
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(command, args...)
+	cmd.Env = env
+	cmd.Dir = me.rootDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
 
 func DenoExecutable() (string, error) {

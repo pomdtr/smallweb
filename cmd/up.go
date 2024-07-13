@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/pomdtr/smallweb/worker"
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 )
 
@@ -105,6 +106,51 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			cmd.Printf("Listening on http://%s\n", addr)
+
+			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+			c := cron.New(cron.WithParser(parser))
+			c.AddFunc("* * * * *", func() {
+				fmt.Fprintln(os.Stderr, "Running cron jobs")
+				entry := c.Entries()[0]
+
+				apps, err := ListApps("")
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+				for _, app := range apps {
+					w := worker.NewWorker(app.Path)
+					config, err := w.LoadConfig()
+					if err != nil {
+						continue
+					}
+
+					for _, job := range config.Crons {
+						sched, err := parser.Parse(job.Schedule)
+						if err != nil {
+							fmt.Println(err)
+							continue
+						}
+
+						if !sched.Next(entry.Prev).Equal(entry.Next) {
+							continue
+						}
+
+						go func(job worker.Cron) error {
+							if err := w.Run(job.Command, job.Args...); err != nil {
+								fmt.Printf("Failed to run cron job %s: %s\n", job.Command, err)
+							}
+
+							return nil
+						}(job)
+					}
+
+				}
+			})
+
+			go c.Start()
+
 			return server.ListenAndServe()
 		},
 	}
