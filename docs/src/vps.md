@@ -11,8 +11,8 @@ useradd -m -s $(which bash) smallweb
 # fix home directory permissions
 chown smallweb:smallweb /home/smallweb
 
-# set a password for the user
-passwd smallweb # set a password
+# set a password for the smallweb user
+passwd smallweb
 
 # give the user sudo access
 usermod -aG sudo smallweb

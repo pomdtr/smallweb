@@ -233,6 +233,27 @@ func init() {
 	} else {
 		log.Fatal(fmt.Errorf("could not determine smallweb root, please set SMALLWEB_ROOT"))
 	}
+
+	smallweb, err := os.Executable()
+	if err != nil {
+		return
+	}
+
+	PATH := os.Getenv("PATH")
+	if execPath, err := exec.LookPath("smallweb"); err != nil || execPath != smallweb {
+		PATH = fmt.Sprintf("%s:%s", filepath.Dir(smallweb), PATH)
+	}
+
+	if _, err := exec.LookPath("deno"); err != nil {
+		deno, err := DenoExecutable()
+		if err != nil {
+			return
+		}
+
+		PATH = fmt.Sprintf("%s:%s", filepath.Dir(deno), PATH)
+	}
+
+	os.Setenv("PATH", PATH)
 }
 
 type Worker struct {
@@ -394,26 +415,6 @@ func (me *Worker) LoadEnv() ([]string, error) {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
 
-	PATH := os.Getenv("PATH")
-	if _, err := exec.LookPath("deno"); err != nil {
-		deno, err := DenoExecutable()
-		if err != nil {
-			return nil, err
-		}
-
-		PATH = fmt.Sprintf("%s:%s", filepath.Dir(deno), PATH)
-	}
-
-	smallweb, err := os.Executable()
-	if err != nil {
-		return nil, err
-	}
-
-	if execPath, err := exec.LookPath("smallweb"); err != nil || execPath != smallweb {
-		PATH = fmt.Sprintf("%s:%s", filepath.Dir(smallweb), PATH)
-	}
-
-	env = append(env, fmt.Sprintf("PATH=%s", PATH))
 	return env, nil
 }
 

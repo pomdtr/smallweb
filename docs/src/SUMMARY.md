@@ -4,9 +4,9 @@
 
 # Core Concepts
 
-- [Environment Variables](./env.md)
-- [Settings Permissions](./permissions.md)
-- [Plugins](./plugins.md)
+- [Set Environment Variables](./env.md)
+- [Configure Permissions](./permissions.md)
+- [Install Plugins](./plugins.md)
 
 # Self-Hosting
 
