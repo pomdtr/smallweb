@@ -179,7 +179,7 @@
                     <main>
                         <h1 id="getting-started"><a class="header" href="#getting-started">Getting started</a></h1>
 <h2 id="why-smallweb-"><a class="header" href="#why-smallweb-">Why Smallweb ?</a></h2>
-<p>See <a href="https://readme.smallweb.run">https://readme.smallweb.run</a> for a quick overview of the project.</p>
+<p>See <a href="https://smallweb.run">https://smallweb.run</a> for a quick overview of the project.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <p>If you want your apps to be available on the internet, you'll need to buy a domain name, and point it to your server.
 You can find more information on to do this in the <a href="./cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
@@ -276,10 +276,10 @@ export default function (req: Request) {
 <li>add <code>smallweb.json</code> configuration file at the root of the folder</li>
 <li>add a <code>smallweb</code> field in your <code>deno.json</code></li>
 </ul>
-<p>A json schema for the permissions file is available <a href="https://assets.smallweb.run/smallweb.schema.json">here</a>. See the deno docs to learn the <a href="https://docs.deno.com/runtime/manual/basics/permissions">available permissions</a>.</p>
+<p>A json schema for the config file is available <a href="https://schema.smallweb.run">here</a>. See the deno docs to learn the <a href="https://docs.deno.com/runtime/manual/basics/permissions">available permissions</a>.</p>
 <p>Here is the default config when no <code>smallweb.json</code> file is present:</p>
 <pre><code class="language-json">{
-  "$schema": "https://assets.smallweb.run/smallweb.schema.json",
+  "$schema": "https://schema.smallweb.run",
   "permissions": {
     "env": true,
     "net": true,
@@ -292,25 +292,25 @@ export default function (req: Request) {
 }
 </code></pre>
 <p>If you want to add permissions to run a binary, you should start from it, then add the required permissions:</p>
-<pre><code class="language-jsonc">{
-  "$schema": "https://assets.smallweb.run/smallweb.schema.json",
+<pre><code class="language-json">{
+  "$schema": "https://schema.smallweb.run",
   "permissions": {
-    "run": ["/opt/homebrew/bin/gh"], // add the ability to run the gh binary
     "env": true,
     "net": true,
     "read": ["."],
     "write": {
       "allow": ["."],
       "deny": [ "smallweb.json", "smallweb.jsonc", "deno.json", "deno.jsonc"]
-    }
+    },
+    "run": ["/opt/homebrew/bin/gh"],
   }
 }
 </code></pre>
 <p>As a general rule, you should only add permissions that are required for your app to run. The more permissions you add, the more attack surface you expose to potential attackers. If you know what you are doing (or just don't care), you can allow all permissions by setting the <code>all</code> field to <code>true</code>.</p>
-<pre><code class="language-jsonc">{
-  "$schema": "https://assets.smallweb.run/smallweb.schema.json",
+<pre><code class="language-json">{
+  "$schema": "https://schema.smallweb.run",
   "permissions": {
-    "all": true // yolo!
+    "all": true
   }
 }
 </code></pre>
