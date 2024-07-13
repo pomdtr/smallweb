@@ -25,7 +25,7 @@ import (
 )
 
 type Config struct {
-	Entrypoint  string      `json:"entrypoint"`
+	Serve       any         `json:"serve"`
 	Crons       []CronJob   `json:"crons"`
 	Permissions Permissions `json:"permissions"`
 }
@@ -418,15 +418,32 @@ func (me *Worker) LoadEnv() ([]string, error) {
 	return env, nil
 }
 
-func (me *Worker) inferEntrypoint() string {
-	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx", "dist/index.html", "index.html"} {
-		path := filepath.Join(me.rootDir, candidate)
-		if Exists(path) {
-			return path
+func (me *Worker) inferEntrypoint(config *Config) (string, error) {
+	if config.Serve != nil {
+		switch v := config.Serve.(type) {
+		case string:
+			return filepath.Join(me.rootDir, v), nil
+		case bool:
+			if !v {
+				return "", fmt.Errorf("serving is disabled")
+			}
+		default:
+			return "", fmt.Errorf("invalid serve value")
 		}
 	}
 
-	return ""
+	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
+		path := filepath.Join(me.rootDir, candidate)
+		if Exists(path) {
+			return path, nil
+		}
+	}
+
+	if Exists(filepath.Join(me.rootDir, "dist", "index.html")) {
+		return filepath.Join(me.rootDir, "dist"), nil
+	}
+
+	return me.rootDir, nil
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -436,21 +453,19 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var entrypoint string
-	if config.Entrypoint != "" {
-		entrypoint = filepath.Join(me.rootDir, config.Entrypoint)
-	} else {
-		entrypoint = me.inferEntrypoint()
-	}
-
-	if entrypoint == "" {
-		fileServer := http.FileServer(http.Dir(me.rootDir))
-		fileServer.ServeHTTP(w, r)
+	entrypoint, err := me.inferEntrypoint(config)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	if strings.HasSuffix(entrypoint, ".html") {
-		server := http.FileServer(http.Dir(filepath.Dir(entrypoint)))
+	info, err := os.Stat(entrypoint)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	if info.IsDir() {
+		server := http.FileServer(http.Dir(entrypoint))
 		server.ServeHTTP(w, r)
 		return
 	}
