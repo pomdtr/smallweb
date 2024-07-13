@@ -6,7 +6,9 @@
 
 - [Set Environment Variables](./env.md)
 - [Configure Permissions](./permissions.md)
+- [Create Cron Jobs](./cron.md)
 - [Install Plugins](./plugins.md)
+- [Tools](./tooling.md)
 
 # Self-Hosting
 
