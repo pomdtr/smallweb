@@ -2,7 +2,7 @@
 
 ## Why Smallweb ?
 
-See <https://readme.smallweb.run> for a quick overview of the project.
+See <https://smallweb.run> for a quick overview of the project.
 
 ## Installation
 
