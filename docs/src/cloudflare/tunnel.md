@@ -13,7 +13,7 @@ Additionally, it provides some protection against DDoS attacks, and allows you t
     curl -fsSL https://deno.land/install.sh | sh
 
     // install smallweb
-    curl -sSfL https://assets.smallweb.run/install.sh | sh
+    curl -sSfL https://install.smallweb.run | sh
 
     // register smallweb as a service
     smallweb service install

@@ -34,7 +34,7 @@ sudo apt update && sudo apt install unzip
 curl -fsSL https://deno.land/install.sh | sh # install deno
 
 # install smallweb
-curl -sSfL https://assets.smallweb.run/install.sh | sh # install smallweb
+curl -sSfL https://install.smallweb.run | sh # install smallweb
 
 # start the smallweb service
 smallweb service install

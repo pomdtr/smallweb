@@ -81,7 +81,7 @@ func Update() error {
 	if IsUnderHomebrew() {
 		updateCmd = "brew update && brew upgrade smallweb"
 	} else {
-		updateCmd = "curl -sSfL \"https://assets.smallweb.run/install.sh\" | sh"
+		updateCmd = "curl -sSfL \"https://install.smallweb.run\" | sh"
 	}
 	command := exec.Command("sh", "-c", updateCmd)
 	command.Stdout = os.Stdout
