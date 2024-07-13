@@ -436,8 +436,10 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entrypoint := config.Entrypoint
-	if entrypoint == "" {
+	var entrypoint string
+	if config.Entrypoint != "" {
+		entrypoint = filepath.Join(me.rootDir, config.Entrypoint)
+	} else {
 		entrypoint = me.inferEntrypoint()
 	}
 
