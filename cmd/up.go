@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
@@ -116,7 +117,7 @@ func NewCmdUp() *cobra.Command {
 			c := cron.New(cron.WithParser(parser))
 			c.AddFunc("* * * * *", func() {
 				fmt.Fprintln(os.Stderr, "Running cron jobs")
-				entry := c.Entries()[0]
+				now := time.Now()
 
 				apps, err := ListApps()
 				if err != nil {
@@ -138,7 +139,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						if !sched.Next(entry.Prev).Equal(entry.Next) {
+						if sched.Next(now).After(now.Add(time.Minute)) {
 							continue
 						}
 
