@@ -117,7 +117,7 @@ func NewCmdUp() *cobra.Command {
 			c := cron.New(cron.WithParser(parser))
 			c.AddFunc("* * * * *", func() {
 				fmt.Fprintln(os.Stderr, "Running cron jobs")
-				now := time.Now()
+				rounded := time.Now().Truncate(time.Minute)
 
 				apps, err := ListApps()
 				if err != nil {
@@ -139,7 +139,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						if sched.Next(now).After(now.Add(time.Minute)) {
+						if sched.Next(rounded.Add(-1*time.Second)) != rounded {
 							continue
 						}
 
