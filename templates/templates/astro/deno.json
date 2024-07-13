@@ -1,7 +1,0 @@
-{
-    "lock": false,
-    "tasks": {
-        "install": "cd app && npm install",
-        "build": "cd app && npm run build"
-    }
-}

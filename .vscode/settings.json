@@ -1,5 +1,8 @@
 {
     "deno.enable": true,
+    "deno.disablePaths": [
+        "templates/templates/astro"
+    ],
     "search.exclude": {
         "docs/book": true,
     }

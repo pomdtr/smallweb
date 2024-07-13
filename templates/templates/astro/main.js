@@ -2,7 +2,7 @@ import { handle } from "./app/dist/server/entry.mjs";
 import { serveDir } from "jsr:@std/http/file-server";
 
 export default {
-    async fetch(req: Request) {
+    async fetch(req) {
         // try to serve static files from the client directory
         const res = await serveDir(req, {
             fsRoot: "./app/dist/client",
