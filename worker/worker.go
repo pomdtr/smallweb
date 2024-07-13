@@ -26,11 +26,12 @@ import (
 
 type Config struct {
 	Entrypoint  string      `json:"entrypoint"`
-	Crons       []Cron      `json:"crons"`
+	Crons       []CronJob   `json:"crons"`
 	Permissions Permissions `json:"permissions"`
 }
 
-type Cron struct {
+type CronJob struct {
+	Name     string   `json:"name"`
 	Schedule string   `json:"schedule"`
 	Command  string   `json:"command"`
 	Args     []string `json:"args"`
@@ -245,7 +246,7 @@ func NewWorker(rootDir string) *Worker {
 var upgrader = websocket.Upgrader{} // use default options
 
 func (me *Worker) LoadConfig() (*Config, error) {
-	defaultConfig := Config{
+	config := Config{
 		Permissions: Permissions{
 			Read: Permission{
 				Allow: []string{me.rootDir},
@@ -274,7 +275,6 @@ func (me *Worker) LoadConfig() (*Config, error) {
 			return nil, fmt.Errorf("could not read smallweb.json: %v", err)
 		}
 
-		var config Config
 		if err := json.Unmarshal(configBytes, &config); err != nil {
 			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
@@ -293,7 +293,6 @@ func (me *Worker) LoadConfig() (*Config, error) {
 			return nil, fmt.Errorf("could not standardize deno.jsonc: %v", err)
 		}
 
-		var config Config
 		if err := json.Unmarshal(configBytes, &config); err != nil {
 			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
@@ -314,10 +313,9 @@ func (me *Worker) LoadConfig() (*Config, error) {
 
 		configBytes, ok := denoConfig["smallweb"]
 		if !ok {
-			return &defaultConfig, nil
+			return &config, nil
 		}
 
-		var config Config
 		if err := json.Unmarshal(configBytes, &config); err != nil {
 			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
@@ -343,10 +341,9 @@ func (me *Worker) LoadConfig() (*Config, error) {
 
 		configBytes, ok := denoConfig["smallweb"]
 		if !ok {
-			return &defaultConfig, nil
+			return &config, nil
 		}
 
-		var config Config
 		if err := json.Unmarshal(configBytes, &config); err != nil {
 			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
@@ -354,7 +351,7 @@ func (me *Worker) LoadConfig() (*Config, error) {
 		return &config, nil
 	}
 
-	return &defaultConfig, nil
+	return &config, nil
 }
 
 func (me *Worker) LoadEnv() ([]string, error) {
@@ -627,13 +624,30 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (me *Worker) Run(command string, args ...string) error {
+func (me *Worker) Trigger(name string) error {
+	config, err := me.LoadConfig()
+	if err != nil {
+		return err
+	}
+
+	var job *CronJob
+	for _, j := range config.Crons {
+		if j.Name == name {
+			job = &j
+			break
+		}
+	}
+
+	if job == nil {
+		return fmt.Errorf("cron job not found")
+	}
+
 	env, err := me.LoadEnv()
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command(command, args...)
+	cmd := exec.Command(job.Command, job.Args...)
 	cmd.Env = env
 	cmd.Dir = me.rootDir
 	cmd.Stdout = os.Stdout

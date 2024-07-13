@@ -24,6 +24,20 @@ smallweb capture [flags]
   -h, --help   help for capture
 ```
 
+## smallweb choose
+
+Extension choose
+
+```
+smallweb choose [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for choose
+```
+
 ## smallweb completion
 
 Generate the autocompletion script for the specified shell
@@ -208,7 +222,70 @@ smallweb create <app> [flags]
 
 ```
   -h, --help              help for create
+  -n, --name string       The name of the app
   -t, --template string   The template to use
+```
+
+## smallweb cron
+
+Manage cron jobs
+
+### Options
+
+```
+  -h, --help   help for cron
+```
+
+## smallweb cron help
+
+Help about any command
+
+### Synopsis
+
+Help provides help for any command in the application.
+Simply type cron help [path to command] for full details.
+
+```
+smallweb cron help [command] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for help
+```
+
+## smallweb cron list
+
+List cron jobs
+
+```
+smallweb cron list [flags]
+```
+
+### Options
+
+```
+      --all             list all cron jobs
+      --app string      filter by app
+      --domain string   filter by domain
+  -h, --help            help for list
+      --json            output as json
+```
+
+## smallweb cron trigger
+
+Trigger a cron job
+
+```
+smallweb cron trigger <cron> [flags]
+```
+
+### Options
+
+```
+      --app string   app cron job belongs to
+  -h, --help         help for trigger
 ```
 
 ## smallweb docs
@@ -400,6 +477,20 @@ smallweb service uninstall [flags]
 
 ```
   -h, --help   help for uninstall
+```
+
+## smallweb simpl-site
+
+Extension simpl-site
+
+```
+smallweb simpl-site [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for simpl-site
 ```
 
 ## smallweb up

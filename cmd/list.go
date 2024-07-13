@@ -112,7 +112,11 @@ func NewCmdDump() *cobra.Command {
 
 			if flags.json {
 				encoder := json.NewEncoder(os.Stdout)
-				encoder.SetIndent("", "  ")
+				encoder.SetEscapeHTML(false)
+				if isatty.IsTerminal(os.Stdout.Fd()) {
+					encoder.SetIndent("", "  ")
+				}
+
 				if err := encoder.Encode(apps); err != nil {
 					return fmt.Errorf("failed to encode tree: %w", err)
 				}

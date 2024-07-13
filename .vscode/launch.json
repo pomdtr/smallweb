@@ -10,13 +10,13 @@
             ]
         },
         {
-            "name": "smallweb dump",
+            "name": "smallweb cron list",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "args": [
-                "dump",
-                "${input:base}"
+                "cron",
+                "list"
             ]
         }
     ],
