@@ -25,7 +25,7 @@ import (
 )
 
 type Config struct {
-	Entrypoint  string      `json:"entrypoint"`
+	Serve       string      `json:"serve"`
 	Crons       []CronJob   `json:"crons"`
 	Permissions Permissions `json:"permissions"`
 }
@@ -440,7 +440,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entrypoint := config.Entrypoint
+	entrypoint := config.Serve
 	if entrypoint == "" {
 		e, err := me.inferEntrypoint(config)
 		if err != nil {
