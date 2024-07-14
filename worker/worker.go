@@ -441,7 +441,9 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	entrypoint := config.Serve
-	if entrypoint == "" {
+	if entrypoint != "" {
+		entrypoint = filepath.Join(me.rootDir, entrypoint)
+	} else {
 		e, err := me.inferEntrypoint(config)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
