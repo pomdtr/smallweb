@@ -25,7 +25,7 @@ import (
 )
 
 type Config struct {
-	Serve       any         `json:"serve"`
+	Entrypoint  string      `json:"entrypoint"`
 	Crons       []CronJob   `json:"crons"`
 	Permissions Permissions `json:"permissions"`
 }
@@ -419,19 +419,6 @@ func (me *Worker) LoadEnv() ([]string, error) {
 }
 
 func (me *Worker) inferEntrypoint(config *Config) (string, error) {
-	if config.Serve != nil {
-		switch v := config.Serve.(type) {
-		case string:
-			return filepath.Join(me.rootDir, v), nil
-		case bool:
-			if !v {
-				return "", fmt.Errorf("serving is disabled")
-			}
-		default:
-			return "", fmt.Errorf("invalid serve value")
-		}
-	}
-
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
 		path := filepath.Join(me.rootDir, candidate)
 		if Exists(path) {
@@ -453,10 +440,14 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entrypoint, err := me.inferEntrypoint(config)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
+	entrypoint := config.Entrypoint
+	if entrypoint == "" {
+		e, err := me.inferEntrypoint(config)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		entrypoint = e
 	}
 
 	info, err := os.Stat(entrypoint)
