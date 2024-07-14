@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Integrating with Vite - Smallweb</title>
+        <title>Cron Jobs - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="../env.html"><strong aria-hidden="true">1.</strong> Set Environment Variables</a></li><li class="chapter-item expanded "><a href="../permissions.html"><strong aria-hidden="true">2.</strong> Configure Permissions</a></li><li class="chapter-item expanded "><a href="../cron.html"><strong aria-hidden="true">3.</strong> Create Cron Jobs</a></li><li class="chapter-item expanded "><a href="../plugins.html"><strong aria-hidden="true">4.</strong> Install Plugins</a></li><li class="chapter-item expanded "><a href="../tooling.html"><strong aria-hidden="true">5.</strong> Tools</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">6.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">7.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../vps.html"><strong aria-hidden="true">8.</strong> VPS Setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">9.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">10.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html" class="active"><strong aria-hidden="true">11.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="../guides/astro.html"><strong aria-hidden="true">12.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="../guides/telegram.html"><strong aria-hidden="true">13.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><div><strong aria-hidden="true">14.</strong> Smallweb Cloud</div></li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">16.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="../guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="../guides/cron.html" class="active"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS Setup</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">13.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/config.html"><strong aria-hidden="true">14.</strong> Configuration Reference</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">15.</strong> CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/vite.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/cron.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,26 +179,55 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="integrating-with-vite"><a class="header" href="#integrating-with-vite">Integrating with Vite</a></h1>
-<p>Smallweb can easily integrate with <a href="https://vitejs.dev">vite</a> to provide a fast development experience.</p>
-<p>You can just create a vite project in the <code>~/smallweb</code> directory.</p>
-<pre><code class="language-sh">cd ~/smallweb
-npm create vite@latest vite-project.localhost
-cd vite-project
-npm install
-npm run build
+                        <h1 id="cron-tasks"><a class="header" href="#cron-tasks">Cron Tasks</a></h1>
+<p>You can register configure cron tasks from your <code>smallweb.json[c]</code> or the <code>smallweb</code> field from your <code>deno.json[c]</code>.</p>
+<pre><code class="language-json">{
+    "crons": [
+        {
+            "name": "refresh-cache",
+            "schedule": "0 0 * * *",
+            "command": "./refresh-cache.ts",
+            "args": []
+        }
+    ]
+}
 </code></pre>
-<p>The build command will generate a <code>dist</code> directory with the static files. Since your project is in the <code>~/smallweb/localhost/vite-project</code> directory, Smallweb will serve the files at <code>https://vite-project.localhost</code>.</p>
+<p>The schedule field is a cron expression that defines when the task should run. It follows the standard cron syntax, with five fields separated by spaces. You can also use the following shortcuts:</p>
+<ul>
+<li><code>@hourly</code>: Run once an hour, at the beginning of the hour.</li>
+<li><code>@daily</code>: Run once a day, at midnight.</li>
+<li><code>@weekly</code>: Run once a week, at midnight on Sunday.</li>
+<li><code>@monthly</code>: Run once a month, at midnight on the first day of the month.</li>
+<li><code>@yearly</code>: Run once a year, at midnight on January 1st.</li>
+</ul>
+<p>Cron tasks can be defined in any language, as long as the file is executable and has the appropriate shebang line. You'll probably want to use deno as the runtime, more information on how to do that can be found in the <a href="https://docs.deno.com/runtime/tutorials/hashbang/">deno docs</a>.</p>
+<p>You can trigger a cron task manually by running the following command:</p>
+<pre><code class="language-sh">smallweb cron trigger &lt;cron&gt;
+</code></pre>
+<p>If you're not in the app directory, you can specify the app name with the <code>--app</code> flag:</p>
+<pre><code class="language-sh">smallweb cron trigger --app &lt;app&gt; &lt;cron&gt;
+</code></pre>
+<p>If you want to see a list of all cron tasks, you can run:</p>
+<pre><code class="language-sh">smallweb cron list
+</code></pre>
+<p>If you're not in the app directory, you can specify the app name with the <code>--app</code> flag, or use the <code>--all</code> flag to list all cron tasks:</p>
+<pre><code class="language-sh"># list all cron tasks
+smallweb cron list --all
+# list all cron tasks for a specific domain
+smallweb cron list --domain &lt;domain&gt;
+# list all cron tasks for a specific app
+smallweb cron list --app &lt;app&gt;
+</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../guides/jsr.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guides/permissions.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../guides/astro.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guides/templates.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -208,11 +237,11 @@ npm run build
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../guides/jsr.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guides/permissions.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../guides/astro.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guides/templates.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

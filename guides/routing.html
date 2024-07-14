@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cloudflare setup - Smallweb</title>
+        <title>Routing - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="../env.html"><strong aria-hidden="true">1.</strong> Set Environment Variables</a></li><li class="chapter-item expanded "><a href="../permissions.html"><strong aria-hidden="true">2.</strong> Configure Permissions</a></li><li class="chapter-item expanded "><a href="../cron.html"><strong aria-hidden="true">3.</strong> Create Cron Jobs</a></li><li class="chapter-item expanded "><a href="../plugins.html"><strong aria-hidden="true">4.</strong> Install Plugins</a></li><li class="chapter-item expanded "><a href="../tooling.html"><strong aria-hidden="true">5.</strong> Tools</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">6.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html" class="active"><strong aria-hidden="true">7.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../vps.html"><strong aria-hidden="true">8.</strong> VPS Setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">9.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">10.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html"><strong aria-hidden="true">11.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="../guides/astro.html"><strong aria-hidden="true">12.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="../guides/telegram.html"><strong aria-hidden="true">13.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><div><strong aria-hidden="true">14.</strong> Smallweb Cloud</div></li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">16.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html" class="active"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="../guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS Setup</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">13.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/config.html"><strong aria-hidden="true">14.</strong> Configuration Reference</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">15.</strong> CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/cloudflare/tunnel.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/routing.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,81 +179,43 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p>Cloudflare Tunnel is a <strong>free</strong> service that allows you to expose your local server to the internet, without having to expose your local IP address.</p>
-<p>Additionally, it provides some protection against DDoS attacks, and allows you to use Cloudflare's other services like Access.</p>
-<h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
-<ol>
-<li>
-<p>Make sure that you have a domain name that you can manage with Cloudflare.</p>
-</li>
-<li>
-<p>Install smallweb on your server, and register it as a service.</p>
-<pre><code class="language-ts">// install deno
-curl -fsSL https://deno.land/install.sh | sh
-
-// install smallweb
-curl -sSfL https://install.smallweb.run | sh
-
-// register smallweb as a service
-smallweb service install
-
-// make sure that the server service is running
-smallweb service status
+                        <h1 id="routing"><a class="header" href="#routing">Routing</a></h1>
+<p>Smallweb uses a file-based routing system. This means that the structure of your <code>smallweb</code> folder will determine the hostnames your app will respond to.</p>
+<h2 id="folder-structure"><a class="header" href="#folder-structure">Folder structure</a></h2>
+<p>Smallweb uses a 2-level folder structure. The first level is the domain, and the second level is the subdomain.</p>
+<p>Let's examine the following folder structure:</p>
+<pre><code class="language-txt">~/smallweb/
+├── localhost
+│   ├── example
+│   └── react
+├── pomdtr.me
+│   └── www
+└── smallweb.run
+    ├── www
+    ├── assets
+    └── readme
 </code></pre>
-</li>
-<li>
-<p>From your cloudflare dashboard, navigate to <code>Zero Trust &gt; Networks &gt; Tunnels</code></p>
-</li>
-<li>
-<p>Click on <code>Create a tunnel</code>, and select the <code>Clouflared</code> option</p>
-</li>
-<li>
-<p>Follow the intructions to install cloudflared, and create a connector on your device.</p>
-</li>
-<li>
-<p>Add a wildcard hostname for your tunnel (ex: <code>*.&lt;your-domain&gt;</code>), and use <code>http://localhost:7777</code> as the origin service.</p>
-<p><img src="./tunnel.png" alt="Tunnel Configuration" /></p>
-</li>
-<li>
-<p>Copy the tunnel ID, and go to <code>Websites &gt; DNS &gt; Records</code>.</p>
-</li>
-<li>
-<p>Add a new <code>CNAME</code> record for your wildcard hostname, with a target of <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</p>
-</li>
-</ol>
-<p><img src="./dns.png" alt="DNS Configuration" /></p>
-<p>If you also want to manage your apex domain using smallweb, you can add another hostname to your tunnel:</p>
-<p><img src="./apex.png" alt="Apex Domain Configuration" /></p>
-<h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
-<p>Create a dummy smallweb app in <code>~/smallweb/localhost/example</code></p>
-<pre><code class="language-sh">mkdir -p ~/smallweb/localhost/example
-CAT &lt;&lt;EOF &gt; ~/smallweb/localhost/example/main.ts
-export default {
-  fetch() {
-    return new Response("Smallweb is running", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
-  }
-}
-EOF
-</code></pre>
-<p>If everything went well, you should be able to access <code>https://example.&lt;your-domain&gt;</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
-<h2 id="optional-steps"><a class="header" href="#optional-steps">Optional Steps</a></h2>
+<p>Here 6 websites are defined:</p>
 <ul>
-<li>You can protect your tunnel (or specific apps) with Cloudflare Access.</li>
+<li><code>example.localhost</code></li>
+<li><code>react.localhost</code></li>
+<li><code>www.pomdtr.me</code></li>
+<li><code>www.smallweb.run</code></li>
+<li><code>assets.smallweb.run</code></li>
+<li><code>readme.smallweb.run</code></li>
 </ul>
+<p>Note that each request for an apex domain (e.g. <code>pomdtr.me</code>) will be redirected to the <code>www</code> subdomain (e.g. <code>www.pomdtr.me</code>).</p>
+<p>You can configure the smallweb root folder by setting the <code>SMALLWEB_ROOT</code> environment variable.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../localhost/localhost.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../getting-started.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../vps.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guides/static.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -263,11 +225,11 @@ EOF
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../localhost/localhost.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../getting-started.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../vps.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guides/static.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

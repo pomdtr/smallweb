@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Localhost setup - Smallweb</title>
+        <title>Tooling - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="../env.html"><strong aria-hidden="true">1.</strong> Set Environment Variables</a></li><li class="chapter-item expanded "><a href="../permissions.html"><strong aria-hidden="true">2.</strong> Configure Permissions</a></li><li class="chapter-item expanded "><a href="../cron.html"><strong aria-hidden="true">3.</strong> Create Cron Jobs</a></li><li class="chapter-item expanded "><a href="../plugins.html"><strong aria-hidden="true">4.</strong> Install Plugins</a></li><li class="chapter-item expanded "><a href="../tooling.html"><strong aria-hidden="true">5.</strong> Tools</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html" class="active"><strong aria-hidden="true">6.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">7.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../vps.html"><strong aria-hidden="true">8.</strong> VPS Setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">9.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html"><strong aria-hidden="true">10.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html"><strong aria-hidden="true">11.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="../guides/astro.html"><strong aria-hidden="true">12.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="../guides/telegram.html"><strong aria-hidden="true">13.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><div><strong aria-hidden="true">14.</strong> Smallweb Cloud</div></li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">16.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="../guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/tooling.html" class="active"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS Setup</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">13.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/config.html"><strong aria-hidden="true">14.</strong> Configuration Reference</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">15.</strong> CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/localhost/localhost.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/tooling.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,142 +179,42 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
-<p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
-<p>If you want to expose your apps to the internet instead, you can follow the <a href="../cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
-<h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
-<p>The following diagram illustrates the architecture of the local setup:</p>
-<p><img src="./architecture.excalidraw.png" alt="Localhost architecture" /></p>
-<p>The components needed are:</p>
+                        <h1 id="tooling"><a class="header" href="#tooling">Tooling</a></h1>
+<p>Smallweb is not tied to any specific tooling, but here are some tools that I use to develop and deploy my smallweb apps.</p>
+<h2 id="cloudflare-tunnel"><a class="header" href="#cloudflare-tunnel">Cloudflare Tunnel</a></h2>
+<p>I use <a href="https://www.cloudflare.com/products/tunnel/">Cloudflare Tunnel</a> to expose my smallweb instances to the internet. It gives me a bunch of features for free:</p>
 <ul>
-<li>a dns server to map <code>.localhost</code> domains to <code>127.0.0.1</code> ip address (dnsmasq)</li>
-<li>a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)</li>
-<li>a service to map each domain to the corresponding folder in ~/smallweb, and spawn a deno subprocess for each request (smallweb)</li>
-<li>a runtime to evaluate the application code (deno)</li>
+<li>DDoS protection</li>
+<li>CDN caching</li>
+<li>Access control (using Cloudflare Access)</li>
+<li>Analytics</li>
+<li>And a bunch more (that I don't know objet)</li>
 </ul>
-<h2 id="macos-setup"><a class="header" href="#macos-setup">MacOS setup</a></h2>
-<p>In the future, we might provide a script to automate this process, but for now, it's a manual process.</p>
-<h3 id="install-brew"><a class="header" href="#install-brew">Install Brew</a></h3>
-<pre><code class="language-sh"># install homebrew (if not already installed)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+<p>I evaluated a bunch of tunneling solutions (and even started building my own), but the set of features that Cloudflare provides for free is hard to beat.</p>
+<h2 id="mutagen"><a class="header" href="#mutagen">Mutagen</a></h2>
+<p><a href="https://mutagen.io/">Mutagen</a> is an excellent 2-way file synchronization tool that can keep your local and remote files in sync. It's a great way to develop your smallweb apps locally and deploy them to your server.</p>
+<p>Here is how I sync the <code>smallweb.run</code> folders between my VPS and my macbook:</p>
+<pre><code class="language-sh">mutagen sync create --name=smallweb-run ~/smallweb.run vps:/home/smallweb/smallweb/smallweb.run
 </code></pre>
-<h3 id="install-deno-macos"><a class="header" href="#install-deno-macos">Install Deno</a></h3>
-<pre><code class="language-sh">brew install deno
-</code></pre>
-<h3 id="setup-smallweb-macos"><a class="header" href="#setup-smallweb-macos">Setup Smallweb</a></h3>
-<pre><code class="language-sh">brew install pomdtr/tap/smallweb
-smallweb service install
-</code></pre>
-<h3 id="setup-caddy-macos"><a class="header" href="#setup-caddy-macos">Setup Caddy</a></h3>
-<pre><code class="language-sh">brew install caddy
-# Write caddy configuration
-cat &lt;&lt;EOF &gt; /opt/homebrew/etc/Caddyfile
-*.localhost {
-  tls internal {
-    on_demand
-  }
-
-  reverse_proxy localhost:7777
-}
-EOF
-
-# Run caddy in the background
-brew services start caddy
-
-# Add caddy https certificates to your keychain
-caddy trust
-
-mkdir -p ~/smallweb
-# Indicate to deno to use the keychain for tls certificates
-echo "DENO_TLS_CA_STORE=system" &gt;&gt; ~/smallweb/.env
-</code></pre>
-<h3 id="setup-dnsmasq"><a class="header" href="#setup-dnsmasq">Setup dnsmasq</a></h3>
-<pre><code class="language-sh">brew install dnsmasq
-
-# Write dnsmasq configuration
-echo "address=/.localhost/127.0.0.1" &gt;&gt; /opt/homebrew/etc/dnsmasq.conf
-
-# Run dnsmasq in the background
-sudo brew services start dnsmasq
-
-# Indicates to the system to use dnsmasq for .localhost domains
-sudo mkdir -p /etc/resolver
-cat &lt;&lt;EOF | sudo tee -a /etc/resolver/localhost
-nameserver 127.0.0.1
-EOF
-</code></pre>
-<h2 id="testing-the-setup-macos"><a class="header" href="#testing-the-setup-macos">Testing the setup</a></h2>
-<p>First, let's create a dummy smallweb website:</p>
-<pre><code class="language-sh">mkdir -p ~/smallweb/localhost/example
-CAT &lt;&lt;EOF &gt; ~/smallweb/localhost/example/main.ts
-export default {
-  fetch() {
-    return new Response("Smallweb is running", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
-  }
-}
-EOF
-</code></pre>
-<p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
-<h2 id="ubuntu--debian-setup"><a class="header" href="#ubuntu--debian-setup">Ubuntu / Debian setup</a></h2>
-<h3 id="install-deno-ubuntu"><a class="header" href="#install-deno-ubuntu">Install Deno</a></h3>
-<pre><code class="language-sh">curl -fsSL https://deno.land/install.sh | sh
-# add ~/.deno/bin to PATH
-echo "export PATH=\$PATH:\$HOME/.deno/bin" &gt;&gt; ~/.bashrc
-</code></pre>
-<h3 id="setup-smallweb-ubuntu"><a class="header" href="#setup-smallweb-ubuntu">Setup Smallweb</a></h3>
-<pre><code class="language-sh">curl -FsSL https://install.smallweb.run | sh
-# add ~/.local/bin to PATH
-echo "export PATH=\$PATH:\$HOME/.local/bin" &gt;&gt; ~/.bashrc
-smallweb service install
-</code></pre>
-<h3 id="setup-caddy-ubuntu"><a class="header" href="#setup-caddy-ubuntu">Setup Caddy</a></h3>
-<pre><code class="language-sh">sudo apt install -y caddy
-
-# Write caddy configuration
-cat &lt;&lt;EOF &gt; /etc/caddy/Caddyfile
-*.localhost {
-  tls internal {
-    on_demand
-  }
-
-  reverse_proxy localhost:7777
-}
-EOF
-
-sudo systemctl restart caddy
-
-caddy trust
-</code></pre>
-<h3 id="testing-setup-ubuntu"><a class="header" href="#testing-setup-ubuntu">Testing the setup</a></h3>
-<p>First, let's create a dummy smallweb website:</p>
-<pre><code class="language-sh">mkdir -p ~/smallweb/localhost/example
-CAT &lt;&lt;EOF &gt; ~/smallweb/localhost/example/main.ts
-export default {
-  fetch() {
-    return new Response("Smallweb is running", {
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
-  }
-}
-EOF
-</code></pre>
-<p>If everything went well, you should be able to access <code>https://example.localhost</code> in your browser, and see the message <code>Smallweb is running</code>.</p>
+<h2 id="vs-code-remote---ssh"><a class="header" href="#vs-code-remote---ssh">VS Code Remote - SSH</a></h2>
+<p>When I want to debug my smallweb apps running on the VPS, I use <a href="https://code.visualstudio.com/docs/remote/ssh">VS Code Remote - SSH</a>. It allows me to connect to my VPS and run the VS Code debugger on the remote machine.</p>
+<h2 id="tailscale"><a class="header" href="#tailscale">Tailscale</a></h2>
+<p>I use <a href="https://tailscale.com/">Tailscale</a> to connect all my devices, including my VPS. It allows me to access my smallweb instances from anywhere, as if they were on my local network.</p>
+<h2 id="la-terminal"><a class="header" href="#la-terminal">La Terminal</a></h2>
+<p>To edit websites from an ipad or iphone, I recommend using <a href="https://la-terminal.net/">La Terminal</a>. It's the best free option available.</p>
+<p>If you're ok with paying a yearly fee for a better experience, I recommend using <a href="https://blink.sh/">Blink Shell</a>.</p>
+<h2 id="termux"><a class="header" href="#termux">Termux</a></h2>
+<p>On android, there is no better option than <a href="https://termux.dev/en/">Termux</a>. It's a full-featured terminal emulator that allows me to connect to my VPS and run smallweb apps from my phone.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../tooling.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guides/plugins.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../cloudflare/tunnel.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../hosting/localhost/localhost.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -324,11 +224,11 @@ EOF
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../tooling.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guides/plugins.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../cloudflare/tunnel.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../hosting/localhost/localhost.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

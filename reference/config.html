@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Installing Apps from JSR - Smallweb</title>
+        <title>Configuration Reference - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="../env.html"><strong aria-hidden="true">1.</strong> Set Environment Variables</a></li><li class="chapter-item expanded "><a href="../permissions.html"><strong aria-hidden="true">2.</strong> Configure Permissions</a></li><li class="chapter-item expanded "><a href="../cron.html"><strong aria-hidden="true">3.</strong> Create Cron Jobs</a></li><li class="chapter-item expanded "><a href="../plugins.html"><strong aria-hidden="true">4.</strong> Install Plugins</a></li><li class="chapter-item expanded "><a href="../tooling.html"><strong aria-hidden="true">5.</strong> Tools</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="../localhost/localhost.html"><strong aria-hidden="true">6.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../cloudflare/tunnel.html"><strong aria-hidden="true">7.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../vps.html"><strong aria-hidden="true">8.</strong> VPS Setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/hono.html"><strong aria-hidden="true">9.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="../guides/jsr.html" class="active"><strong aria-hidden="true">10.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="../guides/vite.html"><strong aria-hidden="true">11.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="../guides/astro.html"><strong aria-hidden="true">12.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="../guides/telegram.html"><strong aria-hidden="true">13.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><div><strong aria-hidden="true">14.</strong> Smallweb Cloud</div></li><li class="chapter-item expanded "><a href="../deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="../val-town.html"><strong aria-hidden="true">16.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="../cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="../guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS Setup</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">13.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/config.html" class="active"><strong aria-hidden="true">14.</strong> Configuration Reference</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">15.</strong> CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/jsr.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/reference/config.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,109 +179,102 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="installing-apps-from-jsr"><a class="header" href="#installing-apps-from-jsr">Installing Apps from JSR</a></h1>
-<p>In Smallweb, we use <a href="https://jsr.io">JSR</a> to distribute webapps.
-Think of it as a lightweight alternatives to docker images.</p>
-<p>Apps can includes both the frontend and the backend, and can be installed with a single import statement.
-To upgrade an app, you just change the version in the import statement.
-To uninstall an app, you can just delete the folder.</p>
-<p>Deno will take care of downloading the required modules, and caching them for future use.
-It also gives us a secure way to run untrusted code, since we can restrict the permissions of the app.</p>
-<p>By default, apps can:</p>
-<ul>
-<li>read and write files from their own directory</li>
-<li>access environment variables using <code>Deno.env.get</code></li>
-<li>access the network with <code>fetch</code></li>
-</ul>
-<p>But you can add more permissions to your app (or restrict it even further) by adding a <code>smallweb.json</code> file to the app directory.</p>
-<h2 id="sqlite-explorer"><a class="header" href="#sqlite-explorer">SQLite Explorer</a></h2>
-<p>Create a new file at <code>~/smallweb/localhost/sqlite-explorer/main.ts</code> with the following content:</p>
-<pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
-
-const handler = serveDatabase({ dbPath: "./chinook.db" });
-
-export default { fetch: handler };
-</code></pre>
-<p>Then download a sample database using:</p>
-<pre><code class="language-txt">curl https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip -o /tmp/chinook.zip
-unzip /tmp/chinook.zip -d ~/smallweb/localhost/sqlite-explorer
-</code></pre>
-<p>This application needs some specific permissions to run, so we'll need to configure them in <code>~/smallweb/localhost/sqlite-explorer/smallweb.json</code>.</p>
+                        <h1 id="configuration-reference"><a class="header" href="#configuration-reference">Configuration Reference</a></h1>
+<p>The smallweb configuration can be defined in a <code>smallweb.json[c]</code> file at the root of the project, or in the <code>smallweb</code> field of the <code>deno.json[c]</code> file. This config file is optional, and sensible defaults are used when it is not present.</p>
+<p>A json schema for the config file is available <a href="https://schema.smallweb.run">here</a>.</p>
+<p>You can set it using a <code>$schema</code> field in your <code>smallweb.json[c]</code> file:</p>
 <pre><code class="language-json">{
-    "permissions": {
-        "read": ["."],
-        "write": ["."],
-        "ffi": true,
-        "sys": true
-    }
+  "$schema": "https://schema.smallweb.run",
+  "serve": "./build"
 }
 </code></pre>
-<p>Here is what the ~/smallweb/localhost/sqlite-example folder should look like:</p>
-<pre><code class="language-txt">~/smallweb/localhost/sqlite-example
-├── chinook.db
-├── main.ts
-└── smallweb.json
+<p>VS Code Users can also set it globally in their <code>settings.json</code>:</p>
+<pre><code class="language-json">{
+  "json.schemas": [
+    {
+      "url": "https://schema.smallweb.run",
+      "fileMatch": [
+        "smallweb.json",
+        "smallweb.jsonc"
+      ]
+    }
+  ]
+}
 </code></pre>
-<p>You can now access your app at <code>https://sqlite-explorer.localhost</code> (or <code>https://sqlite-explorer.&lt;your-domain&gt;</code>).</p>
-<p>If you don't want your database to be public, feel free to wrap it in a auth middleware:</p>
-<pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
-import { lastlogin } from "jsr:@pomdtr/lastlogin";
-
-const handler = serveDatabase({ dbPath: "./chinook.db" });
-const auth = lastlogin({
-  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
-});
-
-export default { fetch: auth(handler) };
+<h2 id="serve"><a class="header" href="#serve"><code>serve</code></a></h2>
+<p>The <code>serve</code> field defines the file / directory to serve. If this field is not provided, the following defaults are used:</p>
+<ul>
+<li>if a <code>main.[js,jsx,ts,tsx]</code> file exists in the root directory, it is served</li>
+<li>if a <code>dist</code> directory exists and contains an <code>index.html</code> file, it is served</li>
+<li>the root directory is served</li>
+</ul>
+<h3 id="serve-examples"><a class="header" href="#serve-examples">Examples</a></h3>
+<ul>
+<li>
+<p>Serve a file</p>
+<pre><code class="language-json">{
+  "serve": "./serve.js"
+}
 </code></pre>
-<p>And then set the required environment variable in your <code>.env</code> file:</p>
-<pre><code class="language-txt">EMAIL=pomdtr@example.com
+</li>
+<li>
+<p>Statically serve a directory</p>
+<pre><code class="language-json">{
+  "serve": "./build"
+}
 </code></pre>
-<h2 id="visual-studio-code"><a class="header" href="#visual-studio-code">Visual Studio Code</a></h2>
-<p>Create a new file at <code>~/smallweb/localhost/vscode/main.ts</code> with the following content:</p>
-<pre><code class="language-ts">import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
-import { LocalFS } from "jsr:@smallweb/vscode@0.0.2/local-fs";
-import { lastlogin } from "jsr:@pomdtr/lastlogin";
-
-const fs = new LocalFS(".");
-const vscode = new VSCode({ fs });
-const auth = lastlogin({
-  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
-});
-
-export default {
-  fetch: auth(vscode.fetch),
-};
+</li>
+</ul>
+<h2 id="crons"><a class="header" href="#crons"><code>crons</code></a></h2>
+<p>The <code>crons</code> field defines a list of cron jobs to run. See the <a href="../guides/cron.html">Cron Jobs</a> guide for more information.</p>
+<pre><code class="language-json">{
+  "crons": [
+    {
+      "name": "example",
+      "schedule": "0 0 * * *",
+      "command": "deno run --allow-net https://deno.land/std/examples/welcome.ts"
+    }
+  ]
+}
 </code></pre>
-<p>Here every parts is swappable: you can use a different fs, or a different auth middleware.</p>
-<p>For example, the library also provides fs to manage your val.town blobs:</p>
-<pre><code class="language-ts">import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
-import { ValTownFS } from "jsr:@smallweb/vscode@0.0.2/val-town";
-import { lastlogin } from "jsr:@pomdtr/lastlogin";
-
-const fs = new ValTownFS(Deno.env.get("VALTOWN_TOKEN")!);
-const vscode = new VSCode({ fs });
-const auth = lastlogin({
-  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
-});
-
-export default {
-  fetch: auth(vscode.fetch),
-};
+<h2 id="permissions"><a class="header" href="#permissions"><code>permissions</code></a></h2>
+<p>The <code>permissions</code> field defines a list of permissions to grant to the Deno process. See the <a href="../guides/permissions.html">Permissions</a> guide for more information.</p>
+<h3 id="permissions-examples"><a class="header" href="#permissions-examples">Examples</a></h3>
+<ul>
+<li>
+<p>Giving all permissions</p>
+<pre><code class="language-json">{
+  "permissions": {
+    "all": true
+  }
+}
 </code></pre>
-<p>To use it, you'll need to set the required environment variables in your <code>.env</code> file:</p>
-<pre><code class="language-txt">VALTOWN_TOKEN=&lt;your-token&gt;
+</li>
+<li>
+<p>Giving specific permissions</p>
+<pre><code class="language-json">{
+  "permissions": {
+    "read": true,
+    "write": {
+      "allow": ["./", "/tmp"],
+      "deny": ["./smallweb.json"]
+    },
+    "net": ["deno.land"]
+  }
+}
 </code></pre>
+</li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../guides/hono.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../hosting/deno-deploy.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../guides/vite.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../reference/cli.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -291,11 +284,11 @@ export default {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../guides/hono.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../hosting/deno-deploy.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../guides/vite.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../reference/cli.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

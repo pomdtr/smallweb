@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Core Concepts</li><li class="chapter-item expanded "><a href="env.html"><strong aria-hidden="true">1.</strong> Set Environment Variables</a></li><li class="chapter-item expanded "><a href="permissions.html"><strong aria-hidden="true">2.</strong> Configure Permissions</a></li><li class="chapter-item expanded "><a href="cron.html"><strong aria-hidden="true">3.</strong> Create Cron Jobs</a></li><li class="chapter-item expanded "><a href="plugins.html"><strong aria-hidden="true">4.</strong> Install Plugins</a></li><li class="chapter-item expanded "><a href="tooling.html"><strong aria-hidden="true">5.</strong> Tools</a></li><li class="chapter-item expanded affix "><li class="part-title">Self-Hosting</li><li class="chapter-item expanded "><a href="localhost/localhost.html"><strong aria-hidden="true">6.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="cloudflare/tunnel.html"><strong aria-hidden="true">7.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="vps.html"><strong aria-hidden="true">8.</strong> VPS Setup</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/hono.html"><strong aria-hidden="true">9.</strong> Creating Services with Hono</a></li><li class="chapter-item expanded "><a href="guides/jsr.html"><strong aria-hidden="true">10.</strong> Installing Apps from JSR</a></li><li class="chapter-item expanded "><a href="guides/vite.html"><strong aria-hidden="true">11.</strong> Integrating with Vite</a></li><li class="chapter-item expanded "><a href="guides/astro.html"><strong aria-hidden="true">12.</strong> Integrating with Astro</a></li><li class="chapter-item expanded "><a href="guides/telegram.html"><strong aria-hidden="true">13.</strong> Building a Telegram Bot</a></li><li class="chapter-item expanded affix "><li class="part-title">Moving to the cloud</li><li class="chapter-item expanded "><div><strong aria-hidden="true">14.</strong> Smallweb Cloud</div></li><li class="chapter-item expanded "><a href="deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded "><a href="val-town.html"><strong aria-hidden="true">16.</strong> Val Town</a></li><li class="chapter-item expanded affix "><li class="spacer"></li><li class="chapter-item expanded affix "><a href="cli.html">CLI Reference</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost setup</a></li><li class="chapter-item expanded "><a href="hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare setup</a></li><li class="chapter-item expanded "><a href="hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS Setup</a></li><li class="chapter-item expanded "><a href="hosting/deno-deploy.html"><strong aria-hidden="true">13.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="reference/config.html"><strong aria-hidden="true">14.</strong> Configuration Reference</a></li><li class="chapter-item expanded "><a href="reference/cli.html"><strong aria-hidden="true">15.</strong> CLI Reference</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -181,18 +181,50 @@
 <h2 id="why-smallweb-"><a class="header" href="#why-smallweb-">Why Smallweb ?</a></h2>
 <p>See <a href="https://smallweb.run">https://smallweb.run</a> for a quick overview of the project.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<p>If you want your apps to be available on the internet, you'll need to buy a domain name, and point it to your server.
-You can find more information on to do this in the <a href="./cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
-<p>If you want to use a Virtual Private Server (VPS) to host your apps, you can follow the <a href="./vps.html">VPS Setup</a>. Hetzner Cloud, Digital Ocean, and Linode are good options for small projects.</p>
-<p>If you prefer your to keep your apps local to your device, you can learn how to host your apps as <code>https://&lt;app&gt;.localhost</code> address in <a href="./localhost/localhost.html">this guide</a>. This option does not requires a domain name (or a server), but your app will only be available on your local device.</p>
-<p>This guide will assumes that you have followed the <a href="./localhost/localhost.html">localhost setup guide</a>. If you haven't, just replace <code>https://&lt;app&gt;.localhost</code> with <code>https://&lt;app&gt;.&lt;your-domain&gt;</code> in the examples below.</p>
-<h3 id="hosting-a-static-website"><a class="header" href="#hosting-a-static-website">Hosting a static website</a></h3>
+<p>Smallweb installations steps heavily depends on the experience you want to have with Smallweb. Here are a few options:</p>
+<ul>
+<li><a href="./hosting/localhost/localhost.html">Localhost Setup</a> - Easiest way to get started, no need for a dedicated server or a domain name. Work on MacOS and Linux.</li>
+<li><a href="./hosting/home-server/home-server.html">Home Server Setup</a> - Host you apps on your home server, and expose them to the internet using Cloudflare Tunnel. Requires a domain name.</li>
+<li><a href="./hosting/vps.html">VPS Setup</a> - Similar to the Home Server setup, but using a VPS Provider instead. Shows you how to setup a fresh Debian 12 VPS to host your smallweb apps.</li>
+</ul>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<p>Follow the <a href="./guides/routing.html">Routing</a> guide to learn more about the smallweb folder structure, and create your first app.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="routing"><a class="header" href="#routing">Routing</a></h1>
+<p>Smallweb uses a file-based routing system. This means that the structure of your <code>smallweb</code> folder will determine the hostnames your app will respond to.</p>
+<h2 id="folder-structure"><a class="header" href="#folder-structure">Folder structure</a></h2>
+<p>Smallweb uses a 2-level folder structure. The first level is the domain, and the second level is the subdomain.</p>
+<p>Let's examine the following folder structure:</p>
+<pre><code class="language-txt">~/smallweb/
+├── localhost
+│   ├── example
+│   └── react
+├── pomdtr.me
+│   └── www
+└── smallweb.run
+    ├── www
+    ├── assets
+    └── readme
+</code></pre>
+<p>Here 6 websites are defined:</p>
+<ul>
+<li><code>example.localhost</code></li>
+<li><code>react.localhost</code></li>
+<li><code>www.pomdtr.me</code></li>
+<li><code>www.smallweb.run</code></li>
+<li><code>assets.smallweb.run</code></li>
+<li><code>readme.smallweb.run</code></li>
+</ul>
+<p>Note that each request for an apex domain (e.g. <code>pomdtr.me</code>) will be redirected to the <code>www</code> subdomain (e.g. <code>www.pomdtr.me</code>).</p>
+<p>You can configure the smallweb root folder by setting the <code>SMALLWEB_ROOT</code> environment variable.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="static"><a class="header" href="#static">Static</a></h1>
+<h2 id="static-assets"><a class="header" href="#static-assets">Static Assets</a></h2>
 <p>The simplest smallweb app you can create is just a folder with a text file in it.</p>
 <pre><code class="language-sh">mkdir -p ~/smallweb/localhost/example-website
 echo "Hello, world!" &gt; ~/smallweb/localhost/example-website/hello.txt
 </code></pre>
 <p>If you open <code>https://hello-world.localhost/hello.txt</code> in your browser, you should see the content of the file.</p>
-<p>If the folder contains an <code>index.html</code> file (or a <code>dist/index.html</code> file), it will be served as the root of the website.</p>
+<h2 id="static-websites"><a class="header" href="#static-websites">Static Websites</a></h2>
+<p>If the folder contains an <code>index.html</code> file, it will be served as the root of the website.</p>
 <pre><code class="language-html">&lt;!-- File: ~/smallweb/localhost/example-website/index.html --&gt;
 &lt;!DOCTYPE html&gt;
 &lt;html lang="en"&gt;
@@ -210,7 +242,17 @@ echo "Hello, world!" &gt; ~/smallweb/localhost/example-website/hello.txt
 &lt;/body&gt;
 &lt;/html&gt;
 </code></pre>
-<p>If you want to serve dynamic content instead, you'll need to create a file called <code>main.[js,ts,jsx,tsx]</code> at the root of the folder. The file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
+<p>If you open <code>https://example-website.localhost</code> in your browser, you should see the content of the <code>index.html</code> file.</p>
+<h2 id="static-site-generation"><a class="header" href="#static-site-generation">Static Site Generation</a></h2>
+<p>In order to integrate with SSG tools like <a href="https://astro.build">Astro</a>, <a href="https://gohugo.io">Hugo</a> or <a href="https://lume.land">Lume</a>, smallweb automatically serves the content of the <code>dist</code> folder if it contains an <code>index.html</code> file.</p>
+<p>If you static site generator does not use the <code>dist</code> folder, you can either configure it to do so, or create a <code>smallweb.json</code> file at the root of your project to specify the folder to serve.</p>
+<pre><code class="language-json">{
+  "serve": "public"
+}
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="dynamic-websites"><a class="header" href="#dynamic-websites">Dynamic Websites</a></h1>
+<p>Smallweb can also host dynamic websites. To create a dynamic website, you need to create a folder with a <code>main.[js,ts,jsx,tsx]</code> file in it.</p>
+<p>The file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
 <pre><code class="language-ts">// File: ~/smallweb/localhost/example-server/main.ts
 
 export default {
@@ -353,6 +395,21 @@ smallweb cron list --domain &lt;domain&gt;
 # list all cron tasks for a specific app
 smallweb cron list --app &lt;app&gt;
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="templates"><a class="header" href="#templates">Templates</a></h1>
+<p>Smallweb comes with a list of templates to help you get started with your project. You can use the <code>smallweb create</code> command to create a new project from a template.</p>
+<pre><code class="language-sh"># Interactive mode
+smallweb create
+
+# Create a project from a template
+smallweb create --name new-app --template hono
+</code></pre>
+<p>In addition to this, smallweb is compatible with most static sites generator, so you can use your favorite generator to create your project.</p>
+<p>Ex: <code>npm create vite@latest ~/smallweb/localhost/my-vite-app</code></p>
+<p>Depending on the framework you choose, you might need to either:</p>
+<ul>
+<li>Setup your build process to output files in a <code>dist</code> folder (smallweb will serve the content of this by default).</li>
+<li>Add a <code>smallweb.json</code> file to the root of your project to specify the folder to serve using the <code>serve</code> field.</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="smallweb-plugins"><a class="header" href="#smallweb-plugins">Smallweb Plugins</a></h1>
 <p>The smallweb CLI can be extennded with plugins. To create a new plugin, just add a binary to your PATH that starts with <code>smallweb-</code> and the CLI will automatically detect it.</p>
 <p>For example, if you create a new <code>smallweb-choose</code> file in your PATH with the following content:</p>
@@ -369,32 +426,37 @@ smallweb ls | cut -f1 | fzf | xargs smallweb open
 </code></pre>
 <p>You will then be able to run <code>smallweb simpl-site</code> to create a new static site.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="tooling"><a class="header" href="#tooling">Tooling</a></h1>
-<h2 id="visual-studio-code"><a class="header" href="#visual-studio-code">Visual Studio Code</a></h2>
-<p>You can add a JSON schema to your Visual Studio Code settings to get autocompletion and validation for your <code>smallweb.json</code> files.</p>
-<pre><code class="language-json">{
-  "json.schemas": [
-    {
-      "url": "https://schema.smallweb.run",
-      "fileMatch": [
-        "smallweb.json",
-        "smallweb.jsonc"
-      ]
-    }
-  ]
-}
-</code></pre>
-<h2 id="additional-tooling"><a class="header" href="#additional-tooling">Additional Tooling</a></h2>
+<p>Smallweb is not tied to any specific tooling, but here are some tools that I use to develop and deploy my smallweb apps.</p>
+<h2 id="cloudflare-tunnel"><a class="header" href="#cloudflare-tunnel">Cloudflare Tunnel</a></h2>
+<p>I use <a href="https://www.cloudflare.com/products/tunnel/">Cloudflare Tunnel</a> to expose my smallweb instances to the internet. It gives me a bunch of features for free:</p>
 <ul>
-<li><a href="https://tailscale.com/">Tailscale</a> - A VPN to connect to all your smallweb instances.</li>
-<li><a href="https://mutagen.io/">Mutagen</a> - A tool to keep your local and remote files in sync.</li>
-<li><a href="https://www.cloudflare.com/products/tunnel/">Cloudflare Tunnel</a> - A way to expose your smallweb instance to the internet.</li>
+<li>DDoS protection</li>
+<li>CDN caching</li>
+<li>Access control (using Cloudflare Access)</li>
+<li>Analytics</li>
+<li>And a bunch more (that I don't know objet)</li>
 </ul>
+<p>I evaluated a bunch of tunneling solutions (and even started building my own), but the set of features that Cloudflare provides for free is hard to beat.</p>
+<h2 id="mutagen"><a class="header" href="#mutagen">Mutagen</a></h2>
+<p><a href="https://mutagen.io/">Mutagen</a> is an excellent 2-way file synchronization tool that can keep your local and remote files in sync. It's a great way to develop your smallweb apps locally and deploy them to your server.</p>
+<p>Here is how I sync the <code>smallweb.run</code> folders between my VPS and my macbook:</p>
+<pre><code class="language-sh">mutagen sync create --name=smallweb-run ~/smallweb.run vps:/home/smallweb/smallweb/smallweb.run
+</code></pre>
+<h2 id="vs-code-remote---ssh"><a class="header" href="#vs-code-remote---ssh">VS Code Remote - SSH</a></h2>
+<p>When I want to debug my smallweb apps running on the VPS, I use <a href="https://code.visualstudio.com/docs/remote/ssh">VS Code Remote - SSH</a>. It allows me to connect to my VPS and run the VS Code debugger on the remote machine.</p>
+<h2 id="tailscale"><a class="header" href="#tailscale">Tailscale</a></h2>
+<p>I use <a href="https://tailscale.com/">Tailscale</a> to connect all my devices, including my VPS. It allows me to access my smallweb instances from anywhere, as if they were on my local network.</p>
+<h2 id="la-terminal"><a class="header" href="#la-terminal">La Terminal</a></h2>
+<p>To edit websites from an ipad or iphone, I recommend using <a href="https://la-terminal.net/">La Terminal</a>. It's the best free option available.</p>
+<p>If you're ok with paying a yearly fee for a better experience, I recommend using <a href="https://blink.sh/">Blink Shell</a>.</p>
+<h2 id="termux"><a class="header" href="#termux">Termux</a></h2>
+<p>On android, there is no better option than <a href="https://termux.dev/en/">Termux</a>. It's a full-featured terminal emulator that allows me to connect to my VPS and run smallweb apps from my phone.</p>
 <div style="break-before: page; page-break-before: always;"></div><p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
 <p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
-<p>If you want to expose your apps to the internet instead, you can follow the <a href="localhost/../cloudflare/tunnel.html">Cloudflare Tunnel setup guide</a>.</p>
+<p>If you want to expose your apps to the internet instead, you can follow the <a href="hosting/localhost/../home-server/home-server.html">Cloudflare Tunnel setup guide</a>.</p>
 <h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
 <p>The following diagram illustrates the architecture of the local setup:</p>
-<p><img src="localhost/./architecture.excalidraw.png" alt="Localhost architecture" /></p>
+<p><img src="hosting/localhost/./architecture.excalidraw.png" alt="Localhost architecture" /></p>
 <p>The components needed are:</p>
 <ul>
 <li>a dns server to map <code>.localhost</code> domains to <code>127.0.0.1</code> ip address (dnsmasq)</li>
@@ -548,7 +610,10 @@ smallweb service status
 </li>
 <li>
 <p>Add a wildcard hostname for your tunnel (ex: <code>*.&lt;your-domain&gt;</code>), and use <code>http://localhost:7777</code> as the origin service.</p>
-<p><img src="cloudflare/./tunnel.png" alt="Tunnel Configuration" /></p>
+<p><img src="hosting/home-server/./tunnel.png" alt="Tunnel Configuration" /></p>
+</li>
+<li>
+<p>Do the same for your apex domain, if you want to manage it using smallweb.</p>
 </li>
 <li>
 <p>Copy the tunnel ID, and go to <code>Websites &gt; DNS &gt; Records</code>.</p>
@@ -557,9 +622,7 @@ smallweb service status
 <p>Add a new <code>CNAME</code> record for your wildcard hostname, with a target of <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</p>
 </li>
 </ol>
-<p><img src="cloudflare/./dns.png" alt="DNS Configuration" /></p>
-<p>If you also want to manage your apex domain using smallweb, you can add another hostname to your tunnel:</p>
-<p><img src="cloudflare/./apex.png" alt="Apex Domain Configuration" /></p>
+<p><img src="hosting/home-server/./dns.png" alt="DNS Configuration" /></p>
 <h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
 <p>Create a dummy smallweb app in <code>~/smallweb/localhost/example</code></p>
 <pre><code class="language-sh">mkdir -p ~/smallweb/localhost/example
@@ -617,392 +680,8 @@ smallweb service install
 <p>To make your service accessible from the internet, you have multiple options:</p>
 <ul>
 <li>setup a reverse proxy on port 443 (ex: caddy)</li>
-<li>using cloudflare tunnel (see <a href="./cloudflare/tunnel.html">cloudflare setup</a>)</li>
+<li>using cloudflare tunnel (see <a href="hosting/./home-server/home-server.html">cloudflare setup</a>)</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="creating-services-with-hono"><a class="header" href="#creating-services-with-hono">Creating Services with Hono</a></h1>
-<p>Hono is a fantastic library to create APIs in smallweb. It's a great match for smallweb, and the framework I recommend for creating APIs.</p>
-<p>Below are some examples to get you started, adapted from the official <a href="https://hono.dev/docs/">Hono documentation</a></p>
-<h2 id="hello-world"><a class="header" href="#hello-world">Hello world</a></h2>
-<p>Create a new <code>~/smallweb/localhost/hono-example/main.ts</code> file with the following content:</p>
-<pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
-
-const app = new Hono()
-
-app.get('/', (c) =&gt; c.text('Hello Deno!'))
-
-export default app;
-</code></pre>
-<p>Then navigate to <code>https://localhost/hono-example</code> to see the result.</p>
-<h2 id="routing-requests"><a class="header" href="#routing-requests">Routing Requests</a></h2>
-<pre><code class="language-ts">import { Hono } from 'jsr:@hono/hono'
-
-const app = new Hono()
-
-// HTTP Methods
-app.get('/', (c) =&gt; c.text('GET /'))
-app.post('/', (c) =&gt; c.text('POST /'))
-app.put('/', (c) =&gt; c.text('PUT /'))
-app.delete('/', (c) =&gt; c.text('DELETE /'))
-
-// Wildcard
-app.get('/wild/*/card', (c) =&gt; {
-  return c.text('GET /wild/*/card')
-})
-
-// Any HTTP methods
-app.all('/hello', (c) =&gt; c.text('Any Method /hello'))
-
-// Custom HTTP method
-app.on('PURGE', '/cache', (c) =&gt; c.text('PURGE Method /cache'))
-
-// Multiple Method
-app.on(['PUT', 'DELETE'], '/post', (c) =&gt;
-  c.text('PUT or DELETE /post')
-)
-
-// Multiple Paths
-app.on('GET', ['/hello', '/ja/hello', '/en/hello'], (c) =&gt;
-  c.text('Hello')
-)
-
-export default app;
-</code></pre>
-<p>More information can be found in the <a href="https://hono.dev/docs/api/routing">Hono documentation</a>.</p>
-<h2 id="middlewares"><a class="header" href="#middlewares">Middlewares</a></h2>
-<p>Hono comes with a mature middleware system:</p>
-<pre><code class="language-ts">import { Hono } from "jsr:@hono/hono";
-import { logger } from "jsr:@hono/hono/logger";
-import { bearerToken } from "jsr:@hono/hono/bearer-token";
-
-// match any method, all routes
-app.use(logger())
-
-// specify path
-app.use('/posts/*', bearerToken({
-    verify(token) {
-        return token === Deno.env.get('BEARER_TOKEN')
-    }
-}))
-
-
-app.post('/posts', (c) =&gt; {
-  return c.json({ message: 'Post created' })
-})
-
-export default app;
-</code></pre>
-<p>More information can be found in the <a href="https://hono.dev/docs/guides/middleware">Hono documentation</a>.</p>
-<h2 id="serving-static-files"><a class="header" href="#serving-static-files">Serving static files</a></h2>
-<p>To serve static files, use <code>serveStatic</code> imported from <code>hono/deno</code>.</p>
-<pre><code class="language-ts">import { Hono } from 'hono'
-import { serveStatic } from 'hono/deno'
-
-const app = new Hono()
-
-app.use('/static/*', serveStatic({ root: './' }))
-app.use('/favicon.ico', serveStatic({ path: './favicon.ico' }))
-app.get('/', (c) =&gt; c.text('You can access: /static/hello.txt'))
-app.get('*', serveStatic({ path: './static/fallback.txt' }))
-
-export default app;
-</code></pre>
-<p>For the above code, it will work well with the following directory structure.</p>
-<pre><code class="language-txt">./www/hono-example
-├── favicon.ico
-├── main.ts
-└── static
-    ├── demo
-    │   └── index.html
-    ├── fallback.txt
-    ├── hello.txt
-    └── images
-        └── dinotocat.png
-</code></pre>
-<h2 id="jsx-support"><a class="header" href="#jsx-support">JSX Support</a></h2>
-<p>If you want to return html from your endpoint, hono comes with built-in support for JSX.</p>
-<pre><code class="language-jsx">/** @jsxImportSource jsr:@hono/hono/jsx */
-
-import { Hono } from 'jsr:@hono/hono'
-
-const app = new Hono()
-
-app.get('/', (c) =&gt; {
-    return c.html(
-        &lt;html&gt;
-            &lt;head&gt;
-                &lt;title&gt;Hello Deno!&lt;/title&gt;
-            &lt;/head&gt;
-            &lt;body&gt;
-                &lt;h1&gt;Hello Deno!&lt;/h1&gt;
-            &lt;/body&gt;
-        &lt;/html&gt;
-    )
-})
-
-export default app;
-</code></pre>
-<p>More information can be found in the <a href="https://hono.dev/docs/guides/jsx">Hono documentation</a></p>
-<h2 id="more"><a class="header" href="#more">More</a></h2>
-<p>This is just a glimpse of what Hono can do. There are many other features available:</p>
-<ul>
-<li><a href="https://hono.dev/docs/guides/rpc">RPC</a></li>
-<li><a href="https://hono.dev/docs/guides/validation">Request Validation</a></li>
-<li><a href="https://hono.dev/docs/guides/error-handling">Error Handling</a></li>
-<li>and more!</li>
-</ul>
-<p>Make sure to visit the <a href="https://hono.dev/docs">Hono documentation</a> for more information.</p>
-<h2 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h2>
-<p>If you're not a fan of Hono, you can also use one the following libraries:</p>
-<ul>
-<li><a href="https://deno.land/x/oak">Oak</a> used to be the most popular library for creating APIs in Deno</li>
-<li><a href="https://deno.land/x/itty_router">itty-router</a> An ultra-tiny API microrouter</li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="installing-apps-from-jsr"><a class="header" href="#installing-apps-from-jsr">Installing Apps from JSR</a></h1>
-<p>In Smallweb, we use <a href="https://jsr.io">JSR</a> to distribute webapps.
-Think of it as a lightweight alternatives to docker images.</p>
-<p>Apps can includes both the frontend and the backend, and can be installed with a single import statement.
-To upgrade an app, you just change the version in the import statement.
-To uninstall an app, you can just delete the folder.</p>
-<p>Deno will take care of downloading the required modules, and caching them for future use.
-It also gives us a secure way to run untrusted code, since we can restrict the permissions of the app.</p>
-<p>By default, apps can:</p>
-<ul>
-<li>read and write files from their own directory</li>
-<li>access environment variables using <code>Deno.env.get</code></li>
-<li>access the network with <code>fetch</code></li>
-</ul>
-<p>But you can add more permissions to your app (or restrict it even further) by adding a <code>smallweb.json</code> file to the app directory.</p>
-<h2 id="sqlite-explorer"><a class="header" href="#sqlite-explorer">SQLite Explorer</a></h2>
-<p>Create a new file at <code>~/smallweb/localhost/sqlite-explorer/main.ts</code> with the following content:</p>
-<pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
-
-const handler = serveDatabase({ dbPath: "./chinook.db" });
-
-export default { fetch: handler };
-</code></pre>
-<p>Then download a sample database using:</p>
-<pre><code class="language-txt">curl https://www.sqlitetutorial.net/wp-content/uploads/2018/03/chinook.zip -o /tmp/chinook.zip
-unzip /tmp/chinook.zip -d ~/smallweb/localhost/sqlite-explorer
-</code></pre>
-<p>This application needs some specific permissions to run, so we'll need to configure them in <code>~/smallweb/localhost/sqlite-explorer/smallweb.json</code>.</p>
-<pre><code class="language-json">{
-    "permissions": {
-        "read": ["."],
-        "write": ["."],
-        "ffi": true,
-        "sys": true
-    }
-}
-</code></pre>
-<p>Here is what the ~/smallweb/localhost/sqlite-example folder should look like:</p>
-<pre><code class="language-txt">~/smallweb/localhost/sqlite-example
-├── chinook.db
-├── main.ts
-└── smallweb.json
-</code></pre>
-<p>You can now access your app at <code>https://sqlite-explorer.localhost</code> (or <code>https://sqlite-explorer.&lt;your-domain&gt;</code>).</p>
-<p>If you don't want your database to be public, feel free to wrap it in a auth middleware:</p>
-<pre><code class="language-ts">import { serveDatabase } from "jsr:@pomdtr/sqlite-explorer@0.4.0/server";
-import { lastlogin } from "jsr:@pomdtr/lastlogin";
-
-const handler = serveDatabase({ dbPath: "./chinook.db" });
-const auth = lastlogin({
-  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
-});
-
-export default { fetch: auth(handler) };
-</code></pre>
-<p>And then set the required environment variable in your <code>.env</code> file:</p>
-<pre><code class="language-txt">EMAIL=pomdtr@example.com
-</code></pre>
-<h2 id="visual-studio-code-1"><a class="header" href="#visual-studio-code-1">Visual Studio Code</a></h2>
-<p>Create a new file at <code>~/smallweb/localhost/vscode/main.ts</code> with the following content:</p>
-<pre><code class="language-ts">import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
-import { LocalFS } from "jsr:@smallweb/vscode@0.0.2/local-fs";
-import { lastlogin } from "jsr:@pomdtr/lastlogin";
-
-const fs = new LocalFS(".");
-const vscode = new VSCode({ fs });
-const auth = lastlogin({
-  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
-});
-
-export default {
-  fetch: auth(vscode.fetch),
-};
-</code></pre>
-<p>Here every parts is swappable: you can use a different fs, or a different auth middleware.</p>
-<p>For example, the library also provides fs to manage your val.town blobs:</p>
-<pre><code class="language-ts">import { VSCode } from "jsr:@smallweb/vscode@0.0.2";
-import { ValTownFS } from "jsr:@smallweb/vscode@0.0.2/val-town";
-import { lastlogin } from "jsr:@pomdtr/lastlogin";
-
-const fs = new ValTownFS(Deno.env.get("VALTOWN_TOKEN")!);
-const vscode = new VSCode({ fs });
-const auth = lastlogin({
-  verifyEmail: (email) =&gt; email === Deno.env.get("EMAIL"),
-});
-
-export default {
-  fetch: auth(vscode.fetch),
-};
-</code></pre>
-<p>To use it, you'll need to set the required environment variables in your <code>.env</code> file:</p>
-<pre><code class="language-txt">VALTOWN_TOKEN=&lt;your-token&gt;
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="integrating-with-vite"><a class="header" href="#integrating-with-vite">Integrating with Vite</a></h1>
-<p>Smallweb can easily integrate with <a href="https://vitejs.dev">vite</a> to provide a fast development experience.</p>
-<p>You can just create a vite project in the <code>~/smallweb</code> directory.</p>
-<pre><code class="language-sh">cd ~/smallweb
-npm create vite@latest vite-project.localhost
-cd vite-project
-npm install
-npm run build
-</code></pre>
-<p>The build command will generate a <code>dist</code> directory with the static files. Since your project is in the <code>~/smallweb/localhost/vite-project</code> directory, Smallweb will serve the files at <code>https://vite-project.localhost</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="integrating-with-astro"><a class="header" href="#integrating-with-astro">Integrating with Astro</a></h1>
-<h2 id="project-structure"><a class="header" href="#project-structure">Project Structure</a></h2>
-<p>Our project will have the following structure:</p>
-<pre><code class="language-txt">~/smallweb/localhost/astro-example
-├── .vscode/
-│   └── settings.json
-├── main.ts
-└── app/
-    └── &lt;astro project&gt;
-</code></pre>
-<p>Let's create the project, and initialize the astro frontend:</p>
-<pre><code class="language-sh">mkdir -p ~/smallweb/localhost/astro-example
-cd ~/smallweb/localhost/astro-example
-npm create astro@latest app
-</code></pre>
-<p>In order to enable ssr, we'll need run <code>npm install @deno/astro-adapter</code>, then update the astro.config.mjs file:</p>
-<pre><code class="language-ts">import { defineConfig } from 'astro/config';
-import deno from "@deno/astro-adapter";
-
-
-// https://astro.build/config
-export default defineConfig({
-    output: "server",
-    adapter: deno({
-        start: false,
-    })
-});
-</code></pre>
-<p>We'll also create the main.ts file:</p>
-<pre><code class="language-ts">import { handle } from "./app/dist/server/entry.mjs";
-import { serveDir } from "jsr:@std/http/file-server";
-
-export default {
-    async fetch(req: Request) {
-        // try to serve static files from the client directory
-        const res = await serveDir(req, {
-            fsRoot: "./app/dist/client",
-        });
-        if (res.status !== 404) {
-            return res;
-        }
-
-        // if the file was not found, pass the request to the app
-        return handle(req);
-    },
-};
-</code></pre>
-<p>If you are using vscode, make sure to setup the <code>.vscode/settings.json</code> config:</p>
-<pre><code class="language-json">{
-    "deno.enable": true,
-    "deno.disablePaths": [
-        "app"
-    ],
-}
-</code></pre>
-<p>Now that everything is setup, we can just run <code>npm run build</code> in the <code>~/smallweb/localhost/astro-example/app</code> directory, and access the website at <code>https://localhost/astro-example</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="building-a-telegram-bot"><a class="header" href="#building-a-telegram-bot">Building a Telegram Bot</a></h1>
-<p>In this guide, we'll build a simple Telegram bot that will echo back any message that is sent to it.</p>
-<p>The telegram API is documented <a href="https://core.telegram.org/bots/api">here</a>.</p>
-<h2 id="create-a-new-bot"><a class="header" href="#create-a-new-bot">Create a new bot</a></h2>
-<p>To create a new bot, you will need to talk to the <a href="https://t.me/botfather">BotFather</a> on Telegram.</p>
-<ol>
-<li>Open Telegram and search for <code>@botfather</code>.</li>
-<li>Send <code>/newbot</code> command to the BotFather.</li>
-<li>Follow the instructions to create a new bot.</li>
-<li>Once you have created the bot, the BotFather will give you a token. Save this token as you will need it later</li>
-</ol>
-<h2 id="create-the-webhook-handler"><a class="header" href="#create-the-webhook-handler">Create the webhook handler</a></h2>
-<p>Create a new file at <code>~/smallweb/localhost/telegram-echo-bot/main.ts</code> with the following content:</p>
-<pre><code class="language-ts">const token = Deno.env.get("BOT_TOKEN");
-if (!token) {
-    throw new Error("BOT_TOKEN is required");
-}
-
-const apiURL = `https://api.telegram.org/bot${token}`;
-
-type Update = {
-    update_id: number;
-    message?: {
-        text?: string;
-        chat: {
-            id: number;
-        };
-    };
-};
-
-const handler = async (req: Request) =&gt; {
-    if (req.method === "GET") {
-        return new Response("Telegram bot is up and running");
-    }
-
-    const update: Update = await req.json();
-    await fetch(`${apiURL}/sendMessage`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            chat_id: update.message?.chat.id,
-            text: update.message?.text,
-        }),
-    });
-    return new Response("OK");
-};
-
-export default {
-    fetch: handler,
-};
-</code></pre>
-<p>Then create a .env file at <code>~/smallweb/localhost/telegram-echo-bot/.env</code> with the following content:</p>
-<pre><code class="language-txt">BOT_TOKEN=&lt;your-token&gt;
-</code></pre>
-<h2 id="setup-the-webhook"><a class="header" href="#setup-the-webhook">Setup the webhook</a></h2>
-<pre><code class="language-sh">export BOT_TOKEN=&lt;your-bot-token&gt;
-export WEBHOOK_URL=https://telegram-echo-bot.&lt;your-domain&gt;
-curl -X POST https://api.telegram.org/bot$BOT_TOKEN/setWebhook -d "url=$WEBHOOK_URL"
-</code></pre>
-<p>You're all set! Now you can send messages to your bot and it will echo them back to you.</p>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
-<p>If you want to build more complex bots, you can take a look at the <a href="https://grammy.dev">grammY</a> library. It provides a high-level API to interact with the Telegram API.</p>
-<pre><code class="language-ts">import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.26.0/mod.ts";
-
-const token = Deno.env.get("BOT_TOKEN");
-if (!token) {
-    throw new Error("BOT_TOKEN is required");
-}
-
-// Create an instance of the `Bot` class and pass your bot token to it.
-const bot = new Bot(token); // &lt;-- put your bot token between the ""
-
-// You can now register listeners on your bot object `bot`.
-// grammY will call the listeners when users send messages to your bot.
-
-// Handle the /start command.
-bot.command("start", (ctx) =&gt; ctx.reply("Welcome! Up and running."));
-
-// Handle other messages.
-bot.on("message", (ctx) =&gt; ctx.reply("Got another message!"));
-
-export default {
-    fetch: webhookCallback(bot)
-}
-</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="deno-deploy"><a class="header" href="#deno-deploy">Deno Deploy</a></h1>
 <p>If one of your websites is starting to get a lot of traffic, you might want to deploy it to a cloud provider.</p>
 <p>Deno Deploy is a cloud platform that allows you to deploy your Deno apps with ease. It's a great choice for smallweb apps, since it's built on top of Deno, and it's very easy to use.</p>
@@ -1018,23 +697,92 @@ export default {
 </li>
 </ol>
 <p>Beware, all Deno APIs are not available in Deno Deploy. For example, you won't be able to write files to the filesystem.</p>
-<h1 id=""><a class="header" href="#"></a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="val-town"><a class="header" href="#val-town">Val Town</a></h1>
-<p>Val Town is a social website to write and deploy TypeScript.</p>
-<p>Val Town and Smallweb can easily interop. For example, to use an http val in smallweb, you can use the following snippet:</p>
-<pre><code class="language-ts">// Assuming that the val export a handler function
-import handler from "https://esm.town/v/&lt;username&gt;/&lt;val&gt;"
-
-export default {
-  fetch: handler,
-};
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-reference"><a class="header" href="#configuration-reference">Configuration Reference</a></h1>
+<p>The smallweb configuration can be defined in a <code>smallweb.json[c]</code> file at the root of the project, or in the <code>smallweb</code> field of the <code>deno.json[c]</code> file. This config file is optional, and sensible defaults are used when it is not present.</p>
+<p>A json schema for the config file is available <a href="https://schema.smallweb.run">here</a>.</p>
+<p>You can set it using a <code>$schema</code> field in your <code>smallweb.json[c]</code> file:</p>
+<pre><code class="language-json">{
+  "$schema": "https://schema.smallweb.run",
+  "serve": "./build"
+}
 </code></pre>
-<p>You can also go the other way around. A great way to achieve this is to push you smallweb app to a github repository, and use the raw url to import the app in Val Town.</p>
-<pre><code class="language-ts">import handler from "https://raw.githubusercontent.com/&lt;username&gt;/&lt;repo&gt;/&lt;branch&gt;/mod.ts"
-
-export default handler
+<p>VS Code Users can also set it globally in their <code>settings.json</code>:</p>
+<pre><code class="language-json">{
+  "json.schemas": [
+    {
+      "url": "https://schema.smallweb.run",
+      "fileMatch": [
+        "smallweb.json",
+        "smallweb.jsonc"
+      ]
+    }
+  ]
+}
 </code></pre>
-<p>You can also push reusable block to <a href="https://jsr.io">JSR</a>, and access them from both Val Town and Smallweb.</p>
+<h2 id="serve"><a class="header" href="#serve"><code>serve</code></a></h2>
+<p>The <code>serve</code> field defines the file / directory to serve. If this field is not provided, the following defaults are used:</p>
+<ul>
+<li>if a <code>main.[js,jsx,ts,tsx]</code> file exists in the root directory, it is served</li>
+<li>if a <code>dist</code> directory exists and contains an <code>index.html</code> file, it is served</li>
+<li>the root directory is served</li>
+</ul>
+<h3 id="serve-examples"><a class="header" href="#serve-examples">Examples</a></h3>
+<ul>
+<li>
+<p>Serve a file</p>
+<pre><code class="language-json">{
+  "serve": "./serve.js"
+}
+</code></pre>
+</li>
+<li>
+<p>Statically serve a directory</p>
+<pre><code class="language-json">{
+  "serve": "./build"
+}
+</code></pre>
+</li>
+</ul>
+<h2 id="crons"><a class="header" href="#crons"><code>crons</code></a></h2>
+<p>The <code>crons</code> field defines a list of cron jobs to run. See the <a href="reference/../guides/cron.html">Cron Jobs</a> guide for more information.</p>
+<pre><code class="language-json">{
+  "crons": [
+    {
+      "name": "example",
+      "schedule": "0 0 * * *",
+      "command": "deno run --allow-net https://deno.land/std/examples/welcome.ts"
+    }
+  ]
+}
+</code></pre>
+<h2 id="permissions"><a class="header" href="#permissions"><code>permissions</code></a></h2>
+<p>The <code>permissions</code> field defines a list of permissions to grant to the Deno process. See the <a href="reference/../guides/permissions.html">Permissions</a> guide for more information.</p>
+<h3 id="permissions-examples"><a class="header" href="#permissions-examples">Examples</a></h3>
+<ul>
+<li>
+<p>Giving all permissions</p>
+<pre><code class="language-json">{
+  "permissions": {
+    "all": true
+  }
+}
+</code></pre>
+</li>
+<li>
+<p>Giving specific permissions</p>
+<pre><code class="language-json">{
+  "permissions": {
+    "read": true,
+    "write": {
+      "allow": ["./", "/tmp"],
+      "deny": ["./smallweb.json"]
+    },
+    "net": ["deno.land"]
+  }
+}
+</code></pre>
+</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-reference"><a class="header" href="#cli-reference">CLI Reference</a></h1>
 <h2 id="smallweb"><a class="header" href="#smallweb">smallweb</a></h2>
 <p>Host websites from your internet folder</p>
