@@ -43,4 +43,4 @@ smallweb service install
 To make your service accessible from the internet, you have multiple options:
 
 - setup a reverse proxy on port 443 (ex: caddy)
-- using cloudflare tunnel (see [cloudflare setup](./cloudflare/tunnel.md))
+- using cloudflare tunnel (see [cloudflare setup](./home-server/home-server.md))

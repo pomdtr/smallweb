@@ -15,5 +15,3 @@ To deploy an app, you'll just need to:
 2. Run `deployctl deploy`, and follow the instructions.
 
 Beware, all Deno APIs are not available in Deno Deploy. For example, you won't be able to write files to the filesystem.
-
-#

@@ -2,7 +2,7 @@ This page will guide you through the process of setting up your local environmen
 
 This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.
 
-If you want to expose your apps to the internet instead, you can follow the [Cloudflare Tunnel setup guide](../cloudflare/tunnel.md).
+If you want to expose your apps to the internet instead, you can follow the [Cloudflare Tunnel setup guide](../home-server/home-server.md).
 
 ## Architecture
 

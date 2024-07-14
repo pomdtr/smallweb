@@ -2,36 +2,28 @@
 
 [Getting Started](./getting-started.md)
 
-# Core Concepts
-
-- [Set Environment Variables](./env.md)
-- [Configure Permissions](./permissions.md)
-- [Create Cron Jobs](./cron.md)
-- [Install Plugins](./plugins.md)
-- [Tools](./tooling.md)
-
-# Self-Hosting
-
-- [Localhost setup](./localhost/localhost.md)
-- [Cloudflare setup](./cloudflare/tunnel.md)
-- [VPS Setup](./vps.md)
-
 # Guides
 
-- [Creating Services with Hono](./guides/hono.md)
-- [Installing Apps from JSR](./guides/jsr.md)
-- [Integrating with Vite](./guides/vite.md)
-- [Integrating with Astro](./guides/astro.md)
-- [Building a Telegram Bot](./guides/telegram.md)
+- [Routing](./guides/routing.md)
+- [Static Websites](./guides/static.md)
+- [Dynamic Websites](./guides/dynamic.md)
+- [Environment Variables](./guides/env.md)
+- [Permissions](./guides/permissions.md)
+- [Cron Jobs](./guides/cron.md)
+- [Templates](./guides/templates.md)
+- [Plugins](./guides/plugins.md)
+- [Tooling](./guides/tooling.md)
 
-# Moving to the cloud
+# Hosting
 
-- [Smallweb Cloud]()
-- [Deno Deploy](./deno-deploy.md)
-- [Val Town](./val-town.md)
+- [Localhost setup](./hosting/localhost/localhost.md)
+- [Cloudflare setup](./hosting/home-server/home-server.md)
+- [VPS Setup](./hosting/vps.md)
+- [Deno Deploy](./hosting/deno-deploy.md)
 
----
+# Reference
 
-[CLI Reference](./cli.md)
+- [Configuration Reference](./reference/config.md)
+- [CLI Reference](./reference/cli.md)
 
 <!-- markdownlint-disable-file -->

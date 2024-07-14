@@ -32,15 +32,13 @@ Additionally, it provides some protection against DDoS attacks, and allows you t
 
     ![Tunnel Configuration](./tunnel.png)
 
+1. Do the same for your apex domain, if you want to manage it using smallweb.
+
 1. Copy the tunnel ID, and go to `Websites > DNS > Records`.
 
 1. Add a new `CNAME` record for your wildcard hostname, with a target of `<tunnel-id>.cfargotunnel.com`.
 
   ![DNS Configuration](./dns.png)
-
-If you also want to manage your apex domain using smallweb, you can add another hostname to your tunnel:
-
- ![Apex Domain Configuration](./apex.png)
 
 ## Checking that your tunnel is running
 
