@@ -65,7 +65,7 @@ The `crons` field defines a list of cron jobs to run. See the [Cron Jobs](../gui
     {
       "name": "example",
       "schedule": "0 0 * * *",
-      "command": "deno run --allow-net https://deno.land/std/examples/welcome.ts"
+      "command": "./sync-db.ts",
     }
   ]
 }
