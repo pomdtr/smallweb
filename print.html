@@ -356,7 +356,7 @@ export default function (req: Request) {
   }
 }
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="cron-tasks"><a class="header" href="#cron-tasks">Cron Tasks</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="cron-jobs"><a class="header" href="#cron-jobs">Cron Jobs</a></h1>
 <p>You can register configure cron tasks from your <code>smallweb.json[c]</code> or the <code>smallweb</code> field from your <code>deno.json[c]</code>.</p>
 <pre><code class="language-json">{
     "crons": [
@@ -750,7 +750,7 @@ smallweb service install
     {
       "name": "example",
       "schedule": "0 0 * * *",
-      "command": "deno run --allow-net https://deno.land/std/examples/welcome.ts"
+      "command": "./sync-db.ts",
     }
   ]
 }
