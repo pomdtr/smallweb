@@ -47,3 +47,10 @@ If you static site generator does not use the `dist` folder, you can either conf
   "serve": "public"
 }
 ```
+
+Vite projects are also supported out of the box.
+
+```sh
+cd ~/smallweb/localhost
+npm create vite@latest
+```
