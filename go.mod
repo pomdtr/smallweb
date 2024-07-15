@@ -3,6 +3,7 @@ module github.com/pomdtr/smallweb
 go 1.22.3
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/adrg/xdg v0.4.0
 	github.com/charmbracelet/huh v0.5.1
 	github.com/cli/browser v1.3.0

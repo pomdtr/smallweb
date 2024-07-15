@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Masterminds/semver"
 	"github.com/spf13/cobra"
 )
 
@@ -48,7 +49,14 @@ func NewCmdUpgrade() *cobra.Command {
 			if version == "dev" {
 				fmt.Println("You're compiling from source. Please update manually.")
 				return nil
-			} else if version >= latest {
+			}
+
+			current, err := semver.NewVersion(version)
+			if err != nil {
+				return fmt.Errorf("failed to parse current version: %w", err)
+			}
+
+			if !latest.GreaterThan(current) {
 				fmt.Printf("version %s is already latest\n", version)
 				return nil
 			}
@@ -60,19 +68,24 @@ func NewCmdUpgrade() *cobra.Command {
 	return cmd
 }
 
-func fetchLatestVersion() (string, error) {
+func fetchLatestVersion() (*semver.Version, error) {
 	resp, err := http.Get("https://assets.smallweb.run/version.txt")
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch version information: %w", err)
+		return nil, fmt.Errorf("failed to fetch version information: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read version information: %w", err)
+		return nil, fmt.Errorf("failed to read version information: %w", err)
 	}
 
-	return strings.TrimSpace(string(body)), nil
+	version, err := semver.NewVersion(strings.TrimSpace(string(body)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse version information: %w", err)
+	}
+
+	return version, nil
 }
 
 func Update() error {
