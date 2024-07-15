@@ -198,23 +198,37 @@ export default {
 }
 </code></pre>
 <p>To access the server, open <code>https://example-server.localhost</code> in your browser.</p>
-<p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
-<p>As an example, the following code snippet use the <code>@hono/hono</code> extract params from the request url, and render jsx:</p>
-<pre><code class="language-jsx">// File: ~/smallweb/localhost/hono-example/main.tsx
-/** @jsxImportSource jsr:@hono/hono/jsx **/
+<h2 id="using-jsx"><a class="header" href="#using-jsx">Using JSX</a></h2>
+<p>You can use the <code>@jsxImportSource</code> pragma to define the source of the jsx factory function. This allows you to use jsx in your server code.</p>
+<pre><code class="language-tsx">// File: ~/smallweb/localhost/jsx-example/main.tsx
+/** @jsxImportSource npm:@preact **/
+import render from "npm:preact-render-to-string";
 
-import { Hono } from "@hono/hono";
+const handler = () =&gt; new Response(render(&lt;h1&gt;Hello, world!&lt;/h1&gt;), {
+  headers: {
+    "Content-Type": "text/html",
+  },
+});
+
+export default { fetch: handler };
+</code></pre>
+<p>To access the server, open <code>https://jsx-example.localhost</code> in your browser.</p>
+<h2 id="routing-requests-using-hono"><a class="header" href="#routing-requests-using-hono">Routing Requests using Hono</a></h2>
+<p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
+<p>As an example, the following code snippet use the <code>@hono/hono</code> extract params from the request url.</p>
+<pre><code class="language-jsx">// File: ~/smallweb/localhost/hono-example/main.ts
+
+import { Hono } from "jsr:@hono/hono";
 
 const app = new Hono();
 
-app.get("/", c =&gt; c.html(&lt;h1&gt;Hello, world!&lt;/h1&gt;));
+app.get("/", c =&gt; c.text("Hello, world!"));
 
-app.get("/:name", c =&gt; c.html(&lt;h1&gt;Hello, {c.req.param("name")}!&lt;/h1&gt;));
+app.get("/:name", c =&gt; c.text(`Hello, ${c.params.name}!`));
 
 export default app;
 </code></pre>
-<p>No need to start a development server, or to compile the code. Smallweb will take care of everything for you.</p>
-<p>You can just copy paste this code at <code>~/smallweb/localhost/hono-example/main.tsx</code>, and open <code>https://hono-example.localhost</code> in your browser. The first load might take a few seconds, since deno is downloading the required modules, but subsequent loads will be instantaneous.</p>
+<p>To access the server, open <code>https://hono-example.localhost</code> in your browser.</p>
 
                     </main>
 
