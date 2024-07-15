@@ -39,13 +39,7 @@ func NewCmdUpgrade() *cobra.Command {
 		Short:   "Upgrade to the latest version",
 		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			latest, err := fetchLatestVersion()
-			if err != nil {
-				return fmt.Errorf("failed to get version information: %w", err)
-			}
-
 			version := cmd.Root().Version
-			fmt.Printf("Current version: %s, latest version: %s\n", version, latest)
 			if version == "dev" {
 				fmt.Println("You're compiling from source. Please update manually.")
 				return nil
@@ -56,6 +50,12 @@ func NewCmdUpgrade() *cobra.Command {
 				return fmt.Errorf("failed to parse current version: %w", err)
 			}
 
+			latest, err := fetchLatestVersion()
+			if err != nil {
+				return fmt.Errorf("failed to get version information: %w", err)
+			}
+
+			fmt.Printf("Current version: %s, latest version: %s\n", version, latest)
 			if !latest.GreaterThan(current) {
 				fmt.Printf("version %s is already latest\n", version)
 				return nil
@@ -69,7 +69,7 @@ func NewCmdUpgrade() *cobra.Command {
 }
 
 func fetchLatestVersion() (*semver.Version, error) {
-	resp, err := http.Get("https://assets.smallweb.run/version.txt")
+	resp, err := http.Get("https://releases.smallweb.run/latest")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch version information: %w", err)
 	}
