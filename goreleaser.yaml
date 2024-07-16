@@ -45,5 +45,6 @@ brews:
     repository:
       owner: pomdtr
       name: homebrew-tap
+    skip_upload: auto
     install: |-
       bin.install "smallweb"
