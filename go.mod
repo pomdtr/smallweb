@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/huh v0.5.1
 	github.com/cli/browser v1.3.0
 	github.com/cli/go-gh/v2 v2.9.0
+	github.com/gobwas/glob v0.2.3
 	github.com/gorilla/websocket v1.5.1
 	github.com/joho/godotenv v1.5.1
 	github.com/leaanthony/debme v1.2.1

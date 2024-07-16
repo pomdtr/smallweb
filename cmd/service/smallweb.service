@@ -8,8 +8,6 @@ Type=simple
 ExecStart={{ .ExecPath }} up
 Restart=always
 RestartSec=10
-WorkingDirectory={{ .HomeDir }}
-Environment=SMALLWEB_ROOT={{ .SmallwebRoot }}
 
 [Install]
 WantedBy=default.target

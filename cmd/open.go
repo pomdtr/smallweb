@@ -3,13 +3,44 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/cli/browser"
-	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
+
+func GetApp(name string) (*App, error) {
+	apps, err := ListApps()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list apps: %v", err)
+	}
+
+	for _, app := range apps {
+		if app.Name == name {
+			return &app, nil
+		}
+	}
+
+	return nil, fmt.Errorf("app not found: %s", name)
+}
+
+func GetAppsFromDir(dir string) ([]App, error) {
+	apps, err := ListApps()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list apps: %v", err)
+	}
+
+	var foundApps []App
+	for _, app := range apps {
+		if app.Dir != dir {
+			continue
+		}
+
+		foundApps = append(foundApps, app)
+	}
+
+	return foundApps, nil
+}
 
 func NewCmdOpen() *cobra.Command {
 	return &cobra.Command{
@@ -17,6 +48,9 @@ func NewCmdOpen() *cobra.Command {
 		Short: "Open the current smallweb app in the browser",
 		Args:  cobra.MaximumNArgs(1),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) > 0 {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
 			apps, err := ListApps()
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
@@ -38,29 +72,43 @@ func NewCmdOpen() *cobra.Command {
 				return nil
 			}
 
-			dir, err := os.Getwd()
+			wd, err := os.Getwd()
 			if err != nil {
-				return fmt.Errorf("failed to get current directory: %v", err)
+				return fmt.Errorf("failed to get working directory: %v", err)
 			}
 
-			if dir == worker.SMALLWEB_ROOT {
-				return fmt.Errorf("cannot open root directory")
+			apps, err := GetAppsFromDir(wd)
+			if err != nil {
+				return fmt.Errorf("failed to get app from dir: %v", err)
 			}
 
-			if !strings.Contains(dir, worker.SMALLWEB_ROOT) {
-				return fmt.Errorf("directory is not a smallweb app")
+			if len(apps) == 0 {
+				return fmt.Errorf("no app found for current directory")
 			}
 
-			var hostname string
-			if basename := filepath.Base(dir); basename == "@" {
-				hostname = filepath.Base(filepath.Dir(dir))
-			} else {
-				subdomain := filepath.Base(dir)
-				domain := filepath.Base(filepath.Dir(dir))
-				hostname = fmt.Sprintf("%s.%s", subdomain, domain)
+			if len(apps) == 1 {
+				if err := browser.OpenURL(apps[0].Url); err != nil {
+					return fmt.Errorf("failed to open browser: %v", err)
+				}
+
+				return nil
+			}
+			var options []huh.Option[string]
+			for _, app := range apps {
+				options = append(options, huh.Option[string]{
+					Key:   app.Name,
+					Value: app.Name,
+				})
 			}
 
-			if err := browser.OpenURL(fmt.Sprintf("https://%s", hostname)); err != nil {
+			var app string
+			input := huh.NewSelect[string]().Title("Select an app").Options(options...).Value(&app)
+
+			if err := input.Run(); err != nil {
+				return fmt.Errorf("failed to get app from user: %v", err)
+			}
+
+			if err := browser.OpenURL(fmt.Sprintf("https://%s", app)); err != nil {
 				return fmt.Errorf("failed to open browser: %v", err)
 			}
 

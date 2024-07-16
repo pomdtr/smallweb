@@ -24,7 +24,7 @@ import (
 	"github.com/tailscale/hujson"
 )
 
-type Config struct {
+type AppConfig struct {
 	Serve       string      `json:"serve"`
 	Crons       []CronJob   `json:"crons"`
 	Permissions Permissions `json:"permissions"`
@@ -208,8 +208,6 @@ func (p *Permissions) Flags(rootDir string) []string {
 	return flags
 }
 
-var SMALLWEB_ROOT string
-
 var dataHome = path.Join(xdg.DataHome, "smallweb")
 
 //go:embed sandbox.ts
@@ -224,14 +222,6 @@ func Exists(parts ...string) bool {
 func init() {
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
 		log.Fatal(err)
-	}
-
-	if env, ok := os.LookupEnv("SMALLWEB_ROOT"); ok {
-		SMALLWEB_ROOT = env
-	} else if homeDir, err := os.UserHomeDir(); err == nil {
-		SMALLWEB_ROOT = filepath.Join(homeDir, "smallweb")
-	} else {
-		log.Fatal(fmt.Errorf("could not determine smallweb root, please set SMALLWEB_ROOT"))
 	}
 
 	smallweb, err := os.Executable()
@@ -252,33 +242,28 @@ func init() {
 
 		PATH = fmt.Sprintf("%s:%s", filepath.Dir(deno), PATH)
 	}
-
 	os.Setenv("PATH", PATH)
 }
 
 type Worker struct {
-	rootDir string
-}
-
-func NewWorker(rootDir string) *Worker {
-	return &Worker{rootDir: rootDir}
+	Dir string
 }
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) LoadConfig() (*Config, error) {
-	config := Config{
+func (me *Worker) LoadConfig() (*AppConfig, error) {
+	config := AppConfig{
 		Permissions: Permissions{
 			Read: Permission{
-				Allow: []string{me.rootDir},
+				Allow: []string{me.Dir},
 			},
 			Write: Permission{
-				Allow: []string{me.rootDir},
+				Allow: []string{me.Dir},
 				Deny: []string{
-					filepath.Join(me.rootDir, "smallweb.json"),
-					filepath.Join(me.rootDir, "smallweb.jsonc"),
-					filepath.Join(me.rootDir, "deno.json"),
-					filepath.Join(me.rootDir, "deno.jsonc"),
+					filepath.Join(me.Dir, "smallweb.json"),
+					filepath.Join(me.Dir, "smallweb.jsonc"),
+					filepath.Join(me.Dir, "deno.json"),
+					filepath.Join(me.Dir, "deno.jsonc"),
 				},
 			},
 			Net: Permission{
@@ -290,7 +275,7 @@ func (me *Worker) LoadConfig() (*Config, error) {
 		},
 	}
 
-	if configPath := filepath.Join(me.rootDir, "smallweb.json"); Exists(configPath) {
+	if configPath := filepath.Join(me.Dir, "smallweb.json"); Exists(configPath) {
 		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read smallweb.json: %v", err)
@@ -303,7 +288,7 @@ func (me *Worker) LoadConfig() (*Config, error) {
 		return &config, nil
 	}
 
-	if configPath := filepath.Join(me.rootDir, "smallweb.jsonc"); Exists(configPath) {
+	if configPath := filepath.Join(me.Dir, "smallweb.jsonc"); Exists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -321,7 +306,7 @@ func (me *Worker) LoadConfig() (*Config, error) {
 		return &config, nil
 	}
 
-	if configPath := filepath.Join(me.rootDir, "deno.json"); Exists(configPath) {
+	if configPath := filepath.Join(me.Dir, "deno.json"); Exists(configPath) {
 		denoConfigBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -344,7 +329,7 @@ func (me *Worker) LoadConfig() (*Config, error) {
 		return &config, nil
 	}
 
-	if configPath := filepath.Join(me.rootDir, "deno.jsonc"); Exists(configPath) {
+	if configPath := filepath.Join(me.Dir, "deno.jsonc"); Exists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -376,64 +361,46 @@ func (me *Worker) LoadConfig() (*Config, error) {
 }
 
 func (me *Worker) LoadEnv() ([]string, error) {
-	envMap := make(map[string]string)
-	if envPath := filepath.Join(SMALLWEB_ROOT, ".env"); Exists(envPath) {
-		e, err := godotenv.Read(envPath)
-		if err != nil {
-			return nil, fmt.Errorf("could not read .env file: %v", err)
-		}
+	envPath := filepath.Join(me.Dir, ".env")
 
-		for key, value := range e {
-			envMap[key] = value
-		}
-	}
-
-	if envPath := filepath.Join(me.rootDir, "..", ".env"); Exists(envPath) {
-		e, err := godotenv.Read(envPath)
-		if err != nil {
-			return nil, fmt.Errorf("could not read .env file: %v", err)
-		}
-
-		for key, value := range e {
-			envMap[key] = value
-		}
-	}
-
-	if envPath := filepath.Join(me.rootDir, ".env"); Exists(envPath) {
-		e, err := godotenv.Read(envPath)
-		if err != nil {
-			return nil, fmt.Errorf("could not read .env file: %v", err)
-		}
-
-		for key, value := range e {
-			envMap[key] = value
-		}
+	if !Exists(envPath) {
+		return os.Environ(), nil
 	}
 
 	env := os.Environ()
-	for key, value := range envMap {
+	e, err := godotenv.Read(envPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read .env file: %v", err)
+	}
+
+	for key, value := range e {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
 
 	return env, nil
 }
 
-func (me *Worker) inferEntrypoint(config *Config) (string, error) {
+func (me *Worker) inferEntrypoint() (string, error) {
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(me.rootDir, candidate)
+		path := filepath.Join(me.Dir, candidate)
 		if Exists(path) {
 			return path, nil
 		}
 	}
 
-	if Exists(filepath.Join(me.rootDir, "dist", "index.html")) {
-		return filepath.Join(me.rootDir, "dist"), nil
+	if Exists(filepath.Join(me.Dir, "dist", "index.html")) {
+		return filepath.Join(me.Dir, "dist"), nil
 	}
 
-	return me.rootDir, nil
+	return me.Dir, nil
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !Exists(me.Dir) {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
 	config, err := me.LoadConfig()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -442,9 +409,9 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	entrypoint := config.Serve
 	if entrypoint != "" {
-		entrypoint = filepath.Join(me.rootDir, entrypoint)
+		entrypoint = filepath.Join(me.Dir, entrypoint)
 	} else {
-		e, err := me.inferEntrypoint(config)
+		e, err := me.inferEntrypoint()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -491,7 +458,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	args := []string{"run", "--unstable-kv", "--unstable-temporal"}
-	flags := config.Permissions.Flags(me.rootDir)
+	flags := config.Permissions.Flags(me.Dir)
 	args = append(args, flags...)
 	args = append(args, "-")
 
@@ -502,7 +469,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd := exec.Command("deno", args...)
-	cmd.Dir = me.rootDir
+	cmd.Dir = me.Dir
 	cmd.Stdin = &stdin
 	cmd.Env = env
 
@@ -636,6 +603,10 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (me *Worker) Trigger(name string) error {
+	if !Exists(me.Dir) {
+		return fmt.Errorf("directory not found")
+	}
+
 	config, err := me.LoadConfig()
 	if err != nil {
 		return err
@@ -660,7 +631,7 @@ func (me *Worker) Trigger(name string) error {
 
 	cmd := exec.Command(job.Command, job.Args...)
 	cmd.Env = env
-	cmd.Dir = me.rootDir
+	cmd.Dir = me.Dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

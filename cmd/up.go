@@ -3,17 +3,93 @@ package cmd
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/gobwas/glob"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 )
+
+type GlobalConfig struct {
+	Host    string            `json:"host"`
+	Port    int               `json:"port"`
+	Domains map[string]string `json:"domains"`
+}
+
+var globalConfig GlobalConfig = GlobalConfig{
+	Host: "localhost",
+	Port: 7777,
+	Domains: map[string]string{
+		"*.localhost": "~/localhost",
+	},
+}
+
+func init() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalf("could not determine config home: %v", err)
+	}
+	var configHome = os.Getenv("XDG_CONFIG_HOME")
+	if configHome == "" {
+		configHome = filepath.Join(homeDir, ".config")
+	}
+
+	configPath := filepath.Join(configHome, "smallweb", "config.json")
+	if worker.Exists(configPath) {
+		configBytes, err := os.ReadFile(configPath)
+		if err != nil {
+			log.Fatalf("could not read config.json: %v", err)
+		}
+
+		if err := json.Unmarshal(configBytes, &globalConfig); err != nil {
+			log.Fatalf("could not unmarshal config.json: %v", err)
+		}
+
+		for domain, rootDir := range globalConfig.Domains {
+			if strings.HasPrefix(rootDir, "~/") {
+				globalConfig.Domains[domain] = filepath.Join(homeDir, rootDir[2:])
+			}
+		}
+	}
+}
+
+func IsWildcard(domain string) bool {
+	return strings.HasPrefix(domain, "*.")
+}
+
+func WorkerFromHostname(hostname string) (*worker.Worker, error) {
+	if rootDir, ok := globalConfig.Domains[hostname]; ok {
+		return &worker.Worker{Dir: rootDir}, nil
+	}
+
+	for domain, rootDir := range globalConfig.Domains {
+		g, err := glob.Compile(domain)
+		if err != nil {
+			return nil, err
+		}
+
+		if !g.Match(hostname) {
+			continue
+		}
+
+		if !IsWildcard(domain) {
+			return &worker.Worker{Dir: rootDir}, nil
+		}
+
+		subdomain := strings.Split(hostname, ".")[0]
+		return &worker.Worker{Dir: filepath.Join(rootDir, subdomain)}, nil
+	}
+
+	return nil, fmt.Errorf("domain not found")
+}
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
@@ -44,25 +120,11 @@ func NewCmdUp() *cobra.Command {
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if worker.Exists(filepath.Join(worker.SMALLWEB_ROOT, r.Host, "www")) {
-						http.Redirect(w, r, fmt.Sprintf("https://www.%s", r.Host), http.StatusTemporaryRedirect)
-						return
+					handler, err := WorkerFromHostname(r.Host)
+					if err != nil {
+						http.Error(w, "Not found", http.StatusNotFound)
 					}
 
-					parts := strings.SplitN(r.Host, ".", 2)
-					if len(parts) != 2 {
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					subdomain, domain := parts[0], parts[1]
-					appDir := filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)
-					if !worker.Exists(filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)) {
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					handler := worker.NewWorker(appDir)
 					handler.ServeHTTP(w, r)
 				}),
 			}
@@ -116,7 +178,6 @@ func NewCmdUp() *cobra.Command {
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 			c := cron.New(cron.WithParser(parser))
 			c.AddFunc("* * * * *", func() {
-				fmt.Fprintln(os.Stderr, "Running cron jobs")
 				rounded := time.Now().Truncate(time.Minute)
 
 				apps, err := ListApps()
@@ -126,7 +187,7 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				for _, app := range apps {
-					w := worker.NewWorker(app.Path)
+					w := worker.Worker{Dir: app.Dir}
 					config, err := w.LoadConfig()
 					if err != nil {
 						continue
