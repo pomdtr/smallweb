@@ -1,5 +1,7 @@
 # Smallweb - Host websites from your internet folder
 
-Learn more about smallweb at <https://www.smallweb.run>.
+## Links
 
-The docs are available at: <https://docs.smallweb.run>.
+- Homepage: <https://www.smallweb.run>
+- Docs: <https://docs.smallweb.run>
+- Blog: <https://blog.smallweb.run>
