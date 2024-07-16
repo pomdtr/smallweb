@@ -41,7 +41,9 @@ func NewCmdRoot(version string) *cobra.Command {
 		Version: version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if err := v.ReadInConfig(); err != nil {
-				return fmt.Errorf("failed to read config: %v", err)
+				if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+					return fmt.Errorf("failed to read config file: %v", err)
+				}
 			}
 
 			domains := v.GetStringMapString("domains")
