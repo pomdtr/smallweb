@@ -10,7 +10,7 @@ dockerfile = 'Dockerfile'
 
 [[mounts]]
 source = 'smallweb_apps'
-destination = '/home/fly/smallweb'
+destination = '/home/fly'
 
 [http_service]
 internal_port = 7777
