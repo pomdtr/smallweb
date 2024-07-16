@@ -247,6 +247,7 @@ func init() {
 
 type Worker struct {
 	Dir string
+	Env map[string]string
 }
 
 var upgrader = websocket.Upgrader{} // use default options
@@ -368,12 +369,16 @@ func (me *Worker) LoadEnv() ([]string, error) {
 	}
 
 	env := os.Environ()
-	e, err := godotenv.Read(envPath)
+	dotenv, err := godotenv.Read(envPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read .env file: %v", err)
 	}
 
-	for key, value := range e {
+	for key, value := range me.Env {
+		env = append(env, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	for key, value := range dotenv {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
 

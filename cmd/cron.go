@@ -203,7 +203,7 @@ func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
 
 			for _, item := range crons {
 				if item.Job.Name == args[0] {
-					w := worker.Worker{Dir: item.App.Dir}
+					w := worker.Worker{Dir: item.App.Dir, Env: v.GetStringMapString("env")}
 					cmd.PrintErrln("Triggering cron job", item.Job.Name)
 					if err := w.Trigger(item.Job.Name); err != nil {
 						return fmt.Errorf("failed to run cron job %s: %w", item.Job.Command, err)

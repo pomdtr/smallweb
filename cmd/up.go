@@ -78,6 +78,7 @@ func NewCmdUp(v *viper.Viper) *cobra.Command {
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					domains := v.GetStringMapString("domains")
 					handler, err := WorkerFromHostname(domains, r.Host)
+					handler.Env = v.GetStringMapString("env")
 					if err != nil {
 						http.Error(w, "Not found", http.StatusNotFound)
 					}
