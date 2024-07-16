@@ -26,7 +26,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	v.SetEnvPrefix("SMALLWEB")
 	v.AutomaticEnv()
 
-	v.SetDefault("host", "localhost")
+	v.SetDefault("host", "127.0.0.1")
 	v.SetDefault("port", 7777)
 	v.SetDefault("domains", map[string]string{
 		"*.localhost": "~/localhost",
