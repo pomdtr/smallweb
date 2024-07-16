@@ -7,10 +7,11 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/cli/browser"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-func GetApp(name string) (*App, error) {
-	apps, err := ListApps()
+func GetApp(domains map[string]string, name string) (*App, error) {
+	apps, err := ListApps(domains)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list apps: %v", err)
 	}
@@ -24,8 +25,8 @@ func GetApp(name string) (*App, error) {
 	return nil, fmt.Errorf("app not found: %s", name)
 }
 
-func GetAppsFromDir(dir string) ([]App, error) {
-	apps, err := ListApps()
+func GetAppsFromDir(domains map[string]string, dir string) ([]App, error) {
+	apps, err := ListApps(domains)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list apps: %v", err)
 	}
@@ -42,7 +43,7 @@ func GetAppsFromDir(dir string) ([]App, error) {
 	return foundApps, nil
 }
 
-func NewCmdOpen() *cobra.Command {
+func NewCmdOpen(v *viper.Viper) *cobra.Command {
 	return &cobra.Command{
 		Use:   "open",
 		Short: "Open the current smallweb app in the browser",
@@ -51,7 +52,7 @@ func NewCmdOpen() *cobra.Command {
 			if len(args) > 0 {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
-			apps, err := ListApps()
+			apps, err := ListApps(v.GetStringMapString("domains"))
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
 			}
@@ -77,7 +78,7 @@ func NewCmdOpen() *cobra.Command {
 				return fmt.Errorf("failed to get working directory: %v", err)
 			}
 
-			apps, err := GetAppsFromDir(wd)
+			apps, err := GetAppsFromDir(v.GetStringMapString("domains"), wd)
 			if err != nil {
 				return fmt.Errorf("failed to get app from dir: %v", err)
 			}

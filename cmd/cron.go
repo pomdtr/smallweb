@@ -1,10 +1,18 @@
 package cmd
 
 import (
-	"strings"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"slices"
 
+	"github.com/cli/go-gh/v2/pkg/tableprinter"
+	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"golang.org/x/term"
 )
 
 type CronItem struct {
@@ -12,8 +20,8 @@ type CronItem struct {
 	App App            `json:"app"`
 }
 
-func ListCronItems() ([]CronItem, error) {
-	apps, err := ListApps()
+func ListCronItems(domains map[string]string) ([]CronItem, error) {
+	apps, err := ListApps(domains)
 	if err != nil {
 		return nil, err
 	}
@@ -37,221 +45,191 @@ func ListCronItems() ([]CronItem, error) {
 	return items, nil
 }
 
-func ListCronItemsWithApp(app string) ([]CronItem, error) {
-	jobs, err := ListCronItems()
+func ListCronWithApps(domains map[string]string, app string) ([]CronItem, error) {
+	items, err := ListCronItems(domains)
 	if err != nil {
 		return nil, err
 	}
 
-	var items []CronItem
-	for _, job := range jobs {
-		if job.App.Name != app {
-			continue
-		}
-
-		items = append(items, job)
-	}
-
-	return items, nil
+	return slices.DeleteFunc(items, func(item CronItem) bool {
+		return item.App.Name != app
+	}), nil
 }
 
-func ListCronItemsWithDomain(domain string) ([]CronItem, error) {
-	items, err := ListCronItems()
-	if err != nil {
-		return nil, err
-	}
-
-	var filtered []CronItem
-	for _, item := range items {
-		if strings.HasSuffix(item.App.Name, "."+domain) {
-			filtered = append(filtered, item)
-		}
-	}
-
-	return filtered, nil
-}
-
-func NewCmdCron() *cobra.Command {
+func NewCmdCron(v *viper.Viper) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "cron",
 		Short:   "Manage cron jobs",
 		GroupID: CoreGroupID,
 	}
 
-	// cmd.AddCommand(NewCmdCronList())
-	// cmd.AddCommand(NewCmdCronTrigger())
+	cmd.AddCommand(NewCmdCronList(v))
+	cmd.AddCommand(NewCmdCronTrigger(v))
 	return cmd
 }
 
-// func NewCmdCronList() *cobra.Command {
-// 	var flags struct {
-// 		json bool
-// 		all  bool
-// 		app  string
-// 	}
+func NewCmdCronList(v *viper.Viper) *cobra.Command {
+	var flags struct {
+		json bool
+		all  bool
+		app  string
+	}
 
-// 	cmd := &cobra.Command{
-// 		Use:     "list",
-// 		Aliases: []string{"ls"},
-// 		Short:   "List cron jobs",
-// 		RunE: func(cmd *cobra.Command, args []string) error {
-// 			var items []CronItem
-// 			wd, err := os.Getwd()
-// 			if err != nil {
-// 				return fmt.Errorf("failed to get current directory: %w", err)
-// 			}
+	cmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List cron jobs",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			domains := v.GetStringMapString("domains")
 
-// 			if flags.all {
-// 				i, err := ListCronItems()
-// 				if err != nil {
-// 					return fmt.Errorf("failed to list cron jobs: %w", err)
-// 				}
+			items, err := ListCronItems(domains)
+			if err != nil {
+				return fmt.Errorf("failed to list cron jobs: %w", err)
+			}
 
-// 				items = i
-// 			} else if flags.domain != "" {
-// 				i, err := ListCronItemsWithDomain(flags.domain)
-// 				if err != nil {
-// 					return fmt.Errorf("failed to list cron jobs: %w", err)
-// 				}
+			if flags.app != "" {
+				var filteredItems []CronItem
+				for _, item := range items {
+					if item.App.Name == flags.app {
+						filteredItems = append(filteredItems, item)
+					}
+				}
 
-// 				items = i
-// 			} else if flags.app != "" {
-// 				i, err := ListCronItemsWithApp(flags.app)
-// 				if err != nil {
-// 					return fmt.Errorf("failed to list cron jobs: %w", err)
-// 				}
+				items = filteredItems
+			}
 
-// 				items = i
-// 			}
+			if flags.json {
+				encoder := json.NewEncoder(os.Stdout)
+				encoder.SetEscapeHTML(false)
+				if isatty.IsTerminal(os.Stdout.Fd()) {
+					encoder.SetIndent("", "  ")
+				}
 
-// 			if flags.json {
-// 				encoder := json.NewEncoder(os.Stdout)
-// 				encoder.SetEscapeHTML(false)
-// 				if isatty.IsTerminal(os.Stdout.Fd()) {
-// 					encoder.SetIndent("", "  ")
-// 				}
+				if err := encoder.Encode(items); err != nil {
+					return fmt.Errorf("failed to encode cron jobs: %w", err)
+				}
+				return nil
+			}
 
-// 				if err := encoder.Encode(items); err != nil {
-// 					return fmt.Errorf("failed to encode cron jobs: %w", err)
-// 				}
-// 				return nil
-// 			}
+			if (len(items)) == 0 {
+				cmd.Println("No cron jobs found")
+				return nil
+			}
 
-// 			if (len(items)) == 0 {
-// 				cmd.Println("No cron jobs found")
-// 				return nil
-// 			}
+			var printer tableprinter.TablePrinter
+			if isatty.IsTerminal(os.Stdout.Fd()) {
+				width, _, err := term.GetSize(int(os.Stdout.Fd()))
+				if err != nil {
+					return fmt.Errorf("failed to get terminal size: %w", err)
+				}
 
-// 			var printer tableprinter.TablePrinter
-// 			if isatty.IsTerminal(os.Stdout.Fd()) {
-// 				width, _, err := term.GetSize(int(os.Stdout.Fd()))
-// 				if err != nil {
-// 					return fmt.Errorf("failed to get terminal size: %w", err)
-// 				}
+				printer = tableprinter.New(os.Stdout, true, width)
+			} else {
+				printer = tableprinter.New(os.Stdout, false, 0)
+			}
 
-// 				printer = tableprinter.New(os.Stdout, true, width)
-// 			} else {
-// 				printer = tableprinter.New(os.Stdout, false, 0)
-// 			}
+			printer.AddHeader([]string{"Name", "App", "Schedule", "Command"})
+			for _, item := range items {
+				printer.AddField(item.Job.Name)
+				printer.AddField(item.App.Name)
+				printer.AddField(item.Job.Schedule)
 
-// 			printer.AddHeader([]string{"Name", "App", "Schedule", "Command"})
-// 			for _, item := range items {
-// 				printer.AddField(item.Job.Name)
-// 				printer.AddField(item.App.Name)
-// 				printer.AddField(item.Job.Schedule)
+				cmd := exec.Command(item.Job.Command, item.Job.Args...)
+				printer.AddField(cmd.String())
 
-// 				cmd := exec.Command(item.Job.Command, item.Job.Args...)
-// 				printer.AddField(cmd.String())
+				printer.EndRow()
+			}
 
-// 				printer.EndRow()
-// 			}
+			if err := printer.Render(); err != nil {
+				return fmt.Errorf("failed to render table: %w", err)
+			}
 
-// 			if err := printer.Render(); err != nil {
-// 				return fmt.Errorf("failed to render table: %w", err)
-// 			}
+			return nil
+		},
+	}
 
-// 			return nil
-// 		},
-// 	}
+	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
+	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
+	cmd.RegisterFlagCompletionFunc("app", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		apps, err := ListApps(v.GetStringMapString("domains"))
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
 
-// 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-// 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
-// 	cmd.RegisterFlagCompletionFunc("app", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-// 		apps, err := ListApps()
-// 		if err != nil {
-// 			return nil, cobra.ShellCompDirectiveError
-// 		}
+		var completions []string
+		for _, app := range apps {
+			completions = append(completions, app.Name)
+		}
 
-// 		var completions []string
-// 		for _, app := range apps {
-// 			completions = append(completions, app.Name)
-// 		}
+		return completions, cobra.ShellCompDirectiveNoFileComp
+	})
+	cmd.Flags().BoolVar(&flags.all, "all", false, "list all cron jobs")
+	cmd.MarkFlagsMutuallyExclusive("app", "all")
 
-// 		return completions, cobra.ShellCompDirectiveNoFileComp
-// 	})
-// 	cmd.Flags().BoolVar(&flags.all, "all", false, "list all cron jobs")
-// 	cmd.MarkFlagsMutuallyExclusive("app", "all")
+	return cmd
+}
 
-// 	return cmd
-// }
+func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
+	var flags struct {
+		app string
+	}
 
-// func NewCmdCronTrigger() *cobra.Command {
-// 	var flags struct {
-// 		app string
-// 	}
+	cmd := &cobra.Command{
+		Use:   "trigger <cron>",
+		Short: "Trigger a cron job",
+		Args:  cobra.ExactArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if flags.app == "" {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
 
-// 	cmd := &cobra.Command{
-// 		Use:   "trigger <cron>",
-// 		Short: "Trigger a cron job",
-// 		Args:  cobra.ExactArgs(1),
-// 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-// 			items, err := ListCronItemsWithApp(app)
-// 			if err != nil {
-// 				return nil, cobra.ShellCompDirectiveError
-// 			}
+			items, err := ListCronWithApps(v.GetStringMapString("domains"), flags.app)
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
+			}
 
-// 			var completions []string
-// 			for _, item := range items {
-// 				completions = append(completions, item.Job.Name)
-// 			}
+			var completions []string
+			for _, item := range items {
+				completions = append(completions, item.Job.Name)
+			}
 
-// 			return completions, cobra.ShellCompDirectiveNoFileComp
-// 		},
-// 		RunE: func(cmd *cobra.Command, args []string) error {
-// 			parts := strings.SplitN(app, ".", 2)
-// 			if len(parts) != 2 {
-// 				return fmt.Errorf("invalid app name")
-// 			}
+			return completions, cobra.ShellCompDirectiveNoFileComp
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			crons, err := ListCronWithApps(v.GetStringMapString("domains"), flags.app)
+			if err != nil {
+				return err
+			}
 
-// 			subdomain, domain := parts[0], parts[1]
+			for _, item := range crons {
+				if item.Job.Name == args[0] {
+					w := worker.Worker{Dir: item.App.Dir}
+					cmd.PrintErrln("Triggering cron job", item.Job.Name)
+					if err := w.Trigger(item.Job.Name); err != nil {
+						return fmt.Errorf("failed to run cron job %s: %w", item.Job.Command, err)
+					}
 
-// 			appDir := filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)
-// 			if !worker.Exists(appDir) {
-// 				return fmt.Errorf("app not found")
-// 			}
+					return nil
+				}
+			}
 
-// 			w := worker.Worker{Dir: appDir}
-// 			if err := w.Trigger(args[0]); err != nil {
-// 				return fmt.Errorf("failed to run cron job: %w", err)
-// 			}
+			return fmt.Errorf("cron job not found: %s", args[0])
+		},
+	}
 
-// 			return nil
-// 		},
-// 	}
+	cmd.Flags().StringVar(&flags.app, "app", "", "app cron job belongs to")
+	cmd.RegisterFlagCompletionFunc("app", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		apps, err := ListApps(v.GetStringMapString("domains"))
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
 
-// 	cmd.Flags().StringVar(&flags.app, "app", "", "app cron job belongs to")
-// 	cmd.RegisterFlagCompletionFunc("app", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-// 		apps, err := ListApps()
-// 		if err != nil {
-// 			return nil, cobra.ShellCompDirectiveError
-// 		}
+		var completions []string
+		for _, app := range apps {
+			completions = append(completions, app.Name)
+		}
 
-// 		var completions []string
-// 		for _, app := range apps {
-// 			completions = append(completions, app.Name)
-// 		}
-
-// 		return completions, cobra.ShellCompDirectiveNoFileComp
-// 	})
-// 	return cmd
-// }
+		return completions, cobra.ShellCompDirectiveNoFileComp
+	})
+	return cmd
+}

@@ -3,9 +3,7 @@ package cmd
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,61 +14,19 @@ import (
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
-
-type GlobalConfig struct {
-	Host    string            `json:"host"`
-	Port    int               `json:"port"`
-	Domains map[string]string `json:"domains"`
-}
-
-var globalConfig GlobalConfig = GlobalConfig{
-	Host: "localhost",
-	Port: 7777,
-	Domains: map[string]string{
-		"*.localhost": "~/localhost",
-	},
-}
-
-func init() {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("could not determine config home: %v", err)
-	}
-	var configHome = os.Getenv("XDG_CONFIG_HOME")
-	if configHome == "" {
-		configHome = filepath.Join(homeDir, ".config")
-	}
-
-	configPath := filepath.Join(configHome, "smallweb", "config.json")
-	if worker.Exists(configPath) {
-		configBytes, err := os.ReadFile(configPath)
-		if err != nil {
-			log.Fatalf("could not read config.json: %v", err)
-		}
-
-		if err := json.Unmarshal(configBytes, &globalConfig); err != nil {
-			log.Fatalf("could not unmarshal config.json: %v", err)
-		}
-
-		for domain, rootDir := range globalConfig.Domains {
-			if strings.HasPrefix(rootDir, "~/") {
-				globalConfig.Domains[domain] = filepath.Join(homeDir, rootDir[2:])
-			}
-		}
-	}
-}
 
 func IsWildcard(domain string) bool {
 	return strings.HasPrefix(domain, "*.")
 }
 
-func WorkerFromHostname(hostname string) (*worker.Worker, error) {
-	if rootDir, ok := globalConfig.Domains[hostname]; ok {
+func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Worker, error) {
+	if rootDir, ok := domains[hostname]; ok {
 		return &worker.Worker{Dir: rootDir}, nil
 	}
 
-	for domain, rootDir := range globalConfig.Domains {
+	for domain, rootDir := range domains {
 		g, err := glob.Compile(domain)
 		if err != nil {
 			return nil, err
@@ -91,10 +47,8 @@ func WorkerFromHostname(hostname string) (*worker.Worker, error) {
 	return nil, fmt.Errorf("domain not found")
 }
 
-func NewCmdUp() *cobra.Command {
+func NewCmdUp(v *viper.Viper) *cobra.Command {
 	var flags struct {
-		host          string
-		port          int
 		tls           bool
 		tlsCert       string
 		tlsKey        string
@@ -109,18 +63,21 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			port := flags.port
-			if flags.port == 0 && flags.tls {
+			port := v.GetInt("port")
+			if port == 0 && flags.tls {
 				port = 443
-			} else if flags.port == 0 {
+			} else if port == 0 {
 				port = 7777
 			}
-			addr := fmt.Sprintf("%s:%d", flags.host, port)
+
+			host := v.GetString("host")
+			addr := fmt.Sprintf("%s:%d", host, port)
 
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					handler, err := WorkerFromHostname(r.Host)
+					domains := v.GetStringMapString("domains")
+					handler, err := WorkerFromHostname(domains, r.Host)
 					if err != nil {
 						http.Error(w, "Not found", http.StatusNotFound)
 					}
@@ -180,7 +137,7 @@ func NewCmdUp() *cobra.Command {
 			c.AddFunc("* * * * *", func() {
 				rounded := time.Now().Truncate(time.Minute)
 
-				apps, err := ListApps()
+				apps, err := ListApps(v.GetStringMapString("domains"))
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -222,8 +179,10 @@ func NewCmdUp() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.host, "host", "localhost", "Host to listen on")
-	cmd.Flags().IntVarP(&flags.port, "port", "p", 0, "Port to listen on")
+	cmd.Flags().String("host", "localhost", "Host to listen on")
+	v.BindPFlag("host", cmd.Flags().Lookup("host"))
+	cmd.Flags().IntP("port", "p", 0, "Port to listen on")
+	v.BindPFlag("port", cmd.Flags().Lookup("port"))
 	cmd.Flags().BoolVar(&flags.tls, "tls", false, "Enable TLS")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "TLS certificate file path")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "TLS key file path")

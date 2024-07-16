@@ -10,6 +10,7 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
@@ -19,9 +20,9 @@ type App struct {
 	Dir  string `json:"dir"`
 }
 
-func ListApps() ([]App, error) {
+func ListApps(domains map[string]string) ([]App, error) {
 	apps := make([]App, 0)
-	for domain, rootDir := range globalConfig.Domains {
+	for domain, rootDir := range domains {
 		if !IsWildcard(domain) {
 			apps = append(apps, App{
 				Name: domain,
@@ -57,7 +58,7 @@ func ListApps() ([]App, error) {
 	return apps, nil
 }
 
-func NewCmdDump() *cobra.Command {
+func NewCmdDump(v *viper.Viper) *cobra.Command {
 	var flags struct {
 		json bool
 	}
@@ -68,7 +69,7 @@ func NewCmdDump() *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := ListApps()
+			apps, err := ListApps(v.GetStringMapString("domains"))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
