@@ -319,7 +319,7 @@ export default function (req: Request) {
   });
 }
 </code></pre>
-<p>If you want to set an environment variable for all your apps, you can create a <code>.env</code> file in the <code>~/smallweb</code> directory.</p>
+<p>If you want to set an environment variable for all your apps, you can use the <code>env</code> property from the smallweb global config (<code>~/.config/smallweb/config.json</code>).</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="configuring-permissions"><a class="header" href="#configuring-permissions">Configuring permissions</a></h1>
 <p>By default, a smallweb app can:</p>
 <ul>
@@ -475,7 +475,7 @@ smallweb ls | fzf --with-nth=1 | cut -f2 | xargs smallweb open
 <ul>
 <li>a dns server to map <code>*.localhost</code> domains to <code>127.0.0.1</code> ip address (dnsmasq)</li>
 <li>a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)</li>
-<li>a service to map each domain to the corresponding folder in ~/smallweb, and spawn a deno subprocess for each request (smallweb)</li>
+<li>a service to map each domain to the corresponding folder in ~/localhost, and spawn a deno subprocess for each request (smallweb)</li>
 </ul>
 <h2 id="macos-setup"><a class="header" href="#macos-setup">MacOS setup</a></h2>
 <p>In the future, we might provide a script to automate this process, but for now, it's a manual process.</p>
