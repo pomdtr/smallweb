@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+	"path/filepath"
 
 	"github.com/charmbracelet/huh"
 	"github.com/cli/browser"
@@ -45,46 +45,22 @@ func GetAppsFromDir(domains map[string]string, dir string) ([]App, error) {
 
 func NewCmdOpen(v *viper.Viper) *cobra.Command {
 	return &cobra.Command{
-		Use:   "open",
+		Use:   "open [dir]",
 		Short: "Open the current smallweb app in the browser",
-		Args:  cobra.MaximumNArgs(1),
-		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			if len(args) > 0 {
-				return nil, cobra.ShellCompDirectiveNoFileComp
-			}
-			apps, err := ListApps(extractDomains(v))
-			if err != nil {
-				return nil, cobra.ShellCompDirectiveError
-			}
-
-			var completions []string
-			for _, app := range apps {
-				completions = append(completions, app.Hostname)
-			}
-
-			return completions, cobra.ShellCompDirectiveNoFileComp
-		},
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				if err := browser.OpenURL(fmt.Sprintf("https://%s", args[0])); err != nil {
-					return fmt.Errorf("failed to open browser: %v", err)
-				}
-
-				return nil
-			}
-
-			wd, err := os.Getwd()
+			dir, err := filepath.Abs(args[0])
 			if err != nil {
-				return fmt.Errorf("failed to get working directory: %v", err)
+				return fmt.Errorf("failed to get abs path: %v", err)
 			}
 
-			apps, err := GetAppsFromDir(extractDomains(v), wd)
+			apps, err := GetAppsFromDir(extractDomains(v), dir)
 			if err != nil {
 				return fmt.Errorf("failed to get app from dir: %v", err)
 			}
 
 			if len(apps) == 0 {
-				return fmt.Errorf("no app found for current directory")
+				return fmt.Errorf("no app found for provided dir")
 			}
 
 			if len(apps) == 1 {
@@ -95,6 +71,7 @@ func NewCmdOpen(v *viper.Viper) *cobra.Command {
 
 				return nil
 			}
+
 			var options []huh.Option[string]
 			for _, app := range apps {
 				options = append(options, huh.Option[string]{
