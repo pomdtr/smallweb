@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -41,7 +40,8 @@ func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Wor
 		}
 
 		subdomain := strings.Split(hostname, ".")[0]
-		return &worker.Worker{Dir: filepath.Join(rootDir, subdomain)}, nil
+		rootDir := strings.Replace(rootDir, "*", subdomain, 1)
+		return &worker.Worker{Dir: rootDir}, nil
 	}
 
 	return nil, fmt.Errorf("domain not found")
