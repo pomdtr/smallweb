@@ -431,7 +431,7 @@ smallweb init ~/localhost/hono-app --template hono
 
 # List all apps, pipe to fzf, and open the selected app
 # see https://junegunn.github.io/fzf/installation/ for fzf installation instructions
-smallweb ls | cut -f1 | fzf | xargs smallweb open
+smallweb ls | fzf --with-nth=1 | cut -f2 | xargs smallweb open
 </code></pre>
 <p>And make it executable with <code>chmod +x smallweb-choose</code>, you will be able to run <code>smallweb choose</code> and get an interactive list of your apps to choose from, which will then be opened in your default browser.</p>
 <h2 id="example-plugins"><a class="header" href="#example-plugins">Example Plugins</a></h2>
@@ -1021,8 +1021,8 @@ Simply type smallweb help [path to command] for full details.</p>
       --json   output as json
 </code></pre>
 <h2 id="smallweb-open"><a class="header" href="#smallweb-open">smallweb open</a></h2>
-<p>Open the current smallweb app in the browser</p>
-<pre><code>smallweb open [flags]
+<p>Open the smallweb app specified by dir in the browser</p>
+<pre><code>smallweb open [dir] [flags]
 </code></pre>
 <h3 id="options-17"><a class="header" href="#options-17">Options</a></h3>
 <pre><code>  -h, --help   help for open
@@ -1092,18 +1092,11 @@ Simply type service help [path to command] for full details.</p>
 <h3 id="options-26"><a class="header" href="#options-26">Options</a></h3>
 <pre><code>  -h, --help   help for uninstall
 </code></pre>
-<h2 id="smallweb-simpl-site"><a class="header" href="#smallweb-simpl-site">smallweb simpl-site</a></h2>
-<p>Extension simpl-site</p>
-<pre><code>smallweb simpl-site [flags]
-</code></pre>
-<h3 id="options-27"><a class="header" href="#options-27">Options</a></h3>
-<pre><code>  -h, --help   help for simpl-site
-</code></pre>
 <h2 id="smallweb-up"><a class="header" href="#smallweb-up">smallweb up</a></h2>
 <p>Start the smallweb evaluation server</p>
 <pre><code>smallweb up [flags]
 </code></pre>
-<h3 id="options-28"><a class="header" href="#options-28">Options</a></h3>
+<h3 id="options-27"><a class="header" href="#options-27">Options</a></h3>
 <pre><code>  -h, --help                     help for up
       --host string              Host to listen on (default "localhost")
   -p, --port int                 Port to listen on
@@ -1117,7 +1110,7 @@ Simply type service help [path to command] for full details.</p>
 <p>Upgrade to the latest version</p>
 <pre><code>smallweb upgrade [flags]
 </code></pre>
-<h3 id="options-29"><a class="header" href="#options-29">Options</a></h3>
+<h3 id="options-28"><a class="header" href="#options-28">Options</a></h3>
 <pre><code>  -h, --help   help for upgrade
 </code></pre>
 <!-- markdownlint-disable-file -->
