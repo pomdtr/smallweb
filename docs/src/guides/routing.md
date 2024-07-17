@@ -1,35 +1,33 @@
 # Routing
 
-Smallweb uses a file-based routing system. This means that the structure of your `smallweb` folder will determine the hostnames your app will respond to.
+Smallweb maps domains to folders. By default, it will maps `*.localhost` to `~/localhost/*`, but you can add more hostnames from the config (`~/.config/smallweb/config.json`).
 
-## Folder structure
+## Mapping a single domain to a folder
 
-Smallweb uses a 2-level folder structure. The first level is the domain, and the second level is the subdomain.
-
-Let's examine the following folder structure:
-
-```txt
-~/smallweb/
-├── localhost
-│   ├── example
-│   └── react
-├── pomdtr.me
-│   └── www
-└── smallweb.run
-    ├── www
-    ├── assets
-    └── readme
+```json
+{
+  "domains": {
+    "example.com": "~/example.com"
+  }
+}
 ```
 
-Here 6 websites are defined:
+## Mapping a wildcard domain to a single folder
 
-- `example.localhost`
-- `react.localhost`
-- `www.pomdtr.me`
-- `www.smallweb.run`
-- `assets.smallweb.run`
-- `readme.smallweb.run`
+```json
+{
+  "domains": {
+    "*.example.com": "~/example.com",
+  }
+}
+```
 
-Note that each request for an apex domain (e.g. `pomdtr.me`) will be redirected to the `www` subdomain (e.g. `www.pomdtr.me`).
+## Mapping a wildcard domain to multiple folders
 
-You can configure the smallweb root folder by setting the `SMALLWEB_ROOT` environment variable.
+```json
+{
+  "domains": {
+    "*.example.com": "~/example.com/*"
+  }
+}
+```

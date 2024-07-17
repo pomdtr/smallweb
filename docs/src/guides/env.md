@@ -11,7 +11,7 @@ BEARER_TOKEN=SECURE_TOKEN
 Use the `Deno.env.get` method to access the environment variables in your app:
 
 ```ts
-// File: ~/smallweb/localhost/demo/main.ts
+// File: ~/localhost/demo/main.ts
 export default function (req: Request) {
   if (req.headers.get("Authorization") !== `Bearer ${Deno.env.get("BEARER_TOKEN")}`) {
     return new Response("Unauthorized", { status: 401 });

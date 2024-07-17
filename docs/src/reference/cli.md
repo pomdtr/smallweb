@@ -266,11 +266,10 @@ smallweb cron list [flags]
 ### Options
 
 ```
-      --all             list all cron jobs
-      --app string      filter by app
-      --domain string   filter by domain
-  -h, --help            help for list
-      --json            output as json
+      --all          list all cron jobs
+      --app string   filter by app
+  -h, --help         help for list
+      --json         output as json
 ```
 
 ## smallweb cron trigger
@@ -332,9 +331,8 @@ smallweb list [flags]
 ### Options
 
 ```
-      --domain string   filter by domain
-  -h, --help            help for list
-      --json            output as json
+  -h, --help   help for list
+      --json   output as json
 ```
 
 ## smallweb open

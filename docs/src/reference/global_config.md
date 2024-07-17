@@ -1,0 +1,59 @@
+# Global Config
+
+The smallweb config is located at `~/.config/smallweb/config.json`. It is a json file that defines global settings for smallweb.
+
+## `host`
+
+The `host` field defines the host to bind to. By default, it is `127.0.0.1`.
+
+```json
+{
+  "host": "0.0.0.0"
+}
+```
+
+## `port`
+
+The `port` field defines the port to bind to. By default, it is `7777`.
+
+```json
+{
+  "port": 8000
+}
+```
+
+## `domains`
+
+The `domains` field defines a list of domains to folders. By default, it maps `*.localhost` to `~/localhost/*`, but you can add more hostnames from the config.
+
+```json
+{
+  "domains": {
+    "example.com": "~/example.com"
+  }
+}
+```
+
+See the [Routing](../guides/routing.md) guide for more information.
+
+## `env`
+
+The `env` field defines a list of environment variables to set for all apps.
+
+```json
+{
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
+```
+
+## `envFile`
+
+The `envFile` field defines a file to load environment variables from.
+
+```json
+{
+  "envFile": ".env"
+}
+```
