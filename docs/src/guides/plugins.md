@@ -9,7 +9,7 @@ For example, if you create a new `smallweb-choose` file in your PATH with the fo
 
 # List all apps, pipe to fzf, and open the selected app
 # see https://junegunn.github.io/fzf/installation/ for fzf installation instructions
-smallweb ls | cut -f1 | fzf | xargs smallweb open
+smallweb ls | fzf --with-nth=1 | cut -f2 | xargs smallweb open
 ```
 
 And make it executable with `chmod +x smallweb-choose`, you will be able to run `smallweb choose` and get an interactive list of your apps to choose from, which will then be opened in your default browser.

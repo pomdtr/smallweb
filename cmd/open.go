@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/charmbracelet/huh"
@@ -46,12 +47,22 @@ func GetAppsFromDir(domains map[string]string, dir string) ([]App, error) {
 func NewCmdOpen(v *viper.Viper) *cobra.Command {
 	return &cobra.Command{
 		Use:   "open [dir]",
-		Short: "Open the current smallweb app in the browser",
-		Args:  cobra.ExactArgs(1),
+		Short: "Open the smallweb app specified by dir in the browser",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dir, err := filepath.Abs(args[0])
-			if err != nil {
-				return fmt.Errorf("failed to get abs path: %v", err)
+			var dir string
+			if len(args) == 0 {
+				d, err := os.Getwd()
+				if err != nil {
+					return fmt.Errorf("failed to get current dir: %v", err)
+				}
+				dir = d
+			} else {
+				d, err := filepath.Abs(args[0])
+				if err != nil {
+					return fmt.Errorf("failed to get abs path: %v", err)
+				}
+				dir = d
 			}
 
 			apps, err := GetAppsFromDir(extractDomains(v), dir)

@@ -336,10 +336,10 @@ smallweb list [flags]
 
 ## smallweb open
 
-Open the current smallweb app in the browser
+Open the smallweb app specified by dir in the browser
 
 ```
-smallweb open [flags]
+smallweb open [dir] [flags]
 ```
 
 ### Options
@@ -474,20 +474,6 @@ smallweb service uninstall [flags]
 
 ```
   -h, --help   help for uninstall
-```
-
-## smallweb simpl-site
-
-Extension simpl-site
-
-```
-smallweb simpl-site [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for simpl-site
 ```
 
 ## smallweb up
