@@ -17,10 +17,5 @@
         <string>{{ .HomeDir }}/Library/Logs/smallweb.log</string>
         <key>WorkingDirectory</key>
         <string>{{ .HomeDir }}/</string>
-        <key>EnvironmentVariables</key>
-        <dict>
-            <key>SMALLWEB_ROOT</key>
-            <string>{{ .SmallwebRoot }}</string>
-        </dict>
     </dict>
 </plist>

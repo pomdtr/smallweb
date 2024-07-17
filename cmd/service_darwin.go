@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/pomdtr/smallweb/worker"
+	"github.com/pomdtr/smallweb/utils"
 )
 
 //go:embed service/com.pomdtr.smallweb.plist
@@ -25,7 +25,7 @@ func InstallService() error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if worker.Exists(servicePath) {
+	if utils.FileExists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
 
@@ -45,9 +45,8 @@ func InstallService() error {
 	defer f.Close()
 
 	if err := serviceConfig.Execute(f, map[string]string{
-		"ExecPath":     execPath,
-		"HomeDir":      homeDir,
-		"SmallwebRoot": worker.SMALLWEB_ROOT,
+		"ExecPath": execPath,
+		"HomeDir":  homeDir,
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)
 	}
@@ -66,7 +65,7 @@ func StartService() error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if !worker.Exists(servicePath) {
+	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
@@ -84,7 +83,7 @@ func StopService() error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if !worker.Exists(servicePath) {
+	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
@@ -112,7 +111,7 @@ func UninstallService() error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if !worker.Exists(servicePath) {
+	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
@@ -135,16 +134,16 @@ func PrintServiceLogs(follow bool) error {
 	}
 
 	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
-	if !worker.Exists(servicePath) {
+	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
-	if !worker.Exists(servicePath) {
+	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
 	logPath := filepath.Join(homeDir, "Library", "Logs", "smallweb.log")
-	if !worker.Exists(logPath) {
+	if !utils.FileExists(logPath) {
 		return fmt.Errorf("log file not found")
 	}
 

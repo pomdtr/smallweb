@@ -12,7 +12,7 @@ smallweb create --name new-app --template hono
 
 In addition to this, smallweb is compatible with most static sites generator, so you can use your favorite generator to create your project.
 
-Ex: `npm create vite@latest ~/smallweb/localhost/my-vite-app`
+Ex: `npm create vite@latest ~/localhost/my-vite-app`
 
 Depending on the framework you choose, you might need to either:
 

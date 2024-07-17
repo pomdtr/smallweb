@@ -6,19 +6,36 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-func NewCmdUp() *cobra.Command {
+func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Worker, error) {
+	if rootDir, ok := domains[hostname]; ok {
+		return &worker.Worker{Dir: rootDir}, nil
+	}
+
+	for domain, rootDir := range domains {
+		match, err := utils.ExtractGlobPattern(hostname, domain)
+		if err != nil {
+			continue
+		}
+
+		rootDir := strings.Replace(rootDir, "*", match, 1)
+		return &worker.Worker{Dir: rootDir}, nil
+	}
+
+	return nil, fmt.Errorf("domain not found")
+}
+
+func NewCmdUp(v *viper.Viper) *cobra.Command {
 	var flags struct {
-		host          string
-		port          int
 		tls           bool
 		tlsCert       string
 		tlsKey        string
@@ -33,36 +50,26 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			port := flags.port
-			if flags.port == 0 && flags.tls {
+			port := v.GetInt("port")
+			if port == 0 && flags.tls {
 				port = 443
-			} else if flags.port == 0 {
+			} else if port == 0 {
 				port = 7777
 			}
-			addr := fmt.Sprintf("%s:%d", flags.host, port)
+
+			host := v.GetString("host")
+			addr := fmt.Sprintf("%s:%d", host, port)
 
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if worker.Exists(filepath.Join(worker.SMALLWEB_ROOT, r.Host, "www")) {
-						http.Redirect(w, r, fmt.Sprintf("https://www.%s", r.Host), http.StatusTemporaryRedirect)
+					domains := extractDomains(v)
+					handler, err := WorkerFromHostname(domains, r.Host)
+					if err != nil {
+						http.Error(w, "Not found", http.StatusNotFound)
 						return
 					}
-
-					parts := strings.SplitN(r.Host, ".", 2)
-					if len(parts) != 2 {
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					subdomain, domain := parts[0], parts[1]
-					appDir := filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)
-					if !worker.Exists(filepath.Join(worker.SMALLWEB_ROOT, domain, subdomain)) {
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					handler := worker.NewWorker(appDir)
+					handler.Env = v.GetStringMapString("env")
 					handler.ServeHTTP(w, r)
 				}),
 			}
@@ -116,17 +123,16 @@ func NewCmdUp() *cobra.Command {
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 			c := cron.New(cron.WithParser(parser))
 			c.AddFunc("* * * * *", func() {
-				fmt.Fprintln(os.Stderr, "Running cron jobs")
 				rounded := time.Now().Truncate(time.Minute)
 
-				apps, err := ListApps()
+				apps, err := ListApps(extractDomains(v))
 				if err != nil {
 					fmt.Println(err)
 					return
 				}
 
 				for _, app := range apps {
-					w := worker.NewWorker(app.Path)
+					w := worker.Worker{Dir: app.Dir}
 					config, err := w.LoadConfig()
 					if err != nil {
 						continue
@@ -161,8 +167,10 @@ func NewCmdUp() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.host, "host", "localhost", "Host to listen on")
-	cmd.Flags().IntVarP(&flags.port, "port", "p", 0, "Port to listen on")
+	cmd.Flags().String("host", "localhost", "Host to listen on")
+	v.BindPFlag("host", cmd.Flags().Lookup("host"))
+	cmd.Flags().IntP("port", "p", 0, "Port to listen on")
+	v.BindPFlag("port", cmd.Flags().Lookup("port"))
 	cmd.Flags().BoolVar(&flags.tls, "tls", false, "Enable TLS")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "TLS certificate file path")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "TLS key file path")

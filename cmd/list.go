@@ -5,88 +5,64 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/worker"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
 type App struct {
-	Name string `json:"name"`
-	Url  string `json:"url"`
-	Path string `json:"path"`
+	Hostname string `json:"hostname"`
+	Dir      string `json:"dir"`
 }
 
-func ListApps() ([]App, error) {
-	entries, err := os.ReadDir(worker.SMALLWEB_ROOT)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read directory: %w", err)
-	}
-
+func ListApps(domains map[string]string) ([]App, error) {
 	apps := make([]App, 0)
-	for _, entry := range entries {
-		if !entry.IsDir() {
+
+	for domain, rootDir := range domains {
+		if !utils.IsGlob(rootDir) {
+			apps = append(apps, App{
+				Hostname: domain,
+				Dir:      rootDir,
+			})
 			continue
 		}
 
-		// Skip hidden files
-		if strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-
-		subdomains, err := os.ReadDir(filepath.Join(worker.SMALLWEB_ROOT, entry.Name()))
+		entries, err := filepath.Glob(rootDir)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read directory: %w", err)
+			return nil, fmt.Errorf("failed to list apps: %w", err)
 		}
 
-		for _, subdomain := range subdomains {
-			if !subdomain.IsDir() {
-				continue
-			}
-
-			// Skip hidden files
-			if strings.HasPrefix(subdomain.Name(), ".") {
+		for _, entry := range entries {
+			match, err := utils.ExtractGlobPattern(entry, rootDir)
+			if err != nil {
 				continue
 			}
 
 			apps = append(apps, App{
-				Name: fmt.Sprintf("%s.%s", subdomain.Name(), entry.Name()),
-				Url:  fmt.Sprintf("https://%s.%s", subdomain.Name(), entry.Name()),
-				Path: filepath.Join(worker.SMALLWEB_ROOT, entry.Name(), subdomain.Name()),
+				Hostname: strings.Replace(domain, "*", match, 1),
+				Dir:      strings.Replace(rootDir, "*", match, 1),
 			})
-
 		}
 
 	}
+
+	// sort by hostname
+	slices.SortFunc(apps, func(a, b App) int {
+		return strings.Compare(a.Hostname, b.Hostname)
+	})
 
 	return apps, nil
 }
 
-func listAppsWithDomain(domain string) ([]App, error) {
-	apps, err := ListApps()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list apps: %w", err)
-	}
-
-	var filtered []App
-	for _, app := range apps {
-		if !strings.HasSuffix(app.Name, "."+domain) {
-			continue
-		}
-
-		filtered = append(filtered, app)
-	}
-
-	return filtered, nil
-}
-
-func NewCmdDump() *cobra.Command {
+func NewCmdDump(v *viper.Viper) *cobra.Command {
 	var flags struct {
-		json   bool
-		domain string
+		json bool
 	}
 
 	cmd := &cobra.Command{
@@ -95,19 +71,9 @@ func NewCmdDump() *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var apps []App
-			if flags.domain != "" {
-				var err error
-				apps, err = listAppsWithDomain(flags.domain)
-				if err != nil {
-					return fmt.Errorf("failed to list apps: %w", err)
-				}
-			} else {
-				var err error
-				apps, err = ListApps()
-				if err != nil {
-					return fmt.Errorf("failed to list apps: %w", err)
-				}
+			apps, err := ListApps(extractDomains(v))
+			if err != nil {
+				return fmt.Errorf("failed to list apps: %w", err)
 			}
 
 			if flags.json {
@@ -141,11 +107,10 @@ func NewCmdDump() *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "URL", "Path"})
+			printer.AddHeader([]string{"Hostname", "Dir"})
 			for _, app := range apps {
-				printer.AddField(app.Name)
-				printer.AddField(app.Url)
-				printer.AddField(app.Path)
+				printer.AddField(app.Hostname)
+				printer.AddField(app.Dir)
 				printer.EndRow()
 			}
 
@@ -154,29 +119,6 @@ func NewCmdDump() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	cmd.Flags().StringVar(&flags.domain, "domain", "", "filter by domain")
-	cmd.RegisterFlagCompletionFunc("domain", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		entries, err := os.ReadDir(worker.SMALLWEB_ROOT)
-		if err != nil {
-			return nil, cobra.ShellCompDirectiveError
-		}
-
-		var completions []string
-		for _, entry := range entries {
-			if !entry.IsDir() {
-				continue
-			}
-
-			// Skip hidden files
-			if strings.HasPrefix(entry.Name(), ".") {
-				continue
-			}
-
-			completions = append(completions, entry.Name())
-		}
-
-		return completions, cobra.ShellCompDirectiveNoFileComp
-	})
 
 	return cmd
 }

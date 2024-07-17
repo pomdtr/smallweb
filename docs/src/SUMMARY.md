@@ -16,14 +16,16 @@
 
 # Hosting
 
-- [Localhost setup](./hosting/localhost/localhost.md)
-- [Cloudflare setup](./hosting/home-server/home-server.md)
-- [VPS Setup](./hosting/vps.md)
+- [Localhost](./hosting/localhost/localhost.md)
+- [Cloudflare](./hosting/home-server/home-server.md)
+- [VPS](./hosting/vps.md)
+- [Fly.io](./hosting/fly.md)
 - [Deno Deploy](./hosting/deno-deploy.md)
 
 # Reference
 
-- [Configuration Reference](./reference/config.md)
-- [CLI Reference](./reference/cli.md)
+- [Global Config](./reference/global_config.md)
+- [App Config](./reference/app_config.md)
+- [CLI](./reference/cli.md)
 
 <!-- markdownlint-disable-file -->
