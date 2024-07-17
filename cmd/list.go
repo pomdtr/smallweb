@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -50,6 +51,11 @@ func ListApps(domains map[string]string) ([]App, error) {
 		}
 
 	}
+
+	// sort by hostname
+	slices.SortFunc(apps, func(a, b App) int {
+		return strings.Compare(a.Hostname, b.Hostname)
+	})
 
 	return apps, nil
 }
