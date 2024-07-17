@@ -473,10 +473,9 @@ smallweb ls | fzf --with-nth=1 | cut -f2 | xargs smallweb open
 <p><img src="hosting/localhost/./architecture.excalidraw.png" alt="Localhost architecture" /></p>
 <p>The components needed are:</p>
 <ul>
-<li>a dns server to map <code>.localhost</code> domains to <code>127.0.0.1</code> ip address (dnsmasq)</li>
+<li>a dns server to map <code>*.localhost</code> domains to <code>127.0.0.1</code> ip address (dnsmasq)</li>
 <li>a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)</li>
 <li>a service to map each domain to the corresponding folder in ~/smallweb, and spawn a deno subprocess for each request (smallweb)</li>
-<li>a runtime to evaluate the application code (deno)</li>
 </ul>
 <h2 id="macos-setup"><a class="header" href="#macos-setup">MacOS setup</a></h2>
 <p>In the future, we might provide a script to automate this process, but for now, it's a manual process.</p>
@@ -509,10 +508,6 @@ brew services start caddy
 
 # Add caddy https certificates to your keychain
 caddy trust
-
-mkdir -p ~/smallweb
-# Indicate to deno to use the keychain for tls certificates
-echo "DENO_TLS_CA_STORE=system" &gt;&gt; ~/smallweb/.env
 </code></pre>
 <h3 id="setup-dnsmasq"><a class="header" href="#setup-dnsmasq">Setup dnsmasq</a></h3>
 <pre><code class="language-sh">brew install dnsmasq
@@ -575,6 +570,7 @@ sudo systemctl restart caddy
 
 caddy trust
 </code></pre>
+<p>There is no need to setup dnsmasq on Ubuntu, as it seems to be already configured to resolve <code>.localhost</code> domains to <code>127.0.0.1</code>.</p>
 <h3 id="testing-setup-ubuntu"><a class="header" href="#testing-setup-ubuntu">Testing the setup</a></h3>
 <p>First, let's create a dummy smallweb website:</p>
 <pre><code class="language-sh">mkdir -p ~/localhost/example
