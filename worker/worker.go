@@ -402,7 +402,7 @@ func (me *Worker) inferEntrypoint() (string, error) {
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !Exists(me.Dir) {
-		http.Error(w, "Not found", http.StatusNotFound)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 

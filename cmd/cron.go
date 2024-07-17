@@ -80,8 +80,7 @@ func NewCmdCronList(v *viper.Viper) *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domains := v.GetStringMapString("domains")
-
+			domains := extractDomains(v)
 			items, err := ListCronItems(domains)
 			if err != nil {
 				return fmt.Errorf("failed to list cron jobs: %w", err)
@@ -151,7 +150,7 @@ func NewCmdCronList(v *viper.Viper) *cobra.Command {
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.RegisterFlagCompletionFunc("app", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		apps, err := ListApps(v.GetStringMapString("domains"))
+		apps, err := ListApps(extractDomains(v))
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveError
 		}
@@ -183,7 +182,7 @@ func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 
-			items, err := ListCronWithApps(v.GetStringMapString("domains"), flags.app)
+			items, err := ListCronWithApps(extractDomains(v), flags.app)
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
 			}
@@ -196,7 +195,7 @@ func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
 			return completions, cobra.ShellCompDirectiveNoFileComp
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			crons, err := ListCronWithApps(v.GetStringMapString("domains"), flags.app)
+			crons, err := ListCronWithApps(extractDomains(v), flags.app)
 			if err != nil {
 				return err
 			}
@@ -219,7 +218,7 @@ func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.app, "app", "", "app cron job belongs to")
 	cmd.RegisterFlagCompletionFunc("app", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		apps, err := ListApps(v.GetStringMapString("domains"))
+		apps, err := ListApps(extractDomains(v))
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveError
 		}

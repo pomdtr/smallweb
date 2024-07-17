@@ -52,7 +52,7 @@ func NewCmdOpen(v *viper.Viper) *cobra.Command {
 			if len(args) > 0 {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
-			apps, err := ListApps(v.GetStringMapString("domains"))
+			apps, err := ListApps(extractDomains(v))
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
 			}
@@ -78,7 +78,7 @@ func NewCmdOpen(v *viper.Viper) *cobra.Command {
 				return fmt.Errorf("failed to get working directory: %v", err)
 			}
 
-			apps, err := GetAppsFromDir(v.GetStringMapString("domains"), wd)
+			apps, err := GetAppsFromDir(extractDomains(v), wd)
 			if err != nil {
 				return fmt.Errorf("failed to get app from dir: %v", err)
 			}

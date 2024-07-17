@@ -69,7 +69,7 @@ func NewCmdDump(v *viper.Viper) *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := ListApps(v.GetStringMapString("domains"))
+			apps, err := ListApps(extractDomains(v))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}

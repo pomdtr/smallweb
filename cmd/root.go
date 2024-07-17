@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,6 +18,31 @@ const (
 	ExtensionGroupID = "extension"
 )
 
+func expandTilde(path string) (string, error) {
+	if path == "~" || strings.HasPrefix(path, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		return strings.Replace(path, "~", home, 1), nil
+	}
+	return path, nil
+}
+
+func extractDomains(v *viper.Viper) map[string]string {
+	domains := v.GetStringMapString("domains")
+	for key, value := range domains {
+		domain, err := expandTilde(value)
+		if err != nil {
+			domains[key] = value
+		}
+
+		domains[key] = domain
+	}
+
+	return domains
+}
+
 func NewCmdRoot(version string) *cobra.Command {
 	v := viper.New()
 	v.SetConfigName("config")
@@ -25,6 +51,11 @@ func NewCmdRoot(version string) *cobra.Command {
 	v.AddConfigPath("$HOME/.config/smallweb")
 	v.SetEnvPrefix("SMALLWEB")
 	v.AutomaticEnv()
+
+	v.WatchConfig()
+	v.OnConfigChange(func(e fsnotify.Event) {
+		fmt.Println(extractDomains(v))
+	})
 
 	v.SetDefault("host", "127.0.0.1")
 	v.SetDefault("port", 7777)
@@ -46,22 +77,6 @@ func NewCmdRoot(version string) *cobra.Command {
 				}
 			}
 
-			domains := v.GetStringMapString("domains")
-			for domain, rootDir := range domains {
-				home, err := os.UserHomeDir()
-				if err != nil {
-					return fmt.Errorf("failed to get user home directory: %v", err)
-				}
-
-				if rootDir == "~" {
-					domains[domain] = home
-
-				} else if strings.HasPrefix(rootDir, "~/") {
-					domains[domain] = filepath.Join(home, strings.TrimPrefix(rootDir, "~/"))
-				}
-			}
-
-			v.Set("domains", domains)
 			return nil
 		},
 		SilenceUsage: true,

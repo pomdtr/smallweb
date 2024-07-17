@@ -76,13 +76,13 @@ func NewCmdUp(v *viper.Viper) *cobra.Command {
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					domains := v.GetStringMapString("domains")
+					domains := extractDomains(v)
 					handler, err := WorkerFromHostname(domains, r.Host)
-					handler.Env = v.GetStringMapString("env")
 					if err != nil {
 						http.Error(w, "Not found", http.StatusNotFound)
+						return
 					}
-
+					handler.Env = v.GetStringMapString("env")
 					handler.ServeHTTP(w, r)
 				}),
 			}
@@ -138,7 +138,7 @@ func NewCmdUp(v *viper.Viper) *cobra.Command {
 			c.AddFunc("* * * * *", func() {
 				rounded := time.Now().Truncate(time.Minute)
 
-				apps, err := ListApps(v.GetStringMapString("domains"))
+				apps, err := ListApps(extractDomains(v))
 				if err != nil {
 					fmt.Println(err)
 					return
