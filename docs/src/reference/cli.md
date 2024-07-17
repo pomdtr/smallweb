@@ -210,22 +210,6 @@ smallweb completion zsh [flags]
       --no-descriptions   disable completion descriptions
 ```
 
-## smallweb create
-
-Create a new smallweb app
-
-```
-smallweb create <app> [flags]
-```
-
-### Options
-
-```
-  -h, --help              help for create
-  -n, --name string       The name of the app
-  -t, --template string   The template to use
-```
-
 ## smallweb cron
 
 Manage cron jobs
@@ -318,6 +302,21 @@ smallweb help [command] [flags]
 
 ```
   -h, --help   help for help
+```
+
+## smallweb init
+
+Init a new smallweb app
+
+```
+smallweb init [dir] [flags]
+```
+
+### Options
+
+```
+  -h, --help              help for init
+  -t, --template string   The template to use
 ```
 
 ## smallweb list

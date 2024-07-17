@@ -25,11 +25,11 @@ func List() ([]string, error) {
 	return templates, nil
 }
 
-func Install(name string, dst string) error {
-	root, err := debme.FS(templateFS, path.Join("templates", name))
+func Install(template string, dir string) error {
+	root, err := debme.FS(templateFS, path.Join("templates", template))
 	if err != nil {
-		return fmt.Errorf("template %s not found", name)
+		return fmt.Errorf("template %s not found", template)
 	}
 
-	return gosod.New(root).Extract(dst, nil)
+	return gosod.New(root).Extract(dir, nil)
 }

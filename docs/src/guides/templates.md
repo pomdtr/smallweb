@@ -1,13 +1,13 @@
 # Templates
 
-Smallweb comes with a list of templates to help you get started with your project. You can use the `smallweb create` command to create a new project from a template.
+Smallweb comes with a list of templates to help you get started with your project. You can use the `smallweb init` command to create a new project from a template.
 
 ```sh
 # Interactive mode
-smallweb create
+smallweb init
 
-# Create a project from a template
-smallweb create --name new-app --template hono
+# Init a project from a template
+smallweb init ~/localhost/hono-app --template hono
 ```
 
 In addition to this, smallweb is compatible with most static sites generator, so you can use your favorite generator to create your project.

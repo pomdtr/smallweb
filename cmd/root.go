@@ -9,6 +9,7 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/fsnotify/fsnotify"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -18,21 +19,10 @@ const (
 	ExtensionGroupID = "extension"
 )
 
-func expandTilde(path string) (string, error) {
-	if path == "~" || strings.HasPrefix(path, "~/") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		return strings.Replace(path, "~", home, 1), nil
-	}
-	return path, nil
-}
-
 func extractDomains(v *viper.Viper) map[string]string {
 	domains := v.GetStringMapString("domains")
 	for key, value := range domains {
-		domain, err := expandTilde(value)
+		domain, err := utils.ExpandTilde(value)
 		if err != nil {
 			domains[key] = value
 		}
@@ -93,7 +83,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdDump(v))
 	cmd.AddCommand(NewCmdDocs())
-	cmd.AddCommand(NewCmdCreate())
+	cmd.AddCommand(NewCmdInit())
 	cmd.AddCommand(NewCmdCron(v))
 	cmd.AddCommand(NewCmdOpen(v))
 	cmd.AddCommand(NewCmdUpgrade())

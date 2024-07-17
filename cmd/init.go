@@ -1,23 +1,25 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/charmbracelet/huh"
 	"github.com/pomdtr/smallweb/templates"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
 type Inputs struct {
-	Name     string
+	Dir      string
 	Template string
 }
 
 func (me *Inputs) Fill() error {
 	var fields []huh.Field
 
-	if me.Name == "" {
-		fields = append(fields, huh.NewInput().Title("Choose a name").Value(&me.Name))
+	if me.Dir == "" {
+		fields = append(fields, huh.NewInput().Title("Choose a dir").Value(&me.Dir).Placeholder("."))
 	}
 
 	if me.Template == "" {
@@ -39,35 +41,61 @@ func (me *Inputs) Fill() error {
 	}
 
 	form := huh.NewForm(huh.NewGroup(fields...))
-	return form.Run()
+	if err := form.Run(); err != nil {
+		return fmt.Errorf("failed to run form: %w", err)
+	}
+
+	if me.Dir != "" {
+		dir, err := utils.ExpandTilde(me.Dir)
+		if err != nil {
+			return fmt.Errorf("failed to expand dir: %w", err)
+		}
+
+		me.Dir = dir
+	} else {
+		me.Dir = "."
+	}
+
+	return nil
 }
 
-func NewCmdCreate() *cobra.Command {
+func NewCmdInit() *cobra.Command {
 	var flags struct {
-		name     string
 		template string
 	}
 
 	cmd := &cobra.Command{
-		Use:     "create <app>",
-		Short:   "Create a new smallweb app",
+		Use:     "init [dir]",
+		Short:   "Init a new smallweb app",
 		GroupID: CoreGroupID,
-		Args:    cobra.NoArgs,
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var dir string
+			if len(args) > 0 {
+				dir = args[0]
+			}
+
 			inputs := Inputs{
-				Name:     flags.name,
+				Dir:      dir,
 				Template: flags.template,
 			}
 
 			if err := inputs.Fill(); err != nil {
+				if errors.Is(err, huh.ErrUserAborted) {
+					return nil
+				}
 				return fmt.Errorf("failed to fill inputs: %w", err)
 			}
 
-			return templates.Install(inputs.Template, inputs.Name)
+			if err := templates.Install(inputs.Template, inputs.Dir); err != nil {
+				return fmt.Errorf("failed to install template: %w", err)
+			}
+
+			cmd.PrintErrf("Template %s installed in %s\n", inputs.Template, inputs.Dir)
+			return nil
 		},
 	}
 
-	cmd.Flags().StringVarP(&flags.name, "name", "n", "", "The name of the app")
 	cmd.Flags().StringVarP(&flags.template, "template", "t", "", "The template to use")
 	cmd.RegisterFlagCompletionFunc("template", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		options, err := templates.List()
