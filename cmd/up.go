@@ -9,16 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gobwas/glob"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-func IsWildcard(domain string) bool {
-	return strings.HasPrefix(domain, "*.")
-}
 
 func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Worker, error) {
 	if rootDir, ok := domains[hostname]; ok {
@@ -26,21 +22,12 @@ func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Wor
 	}
 
 	for domain, rootDir := range domains {
-		g, err := glob.Compile(domain)
+		match, err := utils.ExtractGlobPattern(hostname, domain)
 		if err != nil {
-			return nil, err
-		}
-
-		if !g.Match(hostname) {
 			continue
 		}
 
-		if !IsWildcard(domain) {
-			return &worker.Worker{Dir: rootDir}, nil
-		}
-
-		subdomain := strings.Split(hostname, ".")[0]
-		rootDir := strings.Replace(rootDir, "*", subdomain, 1)
+		rootDir := strings.Replace(rootDir, "*", match, 1)
 		return &worker.Worker{Dir: rootDir}, nil
 	}
 

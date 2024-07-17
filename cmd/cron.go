@@ -52,7 +52,7 @@ func ListCronWithApps(domains map[string]string, app string) ([]CronItem, error)
 	}
 
 	return slices.DeleteFunc(items, func(item CronItem) bool {
-		return item.App.Name != app
+		return item.App.Hostname != app
 	}), nil
 }
 
@@ -89,7 +89,7 @@ func NewCmdCronList(v *viper.Viper) *cobra.Command {
 			if flags.app != "" {
 				var filteredItems []CronItem
 				for _, item := range items {
-					if item.App.Name == flags.app {
+					if item.App.Hostname == flags.app {
 						filteredItems = append(filteredItems, item)
 					}
 				}
@@ -130,7 +130,7 @@ func NewCmdCronList(v *viper.Viper) *cobra.Command {
 			printer.AddHeader([]string{"Name", "App", "Schedule", "Command"})
 			for _, item := range items {
 				printer.AddField(item.Job.Name)
-				printer.AddField(item.App.Name)
+				printer.AddField(item.App.Hostname)
 				printer.AddField(item.Job.Schedule)
 
 				cmd := exec.Command(item.Job.Command, item.Job.Args...)
@@ -157,7 +157,7 @@ func NewCmdCronList(v *viper.Viper) *cobra.Command {
 
 		var completions []string
 		for _, app := range apps {
-			completions = append(completions, app.Name)
+			completions = append(completions, app.Hostname)
 		}
 
 		return completions, cobra.ShellCompDirectiveNoFileComp
@@ -225,7 +225,7 @@ func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
 
 		var completions []string
 		for _, app := range apps {
-			completions = append(completions, app.Name)
+			completions = append(completions, app.Hostname)
 		}
 
 		return completions, cobra.ShellCompDirectiveNoFileComp

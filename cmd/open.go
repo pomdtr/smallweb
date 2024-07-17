@@ -17,7 +17,7 @@ func GetApp(domains map[string]string, name string) (*App, error) {
 	}
 
 	for _, app := range apps {
-		if app.Name == name {
+		if app.Hostname == name {
 			return &app, nil
 		}
 	}
@@ -59,7 +59,7 @@ func NewCmdOpen(v *viper.Viper) *cobra.Command {
 
 			var completions []string
 			for _, app := range apps {
-				completions = append(completions, app.Name)
+				completions = append(completions, app.Hostname)
 			}
 
 			return completions, cobra.ShellCompDirectiveNoFileComp
@@ -88,7 +88,8 @@ func NewCmdOpen(v *viper.Viper) *cobra.Command {
 			}
 
 			if len(apps) == 1 {
-				if err := browser.OpenURL(apps[0].Url); err != nil {
+				app := apps[0]
+				if err := browser.OpenURL(fmt.Sprintf("https://%s", app.Hostname)); err != nil {
 					return fmt.Errorf("failed to open browser: %v", err)
 				}
 
@@ -97,8 +98,8 @@ func NewCmdOpen(v *viper.Viper) *cobra.Command {
 			var options []huh.Option[string]
 			for _, app := range apps {
 				options = append(options, huh.Option[string]{
-					Key:   app.Name,
-					Value: app.Name,
+					Key:   app.Hostname,
+					Value: app.Hostname,
 				})
 			}
 

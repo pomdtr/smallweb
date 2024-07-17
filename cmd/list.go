@@ -9,50 +9,46 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
 type App struct {
-	Name string `json:"name"`
-	Url  string `json:"url"`
-	Dir  string `json:"dir"`
+	Hostname string `json:"hostname"`
+	Dir      string `json:"dir"`
 }
 
 func ListApps(domains map[string]string) ([]App, error) {
 	apps := make([]App, 0)
+
 	for domain, rootDir := range domains {
-		if !IsWildcard(domain) {
+		if !utils.IsGlob(rootDir) {
 			apps = append(apps, App{
-				Name: domain,
-				Url:  fmt.Sprintf("https://%s", domain),
-				Dir:  rootDir,
+				Hostname: domain,
+				Dir:      rootDir,
 			})
+			continue
 		}
 
-		rootDomain := strings.SplitN(domain, ".", 2)[1]
-		entries, err := os.ReadDir(rootDir)
+		entries, err := filepath.Glob(rootDir)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read directory: %w", err)
+			return nil, fmt.Errorf("failed to list apps: %w", err)
 		}
 
 		for _, entry := range entries {
-			if !entry.IsDir() {
-				continue
-			}
-
-			// Skip hidden files
-			if strings.HasPrefix(entry.Name(), ".") {
+			match, err := utils.ExtractGlobPattern(entry, rootDir)
+			if err != nil {
 				continue
 			}
 
 			apps = append(apps, App{
-				Name: fmt.Sprintf("%s.%s", entry.Name(), rootDomain),
-				Url:  fmt.Sprintf("https://%s.%s", entry.Name(), rootDomain),
-				Dir:  filepath.Join(rootDir, entry.Name()),
+				Hostname: strings.Replace(domain, "*", match, 1),
+				Dir:      strings.Replace(rootDir, "*", match, 1),
 			})
 		}
+
 	}
 
 	return apps, nil
@@ -105,10 +101,9 @@ func NewCmdDump(v *viper.Viper) *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Url", "Dir"})
+			printer.AddHeader([]string{"Hostname", "Dir"})
 			for _, app := range apps {
-				printer.AddField(app.Name)
-				printer.AddField(app.Url)
+				printer.AddField(app.Hostname)
 				printer.AddField(app.Dir)
 				printer.EndRow()
 			}

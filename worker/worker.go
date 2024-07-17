@@ -21,6 +21,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/tailscale/hujson"
 )
 
@@ -214,11 +215,6 @@ var dataHome = path.Join(xdg.DataHome, "smallweb")
 var sandboxBytes []byte
 var sandboxTemplate = template.Must(template.New("sandbox").Parse(string(sandboxBytes)))
 
-func Exists(parts ...string) bool {
-	_, err := os.Stat(filepath.Join(parts...))
-	return err == nil
-}
-
 func init() {
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
 		log.Fatal(err)
@@ -276,7 +272,7 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 		},
 	}
 
-	if configPath := filepath.Join(me.Dir, "smallweb.json"); Exists(configPath) {
+	if configPath := filepath.Join(me.Dir, "smallweb.json"); utils.FileExists(configPath) {
 		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read smallweb.json: %v", err)
@@ -289,7 +285,7 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 		return &config, nil
 	}
 
-	if configPath := filepath.Join(me.Dir, "smallweb.jsonc"); Exists(configPath) {
+	if configPath := filepath.Join(me.Dir, "smallweb.jsonc"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -307,7 +303,7 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 		return &config, nil
 	}
 
-	if configPath := filepath.Join(me.Dir, "deno.json"); Exists(configPath) {
+	if configPath := filepath.Join(me.Dir, "deno.json"); utils.FileExists(configPath) {
 		denoConfigBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -330,7 +326,7 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 		return &config, nil
 	}
 
-	if configPath := filepath.Join(me.Dir, "deno.jsonc"); Exists(configPath) {
+	if configPath := filepath.Join(me.Dir, "deno.jsonc"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -364,7 +360,7 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 func (me *Worker) LoadEnv() ([]string, error) {
 	envPath := filepath.Join(me.Dir, ".env")
 
-	if !Exists(envPath) {
+	if !utils.FileExists(envPath) {
 		return os.Environ(), nil
 	}
 
@@ -388,12 +384,12 @@ func (me *Worker) LoadEnv() ([]string, error) {
 func (me *Worker) inferEntrypoint() (string, error) {
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
 		path := filepath.Join(me.Dir, candidate)
-		if Exists(path) {
+		if utils.FileExists(path) {
 			return path, nil
 		}
 	}
 
-	if Exists(filepath.Join(me.Dir, "dist", "index.html")) {
+	if utils.FileExists(filepath.Join(me.Dir, "dist", "index.html")) {
 		return filepath.Join(me.Dir, "dist"), nil
 	}
 
@@ -401,7 +397,7 @@ func (me *Worker) inferEntrypoint() (string, error) {
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !Exists(me.Dir) {
+	if !utils.FileExists(me.Dir) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -608,7 +604,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (me *Worker) Trigger(name string) error {
-	if !Exists(me.Dir) {
+	if !utils.FileExists(me.Dir) {
 		return fmt.Errorf("directory not found")
 	}
 
@@ -663,7 +659,7 @@ func DenoExecutable() (string, error) {
 		"/opt/homebrew/bin/deno",
 		"/usr/local/bin/deno",
 	} {
-		if Exists(candidate) {
+		if utils.FileExists(candidate) {
 			return candidate, nil
 		}
 	}
