@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/charmbracelet/huh"
@@ -18,7 +17,7 @@ func GetApp(domains map[string]string, name string) (*App, error) {
 	}
 
 	for _, app := range apps {
-		if app.Hostname == name {
+		if app.Url == name {
 			return &app, nil
 		}
 	}
@@ -46,23 +45,13 @@ func GetAppsFromDir(domains map[string]string, dir string) ([]App, error) {
 
 func NewCmdOpen(v *viper.Viper) *cobra.Command {
 	return &cobra.Command{
-		Use:   "open [dir]",
+		Use:   "open <dir>",
 		Short: "Open the smallweb app specified by dir in the browser",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var dir string
-			if len(args) == 0 {
-				d, err := os.Getwd()
-				if err != nil {
-					return fmt.Errorf("failed to get current dir: %v", err)
-				}
-				dir = d
-			} else {
-				d, err := filepath.Abs(args[0])
-				if err != nil {
-					return fmt.Errorf("failed to get abs path: %v", err)
-				}
-				dir = d
+			dir, err := filepath.Abs(args[0])
+			if err != nil {
+				return fmt.Errorf("failed to get abs path: %v", err)
 			}
 
 			apps, err := GetAppsFromDir(extractDomains(v), dir)
@@ -76,7 +65,7 @@ func NewCmdOpen(v *viper.Viper) *cobra.Command {
 
 			if len(apps) == 1 {
 				app := apps[0]
-				if err := browser.OpenURL(fmt.Sprintf("https://%s", app.Hostname)); err != nil {
+				if err := browser.OpenURL(app.Url); err != nil {
 					return fmt.Errorf("failed to open browser: %v", err)
 				}
 
@@ -86,19 +75,19 @@ func NewCmdOpen(v *viper.Viper) *cobra.Command {
 			var options []huh.Option[string]
 			for _, app := range apps {
 				options = append(options, huh.Option[string]{
-					Key:   app.Hostname,
-					Value: app.Hostname,
+					Key:   app.Name,
+					Value: app.Url,
 				})
 			}
 
-			var app string
-			input := huh.NewSelect[string]().Title("Select an app").Options(options...).Value(&app)
+			var url string
+			input := huh.NewSelect[string]().Title("Select an app").Options(options...).Value(&url)
 
 			if err := input.Run(); err != nil {
 				return fmt.Errorf("failed to get app from user: %v", err)
 			}
 
-			if err := browser.OpenURL(fmt.Sprintf("https://%s", app)); err != nil {
+			if err := browser.OpenURL(url); err != nil {
 				return fmt.Errorf("failed to open browser: %v", err)
 			}
 

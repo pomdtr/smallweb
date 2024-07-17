@@ -17,8 +17,9 @@ import (
 )
 
 type App struct {
-	Hostname string `json:"hostname"`
-	Dir      string `json:"dir"`
+	Name string `json:"name"`
+	Url  string `json:"url"`
+	Dir  string `json:"dir"`
 }
 
 func ListApps(domains map[string]string) ([]App, error) {
@@ -27,8 +28,9 @@ func ListApps(domains map[string]string) ([]App, error) {
 	for domain, rootDir := range domains {
 		if !utils.IsGlob(rootDir) {
 			apps = append(apps, App{
-				Hostname: domain,
-				Dir:      rootDir,
+				Name: domain,
+				Dir:  rootDir,
+				Url:  fmt.Sprintf("https://%s/", domain),
 			})
 			continue
 		}
@@ -44,9 +46,12 @@ func ListApps(domains map[string]string) ([]App, error) {
 				continue
 			}
 
+			hostname := strings.Replace(domain, "*", match, 1)
+
 			apps = append(apps, App{
-				Hostname: strings.Replace(domain, "*", match, 1),
-				Dir:      strings.Replace(rootDir, "*", match, 1),
+				Name: hostname,
+				Url:  fmt.Sprintf("https://%s/", hostname),
+				Dir:  strings.Replace(rootDir, "*", match, 1),
 			})
 		}
 
@@ -54,13 +59,13 @@ func ListApps(domains map[string]string) ([]App, error) {
 
 	// sort by hostname
 	slices.SortFunc(apps, func(a, b App) int {
-		return strings.Compare(a.Hostname, b.Hostname)
+		return strings.Compare(a.Url, b.Url)
 	})
 
 	return apps, nil
 }
 
-func NewCmdDump(v *viper.Viper) *cobra.Command {
+func NewCmdList(v *viper.Viper) *cobra.Command {
 	var flags struct {
 		json bool
 	}
@@ -107,10 +112,11 @@ func NewCmdDump(v *viper.Viper) *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"Hostname", "Dir"})
+			printer.AddHeader([]string{"Name", "Dir", "Url"})
 			for _, app := range apps {
-				printer.AddField(app.Hostname)
+				printer.AddField(app.Name)
 				printer.AddField(app.Dir)
+				printer.AddField(app.Url)
 				printer.EndRow()
 			}
 
