@@ -12,10 +12,9 @@ The following diagram illustrates the architecture of the local setup:
 
 The components needed are:
 
-- a dns server to map `.localhost` domains to `127.0.0.1` ip address (dnsmasq)
+- a dns server to map `*.localhost` domains to `127.0.0.1` ip address (dnsmasq)
 - a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)
 - a service to map each domain to the corresponding folder in ~/smallweb, and spawn a deno subprocess for each request (smallweb)
-- a runtime to evaluate the application code (deno)
 
 ## MacOS setup
 
@@ -61,10 +60,6 @@ brew services start caddy
 
 # Add caddy https certificates to your keychain
 caddy trust
-
-mkdir -p ~/smallweb
-# Indicate to deno to use the keychain for tls certificates
-echo "DENO_TLS_CA_STORE=system" >> ~/smallweb/.env
 ```
 
 ### Setup dnsmasq
@@ -145,6 +140,8 @@ sudo systemctl restart caddy
 
 caddy trust
 ```
+
+There is no need to setup dnsmasq on Ubuntu, as it seems to be already configured to resolve `.localhost` domains to `127.0.0.1`.
 
 ### Testing the setup {#testing-setup-ubuntu}
 
