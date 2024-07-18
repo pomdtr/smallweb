@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
-	"github.com/knadh/koanf/v2"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
@@ -65,7 +64,7 @@ func ListApps(domains map[string]string) ([]App, error) {
 	return apps, nil
 }
 
-func NewCmdList(k *koanf.Koanf) *cobra.Command {
+func NewCmdList() *cobra.Command {
 	var flags struct {
 		json bool
 	}

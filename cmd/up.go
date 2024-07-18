@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/knadh/koanf/providers/posflag"
-	"github.com/knadh/koanf/v2"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
@@ -46,7 +45,7 @@ func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Wor
 	return nil, fmt.Errorf("domain not found")
 }
 
-func NewCmdUp(k *koanf.Koanf) *cobra.Command {
+func NewCmdUp() *cobra.Command {
 	var flags struct {
 		tls           bool
 		tlsCert       string

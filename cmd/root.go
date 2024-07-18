@@ -10,7 +10,6 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/adrg/xdg"
-	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -29,6 +28,9 @@ var (
 	cachedUpgradePath = filepath.Join(xdg.CacheHome, "smallweb", "latest_version")
 )
 
+// Global koanf instance. Use "." as the key path delimiter. This can be "/" or any character.
+var k = koanf.New(".")
+
 func expandDomains(domains map[string]string) map[string]string {
 	for key, value := range domains {
 		domain, err := utils.ExpandTilde(value)
@@ -43,11 +45,8 @@ func expandDomains(domains map[string]string) map[string]string {
 }
 
 func NewCmdRoot(version string) *cobra.Command {
-	k := koanf.New(".")
 	var configDir string
-	if env, ok := os.LookupEnv("SMALLWEB_CONFIG_DIR"); ok {
-		configDir = env
-	} else if env, ok := os.LookupEnv("XDG_CONFIG_HOME"); ok {
+	if env, ok := os.LookupEnv("XDG_CONFIG_HOME"); ok {
 		configDir = filepath.Join(env, "smallweb", "config.json")
 	} else {
 		configDir = filepath.Join(os.Getenv("HOME"), ".config", "smallweb")
@@ -64,20 +63,29 @@ func NewCmdRoot(version string) *cobra.Command {
 		},
 	}, "")
 
-	fileProvider := file.Provider(filepath.Join(configDir, "config.json"))
+	var configPath string
+	if env, ok := os.LookupEnv("SMALLWEB_CONFIG"); ok {
+		configPath = env
+	} else if utils.FileExists(filepath.Join(configDir, "config.jsonc")) {
+		configPath = filepath.Join(configDir, "config.jsonc")
+	} else {
+		configPath = filepath.Join(configDir, "config.json")
+	}
+
+	fileProvider := file.Provider(configPath)
 	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
 		return strings.Replace(strings.ToLower(
 			strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
 	})
 
 	k.Load(defaultProvider, nil)
-	k.Load(fileProvider, json.Parser())
+	k.Load(fileProvider, utils.ConfigParser())
 	k.Load(envProvider, nil)
 
 	fileProvider.Watch(func(event interface{}, err error) {
 		k = koanf.New(".")
 		k.Load(defaultProvider, nil)
-		k.Load(fileProvider, json.Parser())
+		k.Load(fileProvider, utils.ConfigParser())
 		k.Load(envProvider, nil)
 	})
 
@@ -157,13 +165,13 @@ func NewCmdRoot(version string) *cobra.Command {
 		Title: "Extension Commands",
 	})
 
-	cmd.AddCommand(NewCmdUp(k))
+	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdService())
-	cmd.AddCommand(NewCmdList(k))
+	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdInit())
-	cmd.AddCommand(NewCmdCron(k))
-	cmd.AddCommand(NewCmdOpen(k))
+	cmd.AddCommand(NewCmdCron())
+	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdUpgrade())
 
 	path := os.Getenv("PATH")

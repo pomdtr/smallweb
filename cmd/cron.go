@@ -8,7 +8,6 @@ import (
 	"slices"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
-	"github.com/knadh/koanf/v2"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
@@ -56,19 +55,19 @@ func ListCronWithApps(domains map[string]string, app string) ([]CronItem, error)
 	}), nil
 }
 
-func NewCmdCron(k *koanf.Koanf) *cobra.Command {
+func NewCmdCron() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "cron",
 		Short:   "Manage cron jobs",
 		GroupID: CoreGroupID,
 	}
 
-	cmd.AddCommand(NewCmdCronList(k))
-	cmd.AddCommand(NewCmdCronTrigger(k))
+	cmd.AddCommand(NewCmdCronList())
+	cmd.AddCommand(NewCmdCronTrigger())
 	return cmd
 }
 
-func NewCmdCronList(k *koanf.Koanf) *cobra.Command {
+func NewCmdCronList() *cobra.Command {
 	var flags struct {
 		json bool
 		all  bool
@@ -130,7 +129,7 @@ func NewCmdCronList(k *koanf.Koanf) *cobra.Command {
 			printer.AddHeader([]string{"Name", "App", "Schedule", "Command"})
 			for _, item := range items {
 				printer.AddField(item.Job.Name)
-				printer.AddField(item.App.Url)
+				printer.AddField(item.App.Name)
 				printer.AddField(item.Job.Schedule)
 
 				cmd := exec.Command(item.Job.Command, item.Job.Args...)
@@ -157,7 +156,7 @@ func NewCmdCronList(k *koanf.Koanf) *cobra.Command {
 
 		var completions []string
 		for _, app := range apps {
-			completions = append(completions, app.Url)
+			completions = append(completions, app.Name)
 		}
 
 		return completions, cobra.ShellCompDirectiveNoFileComp
@@ -168,7 +167,7 @@ func NewCmdCronList(k *koanf.Koanf) *cobra.Command {
 	return cmd
 }
 
-func NewCmdCronTrigger(k *koanf.Koanf) *cobra.Command {
+func NewCmdCronTrigger() *cobra.Command {
 	var flags struct {
 		app string
 	}

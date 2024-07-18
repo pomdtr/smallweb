@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/cli/browser"
-	"github.com/knadh/koanf/v2"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +43,7 @@ func GetAppsFromDir(domains map[string]string, dir string) ([]App, error) {
 	return foundApps, nil
 }
 
-func NewCmdOpen(k *koanf.Koanf) *cobra.Command {
+func NewCmdOpen() *cobra.Command {
 	return &cobra.Command{
 		Use:   "open <dir>",
 		Short: "Open the smallweb app specified by dir in the browser",
@@ -65,6 +65,10 @@ func NewCmdOpen(k *koanf.Koanf) *cobra.Command {
 
 			if len(apps) == 1 {
 				app := apps[0]
+				if utils.IsGlob(app.Url) {
+					return fmt.Errorf("cannot guess URL for app: %s", app.Name)
+				}
+
 				if err := browser.OpenURL(app.Url); err != nil {
 					return fmt.Errorf("failed to open browser: %v", err)
 				}
