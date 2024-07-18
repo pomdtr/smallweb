@@ -10,10 +10,14 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/adrg/xdg"
-	"github.com/fsnotify/fsnotify"
+	"github.com/knadh/koanf/parsers/json"
+	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+
+	"github.com/knadh/koanf/v2"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -25,8 +29,7 @@ var (
 	cachedUpgradePath = filepath.Join(xdg.CacheHome, "smallweb", "latest_version")
 )
 
-func extractDomains(v *viper.Viper) map[string]string {
-	domains := v.GetStringMapString("domains")
+func expandDomains(domains map[string]string) map[string]string {
 	for key, value := range domains {
 		domain, err := utils.ExpandTilde(value)
 		if err != nil {
@@ -40,26 +43,42 @@ func extractDomains(v *viper.Viper) map[string]string {
 }
 
 func NewCmdRoot(version string) *cobra.Command {
-	v := viper.New()
-	v.SetConfigName("config")
-	v.SetConfigType("json")
-	v.AddConfigPath(filepath.Join(xdg.ConfigHome, "smallweb"))
-	v.AddConfigPath("$HOME/.config/smallweb")
-	v.SetEnvPrefix("SMALLWEB")
-	v.AutomaticEnv()
+	k := koanf.New(".")
+	var configDir string
+	if env, ok := os.LookupEnv("SMALLWEB_CONFIG_DIR"); ok {
+		configDir = env
+	} else if env, ok := os.LookupEnv("XDG_CONFIG_HOME"); ok {
+		configDir = filepath.Join(env, "smallweb", "config.json")
+	} else {
+		configDir = filepath.Join(os.Getenv("HOME"), ".config", "smallweb")
+	}
 
-	v.WatchConfig()
-	v.OnConfigChange(func(e fsnotify.Event) {
-		fmt.Println(extractDomains(v))
+	defaultProvider := confmap.Provider(map[string]interface{}{
+		"host": "127.0.0.1",
+		"port": 7777,
+		"domains": map[string]string{
+			"*.localhost": "~/localhost/*",
+		},
+		"env": map[string]string{
+			"DENO_TLS_CA_STORE": "system",
+		},
+	}, "")
+
+	fileProvider := file.Provider(filepath.Join(configDir, "config.json"))
+	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
+		return strings.Replace(strings.ToLower(
+			strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
 	})
 
-	v.SetDefault("host", "127.0.0.1")
-	v.SetDefault("port", 7777)
-	v.SetDefault("domains", map[string]string{
-		"*.localhost": "~/localhost",
-	})
-	v.SetDefault("env", map[string]string{
-		"DENO_TLS_CA_STORE": "system",
+	k.Load(defaultProvider, nil)
+	k.Load(fileProvider, json.Parser())
+	k.Load(envProvider, nil)
+
+	fileProvider.Watch(func(event interface{}, err error) {
+		k = koanf.New(".")
+		k.Load(defaultProvider, nil)
+		k.Load(fileProvider, json.Parser())
+		k.Load(envProvider, nil)
 	})
 
 	cmd := &cobra.Command{
@@ -67,12 +86,6 @@ func NewCmdRoot(version string) *cobra.Command {
 		Short:   "Host websites from your internet folder",
 		Version: version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if err := v.ReadInConfig(); err != nil {
-				if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-					return fmt.Errorf("failed to read config file: %v", err)
-				}
-			}
-
 			if version == "dev" {
 				return nil
 			}
@@ -144,13 +157,13 @@ func NewCmdRoot(version string) *cobra.Command {
 		Title: "Extension Commands",
 	})
 
-	cmd.AddCommand(NewCmdUp(v))
+	cmd.AddCommand(NewCmdUp(k))
 	cmd.AddCommand(NewCmdService())
-	cmd.AddCommand(NewCmdList(v))
+	cmd.AddCommand(NewCmdList(k))
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdInit())
-	cmd.AddCommand(NewCmdCron(v))
-	cmd.AddCommand(NewCmdOpen(v))
+	cmd.AddCommand(NewCmdCron(k))
+	cmd.AddCommand(NewCmdOpen(k))
 	cmd.AddCommand(NewCmdUpgrade())
 
 	path := os.Getenv("PATH")

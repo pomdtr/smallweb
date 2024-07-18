@@ -6,8 +6,8 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/cli/browser"
+	"github.com/knadh/koanf/v2"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func GetApp(domains map[string]string, name string) (*App, error) {
@@ -43,7 +43,7 @@ func GetAppsFromDir(domains map[string]string, dir string) ([]App, error) {
 	return foundApps, nil
 }
 
-func NewCmdOpen(v *viper.Viper) *cobra.Command {
+func NewCmdOpen(k *koanf.Koanf) *cobra.Command {
 	return &cobra.Command{
 		Use:   "open <dir>",
 		Short: "Open the smallweb app specified by dir in the browser",
@@ -54,7 +54,7 @@ func NewCmdOpen(v *viper.Viper) *cobra.Command {
 				return fmt.Errorf("failed to get abs path: %v", err)
 			}
 
-			apps, err := GetAppsFromDir(extractDomains(v), dir)
+			apps, err := GetAppsFromDir(expandDomains(k.StringMap("domains")), dir)
 			if err != nil {
 				return fmt.Errorf("failed to get app from dir: %v", err)
 			}

@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
+	"github.com/knadh/koanf/v2"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
@@ -65,7 +65,7 @@ func ListApps(domains map[string]string) ([]App, error) {
 	return apps, nil
 }
 
-func NewCmdList(v *viper.Viper) *cobra.Command {
+func NewCmdList(k *koanf.Koanf) *cobra.Command {
 	var flags struct {
 		json bool
 	}
@@ -76,7 +76,8 @@ func NewCmdList(v *viper.Viper) *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := ListApps(extractDomains(v))
+			domains := expandDomains(k.StringMap("domains"))
+			apps, err := ListApps(domains)
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}

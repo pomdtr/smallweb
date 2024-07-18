@@ -10,12 +10,11 @@
             ]
         },
         {
-            "name": "smallweb cron list",
+            "name": "smallweb ls",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "args": [
-                "cron",
                 "list"
             ]
         }

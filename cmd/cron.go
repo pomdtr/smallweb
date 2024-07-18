@@ -8,10 +8,10 @@ import (
 	"slices"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
+	"github.com/knadh/koanf/v2"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
@@ -56,19 +56,19 @@ func ListCronWithApps(domains map[string]string, app string) ([]CronItem, error)
 	}), nil
 }
 
-func NewCmdCron(v *viper.Viper) *cobra.Command {
+func NewCmdCron(k *koanf.Koanf) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "cron",
 		Short:   "Manage cron jobs",
 		GroupID: CoreGroupID,
 	}
 
-	cmd.AddCommand(NewCmdCronList(v))
-	cmd.AddCommand(NewCmdCronTrigger(v))
+	cmd.AddCommand(NewCmdCronList(k))
+	cmd.AddCommand(NewCmdCronTrigger(k))
 	return cmd
 }
 
-func NewCmdCronList(v *viper.Viper) *cobra.Command {
+func NewCmdCronList(k *koanf.Koanf) *cobra.Command {
 	var flags struct {
 		json bool
 		all  bool
@@ -80,7 +80,7 @@ func NewCmdCronList(v *viper.Viper) *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domains := extractDomains(v)
+			domains := expandDomains(k.StringMap("domains"))
 			items, err := ListCronItems(domains)
 			if err != nil {
 				return fmt.Errorf("failed to list cron jobs: %w", err)
@@ -150,7 +150,7 @@ func NewCmdCronList(v *viper.Viper) *cobra.Command {
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.RegisterFlagCompletionFunc("app", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		apps, err := ListApps(extractDomains(v))
+		apps, err := ListApps(expandDomains(k.StringMap("domains")))
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveError
 		}
@@ -168,7 +168,7 @@ func NewCmdCronList(v *viper.Viper) *cobra.Command {
 	return cmd
 }
 
-func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
+func NewCmdCronTrigger(k *koanf.Koanf) *cobra.Command {
 	var flags struct {
 		app string
 	}
@@ -182,7 +182,7 @@ func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 
-			items, err := ListCronWithApps(extractDomains(v), flags.app)
+			items, err := ListCronWithApps(expandDomains(k.StringMap("domains")), flags.app)
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
 			}
@@ -195,14 +195,14 @@ func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
 			return completions, cobra.ShellCompDirectiveNoFileComp
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			crons, err := ListCronWithApps(extractDomains(v), flags.app)
+			crons, err := ListCronWithApps(expandDomains(k.StringMap("domains")), flags.app)
 			if err != nil {
 				return err
 			}
 
 			for _, item := range crons {
 				if item.Job.Name == args[0] {
-					w := worker.Worker{Dir: item.App.Dir, Env: v.GetStringMapString("env")}
+					w := worker.Worker{Dir: item.App.Dir, Env: k.StringMap("env")}
 					cmd.PrintErrln("Triggering cron job", item.Job.Name)
 					if err := w.Trigger(item.Job.Name); err != nil {
 						return fmt.Errorf("failed to run cron job %s: %w", item.Job.Command, err)
@@ -218,7 +218,7 @@ func NewCmdCronTrigger(v *viper.Viper) *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.app, "app", "", "app cron job belongs to")
 	cmd.RegisterFlagCompletionFunc("app", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		apps, err := ListApps(extractDomains(v))
+		apps, err := ListApps(expandDomains(k.StringMap("domains")))
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveError
 		}

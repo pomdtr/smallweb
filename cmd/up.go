@@ -4,16 +4,18 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/knadh/koanf/providers/posflag"
+	"github.com/knadh/koanf/v2"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Worker, error) {
@@ -34,7 +36,7 @@ func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Wor
 	return nil, fmt.Errorf("domain not found")
 }
 
-func NewCmdUp(v *viper.Viper) *cobra.Command {
+func NewCmdUp(k *koanf.Koanf) *cobra.Command {
 	var flags struct {
 		tls           bool
 		tlsCert       string
@@ -50,26 +52,26 @@ func NewCmdUp(v *viper.Viper) *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			port := v.GetInt("port")
+			port := k.Int("port")
 			if port == 0 && flags.tls {
 				port = 443
 			} else if port == 0 {
 				port = 7777
 			}
 
-			host := v.GetString("host")
+			host := k.String("host")
 			addr := fmt.Sprintf("%s:%d", host, port)
 
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					domains := extractDomains(v)
+					domains := expandDomains(k.StringMap("domains"))
 					handler, err := WorkerFromHostname(domains, r.Host)
 					if err != nil {
 						http.Error(w, "Not found", http.StatusNotFound)
 						return
 					}
-					handler.Env = v.GetStringMapString("env")
+					handler.Env = k.StringMap("env")
 					handler.ServeHTTP(w, r)
 				}),
 			}
@@ -125,7 +127,7 @@ func NewCmdUp(v *viper.Viper) *cobra.Command {
 			c.AddFunc("* * * * *", func() {
 				rounded := time.Now().Truncate(time.Minute)
 
-				apps, err := ListApps(extractDomains(v))
+				apps, err := ListApps(expandDomains(k.StringMap("domains")))
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -168,14 +170,16 @@ func NewCmdUp(v *viper.Viper) *cobra.Command {
 	}
 
 	cmd.Flags().String("host", "localhost", "Host to listen on")
-	v.BindPFlag("host", cmd.Flags().Lookup("host"))
 	cmd.Flags().IntP("port", "p", 0, "Port to listen on")
-	v.BindPFlag("port", cmd.Flags().Lookup("port"))
 	cmd.Flags().BoolVar(&flags.tls, "tls", false, "Enable TLS")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "TLS certificate file path")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "TLS key file path")
 	cmd.Flags().StringVar(&flags.tlsCaCert, "tls-ca-cert", "", "TLS CA certificate file path")
 	cmd.Flags().StringVar(&flags.tlsClientAuth, "tls-client-auth", "require", "TLS client auth mode (require, request, verify)")
+
+	if err := k.Load(posflag.Provider(cmd.Flags(), ".", k), nil); err != nil {
+		log.Fatalf("error loading config: %v", err)
+	}
 
 	return cmd
 }

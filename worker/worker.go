@@ -5,6 +5,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -358,20 +359,18 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 }
 
 func (me *Worker) LoadEnv() ([]string, error) {
-	envPath := filepath.Join(me.Dir, ".env")
-
-	if !utils.FileExists(envPath) {
-		return os.Environ(), nil
-	}
-
 	env := os.Environ()
-	dotenv, err := godotenv.Read(envPath)
-	if err != nil {
-		return nil, fmt.Errorf("could not read .env file: %v", err)
-	}
-
 	for key, value := range me.Env {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	dotenv, err := godotenv.Read(filepath.Join(me.Dir, ".env"))
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return env, nil
+		}
+
+		return nil, fmt.Errorf("could not read .env: %v", err)
 	}
 
 	for key, value := range dotenv {
