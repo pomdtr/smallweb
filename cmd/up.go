@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,14 +24,23 @@ func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Wor
 		return &worker.Worker{Dir: rootDir}, nil
 	}
 
+	items := make([][]string, 0)
 	for domain, rootDir := range domains {
+		items = append(items, []string{domain, rootDir})
+	}
+
+	slices.SortFunc(items, func(a, b []string) int {
+		return len(b[0]) - len(a[0])
+	})
+
+	for _, item := range items {
+		domain, rootDir := item[0], item[1]
 		match, err := utils.ExtractGlobPattern(hostname, domain)
 		if err != nil {
 			continue
 		}
 
-		rootDir := strings.Replace(rootDir, "*", match, 1)
-		return &worker.Worker{Dir: rootDir}, nil
+		return &worker.Worker{Dir: strings.Replace(rootDir, "*", match, 1)}, nil
 	}
 
 	return nil, fmt.Errorf("domain not found")
@@ -68,7 +78,7 @@ func NewCmdUp(k *koanf.Koanf) *cobra.Command {
 					domains := expandDomains(k.StringMap("domains"))
 					handler, err := WorkerFromHostname(domains, r.Host)
 					if err != nil {
-						http.Error(w, "Not found", http.StatusNotFound)
+						w.WriteHeader(http.StatusNotFound)
 						return
 					}
 					handler.Env = k.StringMap("env")
