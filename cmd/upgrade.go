@@ -35,9 +35,10 @@ func IsUnderHomebrew() bool {
 
 func NewCmdUpgrade() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "upgrade",
+		Use:     "upgrade [version]",
 		Short:   "Upgrade to the latest version",
 		GroupID: CoreGroupID,
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			version := cmd.Root().Version
 			if version == "dev" {
@@ -48,6 +49,27 @@ func NewCmdUpgrade() *cobra.Command {
 			current, err := semver.NewVersion(version)
 			if err != nil {
 				return fmt.Errorf("failed to parse current version: %w", err)
+			}
+
+			if len(args) > 0 {
+				version, err := semver.NewVersion(args[0])
+				if err != nil {
+					return fmt.Errorf("failed to parse version: %w", err)
+				}
+
+				if version.Equal(current) {
+					fmt.Printf("version %s is already latest\n", version)
+					return nil
+				}
+				upgradeCmd := fmt.Sprintf("curl -sSfL \"https://install.smallweb.run?version=%s\" | sh", version.String())
+				if err := runCommand(upgradeCmd); err != nil {
+					return fmt.Errorf("failed to upgrade: %w", err)
+				}
+
+				fmt.Println()
+				fmt.Println("Ugrade completed successfully")
+				fmt.Println("Use `smallweb service restart` to restart the service")
+				return nil
 			}
 
 			latest, err := fetchLatestVersion()
@@ -61,7 +83,25 @@ func NewCmdUpgrade() *cobra.Command {
 				return nil
 			}
 
-			return Update()
+			var upgradeCmd string
+			if IsUnderHomebrew() {
+				upgradeCmd = "brew update && brew upgrade smallweb"
+			} else {
+				upgradeCmd = fmt.Sprintf("curl -sSfL \"https://install.smallweb.run?version=%s\" | sh", latest.String())
+			}
+
+			if err := runCommand(upgradeCmd); err != nil {
+				return fmt.Errorf("failed to upgrade: %w", err)
+			}
+
+			fmt.Println("Ugrade completed successfully")
+			fmt.Println("Use `smallweb service restart` to restart the service")
+
+			if err := os.Remove(cachedUpgradePath); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("failed to remove upgrade cache: %w", err)
+			}
+
+			return nil
 		},
 	}
 
@@ -88,23 +128,14 @@ func fetchLatestVersion() (*semver.Version, error) {
 	return version, nil
 }
 
-func Update() error {
-	var updateCmd string
-
-	if IsUnderHomebrew() {
-		updateCmd = "brew update && brew upgrade smallweb"
-	} else {
-		updateCmd = "curl -sSfL \"https://install.smallweb.run\" | sh"
-	}
-	command := exec.Command("sh", "-c", updateCmd)
-	command.Stdout = os.Stdout
-	command.Stderr = os.Stderr
-	err := command.Run()
+func runCommand(command string) error {
+	cmd := exec.Command("sh", "-c", command)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("failed to execute update command: %w", err)
 	}
 
-	fmt.Println("Update completed successfully")
-	fmt.Println("Use `smallweb service restart` to restart the service")
 	return nil
 }

@@ -6,7 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/Masterminds/semver"
 	"github.com/adrg/xdg"
 	"github.com/fsnotify/fsnotify"
 	"github.com/pomdtr/smallweb/utils"
@@ -17,6 +19,10 @@ import (
 const (
 	CoreGroupID      = "core"
 	ExtensionGroupID = "extension"
+)
+
+var (
+	cachedUpgradePath = filepath.Join(xdg.CacheHome, "smallweb", "latest_version")
 )
 
 func extractDomains(v *viper.Viper) map[string]string {
@@ -67,7 +73,66 @@ func NewCmdRoot(version string) *cobra.Command {
 				}
 			}
 
+			if version == "dev" {
+				return nil
+			}
+
+			if stat, err := os.Stat(cachedUpgradePath); err == nil && stat.ModTime().Add(24*time.Hour).After(time.Now()) {
+				return nil
+			}
+
+			v, err := fetchLatestVersion()
+			if err != nil {
+				cmd.PrintErrln("failed to get version information:", err)
+				return nil
+			}
+
+			if err := os.MkdirAll(filepath.Dir(cachedUpgradePath), 0755); err != nil {
+				cmd.PrintErrln("failed to create upgrade cache directory:", err)
+				return nil
+			}
+
+			if err := os.WriteFile(cachedUpgradePath, []byte(v.String()), 0644); err != nil {
+				cmd.PrintErrln("failed to write upgrade cache:", err)
+				return nil
+			}
+
 			return nil
+		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			if version == "dev" {
+				return
+			}
+
+			current, err := semver.NewVersion(cmd.Root().Version)
+			if err != nil {
+				cmd.PrintErrln("failed to parse current version:", err)
+				return
+			}
+
+			if !utils.FileExists(cachedUpgradePath) {
+				return
+			}
+
+			var latest *semver.Version
+			data, err := os.ReadFile(cachedUpgradePath)
+			if err != nil {
+				cmd.PrintErrln("failed to read upgrade cache:", err)
+				return
+			}
+
+			v, err := semver.NewVersion(string(data))
+			if err != nil {
+				cmd.PrintErrln("failed to parse cached version:", err)
+				return
+			}
+			latest = v
+
+			if latest.GreaterThan(current) {
+				cmd.PrintErrln()
+				cmd.PrintErrln("A new smallweb version is available:", latest.String())
+				cmd.PrintErrln("Run `smallweb upgrade` to upgrade to the latest version")
+			}
 		},
 		SilenceUsage: true,
 	}
