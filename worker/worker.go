@@ -395,6 +395,25 @@ func (me *Worker) inferEntrypoint() (string, error) {
 	return me.Dir, nil
 }
 
+type HTMLDir struct {
+	dir http.Dir
+}
+
+func NewHtmlDir(dir http.Dir) HTMLDir {
+	return HTMLDir{dir}
+}
+
+func (d HTMLDir) Open(name string) (http.File, error) {
+	// Try name as supplied
+	f, err := d.dir.Open(name)
+	if !os.IsNotExist(err) {
+		return f, err
+	}
+
+	// Not found, try with .html
+	return d.dir.Open(name + ".html")
+}
+
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !utils.FileExists(me.Dir) {
 		w.WriteHeader(http.StatusNotFound)
@@ -425,7 +444,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if info.IsDir() {
-		server := http.FileServer(http.Dir(entrypoint))
+		server := http.FileServer(NewHtmlDir(http.Dir(entrypoint)))
 		server.ServeHTTP(w, r)
 		return
 	}
