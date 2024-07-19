@@ -180,7 +180,9 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="global-config"><a class="header" href="#global-config">Global Config</a></h1>
-<p>The smallweb config is located at <code>~/.config/smallweb/config.json</code>. It is a json file that defines global settings for smallweb.</p>
+<p>The smallweb config is located at <code>~/.config/smallweb/config.json[c]</code>. It is a json file that defines global settings for smallweb.</p>
+<p>You can also specify a custom config file by setting the <code>SMALLWEB_CONFIG</code> environment variable.</p>
+<p>Smallweb also respects the <code>XDG_CONFIG_HOME</code> environment variable.</p>
 <h2 id="host"><a class="header" href="#host"><code>host</code></a></h2>
 <p>The <code>host</code> field defines the host to bind to. By default, it is <code>127.0.0.1</code>.</p>
 <pre><code class="language-json">{
@@ -208,12 +210,6 @@
   "env": {
     "NODE_ENV": "production"
   }
-}
-</code></pre>
-<h2 id="envfile"><a class="header" href="#envfile"><code>envFile</code></a></h2>
-<p>The <code>envFile</code> field defines a file to load environment variables from.</p>
-<pre><code class="language-json">{
-  "envFile": ".env"
 }
 </code></pre>
 

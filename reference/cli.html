@@ -297,9 +297,16 @@ to enable it.  You can execute the following once:</p>
 <pre><code>  -h, --help              help for zsh
       --no-descriptions   disable completion descriptions
 </code></pre>
+<h2 id="smallweb-config"><a class="header" href="#smallweb-config">smallweb config</a></h2>
+<p>Open the smallweb config in your editor</p>
+<pre><code>smallweb config [flags]
+</code></pre>
+<h3 id="options-9"><a class="header" href="#options-9">Options</a></h3>
+<pre><code>  -h, --help   help for config
+</code></pre>
 <h2 id="smallweb-cron"><a class="header" href="#smallweb-cron">smallweb cron</a></h2>
 <p>Manage cron jobs</p>
-<h3 id="options-9"><a class="header" href="#options-9">Options</a></h3>
+<h3 id="options-10"><a class="header" href="#options-10">Options</a></h3>
 <pre><code>  -h, --help   help for cron
 </code></pre>
 <h2 id="smallweb-cron-help"><a class="header" href="#smallweb-cron-help">smallweb cron help</a></h2>
@@ -309,14 +316,14 @@ to enable it.  You can execute the following once:</p>
 Simply type cron help [path to command] for full details.</p>
 <pre><code>smallweb cron help [command] [flags]
 </code></pre>
-<h3 id="options-10"><a class="header" href="#options-10">Options</a></h3>
+<h3 id="options-11"><a class="header" href="#options-11">Options</a></h3>
 <pre><code>  -h, --help   help for help
 </code></pre>
 <h2 id="smallweb-cron-list"><a class="header" href="#smallweb-cron-list">smallweb cron list</a></h2>
 <p>List cron jobs</p>
 <pre><code>smallweb cron list [flags]
 </code></pre>
-<h3 id="options-11"><a class="header" href="#options-11">Options</a></h3>
+<h3 id="options-12"><a class="header" href="#options-12">Options</a></h3>
 <pre><code>      --all          list all cron jobs
       --app string   filter by app
   -h, --help         help for list
@@ -326,7 +333,7 @@ Simply type cron help [path to command] for full details.</p>
 <p>Trigger a cron job</p>
 <pre><code>smallweb cron trigger &lt;cron&gt; [flags]
 </code></pre>
-<h3 id="options-12"><a class="header" href="#options-12">Options</a></h3>
+<h3 id="options-13"><a class="header" href="#options-13">Options</a></h3>
 <pre><code>      --app string   app cron job belongs to
   -h, --help         help for trigger
 </code></pre>
@@ -334,8 +341,15 @@ Simply type cron help [path to command] for full details.</p>
 <p>Generate smallweb cli documentation</p>
 <pre><code>smallweb docs [flags]
 </code></pre>
-<h3 id="options-13"><a class="header" href="#options-13">Options</a></h3>
+<h3 id="options-14"><a class="header" href="#options-14">Options</a></h3>
 <pre><code>  -h, --help   help for docs
+</code></pre>
+<h2 id="smallweb-gallery"><a class="header" href="#smallweb-gallery">smallweb gallery</a></h2>
+<p>Extension gallery</p>
+<pre><code>smallweb gallery [flags]
+</code></pre>
+<h3 id="options-15"><a class="header" href="#options-15">Options</a></h3>
+<pre><code>  -h, --help   help for gallery
 </code></pre>
 <h2 id="smallweb-help"><a class="header" href="#smallweb-help">smallweb help</a></h2>
 <p>Help about any command</p>
@@ -344,14 +358,14 @@ Simply type cron help [path to command] for full details.</p>
 Simply type smallweb help [path to command] for full details.</p>
 <pre><code>smallweb help [command] [flags]
 </code></pre>
-<h3 id="options-14"><a class="header" href="#options-14">Options</a></h3>
+<h3 id="options-16"><a class="header" href="#options-16">Options</a></h3>
 <pre><code>  -h, --help   help for help
 </code></pre>
 <h2 id="smallweb-init"><a class="header" href="#smallweb-init">smallweb init</a></h2>
 <p>Init a new smallweb app</p>
 <pre><code>smallweb init [dir] [flags]
 </code></pre>
-<h3 id="options-15"><a class="header" href="#options-15">Options</a></h3>
+<h3 id="options-17"><a class="header" href="#options-17">Options</a></h3>
 <pre><code>  -h, --help              help for init
   -t, --template string   The template to use
 </code></pre>
@@ -359,20 +373,20 @@ Simply type smallweb help [path to command] for full details.</p>
 <p>List all smallweb apps</p>
 <pre><code>smallweb list [flags]
 </code></pre>
-<h3 id="options-16"><a class="header" href="#options-16">Options</a></h3>
+<h3 id="options-18"><a class="header" href="#options-18">Options</a></h3>
 <pre><code>  -h, --help   help for list
       --json   output as json
 </code></pre>
 <h2 id="smallweb-open"><a class="header" href="#smallweb-open">smallweb open</a></h2>
 <p>Open the smallweb app specified by dir in the browser</p>
-<pre><code>smallweb open [dir] [flags]
+<pre><code>smallweb open &lt;dir&gt; [flags]
 </code></pre>
-<h3 id="options-17"><a class="header" href="#options-17">Options</a></h3>
+<h3 id="options-19"><a class="header" href="#options-19">Options</a></h3>
 <pre><code>  -h, --help   help for open
 </code></pre>
 <h2 id="smallweb-service"><a class="header" href="#smallweb-service">smallweb service</a></h2>
 <p>Manage smallweb service</p>
-<h3 id="options-18"><a class="header" href="#options-18">Options</a></h3>
+<h3 id="options-20"><a class="header" href="#options-20">Options</a></h3>
 <pre><code>  -h, --help   help for service
 </code></pre>
 <h2 id="smallweb-service-help"><a class="header" href="#smallweb-service-help">smallweb service help</a></h2>
@@ -382,21 +396,21 @@ Simply type smallweb help [path to command] for full details.</p>
 Simply type service help [path to command] for full details.</p>
 <pre><code>smallweb service help [command] [flags]
 </code></pre>
-<h3 id="options-19"><a class="header" href="#options-19">Options</a></h3>
+<h3 id="options-21"><a class="header" href="#options-21">Options</a></h3>
 <pre><code>  -h, --help   help for help
 </code></pre>
 <h2 id="smallweb-service-install"><a class="header" href="#smallweb-service-install">smallweb service install</a></h2>
 <p>Install smallweb as a service</p>
 <pre><code>smallweb service install [flags]
 </code></pre>
-<h3 id="options-20"><a class="header" href="#options-20">Options</a></h3>
+<h3 id="options-22"><a class="header" href="#options-22">Options</a></h3>
 <pre><code>  -h, --help   help for install
 </code></pre>
 <h2 id="smallweb-service-logs"><a class="header" href="#smallweb-service-logs">smallweb service logs</a></h2>
 <p>Print service logs</p>
 <pre><code>smallweb service logs [flags]
 </code></pre>
-<h3 id="options-21"><a class="header" href="#options-21">Options</a></h3>
+<h3 id="options-23"><a class="header" href="#options-23">Options</a></h3>
 <pre><code>  -f, --follow   Follow log output
   -h, --help     help for logs
 </code></pre>
@@ -404,42 +418,42 @@ Simply type service help [path to command] for full details.</p>
 <p>Restart smallweb service</p>
 <pre><code>smallweb service restart [flags]
 </code></pre>
-<h3 id="options-22"><a class="header" href="#options-22">Options</a></h3>
+<h3 id="options-24"><a class="header" href="#options-24">Options</a></h3>
 <pre><code>  -h, --help   help for restart
 </code></pre>
 <h2 id="smallweb-service-start"><a class="header" href="#smallweb-service-start">smallweb service start</a></h2>
 <p>Start smallweb service</p>
 <pre><code>smallweb service start [flags]
 </code></pre>
-<h3 id="options-23"><a class="header" href="#options-23">Options</a></h3>
+<h3 id="options-25"><a class="header" href="#options-25">Options</a></h3>
 <pre><code>  -h, --help   help for start
 </code></pre>
 <h2 id="smallweb-service-status"><a class="header" href="#smallweb-service-status">smallweb service status</a></h2>
 <p>View service status</p>
 <pre><code>smallweb service status [flags]
 </code></pre>
-<h3 id="options-24"><a class="header" href="#options-24">Options</a></h3>
+<h3 id="options-26"><a class="header" href="#options-26">Options</a></h3>
 <pre><code>  -h, --help   help for status
 </code></pre>
 <h2 id="smallweb-service-stop"><a class="header" href="#smallweb-service-stop">smallweb service stop</a></h2>
 <p>Stop smallweb service</p>
 <pre><code>smallweb service stop [flags]
 </code></pre>
-<h3 id="options-25"><a class="header" href="#options-25">Options</a></h3>
+<h3 id="options-27"><a class="header" href="#options-27">Options</a></h3>
 <pre><code>  -h, --help   help for stop
 </code></pre>
 <h2 id="smallweb-service-uninstall"><a class="header" href="#smallweb-service-uninstall">smallweb service uninstall</a></h2>
 <p>Uninstall smallweb service</p>
 <pre><code>smallweb service uninstall [flags]
 </code></pre>
-<h3 id="options-26"><a class="header" href="#options-26">Options</a></h3>
+<h3 id="options-28"><a class="header" href="#options-28">Options</a></h3>
 <pre><code>  -h, --help   help for uninstall
 </code></pre>
 <h2 id="smallweb-up"><a class="header" href="#smallweb-up">smallweb up</a></h2>
 <p>Start the smallweb evaluation server</p>
 <pre><code>smallweb up [flags]
 </code></pre>
-<h3 id="options-27"><a class="header" href="#options-27">Options</a></h3>
+<h3 id="options-29"><a class="header" href="#options-29">Options</a></h3>
 <pre><code>  -h, --help                     help for up
       --host string              Host to listen on (default "localhost")
   -p, --port int                 Port to listen on
@@ -451,9 +465,9 @@ Simply type service help [path to command] for full details.</p>
 </code></pre>
 <h2 id="smallweb-upgrade"><a class="header" href="#smallweb-upgrade">smallweb upgrade</a></h2>
 <p>Upgrade to the latest version</p>
-<pre><code>smallweb upgrade [flags]
+<pre><code>smallweb upgrade [version] [flags]
 </code></pre>
-<h3 id="options-28"><a class="header" href="#options-28">Options</a></h3>
+<h3 id="options-30"><a class="header" href="#options-30">Options</a></h3>
 <pre><code>  -h, --help   help for upgrade
 </code></pre>
 <!-- markdownlint-disable-file -->
