@@ -210,6 +210,20 @@ smallweb completion zsh [flags]
       --no-descriptions   disable completion descriptions
 ```
 
+## smallweb config
+
+Open the smallweb config in your editor
+
+```
+smallweb config [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for config
+```
+
 ## smallweb cron
 
 Manage cron jobs
@@ -285,6 +299,20 @@ smallweb docs [flags]
   -h, --help   help for docs
 ```
 
+## smallweb gallery
+
+Extension gallery
+
+```
+smallweb gallery [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for gallery
+```
+
 ## smallweb help
 
 Help about any command
@@ -339,7 +367,7 @@ smallweb list [flags]
 Open the smallweb app specified by dir in the browser
 
 ```
-smallweb open [dir] [flags]
+smallweb open <dir> [flags]
 ```
 
 ### Options
@@ -502,7 +530,7 @@ smallweb up [flags]
 Upgrade to the latest version
 
 ```
-smallweb upgrade [flags]
+smallweb upgrade [version] [flags]
 ```
 
 ### Options

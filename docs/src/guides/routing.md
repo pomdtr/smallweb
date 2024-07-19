@@ -1,6 +1,6 @@
 # Routing
 
-Smallweb maps domains to folders. By default, it will maps `*.localhost` to `~/localhost/*`, but you can add more hostnames from the config (`~/.config/smallweb/config.json`).
+Smallweb maps domains to folders. By default, it will maps `*.localhost` to `~/localhost/*`, but you can add more hostnames from the config (`~/.config/smallweb/config.json[c]`).
 
 ## Mapping a single domain to a folder
 

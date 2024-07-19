@@ -1,6 +1,10 @@
 # Global Config
 
-The smallweb config is located at `~/.config/smallweb/config.json`. It is a json file that defines global settings for smallweb.
+The smallweb config is located at `~/.config/smallweb/config.json[c]`. It is a json file that defines global settings for smallweb.
+
+You can also specify a custom config file by setting the `SMALLWEB_CONFIG` environment variable.
+
+Smallweb also respects the `XDG_CONFIG_HOME` environment variable.
 
 ## `host`
 
@@ -45,15 +49,5 @@ The `env` field defines a list of environment variables to set for all apps.
   "env": {
     "NODE_ENV": "production"
   }
-}
-```
-
-## `envFile`
-
-The `envFile` field defines a file to load environment variables from.
-
-```json
-{
-  "envFile": ".env"
 }
 ```
