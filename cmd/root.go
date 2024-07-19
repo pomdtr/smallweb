@@ -45,12 +45,6 @@ func expandDomains(domains map[string]string) map[string]string {
 }
 
 func NewCmdRoot(version string) *cobra.Command {
-	var configDir string
-	if env, ok := os.LookupEnv("XDG_CONFIG_HOME"); ok {
-		configDir = filepath.Join(env, "smallweb", "config.json")
-	} else {
-		configDir = filepath.Join(os.Getenv("HOME"), ".config", "smallweb")
-	}
 
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"host": "127.0.0.1",
@@ -63,16 +57,7 @@ func NewCmdRoot(version string) *cobra.Command {
 		},
 	}, "")
 
-	var configPath string
-	if env, ok := os.LookupEnv("SMALLWEB_CONFIG"); ok {
-		configPath = env
-	} else if utils.FileExists(filepath.Join(configDir, "config.jsonc")) {
-		configPath = filepath.Join(configDir, "config.jsonc")
-	} else {
-		configPath = filepath.Join(configDir, "config.json")
-	}
-
-	fileProvider := file.Provider(configPath)
+	fileProvider := file.Provider(findConfigPath())
 	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
 		return strings.Replace(strings.ToLower(
 			strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
@@ -172,6 +157,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdInit())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdOpen())
+	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdUpgrade())
 
 	path := os.Getenv("PATH")

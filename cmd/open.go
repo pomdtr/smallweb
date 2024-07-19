@@ -45,9 +45,10 @@ func GetAppsFromDir(domains map[string]string, dir string) ([]App, error) {
 
 func NewCmdOpen() *cobra.Command {
 	return &cobra.Command{
-		Use:   "open <dir>",
-		Short: "Open the smallweb app specified by dir in the browser",
-		Args:  cobra.ExactArgs(1),
+		Use:     "open <dir>",
+		Short:   "Open the smallweb app specified by dir in the browser",
+		Args:    cobra.ExactArgs(1),
+		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir, err := filepath.Abs(args[0])
 			if err != nil {
