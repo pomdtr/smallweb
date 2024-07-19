@@ -22,7 +22,8 @@ jobs:
         with:
           mdbook-version: "latest"
 
-      - run: mdbook build docs
+      - name: Build Docs
+        run: mdbook build docs
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
@@ -30,3 +31,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/book
+
+      - name: Notify Smallweb Puller
+        run: |
+          curl https://puller.smallweb.run -H "Content-Type: application/json" -d '{ "app": "docs.smallweb.run" }'
+
