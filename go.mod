@@ -9,6 +9,7 @@ require (
 	github.com/cli/browser v1.3.0
 	github.com/cli/go-gh/v2 v2.9.0
 	github.com/gobwas/glob v0.2.3
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.5.1
 	github.com/joho/godotenv v1.5.1
 	github.com/knadh/koanf/providers/confmap v0.1.0
@@ -44,7 +45,6 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/knadh/koanf/maps v0.1.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
