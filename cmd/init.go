@@ -52,12 +52,7 @@ func (me *Inputs) Fill() error {
 	}
 
 	if me.Dir != "" {
-		dir, err := utils.ExpandTilde(me.Dir)
-		if err != nil {
-			return fmt.Errorf("failed to expand dir: %w", err)
-		}
-
-		me.Dir = dir
+		me.Dir = utils.ExpandTilde(me.Dir)
 	} else {
 		me.Dir = "."
 	}

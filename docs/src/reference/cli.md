@@ -347,6 +347,21 @@ smallweb init [dir] [flags]
   -t, --template string   The template to use
 ```
 
+## smallweb install
+
+
+
+```
+smallweb install [app] [dir] [flags]
+```
+
+### Options
+
+```
+      --branch string   branch to checkout (default "smallweb")
+  -h, --help            help for install
+```
+
 ## smallweb list
 
 List all smallweb apps

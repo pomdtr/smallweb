@@ -33,12 +33,7 @@ var k = koanf.New(".")
 
 func expandDomains(domains map[string]string) map[string]string {
 	for key, value := range domains {
-		domain, err := utils.ExpandTilde(value)
-		if err != nil {
-			domains[key] = value
-		}
-
-		domains[key] = domain
+		domains[key] = utils.ExpandTilde(value)
 	}
 
 	return domains
@@ -155,6 +150,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdInit())
+	cmd.AddCommand(NewCmdInstall())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdConfig())
