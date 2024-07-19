@@ -224,7 +224,7 @@ func NewCmdCronTrigger() *cobra.Command {
 
 		var completions []string
 		for _, app := range apps {
-			completions = append(completions, app.Url)
+			completions = append(completions, app.Name)
 		}
 
 		return completions, cobra.ShellCompDirectiveNoFileComp
