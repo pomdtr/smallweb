@@ -19,7 +19,10 @@ func (me *Inputs) Fill() error {
 	var fields []huh.Field
 
 	if me.Dir == "" {
-		fields = append(fields, huh.NewInput().Title("Choose a dir").Value(&me.Dir).Placeholder("."))
+		fields = append(
+			fields,
+			huh.NewInput().Title("Where should we create your project?").Value(&me.Dir).Placeholder("."),
+		)
 	}
 
 	if me.Template == "" {
@@ -33,7 +36,10 @@ func (me *Inputs) Fill() error {
 			options = append(options, huh.NewOption(template, template))
 		}
 
-		fields = append(fields, huh.NewSelect[string]().Title("Choose a template").Options(options...).Value(&me.Template))
+		fields = append(
+			fields,
+			huh.NewSelect[string]().Title("Which template would you like to use?").Options(options...).Value(&me.Template),
+		)
 	}
 
 	if len(fields) == 0 {
