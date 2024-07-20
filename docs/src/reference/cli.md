@@ -266,6 +266,7 @@ smallweb cron list [flags]
 ```
       --all          list all cron jobs
       --app string   filter by app
+      --dir string   filter by dir
   -h, --help         help for list
       --json         output as json
 ```
@@ -282,6 +283,7 @@ smallweb cron trigger <cron> [flags]
 
 ```
       --app string   app cron job belongs to
+      --dir string   dir cron job belongs to
   -h, --help         help for trigger
 ```
 
@@ -388,7 +390,9 @@ smallweb open <dir> [flags]
 ### Options
 
 ```
-  -h, --help   help for open
+      --app string   app to open
+      --dir string   dir to open
+  -h, --help         help for open
 ```
 
 ## smallweb service
