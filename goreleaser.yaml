@@ -38,7 +38,7 @@ release:
   prerelease: auto
   github:
     owner: pomdtr
-    name: smallweb-releases
+    name: smallweb
 brews:
   - name: smallweb
     homepage: https://smallweb.run
