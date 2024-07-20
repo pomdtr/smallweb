@@ -975,6 +975,7 @@ Simply type cron help [path to command] for full details.</p>
 <h3 id="options-12"><a class="header" href="#options-12">Options</a></h3>
 <pre><code>      --all          list all cron jobs
       --app string   filter by app
+      --dir string   filter by dir
   -h, --help         help for list
       --json         output as json
 </code></pre>
@@ -984,6 +985,7 @@ Simply type cron help [path to command] for full details.</p>
 </code></pre>
 <h3 id="options-13"><a class="header" href="#options-13">Options</a></h3>
 <pre><code>      --app string   app cron job belongs to
+      --dir string   dir cron job belongs to
   -h, --help         help for trigger
 </code></pre>
 <h2 id="smallweb-docs"><a class="header" href="#smallweb-docs">smallweb docs</a></h2>
@@ -1038,7 +1040,9 @@ Simply type smallweb help [path to command] for full details.</p>
 <pre><code>smallweb open &lt;dir&gt; [flags]
 </code></pre>
 <h3 id="options-20"><a class="header" href="#options-20">Options</a></h3>
-<pre><code>  -h, --help   help for open
+<pre><code>      --app string   app to open
+      --dir string   dir to open
+  -h, --help         help for open
 </code></pre>
 <h2 id="smallweb-service"><a class="header" href="#smallweb-service">smallweb service</a></h2>
 <p>Manage smallweb service</p>
