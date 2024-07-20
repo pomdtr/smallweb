@@ -53,7 +53,6 @@ func ListApps(domains map[string]string) ([]App, error) {
 				Dir:  strings.Replace(rootDir, "*", match, 1),
 			})
 		}
-
 	}
 
 	// sort by hostname
