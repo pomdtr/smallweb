@@ -1,4 +1,4 @@
-import { handle } from "./app/dist/server/entry.mjs";
+import { handle } from "./dist/server/entry.mjs";
 import { serveDir } from "jsr:@std/http/file-server";
 
 export default {
