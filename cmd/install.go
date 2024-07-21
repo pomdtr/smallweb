@@ -24,10 +24,6 @@ type Repository struct {
 }
 
 func NewCmdInstall() *cobra.Command {
-	var flags struct {
-		branch string
-	}
-
 	cmd := &cobra.Command{
 		Use:  "install [app] [dir]",
 		Args: cobra.RangeArgs(1, 2),
@@ -92,11 +88,11 @@ func NewCmdInstall() *cobra.Command {
 				}
 				head := heads[i]
 
-				if head != "refs/heads/"+flags.branch {
+				if head != "refs/heads/smallweb" {
 					continue
 				}
 
-				cloneCmd := exec.Command("git", "clone", "--branch", flags.branch, "--single-branch", url, dir)
+				cloneCmd := exec.Command("git", "clone", "--branch", "smallweb", "--single-branch", url, dir)
 				cloneCmd.Stdout = os.Stdout
 				cloneCmd.Stderr = os.Stderr
 
@@ -105,10 +101,6 @@ func NewCmdInstall() *cobra.Command {
 				}
 
 				return nil
-			}
-
-			if cmd.Flags().Changed("branch") {
-				return fmt.Errorf("branch not found: %s", flags.branch)
 			}
 
 			cloneCmd := exec.Command("git", "clone", "--single-branch", url, dir)
@@ -120,6 +112,5 @@ func NewCmdInstall() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.branch, "branch", "smallweb", "branch to checkout")
 	return cmd
 }
