@@ -64,8 +64,6 @@ func NewCmdInstall() *cobra.Command {
 				return fmt.Errorf("invalid app: %s", args[0])
 			}
 
-			url := fmt.Sprintf("https://github.com/%s.git", args[0])
-
 			var dir string
 			if len(args) > 1 {
 				dir = utils.ExpandTilde(args[1])
@@ -79,43 +77,43 @@ func NewCmdInstall() *cobra.Command {
 				dir = strings.TrimPrefix(dir, "smallweb-")
 			}
 
-			cloneArgs := []string{"clone", url, dir}
-			cloneCmd := exec.Command("git", cloneArgs...)
-			cmd.PrintErrln("Running command", cloneCmd.String())
-			if err := cloneCmd.Run(); err != nil {
-				return fmt.Errorf("failed to clone repo: %w", err)
-			}
-
-			branchCmd := exec.Command("git", "branch", `--format="%(refname:short)"`)
-			branchCmd.Dir = dir
-			out, err := branchCmd.Output()
+			url := fmt.Sprintf("https://github.com/%s.git", args[0])
+			lsRemoteCmd := exec.Command("git", "ls-remote", "--heads", url)
+			out, err := lsRemoteCmd.Output()
 			if err != nil {
-				return fmt.Errorf("failed to get branch: %w", err)
+				return fmt.Errorf("failed to get branches: %w", err)
 			}
 
-			branches := strings.Split(strings.Trim(string(out), "\n"), "\n")
-			for _, branch := range branches {
-				if branch != flags.branch {
+			heads := strings.Fields(string(out))
+			for i := range len(heads) {
+				// Skip the hash
+				if i%2 == 0 {
+					continue
+				}
+				head := heads[i]
+
+				if head != "refs/heads/"+flags.branch {
 					continue
 				}
 
-				cmd.PrintErrln("Checking out smallweb branch")
-				checkoutCmd := exec.Command("git", "checkout", "smallweb")
-				branchCmd.Dir = dir
-				if err := checkoutCmd.Run(); err != nil {
-					return fmt.Errorf("failed to checkout smallweb branch: %w", err)
+				cloneCmd := exec.Command("git", "clone", "--branch", flags.branch, "--single-branch", url, dir)
+				cloneCmd.Stdout = os.Stdout
+				cloneCmd.Stderr = os.Stderr
+
+				if err := cloneCmd.Run(); err != nil {
+					return fmt.Errorf("failed to clone repository: %w", err)
 				}
 
 				return nil
 			}
 
 			if cmd.Flags().Changed("branch") {
-				// clean up
-				if err := os.RemoveAll(dir); err != nil {
-					return fmt.Errorf("failed to remove dir: %w", err)
-				}
-
 				return fmt.Errorf("branch not found: %s", flags.branch)
+			}
+
+			cloneCmd := exec.Command("git", "clone", "--single-branch", url, dir)
+			if err := cloneCmd.Run(); err != nil {
+				return fmt.Errorf("failed to clone repository: %w", err)
 			}
 
 			return nil
@@ -124,5 +122,4 @@ func NewCmdInstall() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.branch, "branch", "smallweb", "branch to checkout")
 	return cmd
-
 }
