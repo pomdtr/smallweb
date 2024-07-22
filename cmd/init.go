@@ -1,64 +1,15 @@
 package cmd
 
 import (
-	"errors"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
 
-	"github.com/charmbracelet/huh"
-	"github.com/pomdtr/smallweb/templates"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
-
-type Inputs struct {
-	Dir      string
-	Template string
-}
-
-func (me *Inputs) Fill() error {
-	var fields []huh.Field
-
-	if me.Dir == "" {
-		fields = append(
-			fields,
-			huh.NewInput().Title("Where should we create your project?").Value(&me.Dir).Placeholder("."),
-		)
-	}
-
-	if me.Template == "" {
-		templates, err := templates.List()
-		if err != nil {
-			return fmt.Errorf("failed to list templates: %w", err)
-		}
-
-		var options []huh.Option[string]
-		for _, template := range templates {
-			options = append(options, huh.NewOption(template, template))
-		}
-
-		fields = append(
-			fields,
-			huh.NewSelect[string]().Title("Which template would you like to use?").Options(options...).Value(&me.Template),
-		)
-	}
-
-	if len(fields) == 0 {
-		return nil
-	}
-
-	form := huh.NewForm(huh.NewGroup(fields...))
-	if err := form.Run(); err != nil {
-		return fmt.Errorf("failed to run form: %w", err)
-	}
-
-	if me.Dir != "" {
-		me.Dir = utils.ExpandTilde(me.Dir)
-	} else {
-		me.Dir = "."
-	}
-
-	return nil
-}
 
 func NewCmdInit() *cobra.Command {
 	var flags struct {
@@ -71,39 +22,64 @@ func NewCmdInit() *cobra.Command {
 		GroupID: CoreGroupID,
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if _, err := exec.LookPath("git"); err != nil {
+				return fmt.Errorf("git not found: %w", err)
+			}
+
+			var repoUrl string
+			if flags.template != "" {
+				if !repoRegexp.MatchString(flags.template) {
+					return fmt.Errorf("invalid template: %s", flags.template)
+				}
+
+				repoUrl = fmt.Sprintf("https://github.com/%s.git", flags.template)
+			} else {
+				repoUrl = "https://github.com/pomdtr/smallweb-http-template.git"
+			}
+
 			var dir string
 			if len(args) > 0 {
 				dir = args[0]
+			} else {
+				dir = "."
 			}
 
-			inputs := Inputs{
-				Dir:      dir,
-				Template: flags.template,
+			cloneCmd := exec.Command("git", "clone", "--depth=1", "--single-branch", repoUrl, dir)
+			cloneCmd.Stdout = os.Stdout
+			cloneCmd.Stderr = os.Stderr
+			if err := cloneCmd.Run(); err != nil {
+				return fmt.Errorf("failed to clone repository: %w", err)
 			}
 
-			if err := inputs.Fill(); err != nil {
-				if errors.Is(err, huh.ErrUserAborted) {
-					return nil
-				}
-				return fmt.Errorf("failed to fill inputs: %w", err)
+			if err := os.RemoveAll(filepath.Join(dir, ".git")); err != nil {
+				return fmt.Errorf("failed to remove .git directory: %w", err)
 			}
 
-			if err := templates.Install(inputs.Template, inputs.Dir); err != nil {
-				return fmt.Errorf("failed to install template: %w", err)
-			}
-
-			cmd.PrintErrf("Template %s installed in %s\n", inputs.Template, inputs.Dir)
 			return nil
+
 		},
 	}
 
 	cmd.Flags().StringVarP(&flags.template, "template", "t", "", "The template to use")
 	cmd.RegisterFlagCompletionFunc("template", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		options, err := templates.List()
+		resp, err := http.Get("https://api.smallweb.run/v1/templates")
 		if err != nil {
-			return nil, cobra.ShellCompDirectiveError
+			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
-		return options, cobra.ShellCompDirectiveNoFileComp
+		defer resp.Body.Close()
+
+		decoder := json.NewDecoder(resp.Body)
+		var repos []Repository
+		if err := decoder.Decode(&repos); err != nil {
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		var completions []string
+		for _, repo := range repos {
+			completions = append(completions, fmt.Sprintf("%s\t%s", repo.Name, repo.Description))
+		}
+
+		return completions, cobra.ShellCompDirectiveNoFileComp
 	})
 
 	return cmd

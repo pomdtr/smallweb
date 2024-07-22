@@ -18,9 +18,9 @@ import (
 var repoRegexp = regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]{0,38}\/[a-zA-Z0-9_.-]{1,100}$`)
 
 type Repository struct {
-	Name          string `json:"name"`
-	Description   string `json:"description"`
-	RepositoryURL string `json:"repository_url"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	URL         string `json:"url"`
 }
 
 func NewCmdInstall() *cobra.Command {
@@ -32,7 +32,7 @@ func NewCmdInstall() *cobra.Command {
 				return nil, cobra.ShellCompDirectiveFilterDirs
 			}
 
-			resp, err := http.Get("https://apps.smallweb.run")
+			resp, err := http.Get("https://api.smallweb.run/v1/apps")
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}

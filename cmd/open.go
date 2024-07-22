@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charmbracelet/huh"
 	"github.com/cli/browser"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
@@ -98,23 +97,9 @@ func NewCmdOpen() *cobra.Command {
 				return nil
 			}
 
-			var options []huh.Option[string]
+			cmd.PrintErrln("Multiple apps found for provided dir, please specify the --app flag")
 			for _, app := range apps {
-				options = append(options, huh.Option[string]{
-					Key:   app.Name,
-					Value: app.Url,
-				})
-			}
-
-			var url string
-			input := huh.NewSelect[string]().Title("Select an app").Options(options...).Value(&url)
-
-			if err := input.Run(); err != nil {
-				return fmt.Errorf("failed to get app from user: %v", err)
-			}
-
-			if err := browser.OpenURL(url); err != nil {
-				return fmt.Errorf("failed to open browser: %v", err)
+				cmd.PrintErrln(app.Name)
 			}
 
 			return nil
