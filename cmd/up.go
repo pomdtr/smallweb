@@ -160,13 +160,13 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						go func(job worker.CronJob) error {
-							if err := w.Trigger(job.Name); err != nil {
+						go func(command worker.Command) error {
+							if err := w.Run(command.Name, command.Args...); err != nil {
 								fmt.Printf("Failed to run cron job %s: %s\n", job.Command, err)
 							}
 
 							return nil
-						}(job)
+						}(job.Command)
 					}
 
 				}

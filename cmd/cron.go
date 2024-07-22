@@ -187,9 +187,8 @@ func NewCmdCronList() *cobra.Command {
 				printer.AddField(item.App.Name)
 				printer.AddField(item.Job.Schedule)
 
-				cmd := exec.Command(item.Job.Command, item.Job.Args...)
+				cmd := exec.Command(item.Job.Command.Name, item.Job.Command.Args...)
 				printer.AddField(cmd.String())
-
 				printer.EndRow()
 			}
 
@@ -287,9 +286,10 @@ func NewCmdCronTrigger() *cobra.Command {
 
 			for _, item := range crons {
 				if item.Job.Name == args[0] {
+					command := item.Job.Command
 					w := worker.Worker{Dir: item.App.Dir, Env: k.StringMap("env")}
 					cmd.PrintErrln("Triggering cron job", item.Job.Name)
-					if err := w.Trigger(item.Job.Name); err != nil {
+					if err := w.Run(command.Name, command.Args...); err != nil {
 						return fmt.Errorf("failed to run cron job %s: %w", item.Job.Command, err)
 					}
 

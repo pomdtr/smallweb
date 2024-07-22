@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/google/shlex"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/pomdtr/smallweb/utils"
@@ -33,10 +34,53 @@ type AppConfig struct {
 }
 
 type CronJob struct {
-	Name     string   `json:"name"`
-	Schedule string   `json:"schedule"`
-	Command  string   `json:"command"`
-	Args     []string `json:"args"`
+	Name     string  `json:"name"`
+	Schedule string  `json:"schedule"`
+	Command  Command `json:"command"`
+}
+
+type Command struct {
+	Name string   `json:"name"`
+	Args []string `json:"args"`
+}
+
+func (me *Command) UnmarshalJSON(data []byte) error {
+	var command string
+	if err := json.Unmarshal(data, &command); err == nil {
+		args, err := shlex.Split(command)
+		if err != nil {
+			return fmt.Errorf("could not split command: %v", err)
+		}
+		if len(args) == 0 {
+			return fmt.Errorf("command is empty")
+		}
+
+		me.Name = args[0]
+		me.Args = args[1:]
+
+		return nil
+	}
+
+	var object map[string]any
+	if err := json.Unmarshal(data, &object); err == nil {
+		if name, ok := object["name"].(string); ok {
+			me.Name = name
+		}
+		if args, ok := object["args"].([]string); ok {
+			me.Args = args
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("could not unmarshal cron job command")
+}
+
+type CronJobRequest struct {
+	URL     string            `json:"url"`
+	Method  string            `json:"method"`
+	Headers map[string]string `json:"headers"`
+	Body    any               `json:"body"`
 }
 
 type Permission struct {
@@ -622,26 +666,9 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (me *Worker) Trigger(name string) error {
+func (me *Worker) Run(name string, args ...string) error {
 	if !utils.FileExists(me.Dir) {
 		return fmt.Errorf("directory not found")
-	}
-
-	config, err := me.LoadConfig()
-	if err != nil {
-		return err
-	}
-
-	var job *CronJob
-	for _, j := range config.Crons {
-		if j.Name == name {
-			job = &j
-			break
-		}
-	}
-
-	if job == nil {
-		return fmt.Errorf("cron job not found")
 	}
 
 	env, err := me.LoadEnv()
@@ -649,7 +676,7 @@ func (me *Worker) Trigger(name string) error {
 		return err
 	}
 
-	cmd := exec.Command(job.Command, job.Args...)
+	cmd := exec.Command(name, args...)
 	cmd.Env = env
 	cmd.Dir = me.Dir
 	cmd.Stdout = os.Stdout
