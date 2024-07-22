@@ -109,7 +109,7 @@ func NewCmdUpgrade() *cobra.Command {
 }
 
 func fetchLatestVersion() (*semver.Version, error) {
-	resp, err := http.Get("https://releases.smallweb.run/latest")
+	resp, err := http.Get("https://api.smallweb.run/v1/versions/latest")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch version information: %w", err)
 	}

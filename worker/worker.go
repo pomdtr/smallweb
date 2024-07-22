@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path"
@@ -20,7 +21,6 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
-	"github.com/google/shlex"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/pomdtr/smallweb/utils"
@@ -34,46 +34,8 @@ type AppConfig struct {
 }
 
 type CronJob struct {
-	Name     string  `json:"name"`
-	Schedule string  `json:"schedule"`
-	Command  Command `json:"command"`
-}
-
-type Command struct {
-	Name string   `json:"name"`
-	Args []string `json:"args"`
-}
-
-func (me *Command) UnmarshalJSON(data []byte) error {
-	var command string
-	if err := json.Unmarshal(data, &command); err == nil {
-		args, err := shlex.Split(command)
-		if err != nil {
-			return fmt.Errorf("could not split command: %v", err)
-		}
-		if len(args) == 0 {
-			return fmt.Errorf("command is empty")
-		}
-
-		me.Name = args[0]
-		me.Args = args[1:]
-
-		return nil
-	}
-
-	var object map[string]any
-	if err := json.Unmarshal(data, &object); err == nil {
-		if name, ok := object["name"].(string); ok {
-			me.Name = name
-		}
-		if args, ok := object["args"].([]string); ok {
-			me.Args = args
-		}
-
-		return nil
-	}
-
-	return fmt.Errorf("could not unmarshal cron job command")
+	Path     string `json:"path"`
+	Schedule string `json:"schedule"`
 }
 
 type CronJobRequest struct {
@@ -502,13 +464,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		config.Permissions.Net.Allow = append(config.Permissions.Net.Allow, fmt.Sprintf("0.0.0.0:%d", freeport))
 	}
 
-	host := r.Host
-	protocol := r.Header.Get("X-Forwarded-Proto")
-	if protocol == "" {
-		protocol = "http"
-	}
-
-	url := fmt.Sprintf("%s://%s%s", protocol, host, r.URL.String())
+	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.String())
 
 	var stdin bytes.Buffer
 	if err := sandboxTemplate.Execute(&stdin, map[string]interface{}{
@@ -666,23 +622,10 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (me *Worker) Run(name string, args ...string) error {
-	if !utils.FileExists(me.Dir) {
-		return fmt.Errorf("directory not found")
-	}
-
-	env, err := me.LoadEnv()
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.Command(name, args...)
-	cmd.Env = env
-	cmd.Dir = me.Dir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
+func (me *Worker) Do(r *http.Request) (*http.Response, error) {
+	w := httptest.NewRecorder()
+	me.ServeHTTP(w, r)
+	return w.Result(), nil
 }
 
 func DenoExecutable() (string, error) {

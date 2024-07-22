@@ -160,13 +160,25 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						go func(command worker.Command) error {
-							if err := w.Run(command.Name, command.Args...); err != nil {
-								fmt.Printf("Failed to run cron job %s: %s\n", job.Command, err)
+						go func(cron worker.CronJob) error {
+							req, err := http.NewRequest("GET", cron.Path, nil)
+							if err != nil {
+								return err
+							}
+							req.Host = app.Name
+
+							resp, err := w.Do(req)
+							if err != nil {
+								return err
+							}
+							defer resp.Body.Close()
+
+							if resp.StatusCode != http.StatusOK {
+								return fmt.Errorf("non-200 status code: %d", resp.StatusCode)
 							}
 
 							return nil
-						}(job.Command)
+						}(job)
 					}
 
 				}
