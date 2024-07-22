@@ -479,6 +479,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	args := []string{"run", "--unstable-kv", "--unstable-temporal"}
 	flags := config.Permissions.Flags(me.Dir)
 	args = append(args, flags...)
+	args = append(args, "--location", fmt.Sprintf("https://%s", r.Host))
 	args = append(args, "-")
 
 	env, err := me.LoadEnv()
