@@ -59,7 +59,21 @@ func InstallService() error {
 }
 
 func StartService() error {
-	return fmt.Errorf("`smallweb service start` is not supported on macOS")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
+	if !utils.FileExists(servicePath) {
+		return fmt.Errorf("service not installed")
+	}
+
+	if err := exec.Command("launchctl", "start", "com.pomdtr.smallweb").Run(); err != nil {
+		return fmt.Errorf("failed to start service: %v", err)
+	}
+
+	return nil
 }
 
 func StopService() error {
@@ -81,13 +95,7 @@ func StopService() error {
 }
 
 func RestartService() error {
-	service := fmt.Sprintf("gui/%d/com.pomdtr.smallweb", os.Getuid())
-
-	if err := exec.Command("launchctl", "kickstart", "-k", service).Run(); err != nil {
-		return fmt.Errorf("failed to restart service: %v", err)
-	}
-
-	return nil
+	return fmt.Errorf("`smallweb service start restart` is not supported on macOS")
 }
 
 func UninstallService() error {
