@@ -226,26 +226,6 @@ func init() {
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
 		log.Fatal(err)
 	}
-
-	smallweb, err := os.Executable()
-	if err != nil {
-		return
-	}
-
-	PATH := os.Getenv("PATH")
-	if execPath, err := exec.LookPath("smallweb"); err != nil || execPath != smallweb {
-		PATH = fmt.Sprintf("%s:%s", filepath.Dir(smallweb), PATH)
-	}
-
-	if _, err := exec.LookPath("deno"); err != nil {
-		deno, err := DenoExecutable()
-		if err != nil {
-			return
-		}
-
-		PATH = fmt.Sprintf("%s:%s", filepath.Dir(deno), PATH)
-	}
-	os.Setenv("PATH", PATH)
 }
 
 type Worker struct {
@@ -383,6 +363,12 @@ func (me *Worker) LoadEnv() ([]string, error) {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
 
+	executable, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("could not get executable path: %v", err)
+	}
+
+	env = append(env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", executable))
 	return env, nil
 }
 
