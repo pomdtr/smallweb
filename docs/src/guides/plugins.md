@@ -7,9 +7,16 @@ For example, if you create a new `smallweb-choose` file in your PATH with the fo
 ```sh
 #!/bin/sh
 
-# List all apps, pipe to fzf, and open the selected app
-# see https://junegunn.github.io/fzf/installation/ for fzf installation instructions
-smallweb ls | fzf --with-nth=1 | cut -f2 | xargs smallweb open
+# check if fzf is installed
+if ! command -v fzy 2> /dev/null
+then
+    echo "fzf could not be found" >&2
+    echo "Please install fzf to use this script" >&2
+    echo "Docs: https://github.com/junegunn/fzf?tab=readme-ov-file#installation" >&2
+    exit 1
+fi
+
+smallweb list | cut -f1 | fzf | xargs smallweb open --app
 ```
 
 And make it executable with `chmod +x smallweb-choose`, you will be able to run `smallweb choose` and get an interactive list of your apps to choose from, which will then be opened in your default browser.
