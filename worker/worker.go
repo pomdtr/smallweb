@@ -474,7 +474,13 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := exec.Command("deno", args...)
+	deno, err := DenoExecutable()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	cmd := exec.Command(deno, args...)
 	cmd.Dir = me.Dir
 	cmd.Stdin = &stdin
 	cmd.Env = env
