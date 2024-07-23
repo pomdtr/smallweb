@@ -346,6 +346,13 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 
 func (me *Worker) LoadEnv() ([]string, error) {
 	env := os.Environ()
+
+	executable, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("could not get executable path: %v", err)
+	}
+	env = append(env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", executable))
+
 	for key, value := range me.Env {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
@@ -363,12 +370,6 @@ func (me *Worker) LoadEnv() ([]string, error) {
 		env = append(env, fmt.Sprintf("%s=%s", key, value))
 	}
 
-	executable, err := os.Executable()
-	if err != nil {
-		return nil, fmt.Errorf("could not get executable path: %v", err)
-	}
-
-	env = append(env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", executable))
 	return env, nil
 }
 
