@@ -30,6 +30,7 @@ jobs:
         if: ${{ github.ref == 'refs/heads/main' }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: smallweb
           publish_dir: docs/book
 
       - name: Notify Smallweb Puller
