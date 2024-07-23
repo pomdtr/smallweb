@@ -63,9 +63,8 @@ The `crons` field defines a list of cron jobs to run. See the [Cron Jobs](../gui
 {
   "crons": [
     {
-      "name": "example",
-      "schedule": "0 0 * * *",
-      "command": "./sync-db.ts",
+      "path": "/refresh",
+      "schedule": "0 0 * * *"
     }
   ]
 }
