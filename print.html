@@ -375,10 +375,8 @@ export default function (req: Request) {
 <pre><code class="language-json">{
     "crons": [
         {
-            "name": "refresh-cache",
+            "path": "/refresh",
             "schedule": "0 0 * * *",
-            "command": "./refresh-cache.ts",
-            "args": []
         }
     ]
 }
@@ -391,23 +389,9 @@ export default function (req: Request) {
 <li><code>@monthly</code>: Run once a month, at midnight on the first day of the month.</li>
 <li><code>@yearly</code>: Run once a year, at midnight on January 1st.</li>
 </ul>
-<p>Cron tasks can be defined in any language, as long as the file is executable and has the appropriate shebang line. You'll probably want to use deno as the runtime, more information on how to do that can be found in the <a href="https://docs.deno.com/runtime/tutorials/hashbang/">deno docs</a>.</p>
-<p>You can trigger a cron task manually by running the following command:</p>
-<pre><code class="language-sh">smallweb cron trigger &lt;cron&gt;
-</code></pre>
-<p>If you're not in the app directory, you can specify the app name with the <code>--app</code> flag:</p>
-<pre><code class="language-sh">smallweb cron trigger --app &lt;app&gt; &lt;cron&gt;
-</code></pre>
+<p>The <code>path</code> field is the path to the endpoint that should be called when the cron task runs.</p>
 <p>If you want to see a list of all cron tasks, you can run:</p>
-<pre><code class="language-sh">smallweb cron list
-</code></pre>
-<p>If you're not in the app directory, you can specify the app name with the <code>--app</code> flag, or use the <code>--all</code> flag to list all cron tasks:</p>
-<pre><code class="language-sh"># list all cron tasks
-smallweb cron list --all
-# list all cron tasks for a specific domain
-smallweb cron list --domain &lt;domain&gt;
-# list all cron tasks for a specific app
-smallweb cron list --app &lt;app&gt;
+<pre><code class="language-sh">smallweb crons
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="templates"><a class="header" href="#templates">Templates</a></h1>
 <p>Smallweb comes with a list of templates to help you get started with your project. You can use the <code>smallweb init</code> command to create a new project from a template.</p>
@@ -800,9 +784,8 @@ smallweb service install
 <pre><code class="language-json">{
   "crons": [
     {
-      "name": "example",
-      "schedule": "0 0 * * *",
-      "command": "./sync-db.ts",
+      "path": "/refresh",
+      "schedule": "0 0 * * *"
     }
   ]
 }
