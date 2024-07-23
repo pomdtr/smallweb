@@ -67,8 +67,8 @@ func NewCmdUpgrade() *cobra.Command {
 				}
 
 				fmt.Println()
-				fmt.Println("Ugrade completed successfully")
-				fmt.Println("Use `smallweb service restart` to restart the service")
+				fmt.Println("Ugrade completed successfully!")
+				fmt.Println("Make sure to restart the smallweb service.")
 				return nil
 			}
 
