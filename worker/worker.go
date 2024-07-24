@@ -374,10 +374,12 @@ func (me *Worker) LoadEnv() ([]string, error) {
 }
 
 func (me *Worker) inferEntrypoint() (string, error) {
-	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(me.Dir, candidate)
-		if utils.FileExists(path) {
-			return path, nil
+	for _, root := range []string{filepath.Join(me.Dir, "dist"), me.Dir} {
+		for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
+			path := filepath.Join(root, candidate)
+			if utils.FileExists(path) {
+				return path, nil
+			}
 		}
 	}
 
@@ -482,7 +484,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd := exec.Command(deno, args...)
-	cmd.Dir = me.Dir
+	cmd.Dir = filepath.Dir(entrypoint)
 	cmd.Stdin = &stdin
 	cmd.Env = env
 
