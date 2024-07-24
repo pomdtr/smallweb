@@ -374,17 +374,24 @@ func (me *Worker) LoadEnv() ([]string, error) {
 }
 
 func (me *Worker) inferEntrypoint() (string, error) {
-	for _, root := range []string{filepath.Join(me.Dir, "dist"), me.Dir} {
+	if utils.FileExists(filepath.Join(me.Dir, "dist")) {
 		for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-			path := filepath.Join(root, candidate)
+			path := filepath.Join(me.Dir, "dist", candidate)
 			if utils.FileExists(path) {
 				return path, nil
 			}
 		}
+
+		if utils.FileExists(filepath.Join(me.Dir, "dist", "index.html")) {
+			return filepath.Join(me.Dir, "dist"), nil
+		}
 	}
 
-	if utils.FileExists(filepath.Join(me.Dir, "dist", "index.html")) {
-		return filepath.Join(me.Dir, "dist"), nil
+	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
+		path := filepath.Join(me.Dir, candidate)
+		if utils.FileExists(path) {
+			return path, nil
+		}
 	}
 
 	return me.Dir, nil
