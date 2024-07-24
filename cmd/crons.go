@@ -25,10 +25,9 @@ func ListCronItems(domains map[string]string) ([]CronItem, error) {
 
 	items := make([]CronItem, 0)
 	for _, app := range apps {
-		w := worker.Worker{Dir: app.Dir}
-		config, err := w.LoadConfig()
+		config, err := worker.LoadConfig(app.Dir)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("failed to load config: %w", err)
 		}
 
 		for _, job := range config.Crons {

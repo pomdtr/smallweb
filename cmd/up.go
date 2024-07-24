@@ -18,9 +18,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Worker, error) {
+func DirFromHostname(domains map[string]string, hostname string) (string, error) {
 	if rootDir, ok := domains[hostname]; ok {
-		return &worker.Worker{Dir: rootDir}, nil
+		return rootDir, nil
 	}
 
 	items := make([][]string, 0)
@@ -39,10 +39,11 @@ func WorkerFromHostname(domains map[string]string, hostname string) (*worker.Wor
 			continue
 		}
 
-		return &worker.Worker{Dir: strings.Replace(rootDir, "*", match, 1)}, nil
+		return strings.Replace(rootDir, "*", match, 1), nil
+
 	}
 
-	return nil, fmt.Errorf("domain not found")
+	return "", fmt.Errorf("domain not found")
 }
 
 func NewCmdUp() *cobra.Command {
@@ -75,7 +76,17 @@ func NewCmdUp() *cobra.Command {
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					domains := expandDomains(k.StringMap("domains"))
-					handler, err := WorkerFromHostname(domains, r.Host)
+					dir, err := DirFromHostname(domains, r.Host)
+					if err != nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					handler, err := worker.NewWorker(dir, k.StringMap("env"))
+					for k, v := range k.StringMap("env") {
+						handler.Env[k] = v
+					}
+
 					if err != nil {
 						w.WriteHeader(http.StatusNotFound)
 						return
@@ -143,13 +154,12 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				for _, app := range apps {
-					w := worker.Worker{Dir: app.Dir}
-					config, err := w.LoadConfig()
+					w, err := worker.NewWorker(app.Dir, k.StringMap("env"))
 					if err != nil {
-						continue
+						fmt.Println(err)
 					}
 
-					for _, job := range config.Crons {
+					for _, job := range w.Config.Crons {
 						sched, err := parser.Parse(job.Schedule)
 						if err != nil {
 							fmt.Println(err)
@@ -166,6 +176,10 @@ func NewCmdUp() *cobra.Command {
 								return err
 							}
 							req.Host = app.Name
+
+							if secret, ok := w.Env["CRON_SECRET"]; ok {
+								req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", secret))
+							}
 
 							resp, err := w.Do(req)
 							if err != nil {

@@ -48,15 +48,11 @@ type CronJobRequest struct {
 type Permission struct {
 	All   bool     `json:"all"`
 	Allow []string `json:"allow"`
-	Deny  []string `json:"deny"`
 }
 
 type Permissions struct {
-	All   bool       `json:"all"`
 	Read  Permission `json:"read"`
 	Write Permission `json:"write"`
-	Net   Permission `json:"net"`
-	Env   Permission `json:"env"`
 	Run   Permission `json:"run"`
 	Sys   Permission `json:"sys"`
 	Ffi   Permission `json:"ffi"`
@@ -65,7 +61,6 @@ type Permissions struct {
 func (p *Permission) UnmarshalJSON(data []byte) error {
 	var all bool
 	if err := json.Unmarshal(data, &all); err == nil {
-		p.All = all
 		return nil
 	}
 
@@ -75,24 +70,10 @@ func (p *Permission) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	var object map[string][]string
-	if err := json.Unmarshal(data, &object); err == nil {
-		if allow, ok := object["allow"]; ok {
-			p.Allow = allow
-		}
-		if deny, ok := object["deny"]; ok {
-			p.Deny = deny
-		}
-		return nil
-	}
-
 	return fmt.Errorf("could not unmarshal permission")
 }
 
 func (p *Permissions) Flags(rootDir string) []string {
-	if p.All {
-		return []string{"--allow-all"}
-	}
 
 	flags := []string{}
 
@@ -112,19 +93,6 @@ func (p *Permissions) Flags(rootDir string) []string {
 
 			flags = append(flags, "--allow-read="+strings.Join(allow, ","))
 		}
-		if len(p.Read.Deny) > 0 {
-			var deny []string
-			for _, path := range p.Read.Deny {
-				if filepath.IsAbs(path) {
-					deny = append(deny, path)
-					continue
-				}
-
-				deny = append(deny, filepath.Join(rootDir, path))
-			}
-
-			flags = append(flags, "--deny-read="+strings.Join(deny, ","))
-		}
 	}
 
 	if p.Write.All {
@@ -143,41 +111,6 @@ func (p *Permissions) Flags(rootDir string) []string {
 
 			flags = append(flags, "--allow-write="+strings.Join(allow, ","))
 		}
-		if len(p.Write.Deny) > 0 {
-			var deny []string
-			for _, path := range p.Write.Deny {
-				if filepath.IsAbs(path) {
-					deny = append(deny, path)
-					continue
-				}
-
-				deny = append(deny, filepath.Join(rootDir, path))
-			}
-
-			flags = append(flags, "--deny-write="+strings.Join(deny, ","))
-		}
-	}
-
-	if p.Net.All {
-		flags = append(flags, "--allow-net")
-	} else {
-		if len(p.Net.Allow) > 0 {
-			flags = append(flags, "--allow-net="+strings.Join(p.Net.Allow, ","))
-		}
-		if len(p.Net.Deny) > 0 {
-			flags = append(flags, "--deny-net="+strings.Join(p.Net.Deny, ","))
-		}
-	}
-
-	if p.Env.All {
-		flags = append(flags, "--allow-env")
-	} else {
-		if len(p.Env.Allow) > 0 {
-			flags = append(flags, "--allow-env="+strings.Join(p.Env.Allow, ","))
-		}
-		if len(p.Env.Deny) > 0 {
-			flags = append(flags, "--deny-env="+strings.Join(p.Env.Deny, ","))
-		}
 	}
 
 	if p.Run.All {
@@ -185,9 +118,6 @@ func (p *Permissions) Flags(rootDir string) []string {
 	} else {
 		if len(p.Run.Allow) > 0 {
 			flags = append(flags, "--allow-run="+strings.Join(p.Run.Allow, ","))
-		}
-		if len(p.Run.Deny) > 0 {
-			flags = append(flags, "--deny-run="+strings.Join(p.Run.Deny, ","))
 		}
 	}
 
@@ -197,9 +127,6 @@ func (p *Permissions) Flags(rootDir string) []string {
 		if len(p.Sys.Allow) > 0 {
 			flags = append(flags, "--allow-sys="+strings.Join(p.Sys.Allow, ","))
 		}
-		if len(p.Sys.Deny) > 0 {
-			flags = append(flags, "--deny-sys="+strings.Join(p.Sys.Deny, ","))
-		}
 	}
 
 	if p.Ffi.All {
@@ -207,9 +134,6 @@ func (p *Permissions) Flags(rootDir string) []string {
 	} else {
 		if len(p.Ffi.Allow) > 0 {
 			flags = append(flags, "--allow-ffi="+strings.Join(p.Ffi.Allow, ","))
-		}
-		if len(p.Ffi.Deny) > 0 {
-			flags = append(flags, "--deny-ffi="+strings.Join(p.Ffi.Deny, ","))
 		}
 	}
 
@@ -229,37 +153,54 @@ func init() {
 }
 
 type Worker struct {
-	Dir string
-	Env map[string]string
+	Config AppConfig
+	Dir    string
+	Env    map[string]string
+}
+
+func NewWorker(dir string, env map[string]string) (*Worker, error) {
+	if !utils.FileExists(dir) {
+		return nil, fmt.Errorf("directory does not exist: %s", dir)
+	}
+
+	config, err := LoadConfig(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	worker := &Worker{
+		Config: *config,
+		Dir:    dir,
+		Env:    env,
+	}
+
+	envMap, err := LoadEnv(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range envMap {
+		worker.Env[k] = v
+	}
+
+	return worker, nil
 }
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) LoadConfig() (*AppConfig, error) {
+func LoadConfig(dir string) (*AppConfig, error) {
 	config := AppConfig{
 		Permissions: Permissions{
 			Read: Permission{
-				Allow: []string{me.Dir},
+				Allow: []string{dir},
 			},
 			Write: Permission{
-				Allow: []string{me.Dir},
-				Deny: []string{
-					filepath.Join(me.Dir, "smallweb.json"),
-					filepath.Join(me.Dir, "smallweb.jsonc"),
-					filepath.Join(me.Dir, "deno.json"),
-					filepath.Join(me.Dir, "deno.jsonc"),
-				},
-			},
-			Net: Permission{
-				All: true,
-			},
-			Env: Permission{
-				All: true,
+				Allow: []string{dir},
 			},
 		},
 	}
 
-	if configPath := filepath.Join(me.Dir, "smallweb.json"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(dir, "smallweb.json"); utils.FileExists(configPath) {
 		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read smallweb.json: %v", err)
@@ -272,7 +213,7 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 		return &config, nil
 	}
 
-	if configPath := filepath.Join(me.Dir, "smallweb.jsonc"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(dir, "smallweb.jsonc"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -290,7 +231,7 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 		return &config, nil
 	}
 
-	if configPath := filepath.Join(me.Dir, "deno.json"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(dir, "deno.json"); utils.FileExists(configPath) {
 		denoConfigBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -313,7 +254,7 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 		return &config, nil
 	}
 
-	if configPath := filepath.Join(me.Dir, "deno.jsonc"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(dir, "deno.jsonc"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return nil, fmt.Errorf("could not read deno.json: %v", err)
@@ -344,33 +285,34 @@ func (me *Worker) LoadConfig() (*AppConfig, error) {
 	return &config, nil
 }
 
-func (me *Worker) LoadEnv() ([]string, error) {
+func LoadEnv(dir string) (map[string]string, error) {
 	env := os.Environ()
+	envMap := make(map[string]string)
+	for _, e := range env {
+		pair := strings.SplitN(e, "=", 2)
+		envMap[pair[0]] = pair[1]
+	}
 
 	executable, err := os.Executable()
 	if err != nil {
 		return nil, fmt.Errorf("could not get executable path: %v", err)
 	}
-	env = append(env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", executable))
+	envMap["SMALLWEB_EXEC_PATH"] = executable
 
-	for key, value := range me.Env {
-		env = append(env, fmt.Sprintf("%s=%s", key, value))
-	}
-
-	dotenv, err := godotenv.Read(filepath.Join(me.Dir, ".env"))
+	dotenv, err := godotenv.Read(filepath.Join(".env"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return env, nil
+			return envMap, nil
 		}
 
 		return nil, fmt.Errorf("could not read .env: %v", err)
 	}
 
 	for key, value := range dotenv {
-		env = append(env, fmt.Sprintf("%s=%s", key, value))
+		envMap[key] = value
 	}
 
-	return env, nil
+	return envMap, nil
 }
 
 func (me *Worker) inferEntrypoint() (string, error) {
@@ -417,18 +359,7 @@ func (d HTMLDir) Open(name string) (http.File, error) {
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !utils.FileExists(me.Dir) {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	config, err := me.LoadConfig()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	entrypoint := config.Serve
+	entrypoint := me.Config.Serve
 	if entrypoint != "" {
 		entrypoint = filepath.Join(me.Dir, entrypoint)
 	} else {
@@ -456,9 +387,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if !config.Permissions.All && !config.Permissions.Net.All {
-		config.Permissions.Net.Allow = append(config.Permissions.Net.Allow, fmt.Sprintf("0.0.0.0:%d", freeport))
-	}
 
 	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.String())
 
@@ -472,17 +400,11 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	args := []string{"run", "--unstable-kv", "--unstable-temporal"}
-	flags := config.Permissions.Flags(me.Dir)
+	args := []string{"run", "--unstable-kv", "--unstable-temporal", "--allow-net", "--allow-env", "--deny-write=smallweb.json,smallweb.jsonc,deno.json,deno.jsonc"}
+	flags := me.Config.Permissions.Flags(me.Dir)
 	args = append(args, flags...)
 	args = append(args, "--location", fmt.Sprintf("https://%s/", r.Host))
 	args = append(args, "-")
-
-	env, err := me.LoadEnv()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	deno, err := DenoExecutable()
 	if err != nil {
@@ -493,6 +415,10 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command(deno, args...)
 	cmd.Dir = filepath.Dir(entrypoint)
 	cmd.Stdin = &stdin
+	var env []string
+	for k, v := range me.Env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
 	cmd.Env = env
 
 	stdout, err := cmd.StdoutPipe()
