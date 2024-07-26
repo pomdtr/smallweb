@@ -282,6 +282,29 @@ func LoadConfig(dir string) (*AppConfig, error) {
 		return &config, nil
 	}
 
+	if configPath := filepath.Join(dir, "package.json"); utils.FileExists(configPath) {
+		manifestBytes, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not read package.json: %v", err)
+		}
+
+		var packageConfig map[string]json.RawMessage
+		if err := json.Unmarshal(manifestBytes, &packageConfig); err != nil {
+			return nil, fmt.Errorf("could not unmarshal package.json: %v", err)
+		}
+
+		manifestBytes, ok := packageConfig["smallweb"]
+		if !ok {
+			return &config, nil
+		}
+
+		if err := json.Unmarshal(manifestBytes, &config); err != nil {
+			return nil, fmt.Errorf("could not unmarshal package.json: %v", err)
+		}
+
+		return &config, nil
+	}
+
 	return &config, nil
 }
 
@@ -316,19 +339,6 @@ func LoadEnv(dir string) (map[string]string, error) {
 }
 
 func (me *Worker) inferEntrypoint() (string, error) {
-	if utils.FileExists(filepath.Join(me.Dir, "dist")) {
-		for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-			path := filepath.Join(me.Dir, "dist", candidate)
-			if utils.FileExists(path) {
-				return path, nil
-			}
-		}
-
-		if utils.FileExists(filepath.Join(me.Dir, "dist", "index.html")) {
-			return filepath.Join(me.Dir, "dist"), nil
-		}
-	}
-
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
 		path := filepath.Join(me.Dir, candidate)
 		if utils.FileExists(path) {
