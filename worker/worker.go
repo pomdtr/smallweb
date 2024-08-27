@@ -90,7 +90,7 @@ func (me *Worker) Flags() []string {
 		"--allow-env",
 		"--allow-read=.",
 		"--allow-write=.",
-		"--allow-run=smallweb",
+		fmt.Sprintf("--allow-run=%s", me.Env["SMALLWEB_EXEC_PATH"]),
 	}
 
 	if configPath := filepath.Join(me.App.Root, "deno.json"); utils.FileExists(configPath) {
