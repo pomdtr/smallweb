@@ -6,110 +6,80 @@ import (
 
 	"github.com/cli/browser"
 	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
 
-func GetApp(domains map[string]string, name string) (App, error) {
-	apps, err := ListApps(domains)
-	if err != nil {
-		return App{}, fmt.Errorf("failed to list apps: %v", err)
-	}
-
-	for _, app := range apps {
-		if app.Name == name {
-			return app, nil
-		}
-	}
-
-	return App{}, fmt.Errorf("app not found: %s", name)
-}
-
-func GetAppsFromDir(domains map[string]string, dir string) ([]App, error) {
-	apps, err := ListApps(domains)
+func GetAppFromDir(domain string, rootDir string, dir string) (*worker.App, error) {
+	apps, err := ListApps(domain, rootDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list apps: %v", err)
 	}
 
-	var foundApps []App
 	for _, app := range apps {
-		if app.Dir != dir {
+		if app.Root != dir {
 			continue
 		}
 
-		foundApps = append(foundApps, app)
+		return &app, nil
 	}
 
-	return foundApps, nil
+	return nil, fmt.Errorf("app not found for dir: %s", dir)
 }
 
 func NewCmdOpen() *cobra.Command {
-	var flags struct {
-		app string
-		dir string
-	}
-
 	cmd := &cobra.Command{
-		Use:     "open <dir>",
-		Short:   "Open the smallweb app specified by dir in the browser",
-		Args:    cobra.NoArgs,
+		Use:   "open [app]",
+		Short: "Open the smallweb app specified by dir in the browser",
+		Args:  cobra.MaximumNArgs(1),
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			if len(args) > 0 {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			return completeApp(cmd, args, toComplete)
+		},
 		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if flags.app != "" {
-				app, err := GetApp(expandDomains(k.StringMap("domains")), flags.app)
+			if len(args) > 0 {
+				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("root")))
 				if err != nil {
-					return fmt.Errorf("failed to get app: %v", err)
+					return fmt.Errorf("failed to list apps: %v", err)
 				}
 
-				if err := browser.OpenURL(app.Url); err != nil {
-					return fmt.Errorf("failed to open browser: %v", err)
+				for _, app := range apps {
+					if app.Name != args[0] {
+						continue
+					}
+
+					url := fmt.Sprintf("https://%s/", app.Hostname)
+					if err := browser.OpenURL(url); err != nil {
+						return fmt.Errorf("failed to open browser: %v", err)
+					}
+					return nil
 				}
-				return nil
+
+				return fmt.Errorf("app not found: %s", args[0])
 			}
 
-			var dir = flags.dir
-			if dir == "" {
-				wd, err := os.Getwd()
-				if err != nil {
-					return fmt.Errorf("failed to get working dir: %v", err)
-				}
-				dir = wd
+			dir, err := os.Getwd()
+			if err != nil {
+				return fmt.Errorf("failed to get current dir: %v", err)
 			}
 
-			apps, err := GetAppsFromDir(expandDomains(k.StringMap("domains")), dir)
+			app, err := GetAppFromDir(k.String("domain"), utils.ExpandTilde(k.String("root")), dir)
 			if err != nil {
 				return fmt.Errorf("current dir is not a smallweb app, please provide the --app or --dir flag")
 			}
 
-			if len(apps) == 0 {
-				return fmt.Errorf("no app found for provided dir")
-			}
-
-			if len(apps) == 1 {
-				app := apps[0]
-				if utils.IsGlob(app.Url) {
-					return fmt.Errorf("cannot guess URL for app: %s", app.Name)
-				}
-
-				if err := browser.OpenURL(app.Url); err != nil {
-					return fmt.Errorf("failed to open browser: %v", err)
-				}
-
-				return nil
-			}
-
-			cmd.PrintErrln("Multiple apps found for provided dir, please specify the --app flag")
-			for _, app := range apps {
-				cmd.PrintErrln(app.Name)
+			url := fmt.Sprintf("https://%s/", app.Hostname)
+			if err := browser.OpenURL(url); err != nil {
+				return fmt.Errorf("failed to open browser: %v", err)
 			}
 
 			return nil
 		},
 	}
-
-	cmd.Flags().StringVar(&flags.app, "app", "", "app to open")
-	cmd.RegisterFlagCompletionFunc("app", completeApp)
-	cmd.Flags().StringVar(&flags.dir, "dir", "", "dir to open")
-	cmd.MarkFlagsMutuallyExclusive("app", "dir")
 
 	return cmd
 }

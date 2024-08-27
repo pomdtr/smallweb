@@ -1,6 +1,8 @@
+const { port, entrypoint } = JSON.parse(Deno.args[0]);
+
 const server = Deno.serve(
   {
-    port: parseInt("{{ .Port }}"),
+    port: parseInt(port),
     onListen: () => {
       // This line will signal that the server is ready to the go
       console.log("READY");
@@ -13,7 +15,7 @@ const server = Deno.serve(
     });
 
     try {
-      const mod = await import("{{ .ModURL }}");
+      const mod = await import(entrypoint);
       if (!mod.default || typeof mod.default !== "object") {
         console.error("Mod does not export a default object");
         Deno.exit(1);
@@ -25,10 +27,17 @@ const server = Deno.serve(
         Deno.exit(1);
       }
 
+      const headers = new Headers(req.headers);
+      const url = req.headers.get("x-smallweb-url");
+      if (!url) {
+        return new Response("Missing x-smallweb-url header", { status: 400 });
+      }
+      headers.delete("x-smallweb-url");
+
       const resp = await handler.fetch(
-        new Request("{{ .RequestURL }}", {
+        new Request(url, {
           method: req.method,
-          headers: req.headers,
+          headers,
           body: req.body,
         }),
       );

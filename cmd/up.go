@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"slices"
-	"strings"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/knadh/koanf/providers/posflag"
@@ -16,35 +16,8 @@ import (
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/webdav"
 )
-
-func DirFromHostname(domains map[string]string, hostname string) (string, error) {
-	if rootDir, ok := domains[hostname]; ok {
-		return rootDir, nil
-	}
-
-	items := make([][]string, 0)
-	for domain, rootDir := range domains {
-		items = append(items, []string{domain, rootDir})
-	}
-
-	slices.SortFunc(items, func(a, b []string) int {
-		return len(b[0]) - len(a[0])
-	})
-
-	for _, item := range items {
-		domain, rootDir := item[0], item[1]
-		match, err := utils.ExtractGlobPattern(hostname, domain)
-		if err != nil {
-			continue
-		}
-
-		return strings.Replace(rootDir, "*", match, 1), nil
-
-	}
-
-	return "", fmt.Errorf("domain not found")
-}
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
@@ -71,28 +44,41 @@ func NewCmdUp() *cobra.Command {
 
 			host := k.String("host")
 			addr := fmt.Sprintf("%s:%d", host, port)
+			root := utils.ExpandTilde(k.String("root"))
 
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					domains := expandDomains(k.StringMap("domains"))
-					dir, err := DirFromHostname(domains, r.Host)
+					if r.Host == k.String("domain") {
+						target := r.URL
+						target.Scheme = "https"
+						target.Host = "www." + k.String("domain")
+						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+					}
+
+					apps, err := ListApps(k.String("domain"), root)
 					if err != nil {
-						w.WriteHeader(http.StatusNotFound)
+						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
 					}
 
-					handler, err := worker.NewWorker(dir, k.StringMap("env"))
-					for k, v := range k.StringMap("env") {
-						handler.Env[k] = v
-					}
+					for _, app := range apps {
+						if r.Host != app.Hostname {
+							continue
+						}
 
-					if err != nil {
-						w.WriteHeader(http.StatusNotFound)
+						handler, err := worker.NewWorker(app, k.StringMap("env"))
+						if err != nil {
+							w.WriteHeader(http.StatusNotFound)
+							return
+						}
+
+						handler.ServeHTTP(w, r)
 						return
 					}
-					handler.Env = k.StringMap("env")
-					handler.ServeHTTP(w, r)
+
+					w.WriteHeader(http.StatusNotFound)
+
 				}),
 			}
 
@@ -136,25 +122,25 @@ func NewCmdUp() *cobra.Command {
 
 				server.TLSConfig = tlsConfig
 
-				cmd.Printf("Listening on https://%s\n", addr)
 				return server.ListenAndServeTLS(flags.tlsCert, flags.tlsKey)
 			}
 
-			cmd.Printf("Listening on http://%s\n", addr)
+			cmd.Printf("Evaluation server listening on http://%s\n", addr)
+			go server.ListenAndServe()
 
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 			c := cron.New(cron.WithParser(parser))
 			c.AddFunc("* * * * *", func() {
 				rounded := time.Now().Truncate(time.Minute)
 
-				apps, err := ListApps(expandDomains(k.StringMap("domains")))
+				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("root")))
 				if err != nil {
 					fmt.Println(err)
 					return
 				}
 
 				for _, app := range apps {
-					w, err := worker.NewWorker(app.Dir, k.StringMap("env"))
+					w, err := worker.NewWorker(app, k.StringMap("env"))
 					if err != nil {
 						fmt.Println(err)
 					}
@@ -170,29 +156,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						go func(cron worker.CronJob) error {
-							req, err := http.NewRequest("GET", cron.Path, nil)
-							if err != nil {
-								return err
-							}
-							req.Host = app.Name
-
-							if secret, ok := w.Env["CRON_SECRET"]; ok {
-								req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", secret))
-							}
-
-							resp, err := w.Do(req)
-							if err != nil {
-								return err
-							}
-							defer resp.Body.Close()
-
-							if resp.StatusCode != http.StatusOK {
-								return fmt.Errorf("non-200 status code: %d", resp.StatusCode)
-							}
-
-							return nil
-						}(job)
+						go w.Run(job.Args)
 					}
 
 				}
@@ -200,12 +164,34 @@ func NewCmdUp() *cobra.Command {
 
 			go c.Start()
 
-			return server.ListenAndServe()
+			webdavPort := k.Int("webdav-port")
+			if webdavPort == 0 && flags.tls {
+				webdavPort = 443
+			} else if webdavPort == 0 {
+				webdavPort = 7778
+			}
+
+			handler := &webdav.Handler{
+				FileSystem: webdav.Dir(root),
+				LockSystem: webdav.NewMemLS(),
+			}
+
+			webdavAddr := fmt.Sprintf("%s:%d", host, webdavPort)
+			cmd.Printf("WebDav server listening on http://%s\n", webdavAddr)
+			go http.ListenAndServe(webdavAddr, handler)
+
+			// signal handling
+			sigs := make(chan os.Signal, 1)
+			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+			<-sigs
+
+			return nil
 		},
 	}
 
 	cmd.Flags().String("host", "localhost", "Host to listen on")
 	cmd.Flags().IntP("port", "p", 0, "Port to listen on")
+	cmd.Flags().Int("webdav-port", 0, "Port to listen on for webdav")
 	cmd.Flags().BoolVar(&flags.tls, "tls", false, "Enable TLS")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "TLS certificate file path")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "TLS key file path")

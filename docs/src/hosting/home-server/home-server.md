@@ -42,11 +42,11 @@ Additionally, it provides some protection against DDoS attacks, and allows you t
 
 ## Checking that your tunnel is running
 
-Create a dummy smallweb app in `~/localhost/example`
+Create a dummy smallweb app in `~/smallweb/example`
 
 ```sh
-mkdir -p ~/localhost/example
-CAT <<EOF > ~/localhost/example/main.ts
+mkdir -p ~/smallweb/example
+CAT <<EOF > ~/smallweb/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

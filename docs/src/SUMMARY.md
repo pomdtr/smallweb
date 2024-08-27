@@ -10,7 +10,6 @@
 - [Environment Variables](./guides/env.md)
 - [Permissions](./guides/permissions.md)
 - [Cron Jobs](./guides/cron.md)
-- [Templates](./guides/templates.md)
 - [Plugins](./guides/plugins.md)
 - [Tooling](./guides/tooling.md)
 

@@ -10,12 +10,13 @@
             ]
         },
         {
-            "name": "smallweb ls",
+            "name": "smallweb cli",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "args": [
-                "list"
+                "run",
+                "tldraw"
             ]
         }
     ],

@@ -5,8 +5,8 @@
 The simplest smallweb app you can create is just a folder with a text file in it.
 
 ```sh
-mkdir -p ~/localhost/example-website
-echo "Hello, world!" > ~/localhost/example-website/hello.txt
+mkdir -p ~/smallweb/example-website
+echo "Hello, world!" > ~/smallweb/example-website/hello.txt
 ```
 
 If you open `https://hello-world.localhost/hello.txt` in your browser, you should see the content of the file.
@@ -16,7 +16,7 @@ If you open `https://hello-world.localhost/hello.txt` in your browser, you shoul
 If the folder contains an `index.html` file, it will be served as the root of the website.
 
 ```html
-<!-- File: ~/localhost/example-website/index.html -->
+<!-- File: ~/smallweb/example-website/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,6 +51,6 @@ If you static site generator does not use the `dist` folder, you can either conf
 Vite projects are also supported out of the box.
 
 ```sh
-cd ~/localhost
+cd ~/smallweb
 npm create vite@latest
 ```

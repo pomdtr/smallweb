@@ -14,7 +14,7 @@ The components needed are:
 
 - a dns server to map `*.localhost` domains to `127.0.0.1` ip address (dnsmasq)
 - a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)
-- a service to map each domain to the corresponding folder in ~/localhost, and spawn a deno subprocess for each request (smallweb)
+- a service to map each domain to the corresponding folder in ~/smallweb, and spawn a deno subprocess for each request (smallweb)
 
 ## MacOS setup
 
@@ -85,8 +85,8 @@ EOF
 First, let's create a dummy smallweb website:
 
 ```sh
-mkdir -p ~/localhost/example
-CAT <<EOF > ~/localhost/example/main.ts
+mkdir -p ~/smallweb/example
+CAT <<EOF > ~/smallweb/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -148,8 +148,8 @@ There is no need to setup dnsmasq on Ubuntu, as it seems to be already configure
 First, let's create a dummy smallweb website:
 
 ```sh
-mkdir -p ~/localhost/example
-CAT <<EOF > ~/localhost/example/main.ts
+mkdir -p ~/smallweb/example
+CAT <<EOF > ~/smallweb/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

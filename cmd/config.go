@@ -18,7 +18,7 @@ func findConfigPath() string {
 
 	var configDir string
 	if env, ok := os.LookupEnv("XDG_CONFIG_HOME"); ok {
-		configDir = filepath.Join(env, "smallweb", "config.json")
+		configDir = filepath.Join(env, "smallweb")
 	} else {
 		configDir = filepath.Join(os.Getenv("HOME"), ".config", "smallweb")
 	}

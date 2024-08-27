@@ -4,61 +4,50 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
-	"slices"
+	"path"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
-type App struct {
-	Name string `json:"name"`
-	Url  string `json:"url"`
-	Dir  string `json:"dir"`
-}
+func ListApps(domain string, rootDir string) ([]worker.App, error) {
+	entries, err := os.ReadDir(rootDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read dir: %w", err)
+	}
 
-func ListApps(domains map[string]string) ([]App, error) {
-	apps := make([]App, 0)
-
-	for domain, rootDir := range domains {
-		if !utils.IsGlob(rootDir) {
-			apps = append(apps, App{
-				Name: domain,
-				Dir:  rootDir,
-				Url:  fmt.Sprintf("https://%s/", domain),
-			})
+	var apps []worker.App
+	for _, entry := range entries {
+		if !entry.IsDir() {
 			continue
 		}
 
-		entries, err := filepath.Glob(rootDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list apps: %w", err)
+		if strings.HasPrefix(entry.Name(), ".") {
+			continue
 		}
 
-		for _, entry := range entries {
-			match, err := utils.ExtractGlobPattern(entry, rootDir)
+		app := worker.App{
+			Name:     entry.Name(),
+			Hostname: fmt.Sprintf("%s.%s", entry.Name(), domain),
+			Root:     path.Join(rootDir, entry.Name()),
+		}
+
+		if cname := path.Join(rootDir, entry.Name(), "CNAME"); utils.FileExists(cname) {
+			b, err := os.ReadFile(cname)
 			if err != nil {
 				continue
 			}
 
-			hostname := strings.Replace(domain, "*", match, 1)
-
-			apps = append(apps, App{
-				Name: hostname,
-				Url:  fmt.Sprintf("https://%s/", hostname),
-				Dir:  strings.Replace(rootDir, "*", match, 1),
-			})
+			app.Hostname = strings.TrimSpace(string(b))
 		}
-	}
 
-	// sort by hostname
-	slices.SortFunc(apps, func(a, b App) int {
-		return strings.Compare(a.Url, b.Url)
-	})
+		apps = append(apps, app)
+	}
 
 	return apps, nil
 }
@@ -74,8 +63,7 @@ func NewCmdList() *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domains := expandDomains(k.StringMap("domains"))
-			apps, err := ListApps(domains)
+			apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("root")))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
@@ -111,11 +99,11 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir", "Url"})
+			printer.AddHeader([]string{"Name", "Root", "Url"})
 			for _, app := range apps {
 				printer.AddField(app.Name)
-				printer.AddField(app.Dir)
-				printer.AddField(app.Url)
+				printer.AddField(app.Root)
+				printer.AddField(fmt.Sprintf("https://%s/", app.Hostname))
 				printer.EndRow()
 			}
 

@@ -2,7 +2,6 @@ package worker
 
 import (
 	"bufio"
-	"bytes"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -11,16 +10,12 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
-	"text/template"
 	"time"
 
-	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"github.com/pomdtr/smallweb/utils"
@@ -28,14 +23,15 @@ import (
 )
 
 type AppConfig struct {
-	Serve       string      `json:"serve"`
-	Crons       []CronJob   `json:"crons"`
-	Permissions Permissions `json:"permissions"`
+	Root       string    `json:"root"`
+	Entrypoint string    `json:"entrypoint"`
+	Crons      []CronJob `json:"crons"`
 }
 
 type CronJob struct {
-	Path     string `json:"path"`
-	Schedule string `json:"schedule"`
+	Name     string   `json:"name"`
+	Schedule string   `json:"schedule"`
+	Args     []string `json:"args"`
 }
 
 type CronJobRequest struct {
@@ -45,161 +41,69 @@ type CronJobRequest struct {
 	Body    any               `json:"body"`
 }
 
-type Permission struct {
-	All   bool     `json:"all"`
-	Allow []string `json:"allow"`
-}
-
-type Permissions struct {
-	Read  Permission `json:"read"`
-	Write Permission `json:"write"`
-	Run   Permission `json:"run"`
-	Sys   Permission `json:"sys"`
-	Ffi   Permission `json:"ffi"`
-}
-
-func (p *Permission) UnmarshalJSON(data []byte) error {
-	var all bool
-	if err := json.Unmarshal(data, &all); err == nil {
-		return nil
-	}
-
-	var allow []string
-	if err := json.Unmarshal(data, &allow); err == nil {
-		p.Allow = allow
-		return nil
-	}
-
-	return fmt.Errorf("could not unmarshal permission")
-}
-
-func (p *Permissions) Flags(rootDir string) []string {
-
-	flags := []string{}
-
-	if p.Read.All {
-		flags = append(flags, "--allow-read")
-	} else {
-		if len(p.Read.Allow) > 0 {
-			var allow []string
-			for _, path := range p.Read.Allow {
-				if filepath.IsAbs(path) {
-					allow = append(allow, path)
-					continue
-				}
-
-				allow = append(allow, filepath.Join(rootDir, path))
-			}
-
-			flags = append(flags, "--allow-read="+strings.Join(allow, ","))
-		}
-	}
-
-	if p.Write.All {
-		flags = append(flags, "--allow-write")
-	} else {
-		if len(p.Write.Allow) > 0 {
-			var allow []string
-			for _, path := range p.Write.Allow {
-				if filepath.IsAbs(path) {
-					allow = append(allow, path)
-					continue
-				}
-
-				allow = append(allow, filepath.Join(rootDir, path))
-			}
-
-			flags = append(flags, "--allow-write="+strings.Join(allow, ","))
-		}
-	}
-
-	if p.Run.All {
-		flags = append(flags, "--allow-run")
-	} else {
-		if len(p.Run.Allow) > 0 {
-			flags = append(flags, "--allow-run="+strings.Join(p.Run.Allow, ","))
-		}
-	}
-
-	if p.Sys.All {
-		flags = append(flags, "--allow-sys")
-	} else {
-		if len(p.Sys.Allow) > 0 {
-			flags = append(flags, "--allow-sys="+strings.Join(p.Sys.Allow, ","))
-		}
-	}
-
-	if p.Ffi.All {
-		flags = append(flags, "--allow-ffi")
-	} else {
-		if len(p.Ffi.Allow) > 0 {
-			flags = append(flags, "--allow-ffi="+strings.Join(p.Ffi.Allow, ","))
-		}
-	}
-
-	return flags
-}
-
-var dataHome = path.Join(xdg.DataHome, "smallweb")
-
-//go:embed sandbox.ts
-var sandboxBytes []byte
-var sandboxTemplate = template.Must(template.New("sandbox").Parse(string(sandboxBytes)))
-
-func init() {
-	if err := os.MkdirAll(dataHome, 0755); err != nil {
-		log.Fatal(err)
-	}
+type App struct {
+	Name     string `json:"name"`
+	Hostname string `json:"hostname"`
+	Root     string `json:"root"`
 }
 
 type Worker struct {
 	Config AppConfig
-	Dir    string
+	App    App
 	Env    map[string]string
 }
 
-func NewWorker(dir string, env map[string]string) (*Worker, error) {
-	if !utils.FileExists(dir) {
-		return nil, fmt.Errorf("directory does not exist: %s", dir)
-	}
-
-	config, err := LoadConfig(dir)
+func NewWorker(a App, env map[string]string) (*Worker, error) {
+	config, err := LoadConfig(a.Root)
 	if err != nil {
 		return nil, err
 	}
 
 	worker := &Worker{
 		Config: *config,
-		Dir:    dir,
+		App:    a,
 		Env:    env,
 	}
 
-	envMap, err := LoadEnv(dir)
+	envMap, err := LoadEnv(a.Root)
 	if err != nil {
 		return nil, err
 	}
 
-	for k, v := range envMap {
-		worker.Env[k] = v
-	}
-
+	worker.Env = envMap
 	return worker, nil
+}
+
+func (me *Worker) Root() string {
+	if me.Config.Root != "" {
+		return filepath.Join(me.App.Root, me.Config.Root)
+	} else {
+		return me.App.Root
+	}
 }
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func LoadConfig(dir string) (*AppConfig, error) {
-	config := AppConfig{
-		Permissions: Permissions{
-			Read: Permission{
-				Allow: []string{dir},
-			},
-			Write: Permission{
-				Allow: []string{dir},
-			},
-		},
+func (me *Worker) Flags() []string {
+	flags := []string{
+		"--allow-net",
+		"--allow-env",
+		"--allow-read=.",
+		"--allow-write=.",
+		"--allow-run=smallweb",
 	}
 
+	if configPath := filepath.Join(me.App.Root, "deno.json"); utils.FileExists(configPath) {
+		flags = append(flags, "--config", configPath)
+	} else if configPath := filepath.Join(me.App.Root, "deno.jsonc"); utils.FileExists(configPath) {
+		flags = append(flags, "--config", configPath)
+	}
+
+	return flags
+}
+
+func LoadConfig(dir string) (*AppConfig, error) {
+	var config AppConfig
 	if configPath := filepath.Join(dir, "smallweb.json"); utils.FileExists(configPath) {
 		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
@@ -322,7 +226,7 @@ func LoadEnv(dir string) (map[string]string, error) {
 	}
 	envMap["SMALLWEB_EXEC_PATH"] = executable
 
-	dotenv, err := godotenv.Read(filepath.Join(".env"))
+	dotenv, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return envMap, nil
@@ -338,57 +242,41 @@ func LoadEnv(dir string) (map[string]string, error) {
 	return envMap, nil
 }
 
-func (me *Worker) inferEntrypoint() (string, error) {
+func (me *Worker) Entrypoint() (string, error) {
+	if strings.HasPrefix(me.Config.Entrypoint, "jsr:") || strings.HasPrefix(me.Config.Entrypoint, "npm:") {
+		return me.Config.Entrypoint, nil
+	}
+
+	if strings.HasPrefix(me.Config.Entrypoint, "https://") || strings.HasPrefix(me.Config.Entrypoint, "http://") {
+		return me.Config.Entrypoint, nil
+	}
+
+	rootDir := me.Root()
+	if (me.Config.Root != "") && (me.Config.Root != ".") {
+		rootDir = filepath.Join(rootDir, me.Config.Root)
+	}
+
+	if me.Config.Entrypoint != "" {
+		return filepath.Join(rootDir, me.Config.Entrypoint), nil
+	}
+
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(me.Dir, candidate)
+		path := filepath.Join(rootDir, candidate)
 		if utils.FileExists(path) {
 			return path, nil
 		}
 	}
 
-	return me.Dir, nil
+	return "", fmt.Errorf("could not find entrypoint")
 }
 
-type HTMLDir struct {
-	dir http.Dir
-}
-
-func NewHtmlDir(dir http.Dir) HTMLDir {
-	return HTMLDir{dir}
-}
-
-func (d HTMLDir) Open(name string) (http.File, error) {
-	// Try name as supplied
-	f, err := d.dir.Open(name)
-	if !os.IsNotExist(err) {
-		return f, err
-	}
-
-	// Not found, try with .html
-	return d.dir.Open(name + ".html")
-}
+//go:embed deno/fetch.ts
+var fetchBytes []byte
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	entrypoint := me.Config.Serve
-	if entrypoint != "" {
-		entrypoint = filepath.Join(me.Dir, entrypoint)
-	} else {
-		e, err := me.inferEntrypoint()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		entrypoint = e
-	}
-
-	info, err := os.Stat(entrypoint)
+	entrypoint, err := me.Entrypoint()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	if info.IsDir() {
-		server := http.FileServer(NewHtmlDir(http.Dir(entrypoint)))
-		server.ServeHTTP(w, r)
 		return
 	}
 
@@ -398,23 +286,31 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.String())
-
-	var stdin bytes.Buffer
-	if err := sandboxTemplate.Execute(&stdin, map[string]interface{}{
-		"Port":       freeport,
-		"ModURL":     entrypoint,
-		"RequestURL": url,
-	}); err != nil {
+	tempfile, err := os.CreateTemp("", "sandbox-*.ts")
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	args := []string{"run", "--unstable-kv", "--unstable-temporal", "--allow-net", "--allow-env", "--deny-write=smallweb.json,smallweb.jsonc,deno.json,deno.jsonc"}
-	flags := me.Config.Permissions.Flags(me.Dir)
-	args = append(args, flags...)
-	args = append(args, "--location", fmt.Sprintf("https://%s/", r.Host))
-	args = append(args, "-")
+	defer os.Remove(tempfile.Name())
+	if _, err := tempfile.Write(fetchBytes); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	args := []string{"run"}
+	args = append(args, me.Flags()...)
+
+	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.String())
+	input := strings.Builder{}
+	encoder := json.NewEncoder(&input)
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(map[string]any{
+		"port":       freeport,
+		"entrypoint": entrypoint,
+		"url":        url,
+	})
+	args = append(args, tempfile.Name(), input.String())
 
 	deno, err := DenoExecutable()
 	if err != nil {
@@ -423,8 +319,8 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd := exec.Command(deno, args...)
-	cmd.Dir = filepath.Dir(entrypoint)
-	cmd.Stdin = &stdin
+	cmd.Dir = me.Root()
+
 	var env []string
 	for k, v := range me.Env {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -442,7 +338,27 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer cmd.Process.Kill()
+
+	defer func() {
+		if err := cmd.Process.Signal(os.Interrupt); err != nil {
+			log.Printf("Failed to send interrupt signal: %v", err)
+		}
+
+		done := make(chan error, 1)
+		go func() {
+			done <- cmd.Wait()
+		}()
+
+		select {
+		case <-time.After(5 * time.Second):
+			if err := cmd.Process.Kill(); err != nil {
+				log.Printf("Failed to kill proces %v", err)
+			}
+			return
+		case <-done:
+			return
+		}
+	}()
 
 	scanner := bufio.NewScanner(stdout)
 	scanner.Scan()
@@ -515,6 +431,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	request.Header.Add("X-Smallweb-Url", url)
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -560,12 +477,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (me *Worker) Do(r *http.Request) (*http.Response, error) {
-	w := httptest.NewRecorder()
-	me.ServeHTTP(w, r)
-	return w.Result(), nil
-}
-
 func DenoExecutable() (string, error) {
 	if env, ok := os.LookupEnv("DENO_EXEC_PATH"); ok {
 		return env, nil
@@ -592,6 +503,63 @@ func DenoExecutable() (string, error) {
 	}
 
 	return "", fmt.Errorf("deno executable not found")
+}
+
+//go:embed deno/run.ts
+var runBytes []byte
+
+func (me *Worker) Run(args []string) error {
+	entrypoint, err := me.Entrypoint()
+	if err != nil {
+		return err
+	}
+
+	info, err := os.Stat(entrypoint)
+	if err != nil {
+		return fmt.Errorf("could not stat entrypoint: %w", err)
+	}
+
+	if info.IsDir() {
+		return fmt.Errorf("entrypoint is a directory")
+	}
+
+	tempfile, err := os.CreateTemp("", "sandbox-*.ts")
+	if err != nil {
+		return fmt.Errorf("could not create temporary file: %w", err)
+	}
+	defer os.Remove(tempfile.Name())
+	if _, err := tempfile.Write(runBytes); err != nil {
+		return err
+	}
+
+	denoArgs := []string{"run"}
+	denoArgs = append(denoArgs, me.Flags()...)
+
+	input := strings.Builder{}
+	encoder := json.NewEncoder(&input)
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(map[string]any{
+		"entrypoint": entrypoint,
+		"args":       args,
+	})
+	denoArgs = append(denoArgs, tempfile.Name(), input.String())
+	deno, err := DenoExecutable()
+	if err != nil {
+		return fmt.Errorf("could not find deno executable")
+	}
+
+	cmd := exec.Command(deno, denoArgs...)
+	cmd.Dir = me.Root()
+	var env []string
+	for k, v := range me.Env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+	cmd.Env = env
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.

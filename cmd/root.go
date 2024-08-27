@@ -31,28 +31,19 @@ var (
 // Global koanf instance. Use "." as the key path delimiter. This can be "/" or any character.
 var k = koanf.New(".")
 
-func expandDomains(domains map[string]string) map[string]string {
-	for key, value := range domains {
-		domains[key] = utils.ExpandTilde(value)
-	}
-
-	return domains
-}
-
 func NewCmdRoot(version string) *cobra.Command {
-
 	defaultProvider := confmap.Provider(map[string]interface{}{
-		"host": "127.0.0.1",
-		"port": 7777,
-		"domains": map[string]string{
-			"*.localhost": "~/localhost/*",
-		},
+		"host":   "127.0.0.1",
+		"port":   7777,
+		"domain": "localhost",
+		"root":   "~/smallweb",
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",
 		},
 	}, "")
 
-	fileProvider := file.Provider(findConfigPath())
+	configPath := findConfigPath()
+	fileProvider := file.Provider(configPath)
 	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
 		return strings.Replace(strings.ToLower(
 			strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
@@ -146,15 +137,16 @@ func NewCmdRoot(version string) *cobra.Command {
 	})
 
 	cmd.AddCommand(NewCmdUp())
+	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdDocs())
-	cmd.AddCommand(NewCmdInit())
 	cmd.AddCommand(NewCmdInstall())
-	cmd.AddCommand(NewCmdCrons())
+	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdUpgrade())
+	cmd.AddCommand(NewCmdInit())
 
 	path := os.Getenv("PATH")
 	for _, dir := range filepath.SplitList(path) {
@@ -164,36 +156,37 @@ func NewCmdRoot(version string) *cobra.Command {
 		}
 
 		for _, entry := range entries {
-			if strings.HasPrefix(entry.Name(), "smallweb-") {
-				entrypoint := filepath.Join(dir, entry.Name())
-				// check if the entrypoint is executable
-				if _, err := os.Stat(entrypoint); err != nil {
-					continue
-				}
-
-				if ok, err := isExecutable(entrypoint); !ok || err != nil {
-					continue
-				}
-
-				name := strings.TrimPrefix(entry.Name(), "smallweb-")
-				if HasCommand(cmd, name) {
-					continue
-				}
-
-				cmd.AddCommand(&cobra.Command{
-					Use:                name,
-					Short:              fmt.Sprintf("Extension %s", name),
-					GroupID:            ExtensionGroupID,
-					DisableFlagParsing: true,
-					RunE: func(cmd *cobra.Command, args []string) error {
-						command := exec.Command(entrypoint, args...)
-						command.Stdin = os.Stdin
-						command.Stdout = os.Stdout
-						command.Stderr = os.Stderr
-						return command.Run()
-					},
-				})
+			if entry.IsDir() {
+				continue
 			}
+
+			if !strings.HasPrefix(entry.Name(), "smallweb-") {
+				continue
+			}
+
+			entrypoint := filepath.Join(dir, entry.Name())
+			if ok, err := isExecutable(entrypoint); !ok || err != nil {
+				continue
+			}
+
+			name := strings.TrimPrefix(entry.Name(), "smallweb-")
+			if HasCommand(cmd, name) {
+				continue
+			}
+
+			cmd.AddCommand(&cobra.Command{
+				Use:                name,
+				Short:              fmt.Sprintf("Extension %s", name),
+				GroupID:            ExtensionGroupID,
+				DisableFlagParsing: true,
+				RunE: func(cmd *cobra.Command, args []string) error {
+					command := exec.Command(entrypoint, args...)
+					command.Stdin = os.Stdin
+					command.Stdout = os.Stdout
+					command.Stderr = os.Stderr
+					return command.Run()
+				},
+			})
 		}
 	}
 

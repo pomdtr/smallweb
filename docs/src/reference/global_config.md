@@ -28,7 +28,7 @@ The `port` field defines the port to bind to. By default, it is `7777`.
 
 ## `domains`
 
-The `domains` field defines a list of domains to folders. By default, it maps `*.localhost` to `~/localhost/*`, but you can add more hostnames from the config.
+The `domains` field defines a list of domains to folders. By default, it maps `*.localhost` to `~/smallweb/*`, but you can add more hostnames from the config.
 
 ```json
 {
