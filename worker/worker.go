@@ -89,6 +89,7 @@ func (me *Worker) Flags() []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-env",
+		"--allow-sys",
 		"--allow-read=.",
 		"--allow-write=.",
 		fmt.Sprintf("--allow-run=%s", me.Env["SMALLWEB_EXEC_PATH"]),
