@@ -44,6 +44,7 @@ type CronJobRequest struct {
 type App struct {
 	Name     string `json:"name"`
 	Hostname string `json:"hostname"`
+	Url      string `json:"url"`
 	Root     string `json:"root"`
 }
 
