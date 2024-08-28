@@ -19,6 +19,40 @@ import (
 	"golang.org/x/net/webdav"
 )
 
+type Auth struct {
+	Type     AuthType `json:"type"`
+	User     string   `json:"user"`
+	Password string   `json:"password"`
+}
+
+type AuthType string
+
+const (
+	AuthTypeNone  AuthType = ""
+	AuthTypeBasic AuthType = "basic"
+)
+
+func (a Auth) Wrap(next http.HandlerFunc) http.HandlerFunc {
+	switch a.Type {
+	case AuthTypeNone:
+		return next
+	case AuthTypeBasic:
+		return func(w http.ResponseWriter, r *http.Request) {
+			user, pass, ok := r.BasicAuth()
+			if !ok || user != a.User || pass != a.Password {
+				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			next(w, r)
+		}
+	default:
+		return func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		}
+	}
+}
+
 func NewCmdUp() *cobra.Command {
 	var flags struct {
 		tls           bool
@@ -27,6 +61,9 @@ func NewCmdUp() *cobra.Command {
 		tlsCaCert     string
 		tlsClientAuth string
 	}
+
+	var auth Auth
+	k.Unmarshal("auth", &auth)
 
 	cmd := &cobra.Command{
 		Use:     "up",
@@ -67,18 +104,32 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						handler, err := worker.NewWorker(app, k.StringMap("env"))
+						wk, err := worker.NewWorker(app, k.StringMap("env"))
 						if err != nil {
 							w.WriteHeader(http.StatusNotFound)
 							return
 						}
 
-						handler.ServeHTTP(w, r)
+						if err := wk.Start(); err != nil {
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+
+						handler := wk.ServeHTTP
+						if wk.Config.Private {
+							handler = auth.Wrap(wk.ServeHTTP)
+						}
+
+						handler(w, r)
+						if err := wk.Stop(); err != nil {
+							log.Printf("failed to stop worker: %v", err)
+							return
+						}
 						return
 					}
 
+					// no app was found
 					w.WriteHeader(http.StatusNotFound)
-
 				}),
 			}
 
@@ -143,6 +194,7 @@ func NewCmdUp() *cobra.Command {
 					w, err := worker.NewWorker(app, k.StringMap("env"))
 					if err != nil {
 						fmt.Println(err)
+						continue
 					}
 
 					for _, job := range w.Config.Crons {
@@ -171,14 +223,18 @@ func NewCmdUp() *cobra.Command {
 				webdavPort = 7778
 			}
 
-			handler := &webdav.Handler{
+			var webdavHandler http.Handler = &webdav.Handler{
 				FileSystem: webdav.Dir(root),
 				LockSystem: webdav.NewMemLS(),
 			}
 
+			if auth.Type != AuthTypeNone {
+				webdavHandler = auth.Wrap(webdavHandler.ServeHTTP)
+			}
+
 			webdavAddr := fmt.Sprintf("%s:%d", host, webdavPort)
 			cmd.Printf("WebDav server listening on http://%s\n", webdavAddr)
-			go http.ListenAndServe(webdavAddr, handler)
+			go http.ListenAndServe(webdavAddr, webdavHandler)
 
 			// signal handling
 			sigs := make(chan os.Signal, 1)

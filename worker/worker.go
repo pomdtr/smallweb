@@ -23,6 +23,7 @@ import (
 )
 
 type AppConfig struct {
+	Private    bool      `json:"private"`
 	Root       string    `json:"root"`
 	Entrypoint string    `json:"entrypoint"`
 	Crons      []CronJob `json:"crons"`
@@ -50,6 +51,8 @@ type App struct {
 
 type Worker struct {
 	Config AppConfig
+	port   int
+	cmd    *exec.Cmd
 	App    App
 	Env    map[string]string
 }
@@ -277,99 +280,69 @@ func (me *Worker) Entrypoint() (string, error) {
 //go:embed deno/fetch.ts
 var fetchBytes []byte
 
-func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (me *Worker) Start() error {
 	entrypoint, err := me.Entrypoint()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return fmt.Errorf("could not get entrypoint: %w", err)
 	}
 
-	freeport, err := GetFreePort()
+	port, err := GetFreePort()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return fmt.Errorf("could not get free port: %w", err)
 	}
+	me.port = port
 
 	tempfile, err := os.CreateTemp("", "sandbox-*.ts")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return fmt.Errorf("could not create temporary file: %w", err)
 	}
 
 	defer os.Remove(tempfile.Name())
 	if _, err := tempfile.Write(fetchBytes); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return fmt.Errorf("could not write to temporary file: %w", err)
 	}
 
 	args := []string{"run"}
 	args = append(args, me.Flags()...)
 
-	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.String())
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(map[string]any{
-		"port":       freeport,
+		"port":       port,
 		"entrypoint": entrypoint,
-		"url":        url,
 	})
 	args = append(args, tempfile.Name(), input.String())
 
 	deno, err := DenoExecutable()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return fmt.Errorf("could not find deno executable")
 	}
 
-	cmd := exec.Command(deno, args...)
-	cmd.Dir = me.Root()
+	me.cmd = exec.Command(deno, args...)
+	me.cmd.Dir = me.Root()
 
 	var env []string
 	for k, v := range me.Env {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
-	cmd.Env = env
+	me.cmd.Env = env
 
-	stdout, err := cmd.StdoutPipe()
+	stdout, err := me.cmd.StdoutPipe()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return fmt.Errorf("could not get stdout pipe: %w", err)
 	}
 
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	me.cmd.Stderr = os.Stderr
+	if err := me.cmd.Start(); err != nil {
+		return fmt.Errorf("could not start server: %w", err)
 	}
-
-	defer func() {
-		if err := cmd.Process.Signal(os.Interrupt); err != nil {
-			log.Printf("Failed to send interrupt signal: %v", err)
-		}
-
-		done := make(chan error, 1)
-		go func() {
-			done <- cmd.Wait()
-		}()
-
-		select {
-		case <-time.After(5 * time.Second):
-			if err := cmd.Process.Kill(); err != nil {
-				log.Printf("Failed to kill proces %v", err)
-			}
-			return
-		case <-done:
-			return
-		}
-	}()
 
 	scanner := bufio.NewScanner(stdout)
 	scanner.Scan()
 	line := scanner.Text()
 	if !(line == "READY") {
-		http.Error(w, "could not start server", http.StatusInternalServerError)
-		return
+		return fmt.Errorf("server did not start correctly")
 	}
 
 	go func() {
@@ -377,6 +350,38 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			os.Stdout.WriteString(scanner.Text() + "\n")
 		}
 	}()
+
+	return nil
+}
+
+func (me *Worker) Stop() error {
+	if err := me.cmd.Process.Signal(os.Interrupt); err != nil {
+		log.Printf("Failed to send interrupt signal: %v", err)
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- me.cmd.Wait()
+	}()
+
+	select {
+	case <-time.After(5 * time.Second):
+		if err := me.cmd.Process.Kill(); err != nil {
+			return fmt.Errorf("failed to kill process: %w", err)
+		}
+
+		me.cmd = nil
+		me.port = 0
+		return fmt.Errorf("process did not exit after 5 seconds")
+	case <-done:
+		me.cmd = nil
+		me.port = 0
+		return nil
+	}
+}
+
+func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	url := fmt.Sprintf("https://%s%s", me.App.Url, r.URL.String())
 
 	// handle websockets
 	if r.Header.Get("Upgrade") == "websocket" {
@@ -387,7 +392,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		defer serverConn.Close()
 
-		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", freeport, r.URL.Path), nil)
+		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", me.port, r.URL.Path), nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -423,7 +428,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://localhost:%d%s", freeport, r.URL.String()), r.Body)
+	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://localhost:%d%s", me.port, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
