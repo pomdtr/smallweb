@@ -23,13 +23,15 @@ type Auth struct {
 	Type     AuthType `json:"type"`
 	User     string   `json:"user"`
 	Password string   `json:"password"`
+	Token    string   `json:"token"`
 }
 
 type AuthType string
 
 const (
-	AuthTypeNone  AuthType = ""
-	AuthTypeBasic AuthType = "basic"
+	AuthTypeNone   AuthType = ""
+	AuthTypeBasic  AuthType = "basic"
+	AuthTypeBearer AuthType = "bearer"
 )
 
 func (a Auth) Wrap(next http.HandlerFunc) http.HandlerFunc {
@@ -45,6 +47,21 @@ func (a Auth) Wrap(next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 			next(w, r)
+		}
+	case AuthTypeBearer:
+		return func(w http.ResponseWriter, r *http.Request) {
+			if auth := r.Header.Get("Authorization"); auth != "" && auth == "Bearer "+a.Token {
+				next(w, r)
+				return
+			}
+
+			if token, _, ok := r.BasicAuth(); ok && token == a.Token {
+				next(w, r)
+				return
+			}
+
+			w.Header().Set("WWW-Authenticate", `Bearer realm="Restricted"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		}
 	default:
 		return func(w http.ResponseWriter, r *http.Request) {
