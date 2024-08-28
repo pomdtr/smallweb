@@ -21,7 +21,7 @@ import (
 
 type Auth struct {
 	Type     AuthType `json:"type"`
-	User     string   `json:"user"`
+	Username string   `json:"username"`
 	Password string   `json:"password"`
 	Token    string   `json:"token"`
 }
@@ -41,7 +41,7 @@ func (a Auth) Wrap(next http.HandlerFunc) http.HandlerFunc {
 	case AuthTypeBasic:
 		return func(w http.ResponseWriter, r *http.Request) {
 			user, pass, ok := r.BasicAuth()
-			if !ok || user != a.User || pass != a.Password {
+			if !ok || user != a.Username || pass != a.Password {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
