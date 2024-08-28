@@ -240,13 +240,9 @@ func NewCmdUp() *cobra.Command {
 				webdavPort = 7778
 			}
 
-			var webdavHandler http.Handler = &webdav.Handler{
+			webdavHandler := &webdav.Handler{
 				FileSystem: webdav.Dir(root),
 				LockSystem: webdav.NewMemLS(),
-			}
-
-			if auth.Type != AuthTypeNone {
-				webdavHandler = auth.Wrap(webdavHandler.ServeHTTP)
 			}
 
 			webdavAddr := fmt.Sprintf("%s:%d", host, webdavPort)
