@@ -92,6 +92,8 @@ func (me *Worker) Flags() []string {
 		"--allow-sys",
 		"--allow-read=.",
 		"--allow-write=.",
+		"--unstable-kv",
+		fmt.Sprintf("--location=%s", me.App.Url),
 		fmt.Sprintf("--allow-run=%s", me.Env["SMALLWEB_EXEC_PATH"]),
 	}
 
