@@ -86,12 +86,12 @@ func (me *Worker) Root() string {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) Flags() []string {
+func (me *Worker) Flags(sandboxPath string) []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-env",
 		"--allow-sys",
-		fmt.Sprintf("--allow-read=.,%s", me.Env["DENO_DIR"]),
+		fmt.Sprintf("--allow-read=.,%s,%s", me.Env["DENO_DIR"], sandboxPath),
 		"--allow-write=.",
 		fmt.Sprintf("--allow-run=%s", me.Env["SMALLWEB_EXEC_PATH"]),
 	}
@@ -274,8 +274,8 @@ func (me *Worker) Entrypoint() (string, error) {
 	return "", fmt.Errorf("could not find entrypoint")
 }
 
-//go:embed deno/fetch.ts
-var fetchBytes []byte
+//go:embed sandbox.ts
+var sandboxBytes []byte
 
 func (me *Worker) Start() error {
 	entrypoint, err := me.Entrypoint()
@@ -295,19 +295,20 @@ func (me *Worker) Start() error {
 	}
 
 	defer os.Remove(tempfile.Name())
-	if _, err := tempfile.Write(fetchBytes); err != nil {
+	if _, err := tempfile.Write(sandboxBytes); err != nil {
 		return fmt.Errorf("could not write to temporary file: %w", err)
 	}
 
 	args := []string{"run"}
-	args = append(args, me.Flags()...)
+	args = append(args, me.Flags(tempfile.Name())...)
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(map[string]any{
-		"port":       port,
+		"command":    "serve",
 		"entrypoint": entrypoint,
+		"port":       port,
 	})
 	args = append(args, tempfile.Name(), input.String())
 
@@ -511,9 +512,6 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-//go:embed deno/run.ts
-var runBytes []byte
-
 func (me *Worker) Run(args []string) error {
 	entrypoint, err := me.Entrypoint()
 	if err != nil {
@@ -534,17 +532,18 @@ func (me *Worker) Run(args []string) error {
 		return fmt.Errorf("could not create temporary file: %w", err)
 	}
 	defer os.Remove(tempfile.Name())
-	if _, err := tempfile.Write(runBytes); err != nil {
+	if _, err := tempfile.Write(sandboxBytes); err != nil {
 		return err
 	}
 
 	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.Flags()...)
+	denoArgs = append(denoArgs, me.Flags(tempfile.Name())...)
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(map[string]any{
+		"command":    "run",
 		"entrypoint": entrypoint,
 		"args":       args,
 	})

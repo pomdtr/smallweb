@@ -40,6 +40,7 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			server := http.Server{
+				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					if r.Host == k.String("domain") {
 						target := r.URL
