@@ -34,6 +34,10 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := k.Load(posflag.Provider(cmd.Flags(), ".", k), nil); err != nil {
+				return fmt.Errorf("error loading config: %w", err)
+			}
+
 			port := k.Int("port")
 			if port == 0 && flags.tls {
 				port = 443

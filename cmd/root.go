@@ -33,8 +33,6 @@ var k = koanf.New(".")
 
 func NewCmdRoot(version string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
-		"host":   "127.0.0.1",
-		"port":   7777,
 		"domain": "localhost",
 		"dir":    "~/smallweb",
 		"env": map[string]string{

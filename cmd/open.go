@@ -50,6 +50,10 @@ func NewCmdOpen() *cobra.Command {
 			}
 
 			apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
+			if err != nil {
+				return fmt.Errorf("failed to list apps: %v", err)
+			}
+
 			for _, app := range apps {
 				if app.Dir != dir {
 					continue
