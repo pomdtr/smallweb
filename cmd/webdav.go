@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/webdav"
 )
@@ -35,8 +36,9 @@ func NewCmdWebdav() *cobra.Command {
 		Use:   "webdav",
 		Short: "Start a webdav server",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			rootDir := utils.ExpandTilde(k.String("dir"))
 			var handler http.Handler = &webdav.Handler{
-				FileSystem: webdav.Dir("."),
+				FileSystem: webdav.Dir(rootDir),
 				LockSystem: webdav.NewMemLS(),
 			}
 
