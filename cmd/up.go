@@ -16,59 +16,7 @@ import (
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/webdav"
 )
-
-type Auth struct {
-	Type     AuthType `json:"type"`
-	Username string   `json:"username"`
-	Password string   `json:"password"`
-	Token    string   `json:"token"`
-}
-
-type AuthType string
-
-const (
-	AuthTypeNone   AuthType = ""
-	AuthTypeBasic  AuthType = "basic"
-	AuthTypeBearer AuthType = "bearer"
-)
-
-func (a Auth) Wrap(next http.HandlerFunc) http.HandlerFunc {
-	switch a.Type {
-	case AuthTypeNone:
-		return next
-	case AuthTypeBasic:
-		return func(w http.ResponseWriter, r *http.Request) {
-			user, pass, ok := r.BasicAuth()
-			if !ok || user != a.Username || pass != a.Password {
-				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-			next(w, r)
-		}
-	case AuthTypeBearer:
-		return func(w http.ResponseWriter, r *http.Request) {
-			if auth := r.Header.Get("Authorization"); auth != "" && auth == "Bearer "+a.Token {
-				next(w, r)
-				return
-			}
-
-			if token, _, ok := r.BasicAuth(); ok && token == a.Token {
-				next(w, r)
-				return
-			}
-
-			w.Header().Set("WWW-Authenticate", `Bearer realm="Restricted"`)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		}
-	default:
-		return func(w http.ResponseWriter, r *http.Request) {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		}
-	}
-}
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
@@ -78,9 +26,6 @@ func NewCmdUp() *cobra.Command {
 		tlsCaCert     string
 		tlsClientAuth string
 	}
-
-	var auth Auth
-	k.Unmarshal("auth", &auth)
 
 	cmd := &cobra.Command{
 		Use:     "up",
@@ -98,7 +43,7 @@ func NewCmdUp() *cobra.Command {
 
 			host := k.String("host")
 			addr := fmt.Sprintf("%s:%d", host, port)
-			root := utils.ExpandTilde(k.String("root"))
+			root := utils.ExpandTilde(k.String("dir"))
 
 			server := http.Server{
 				Addr: addr,
@@ -132,12 +77,7 @@ func NewCmdUp() *cobra.Command {
 							return
 						}
 
-						handler := wk.ServeHTTP
-						if wk.Config.Private {
-							handler = auth.Wrap(wk.ServeHTTP)
-						}
-
-						handler(w, r)
+						wk.ServeHTTP(w, r)
 						if err := wk.Stop(); err != nil {
 							log.Printf("failed to stop worker: %v", err)
 							return
@@ -201,7 +141,7 @@ func NewCmdUp() *cobra.Command {
 			c.AddFunc("* * * * *", func() {
 				rounded := time.Now().Truncate(time.Minute)
 
-				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("root")))
+				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -233,22 +173,6 @@ func NewCmdUp() *cobra.Command {
 
 			go c.Start()
 
-			webdavPort := k.Int("webdav-port")
-			if webdavPort == 0 && flags.tls {
-				webdavPort = 443
-			} else if webdavPort == 0 {
-				webdavPort = 7778
-			}
-
-			webdavHandler := &webdav.Handler{
-				FileSystem: webdav.Dir(root),
-				LockSystem: webdav.NewMemLS(),
-			}
-
-			webdavAddr := fmt.Sprintf("%s:%d", host, webdavPort)
-			cmd.Printf("WebDav server listening on http://%s\n", webdavAddr)
-			go http.ListenAndServe(webdavAddr, webdavHandler)
-
 			// signal handling
 			sigs := make(chan os.Signal, 1)
 			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -260,7 +184,6 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().String("host", "localhost", "Host to listen on")
 	cmd.Flags().IntP("port", "p", 0, "Port to listen on")
-	cmd.Flags().Int("webdav-port", 0, "Port to listen on for webdav")
 	cmd.Flags().BoolVar(&flags.tls, "tls", false, "Enable TLS")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "TLS certificate file path")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "TLS key file path")

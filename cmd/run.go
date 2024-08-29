@@ -25,7 +25,7 @@ func NewCmdRun() *cobra.Command {
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("root"))
+			rootDir := utils.ExpandTilde(k.String("dir"))
 			apps, err := ListApps(k.String("domain"), rootDir)
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %v", err)

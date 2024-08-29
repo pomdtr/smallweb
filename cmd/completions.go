@@ -6,7 +6,7 @@ import (
 )
 
 func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("root")))
+	apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}

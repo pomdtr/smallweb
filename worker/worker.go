@@ -23,8 +23,7 @@ import (
 )
 
 type AppConfig struct {
-	Private    bool      `json:"private"`
-	Root       string    `json:"root"`
+	Root       string    `json:"dir"`
 	Entrypoint string    `json:"entrypoint"`
 	Crons      []CronJob `json:"crons"`
 }
@@ -46,7 +45,7 @@ type App struct {
 	Name     string `json:"name"`
 	Hostname string `json:"hostname"`
 	Url      string `json:"url"`
-	Root     string `json:"root"`
+	Dir      string `json:"dir"`
 }
 
 type Worker struct {
@@ -58,7 +57,7 @@ type Worker struct {
 }
 
 func NewWorker(a App, env map[string]string) (*Worker, error) {
-	config, err := LoadConfig(a.Root)
+	config, err := LoadConfig(a.Dir)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +68,7 @@ func NewWorker(a App, env map[string]string) (*Worker, error) {
 		Env:    env,
 	}
 
-	envMap, err := LoadEnv(a.Root)
+	envMap, err := LoadEnv(a.Dir)
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +79,9 @@ func NewWorker(a App, env map[string]string) (*Worker, error) {
 
 func (me *Worker) Root() string {
 	if me.Config.Root != "" {
-		return filepath.Join(me.App.Root, me.Config.Root)
+		return filepath.Join(me.App.Dir, me.Config.Root)
 	} else {
-		return me.App.Root
+		return me.App.Dir
 	}
 }
 
@@ -95,14 +94,13 @@ func (me *Worker) Flags() []string {
 		"--allow-sys",
 		"--allow-read=.",
 		"--allow-write=.",
-		"--unstable-kv",
 		fmt.Sprintf("--location=%s", me.App.Url),
 		fmt.Sprintf("--allow-run=%s", me.Env["SMALLWEB_EXEC_PATH"]),
 	}
 
-	if configPath := filepath.Join(me.App.Root, "deno.json"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
 		flags = append(flags, "--config", configPath)
-	} else if configPath := filepath.Join(me.App.Root, "deno.jsonc"); utils.FileExists(configPath) {
+	} else if configPath := filepath.Join(me.App.Dir, "deno.jsonc"); utils.FileExists(configPath) {
 		flags = append(flags, "--config", configPath)
 	}
 

@@ -20,7 +20,7 @@ type CronItem struct {
 
 func ListCronItems(app worker.App) ([]CronItem, error) {
 	items := make([]CronItem, 0)
-	config, err := worker.LoadConfig(app.Root)
+	config, err := worker.LoadConfig(app.Dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
@@ -65,7 +65,7 @@ func NewCmdCronList() *cobra.Command {
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("root"))
+			rootDir := utils.ExpandTilde(k.String("dir"))
 
 			apps, err := ListApps(k.String("domain"), rootDir)
 			if err != nil {
@@ -157,7 +157,7 @@ func NewCmdCronTrigger() *cobra.Command {
 			}
 
 			if len(args) == 1 {
-				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("root")))
+				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
 				if err != nil {
 					return nil, cobra.ShellCompDirectiveError
 				}
@@ -186,7 +186,7 @@ func NewCmdCronTrigger() *cobra.Command {
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("root")))
+			apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}

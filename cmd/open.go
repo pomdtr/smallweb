@@ -6,26 +6,8 @@ import (
 
 	"github.com/cli/browser"
 	"github.com/pomdtr/smallweb/utils"
-	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
-
-func GetAppFromDir(domain string, rootDir string, dir string) (*worker.App, error) {
-	apps, err := ListApps(domain, rootDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list apps: %v", err)
-	}
-
-	for _, app := range apps {
-		if app.Root != dir {
-			continue
-		}
-
-		return &app, nil
-	}
-
-	return nil, fmt.Errorf("app not found for dir: %s", dir)
-}
 
 func NewCmdOpen() *cobra.Command {
 	cmd := &cobra.Command{
@@ -42,7 +24,7 @@ func NewCmdOpen() *cobra.Command {
 		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("root")))
+				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
 				if err != nil {
 					return fmt.Errorf("failed to list apps: %v", err)
 				}
@@ -67,17 +49,19 @@ func NewCmdOpen() *cobra.Command {
 				return fmt.Errorf("failed to get current dir: %v", err)
 			}
 
-			app, err := GetAppFromDir(k.String("domain"), utils.ExpandTilde(k.String("root")), dir)
-			if err != nil {
-				return fmt.Errorf("current dir is not a smallweb app, please provide the --app or --dir flag")
+			apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
+			for _, app := range apps {
+				if app.Dir != dir {
+					continue
+				}
+
+				url := fmt.Sprintf("https://%s/", app.Hostname)
+				if err := browser.OpenURL(url); err != nil {
+					return fmt.Errorf("failed to open browser: %v", err)
+				}
 			}
 
-			url := fmt.Sprintf("https://%s/", app.Hostname)
-			if err := browser.OpenURL(url); err != nil {
-				return fmt.Errorf("failed to open browser: %v", err)
-			}
-
-			return nil
+			return fmt.Errorf("current dir is not a smallweb app")
 		},
 	}
 

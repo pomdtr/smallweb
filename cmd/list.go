@@ -35,7 +35,7 @@ func ListApps(domain string, rootDir string) ([]worker.App, error) {
 			Name:     entry.Name(),
 			Hostname: fmt.Sprintf("%s.%s", entry.Name(), domain),
 			Url:      fmt.Sprintf("https://%s.%s/", entry.Name(), domain),
-			Root:     path.Join(rootDir, entry.Name()),
+			Dir:      path.Join(rootDir, entry.Name()),
 		}
 
 		if cname := path.Join(rootDir, entry.Name(), "CNAME"); utils.FileExists(cname) {
@@ -65,7 +65,7 @@ func NewCmdList() *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("root")))
+			apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
@@ -101,10 +101,10 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Root", "Url"})
+			printer.AddHeader([]string{"Name", "Dir", "Url"})
 			for _, app := range apps {
 				printer.AddField(app.Name)
-				printer.AddField(app.Root)
+				printer.AddField(app.Dir)
 				printer.AddField(fmt.Sprintf("https://%s/", app.Hostname))
 				printer.EndRow()
 			}
