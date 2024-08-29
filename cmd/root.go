@@ -145,6 +145,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdUpgrade())
 	cmd.AddCommand(NewCmdInit())
+	cmd.AddCommand(NewCmdWebdav())
 
 	path := os.Getenv("PATH")
 	for _, dir := range filepath.SplitList(path) {

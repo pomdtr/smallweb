@@ -44,7 +44,6 @@ type CronJobRequest struct {
 type App struct {
 	Name     string `json:"name"`
 	Hostname string `json:"hostname"`
-	Url      string `json:"url"`
 	Dir      string `json:"dir"`
 }
 
@@ -92,9 +91,8 @@ func (me *Worker) Flags() []string {
 		"--allow-net",
 		"--allow-env",
 		"--allow-sys",
-		"--allow-read=.",
+		fmt.Sprintf("--allow-read=.,%s", me.Env["DENO_DIR"]),
 		"--allow-write=.",
-		fmt.Sprintf("--location=%s", me.App.Url),
 		fmt.Sprintf("--allow-run=%s", me.Env["SMALLWEB_EXEC_PATH"]),
 	}
 
@@ -230,6 +228,7 @@ func LoadEnv(dir string) (map[string]string, error) {
 		return nil, fmt.Errorf("could not get executable path: %v", err)
 	}
 	envMap["SMALLWEB_EXEC_PATH"] = executable
+	envMap["DENO_DIR"] = filepath.Join(os.Getenv("HOME"), ".cache", "smallweb", "deno")
 
 	dotenv, err := godotenv.Read(filepath.Join(dir, ".env"))
 	if err != nil {
@@ -379,7 +378,7 @@ func (me *Worker) Stop() error {
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	url := fmt.Sprintf("https://%s%s", me.App.Url, r.URL.String())
+	url := fmt.Sprintf("https://%s%s", me.App.Hostname, r.URL.String())
 
 	// handle websockets
 	if r.Header.Get("Upgrade") == "websocket" {

@@ -34,7 +34,6 @@ func ListApps(domain string, rootDir string) ([]worker.App, error) {
 		app := worker.App{
 			Name:     entry.Name(),
 			Hostname: fmt.Sprintf("%s.%s", entry.Name(), domain),
-			Url:      fmt.Sprintf("https://%s.%s/", entry.Name(), domain),
 			Dir:      path.Join(rootDir, entry.Name()),
 		}
 
@@ -45,7 +44,6 @@ func ListApps(domain string, rootDir string) ([]worker.App, error) {
 			}
 
 			app.Hostname = strings.TrimSpace(string(b))
-			app.Url = fmt.Sprintf("https://%s/", app.Hostname)
 		}
 
 		apps = append(apps, app)
