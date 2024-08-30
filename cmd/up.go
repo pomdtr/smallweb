@@ -32,11 +32,14 @@ func basicAuth(h http.Handler, user, pass string) http.Handler {
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
-		addr string
-		cert string
-		key  string
-		user string
-		pass string
+		domain         string
+		host           string
+		port           int
+		cert           string
+		key            string
+		user           string
+		pass           string
+		installService bool
 	}
 
 	cmd := &cobra.Command{
@@ -44,18 +47,54 @@ func NewCmdUp() *cobra.Command {
 		Short:   "Start the smallweb evaluation server",
 		GroupID: CoreGroupID,
 		Aliases: []string{"serve"},
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domain := args[0]
-
-			addr := flags.addr
-			if addr == "" {
+			if flags.port == 0 {
 				if flags.cert != "" || flags.key != "" {
-					addr = ":443"
+					flags.port = 443
 				} else {
-					addr = ":7777"
+					flags.port = 7777
 				}
 			}
+
+			if flags.installService {
+				args := []string{
+					"up",
+					fmt.Sprintf("--domain=%s", flags.domain),
+					fmt.Sprintf("--host=%s", flags.host),
+					fmt.Sprintf("--port=%d", flags.port),
+				}
+
+				if flags.cert != "" {
+					cert, err := filepath.Abs(flags.cert)
+					if err != nil {
+						return fmt.Errorf("failed to get absolute path of TLS certificate: %w", err)
+					}
+
+					args = append(args, fmt.Sprintf("--cert=%s", cert))
+				}
+
+				if flags.key != "" {
+					key, err := filepath.Abs(flags.key)
+					if err != nil {
+						return fmt.Errorf("failed to get absolute path of TLS key: %w", err)
+					}
+
+					args = append(args, fmt.Sprintf("--key=%s", key))
+				}
+
+				if flags.user != "" {
+					args = append(args, fmt.Sprintf("--user=%s", flags.user))
+				}
+
+				if flags.pass != "" {
+					args = append(args, fmt.Sprintf("--pass=%s", flags.pass))
+				}
+
+				return InstallService(args)
+			}
+
+			addr := fmt.Sprintf("%s:%d", flags.host, flags.port)
 
 			var webdavHandler http.Handler = &webdav.Handler{
 				FileSystem: webdav.Dir(rootDir),
@@ -69,14 +108,14 @@ func NewCmdUp() *cobra.Command {
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Host == domain {
+					if r.Host == flags.domain {
 						target := r.URL
 						target.Scheme = "https"
-						target.Host = "www." + domain
+						target.Host = "www." + flags.domain
 						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 					}
 
-					if strings.HasSuffix(r.Host, domain) {
+					if strings.HasSuffix(r.Host, flags.domain) {
 						for _, app := range ListApps() {
 							cnamePath := filepath.Join(rootDir, app, "CNAME")
 							if !utils.FileExists(cnamePath) {
@@ -117,14 +156,14 @@ func NewCmdUp() *cobra.Command {
 						}
 					}
 
-					if r.Host == fmt.Sprintf("webdav.%s", domain) {
+					if r.Host == fmt.Sprintf("webdav.%s", flags.domain) {
 						webdavHandler.ServeHTTP(w, r)
 						return
 					}
 
 					apps := ListApps()
 					for _, app := range apps {
-						if r.Host != fmt.Sprintf("%s.%s", app, domain) {
+						if r.Host != fmt.Sprintf("%s.%s", app, flags.domain) {
 							continue
 						}
 
@@ -221,7 +260,10 @@ func NewCmdUp() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.addr, "addr", "", "Address to listen on")
+	cmd.Flags().BoolVar(&flags.installService, "install-service", false, "Install the smallweb evaluation server as a service")
+	cmd.Flags().StringVar(&flags.domain, "domain", "localhost", "Domain name")
+	cmd.Flags().StringVar(&flags.host, "host", "127.0.0.1", "Server host")
+	cmd.Flags().IntVar(&flags.port, "port", 0, "Server port")
 	cmd.Flags().StringVar(&flags.cert, "cert", "", "TLS certificate file path")
 	cmd.Flags().StringVar(&flags.key, "key", "", "TLS key file path")
 	cmd.Flags().StringVar(&flags.user, "user", "", "Basic auth username")
