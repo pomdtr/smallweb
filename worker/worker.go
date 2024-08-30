@@ -82,7 +82,6 @@ func (me *Worker) Flags(sandboxPath string) []string {
 		"--allow-sys",
 		fmt.Sprintf("--allow-read=.,%s,%s", me.Env["DENO_DIR"], sandboxPath),
 		"--allow-write=.",
-		fmt.Sprintf("--allow-run=%s", me.Env["SMALLWEB_EXEC_PATH"]),
 	}
 
 	if configPath := filepath.Join(me.Dir, "deno.json"); utils.FileExists(configPath) {
@@ -210,13 +209,7 @@ func (me *Worker) LoadEnv() error {
 		me.Env[pair[0]] = pair[1]
 	}
 
-	executable, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("could not get executable path: %v", err)
-	}
-	me.Env["SMALLWEB_EXEC_PATH"] = executable
 	me.Env["DENO_DIR"] = filepath.Join(os.Getenv("HOME"), ".cache", "smallweb", "deno")
-
 	if dotenvPath := filepath.Join(me.Dir, "..", ".env"); utils.FileExists(dotenvPath) {
 		dotenv, err := godotenv.Read(dotenvPath)
 		if err != nil {
