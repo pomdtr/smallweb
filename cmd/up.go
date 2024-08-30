@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
@@ -71,6 +74,47 @@ func NewCmdUp() *cobra.Command {
 						target.Scheme = "https"
 						target.Host = "www." + domain
 						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+					}
+
+					if strings.HasSuffix(r.Host, domain) {
+						for _, app := range ListApps() {
+							cnamePath := filepath.Join(rootDir, app, "CNAME")
+							if !utils.FileExists(cnamePath) {
+								continue
+							}
+
+							cname, err := os.ReadFile(cnamePath)
+							if err != nil {
+								log.Printf("failed to read CNAME file: %v", err)
+								continue
+							}
+
+							if strings.TrimSpace(string(cname)) == r.Host {
+								wk, err := worker.NewWorker(filepath.Join(rootDir, app))
+								if err != nil {
+									w.WriteHeader(http.StatusNotFound)
+									return
+								}
+
+								if err := wk.Start(); err != nil {
+									http.Error(w, err.Error(), http.StatusInternalServerError)
+									return
+								}
+
+								if wk.Config.Private {
+									handler := basicAuth(wk, flags.user, flags.pass)
+									handler.ServeHTTP(w, r)
+								} else {
+									wk.ServeHTTP(w, r)
+								}
+
+								if err := wk.Stop(); err != nil {
+									log.Printf("failed to stop worker: %v", err)
+									return
+								}
+								return
+							}
+						}
 					}
 
 					if r.Host == fmt.Sprintf("webdav.%s", domain) {
