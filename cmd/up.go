@@ -5,30 +5,45 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 
-	"github.com/knadh/koanf/providers/posflag"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/webdav"
 )
+
+func basicAuth(h http.Handler, user, pass string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u, p, ok := r.BasicAuth()
+		if !ok || u != user || p != pass {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		h.ServeHTTP(w, r)
+	})
+}
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
 		addr string
 		cert string
 		key  string
+		user string
+		pass string
 	}
 
 	cmd := &cobra.Command{
-		Use:     "up",
+		Use:     "up <domain>",
 		Short:   "Start the smallweb evaluation server",
 		GroupID: CoreGroupID,
 		Aliases: []string{"serve"},
-		Args:    cobra.NoArgs,
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			root := utils.ExpandTilde(k.String("dir"))
+			domain := args[0]
 
 			addr := flags.addr
 			if addr == "" {
@@ -39,28 +54,37 @@ func NewCmdUp() *cobra.Command {
 				}
 			}
 
+			var webdavHandler http.Handler = &webdav.Handler{
+				FileSystem: webdav.Dir(rootDir),
+				LockSystem: webdav.NewMemLS(),
+			}
+
+			if flags.user != "" || flags.pass != "" {
+				webdavHandler = basicAuth(webdavHandler, flags.user, flags.pass)
+			}
+
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Host == k.String("domain") {
+					if r.Host == domain {
 						target := r.URL
 						target.Scheme = "https"
-						target.Host = "www." + k.String("domain")
+						target.Host = "www." + domain
 						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 					}
 
-					apps, err := ListApps(k.String("domain"), root)
-					if err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
+					if r.Host == fmt.Sprintf("webdav.%s", domain) {
+						webdavHandler.ServeHTTP(w, r)
 						return
 					}
 
+					apps := ListApps()
 					for _, app := range apps {
-						if r.Host != app.Hostname {
+						if r.Host != fmt.Sprintf("%s.%s", app, domain) {
 							continue
 						}
 
-						wk, err := worker.NewWorker(app, k.StringMap("env"))
+						wk, err := worker.NewWorker(filepath.Join(rootDir, app))
 						if err != nil {
 							w.WriteHeader(http.StatusNotFound)
 							return
@@ -71,7 +95,13 @@ func NewCmdUp() *cobra.Command {
 							return
 						}
 
-						wk.ServeHTTP(w, r)
+						if wk.Config.Private {
+							handler := basicAuth(wk, flags.user, flags.pass)
+							handler.ServeHTTP(w, r)
+						} else {
+							wk.ServeHTTP(w, r)
+						}
+
 						if err := wk.Stop(); err != nil {
 							log.Printf("failed to stop worker: %v", err)
 							return
@@ -89,14 +119,10 @@ func NewCmdUp() *cobra.Command {
 			c.AddFunc("* * * * *", func() {
 				rounded := time.Now().Truncate(time.Minute)
 
-				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
+				apps := ListApps()
 
 				for _, app := range apps {
-					w, err := worker.NewWorker(app, k.StringMap("env"))
+					w, err := worker.NewWorker(app)
 					if err != nil {
 						fmt.Println(err)
 						continue
@@ -152,12 +178,10 @@ func NewCmdUp() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&flags.addr, "addr", "", "Address to listen on")
-	cmd.Flags().StringVar(&flags.cert, "--cert", "", "TLS certificate file path")
-	cmd.Flags().StringVar(&flags.key, "--key", "", "TLS key file path")
-
-	if err := k.Load(posflag.Provider(cmd.Flags(), ".", k), nil); err != nil {
-		log.Fatalf("error loading config: %v", err)
-	}
+	cmd.Flags().StringVar(&flags.cert, "cert", "", "TLS certificate file path")
+	cmd.Flags().StringVar(&flags.key, "key", "", "TLS key file path")
+	cmd.Flags().StringVar(&flags.user, "user", "", "Basic auth username")
+	cmd.Flags().StringVar(&flags.pass, "pass", "", "Basic auth password")
 
 	return cmd
 }

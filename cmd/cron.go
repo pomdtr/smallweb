@@ -4,32 +4,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
 type CronItem struct {
+	App string
 	worker.CronJob
-	App worker.App `json:"app"`
 }
 
-func ListCronItems(app worker.App) ([]CronItem, error) {
-	items := make([]CronItem, 0)
-	config, err := worker.LoadConfig(app.Dir)
+func ListCronItems(app string) ([]CronItem, error) {
+	wk, err := worker.NewWorker(filepath.Join(rootDir, app))
 	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
+		return nil, fmt.Errorf("could not create worker: %w", err)
 	}
 
-	for _, job := range config.Crons {
-		items = append(items, CronItem{
-			CronJob: job,
-			App:     app,
-		})
+	var items []CronItem
+	for _, job := range wk.Config.Crons {
+		items = append(items, CronItem{App: app, CronJob: job})
 	}
 
 	return items, nil
@@ -59,22 +56,17 @@ func NewCmdCronList() *cobra.Command {
 		Short:   "List cron jobs",
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			if len(args) == 0 {
-				return completeApp(cmd, args, toComplete)
+				return ListApps(), cobra.ShellCompDirectiveNoFileComp
 			}
 
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
-
-			apps, err := ListApps(k.String("domain"), rootDir)
-			if err != nil {
-				return fmt.Errorf("failed to list apps: %w", err)
-			}
+			apps := ListApps()
 
 			var crons []CronItem
 			for _, app := range apps {
-				if len(args) > 0 && app.Name != args[0] {
+				if len(args) > 0 && app != args[0] {
 					continue
 				}
 
@@ -127,7 +119,7 @@ func NewCmdCronList() *cobra.Command {
 				}
 				printer.AddField(string(args))
 
-				printer.AddField(item.App.Name)
+				printer.AddField(item.App)
 
 				printer.EndRow()
 			}
@@ -141,7 +133,9 @@ func NewCmdCronList() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	cmd.RegisterFlagCompletionFunc("app", completeApp)
+	cmd.RegisterFlagCompletionFunc("app", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return ListApps(), cobra.ShellCompDirectiveNoFileComp
+	})
 
 	return cmd
 }
@@ -153,17 +147,14 @@ func NewCmdCronTrigger() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			if len(args) == 0 {
-				return completeApp(cmd, args, toComplete)
+				return ListApps(), cobra.ShellCompDirectiveNoFileComp
 			}
 
 			if len(args) == 1 {
-				apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
-				if err != nil {
-					return nil, cobra.ShellCompDirectiveError
-				}
+				apps := ListApps()
 
 				for _, app := range apps {
-					if app.Name != args[0] {
+					if app != args[0] {
 						continue
 					}
 
@@ -186,13 +177,8 @@ func NewCmdCronTrigger() *cobra.Command {
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
-			if err != nil {
-				return fmt.Errorf("failed to list apps: %w", err)
-			}
-
-			for _, app := range apps {
-				if app.Name != args[0] {
+			for _, app := range ListApps() {
+				if app != args[0] {
 					continue
 				}
 
@@ -206,7 +192,7 @@ func NewCmdCronTrigger() *cobra.Command {
 						continue
 					}
 
-					w, err := worker.NewWorker(app, k.StringMap("env"))
+					w, err := worker.NewWorker(filepath.Join(rootDir, app))
 					if err != nil {
 						return fmt.Errorf("could not create worker")
 					}

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -23,6 +22,7 @@ import (
 )
 
 type AppConfig struct {
+	Private    bool      `json:"private"`
 	Root       string    `json:"dir"`
 	Entrypoint string    `json:"entrypoint"`
 	Crons      []CronJob `json:"crons"`
@@ -41,46 +41,35 @@ type CronJobRequest struct {
 	Body    any               `json:"body"`
 }
 
-type App struct {
-	Name     string `json:"name"`
-	Hostname string `json:"hostname"`
-	Dir      string `json:"dir"`
-}
-
 type Worker struct {
 	Config AppConfig
+	Dir    string
+	Env    map[string]string
 	port   int
 	cmd    *exec.Cmd
-	App    App
-	Env    map[string]string
 }
 
-func NewWorker(a App, env map[string]string) (*Worker, error) {
-	config, err := LoadConfig(a.Dir)
-	if err != nil {
-		return nil, err
-	}
-
+func NewWorker(dir string) (*Worker, error) {
 	worker := &Worker{
-		Config: *config,
-		App:    a,
-		Env:    env,
+		Dir: dir,
 	}
 
-	envMap, err := LoadEnv(a.Dir)
-	if err != nil {
+	if err := worker.LoadConfig(); err != nil {
 		return nil, err
 	}
 
-	worker.Env = envMap
+	if err := worker.LoadEnv(); err != nil {
+		return nil, err
+	}
+
 	return worker, nil
 }
 
 func (me *Worker) Root() string {
 	if me.Config.Root != "" {
-		return filepath.Join(me.App.Dir, me.Config.Root)
+		return filepath.Join(me.Dir, me.Config.Root)
 	} else {
-		return me.App.Dir
+		return me.Dir
 	}
 }
 
@@ -96,154 +85,161 @@ func (me *Worker) Flags(sandboxPath string) []string {
 		fmt.Sprintf("--allow-run=%s", me.Env["SMALLWEB_EXEC_PATH"]),
 	}
 
-	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(me.Dir, "deno.json"); utils.FileExists(configPath) {
 		flags = append(flags, "--config", configPath)
-	} else if configPath := filepath.Join(me.App.Dir, "deno.jsonc"); utils.FileExists(configPath) {
+	} else if configPath := filepath.Join(me.Dir, "deno.jsonc"); utils.FileExists(configPath) {
 		flags = append(flags, "--config", configPath)
 	}
 
 	return flags
 }
 
-func LoadConfig(dir string) (*AppConfig, error) {
-	var config AppConfig
-	if configPath := filepath.Join(dir, "smallweb.json"); utils.FileExists(configPath) {
+func (me *Worker) LoadConfig() error {
+	if configPath := filepath.Join(me.Dir, "smallweb.json"); utils.FileExists(configPath) {
 		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
-			return nil, fmt.Errorf("could not read smallweb.json: %v", err)
+			return fmt.Errorf("could not read smallweb.json: %v", err)
 		}
 
-		if err := json.Unmarshal(configBytes, &config); err != nil {
-			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		if err := json.Unmarshal(configBytes, &me.Config); err != nil {
+			return fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
 
-		return &config, nil
+		return nil
 	}
 
-	if configPath := filepath.Join(dir, "smallweb.jsonc"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(me.Dir, "smallweb.jsonc"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
-			return nil, fmt.Errorf("could not read deno.json: %v", err)
+			return fmt.Errorf("could not read deno.json: %v", err)
 		}
 
 		configBytes, err := hujson.Standardize(rawBytes)
 		if err != nil {
-			return nil, fmt.Errorf("could not standardize deno.jsonc: %v", err)
+			return fmt.Errorf("could not standardize deno.jsonc: %v", err)
 		}
 
-		if err := json.Unmarshal(configBytes, &config); err != nil {
-			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		if err := json.Unmarshal(configBytes, &me.Config); err != nil {
+			return fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
 
-		return &config, nil
+		return nil
 	}
 
-	if configPath := filepath.Join(dir, "deno.json"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(me.Dir, "deno.json"); utils.FileExists(configPath) {
 		denoConfigBytes, err := os.ReadFile(configPath)
 		if err != nil {
-			return nil, fmt.Errorf("could not read deno.json: %v", err)
+			return fmt.Errorf("could not read deno.json: %v", err)
 		}
 
 		var denoConfig map[string]json.RawMessage
 		if err := json.Unmarshal(denoConfigBytes, &denoConfig); err != nil {
-			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+			return fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
 
 		configBytes, ok := denoConfig["smallweb"]
 		if !ok {
-			return &config, nil
+			return nil
 		}
 
-		if err := json.Unmarshal(configBytes, &config); err != nil {
-			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		if err := json.Unmarshal(configBytes, &me.Config); err != nil {
+			return fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
 
-		return &config, nil
+		return nil
 	}
 
-	if configPath := filepath.Join(dir, "deno.jsonc"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(me.Dir, "deno.jsonc"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
-			return nil, fmt.Errorf("could not read deno.json: %v", err)
+			return fmt.Errorf("could not read deno.json: %v", err)
 		}
 
 		denoConfigBytes, err := hujson.Standardize(rawBytes)
 		if err != nil {
-			return nil, fmt.Errorf("could not standardize deno.jsonc: %v", err)
+			return fmt.Errorf("could not standardize deno.jsonc: %v", err)
 		}
 
 		var denoConfig map[string]json.RawMessage
 		if err := json.Unmarshal(denoConfigBytes, &denoConfig); err != nil {
-			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+			return fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
 
 		configBytes, ok := denoConfig["smallweb"]
 		if !ok {
-			return &config, nil
+			return nil
 		}
 
-		if err := json.Unmarshal(configBytes, &config); err != nil {
-			return nil, fmt.Errorf("could not unmarshal deno.json: %v", err)
+		if err := json.Unmarshal(configBytes, &me.Config); err != nil {
+			return fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
 
-		return &config, nil
+		return nil
 	}
 
-	if configPath := filepath.Join(dir, "package.json"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(me.Dir, "package.json"); utils.FileExists(configPath) {
 		manifestBytes, err := os.ReadFile(configPath)
 		if err != nil {
-			return nil, fmt.Errorf("could not read package.json: %v", err)
+			return fmt.Errorf("could not read package.json: %v", err)
 		}
 
 		var packageConfig map[string]json.RawMessage
 		if err := json.Unmarshal(manifestBytes, &packageConfig); err != nil {
-			return nil, fmt.Errorf("could not unmarshal package.json: %v", err)
+			return fmt.Errorf("could not unmarshal package.json: %v", err)
 		}
 
 		manifestBytes, ok := packageConfig["smallweb"]
 		if !ok {
-			return &config, nil
+			return nil
 		}
 
-		if err := json.Unmarshal(manifestBytes, &config); err != nil {
-			return nil, fmt.Errorf("could not unmarshal package.json: %v", err)
+		if err := json.Unmarshal(manifestBytes, &me.Config); err != nil {
+			return fmt.Errorf("could not unmarshal package.json: %v", err)
 		}
 
-		return &config, nil
+		return nil
 	}
 
-	return &config, nil
+	return nil
 }
 
-func LoadEnv(dir string) (map[string]string, error) {
-	env := os.Environ()
-	envMap := make(map[string]string)
-	for _, e := range env {
+func (me *Worker) LoadEnv() error {
+	me.Env = make(map[string]string)
+	for _, e := range os.Environ() {
 		pair := strings.SplitN(e, "=", 2)
-		envMap[pair[0]] = pair[1]
+		me.Env[pair[0]] = pair[1]
 	}
 
 	executable, err := os.Executable()
 	if err != nil {
-		return nil, fmt.Errorf("could not get executable path: %v", err)
+		return fmt.Errorf("could not get executable path: %v", err)
 	}
-	envMap["SMALLWEB_EXEC_PATH"] = executable
-	envMap["DENO_DIR"] = filepath.Join(os.Getenv("HOME"), ".cache", "smallweb", "deno")
+	me.Env["SMALLWEB_EXEC_PATH"] = executable
+	me.Env["DENO_DIR"] = filepath.Join(os.Getenv("HOME"), ".cache", "smallweb", "deno")
 
-	dotenv, err := godotenv.Read(filepath.Join(dir, ".env"))
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return envMap, nil
+	if dotenvPath := filepath.Join(me.Dir, "..", ".env"); utils.FileExists(dotenvPath) {
+		dotenv, err := godotenv.Read(dotenvPath)
+		if err != nil {
+			return fmt.Errorf("could not read .env: %v", err)
 		}
 
-		return nil, fmt.Errorf("could not read .env: %v", err)
+		for key, value := range dotenv {
+			me.Env[key] = value
+		}
 	}
 
-	for key, value := range dotenv {
-		envMap[key] = value
+	if dotenvPath := filepath.Join(me.Dir, ".env"); utils.FileExists(dotenvPath) {
+		dotenv, err := godotenv.Read(dotenvPath)
+		if err != nil {
+			return fmt.Errorf("could not read .env: %v", err)
+		}
+
+		for key, value := range dotenv {
+			me.Env[key] = value
+		}
 	}
 
-	return envMap, nil
+	return nil
 }
 
 func (me *Worker) Entrypoint() (string, error) {
@@ -379,7 +375,7 @@ func (me *Worker) Stop() error {
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	url := fmt.Sprintf("https://%s%s", me.App.Hostname, r.URL.String())
+	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.String())
 
 	// handle websockets
 	if r.Header.Get("Upgrade") == "websocket" {

@@ -2,18 +2,17 @@ package utils
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 )
 
-func FileExists(parts ...string) bool {
-	_, err := os.Stat(filepath.Join(parts...))
+func FileExists(p string) bool {
+	_, err := os.Stat(p)
 	return err == nil
 }
 
-func ExpandTilde(path string) string {
-	if path == "~" || strings.HasPrefix(path, "~/") {
-		return strings.Replace(path, "~", os.Getenv("HOME"), 1)
+func ExpandTilde(p string) string {
+	if p == "~" || strings.HasPrefix(p, "~/") {
+		return strings.Replace(p, "~", os.Getenv("HOME"), 1)
 	}
-	return path
+	return p
 }

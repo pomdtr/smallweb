@@ -4,52 +4,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/utils"
-	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
-func ListApps(domain string, rootDir string) ([]worker.App, error) {
+func ListApps() []string {
 	entries, err := os.ReadDir(rootDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read dir: %w", err)
+		return nil
 	}
 
-	var apps []worker.App
+	apps := make([]string, 0)
 	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-
 		if strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
 
-		app := worker.App{
-			Name:     entry.Name(),
-			Hostname: fmt.Sprintf("%s.%s", entry.Name(), domain),
-			Dir:      path.Join(rootDir, entry.Name()),
+		if !entry.IsDir() {
+			continue
 		}
 
-		if cname := path.Join(rootDir, entry.Name(), "CNAME"); utils.FileExists(cname) {
-			b, err := os.ReadFile(cname)
-			if err != nil {
-				continue
-			}
-
-			app.Hostname = strings.TrimSpace(string(b))
-		}
-
-		apps = append(apps, app)
+		apps = append(apps, entry.Name())
 	}
 
-	return apps, nil
+	return apps
 }
 
 func NewCmdList() *cobra.Command {
@@ -63,10 +46,7 @@ func NewCmdList() *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps, err := ListApps(k.String("domain"), utils.ExpandTilde(k.String("dir")))
-			if err != nil {
-				return fmt.Errorf("failed to list apps: %w", err)
-			}
+			apps := ListApps()
 
 			if flags.json {
 				encoder := json.NewEncoder(os.Stdout)
@@ -99,11 +79,10 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir", "Url"})
+			printer.AddHeader([]string{"Name", "Dir"})
 			for _, app := range apps {
-				printer.AddField(app.Name)
-				printer.AddField(app.Dir)
-				printer.AddField(fmt.Sprintf("https://%s/", app.Hostname))
+				printer.AddField(app)
+				printer.AddField(filepath.Join(rootDir, app))
 				printer.EndRow()
 			}
 
