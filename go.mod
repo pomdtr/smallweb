@@ -5,16 +5,9 @@ go 1.22.3
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/adrg/xdg v0.4.0
-	github.com/cli/browser v1.3.0
 	github.com/cli/go-gh/v2 v2.9.0
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.5.1
 	github.com/joho/godotenv v1.5.1
-	github.com/knadh/koanf/providers/confmap v0.1.0
-	github.com/knadh/koanf/providers/env v0.1.0
-	github.com/knadh/koanf/providers/file v1.0.0
-	github.com/knadh/koanf/providers/posflag v0.1.0
-	github.com/knadh/koanf/v2 v2.1.1
 	github.com/mattn/go-isatty v0.0.20
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.8.0
@@ -29,16 +22,11 @@ require (
 	github.com/charmbracelet/x/ansi v0.1.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/knadh/koanf/maps v0.1.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
-	github.com/mitchellh/copystructure v1.2.0 // indirect
-	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
