@@ -115,7 +115,7 @@ func NewCmdUp() *cobra.Command {
 						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 					}
 
-					if strings.HasSuffix(r.Host, flags.domain) {
+					if !strings.HasSuffix(r.Host, flags.domain) {
 						for _, a := range ListApps() {
 							cnamePath := filepath.Join(rootDir, a, "CNAME")
 							if !utils.FileExists(cnamePath) {
@@ -154,6 +154,9 @@ func NewCmdUp() *cobra.Command {
 								return
 							}
 						}
+
+						w.WriteHeader(http.StatusNotFound)
+						return
 					}
 
 					if r.Host == fmt.Sprintf("webdav.%s", flags.domain) {
