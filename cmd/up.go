@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
-	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/webdav"
@@ -116,8 +116,8 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					if strings.HasSuffix(r.Host, flags.domain) {
-						for _, app := range ListApps() {
-							cnamePath := filepath.Join(rootDir, app, "CNAME")
+						for _, a := range ListApps() {
+							cnamePath := filepath.Join(rootDir, a, "CNAME")
 							if !utils.FileExists(cnamePath) {
 								continue
 							}
@@ -129,7 +129,7 @@ func NewCmdUp() *cobra.Command {
 							}
 
 							if strings.TrimSpace(string(cname)) == r.Host {
-								wk, err := worker.NewWorker(filepath.Join(rootDir, app))
+								wk, err := app.NewApp(filepath.Join(rootDir, a))
 								if err != nil {
 									w.WriteHeader(http.StatusNotFound)
 									return
@@ -162,12 +162,12 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					apps := ListApps()
-					for _, app := range apps {
-						if r.Host != fmt.Sprintf("%s.%s", app, flags.domain) {
+					for _, a := range apps {
+						if r.Host != fmt.Sprintf("%s.%s", a, flags.domain) {
 							continue
 						}
 
-						wk, err := worker.NewWorker(filepath.Join(rootDir, app))
+						wk, err := app.NewApp(filepath.Join(rootDir, a))
 						if err != nil {
 							w.WriteHeader(http.StatusNotFound)
 							return
@@ -204,14 +204,14 @@ func NewCmdUp() *cobra.Command {
 
 				apps := ListApps()
 
-				for _, app := range apps {
-					w, err := worker.NewWorker(app)
+				for _, name := range apps {
+					a, err := app.NewApp(name)
 					if err != nil {
 						fmt.Println(err)
 						continue
 					}
 
-					for _, job := range w.Config.Crons {
+					for _, job := range a.Config.Crons {
 						sched, err := parser.Parse(job.Schedule)
 						if err != nil {
 							fmt.Println(err)
@@ -222,7 +222,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						go w.Run(job.Args)
+						go a.Run(job.Args)
 					}
 
 				}

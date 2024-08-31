@@ -8,25 +8,25 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/worker"
+	"github.com/pomdtr/smallweb/app"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
 type CronItem struct {
 	App string
-	worker.CronJob
+	app.CronJob
 }
 
-func ListCronItems(app string) ([]CronItem, error) {
-	wk, err := worker.NewWorker(filepath.Join(rootDir, app))
+func ListCronItems(name string) ([]CronItem, error) {
+	wk, err := app.NewApp(filepath.Join(rootDir, name))
 	if err != nil {
 		return nil, fmt.Errorf("could not create worker: %w", err)
 	}
 
 	var items []CronItem
 	for _, job := range wk.Config.Crons {
-		items = append(items, CronItem{App: app, CronJob: job})
+		items = append(items, CronItem{App: name, CronJob: job})
 	}
 
 	return items, nil
@@ -177,12 +177,12 @@ func NewCmdCronTrigger() *cobra.Command {
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			for _, app := range ListApps() {
-				if app != args[0] {
+			for _, a := range ListApps() {
+				if a != args[0] {
 					continue
 				}
 
-				crons, err := ListCronItems(app)
+				crons, err := ListCronItems(a)
 				if err != nil {
 					return fmt.Errorf("failed to list cron jobs: %w", err)
 				}
@@ -192,7 +192,7 @@ func NewCmdCronTrigger() *cobra.Command {
 						continue
 					}
 
-					w, err := worker.NewWorker(filepath.Join(rootDir, app))
+					w, err := app.NewApp(filepath.Join(rootDir, a))
 					if err != nil {
 						return fmt.Errorf("could not create worker")
 					}

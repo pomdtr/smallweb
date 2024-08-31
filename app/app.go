@@ -1,4 +1,4 @@
-package worker
+package app
 
 import (
 	"bufio"
@@ -41,7 +41,7 @@ type CronJobRequest struct {
 	Body    any               `json:"body"`
 }
 
-type Worker struct {
+type App struct {
 	Config AppConfig
 	Dir    string
 	Env    map[string]string
@@ -49,8 +49,8 @@ type Worker struct {
 	cmd    *exec.Cmd
 }
 
-func NewWorker(dir string) (*Worker, error) {
-	worker := &Worker{
+func NewApp(dir string) (*App, error) {
+	worker := &App{
 		Dir: dir,
 	}
 
@@ -65,7 +65,7 @@ func NewWorker(dir string) (*Worker, error) {
 	return worker, nil
 }
 
-func (me *Worker) Root() string {
+func (me *App) Root() string {
 	if me.Config.Root != "" {
 		return filepath.Join(me.Dir, me.Config.Root)
 	} else {
@@ -75,7 +75,7 @@ func (me *Worker) Root() string {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) Flags(sandboxPath string) []string {
+func (me *App) Flags(sandboxPath string) []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-env",
@@ -93,7 +93,7 @@ func (me *Worker) Flags(sandboxPath string) []string {
 	return flags
 }
 
-func (me *Worker) LoadConfig() error {
+func (me *App) LoadConfig() error {
 	if configPath := filepath.Join(me.Dir, "smallweb.json"); utils.FileExists(configPath) {
 		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
@@ -128,7 +128,7 @@ func (me *Worker) LoadConfig() error {
 	return nil
 }
 
-func (me *Worker) LoadEnv() error {
+func (me *App) LoadEnv() error {
 	me.Env = make(map[string]string)
 	for _, e := range os.Environ() {
 		pair := strings.SplitN(e, "=", 2)
@@ -161,7 +161,7 @@ func (me *Worker) LoadEnv() error {
 	return nil
 }
 
-func (me *Worker) Entrypoint() (string, error) {
+func (me *App) Entrypoint() (string, error) {
 	if strings.HasPrefix(me.Config.Entrypoint, "jsr:") || strings.HasPrefix(me.Config.Entrypoint, "npm:") {
 		return me.Config.Entrypoint, nil
 	}
@@ -192,7 +192,7 @@ func (me *Worker) Entrypoint() (string, error) {
 //go:embed sandbox.ts
 var sandboxBytes []byte
 
-func (me *Worker) Start() error {
+func (me *App) Start() error {
 	entrypoint, err := me.Entrypoint()
 	if err != nil {
 		return fmt.Errorf("could not get entrypoint: %w", err)
@@ -267,7 +267,7 @@ func (me *Worker) Start() error {
 	return nil
 }
 
-func (me *Worker) Stop() error {
+func (me *App) Stop() error {
 	if err := me.cmd.Process.Signal(os.Interrupt); err != nil {
 		log.Printf("Failed to send interrupt signal: %v", err)
 	}
@@ -293,7 +293,7 @@ func (me *Worker) Stop() error {
 	}
 }
 
-func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (me *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.String())
 
 	// handle websockets
@@ -427,7 +427,7 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-func (me *Worker) Run(args []string) error {
+func (me *App) Run(args []string) error {
 	entrypoint, err := me.Entrypoint()
 	if err != nil {
 		return err

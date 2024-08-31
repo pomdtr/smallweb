@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/pomdtr/smallweb/worker"
+	"github.com/pomdtr/smallweb/app"
 	"github.com/spf13/cobra"
 )
 
@@ -23,12 +23,12 @@ func NewCmdRun() *cobra.Command {
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			for _, app := range ListApps() {
-				if app != args[0] {
+			for _, a := range ListApps() {
+				if a != args[0] {
 					continue
 				}
 
-				worker, err := worker.NewWorker(filepath.Join(rootDir, args[0]))
+				worker, err := app.NewApp(filepath.Join(rootDir, args[0]))
 				if err != nil {
 					return fmt.Errorf("could not create worker: %w", err)
 				}
