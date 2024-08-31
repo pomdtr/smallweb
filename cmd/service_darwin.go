@@ -9,21 +9,14 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"text/template"
 
 	"github.com/pomdtr/smallweb/utils"
 )
 
-//go:embed service/com.pomdtr.smallweb.plist
+//go:embed templates/com.pomdtr.smallweb.plist
 var serviceConfigBytes []byte
-var serviceConfig = template.Must(template.New("service").Funcs(
-	template.FuncMap{
-		"join": func(args []string, delimiter string) string {
-			return strings.Join(args, " ")
-		},
-	},
-).Parse(string(serviceConfigBytes)))
+var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 
 func InstallService(args []string) error {
 	homeDir, err := os.UserHomeDir()

@@ -8,16 +8,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/pomdtr/smallweb/utils"
 )
 
-//go:embed service/smallweb.service
+//go:embed templates/smallweb.service
 var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 
-func InstallService() error {
+func InstallService(args []string) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -45,6 +46,7 @@ func InstallService() error {
 
 	if err := serviceConfig.Execute(f, map[string]string{
 		"ExecPath": execPath,
+		"ExecArgs": strings.Join(args, " "),
 		"HomeDir":  homeDir,
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)
