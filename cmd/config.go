@@ -59,6 +59,10 @@ func NewCmdConfig() *cobra.Command {
 					return err
 				}
 
+				if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+					return err
+				}
+
 				f, err := os.Create(configPath)
 				if err != nil {
 					return err

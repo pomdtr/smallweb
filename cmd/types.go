@@ -2,6 +2,7 @@ package cmd
 
 import (
 	_ "embed"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -15,7 +16,10 @@ func NewCmdTypes() *cobra.Command {
 		Short:   "Print smallweb types",
 		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cmd.Println(string(typesBytes))
+			if _, err := os.Stdout.Write(typesBytes); err != nil {
+				return err
+			}
+
 			return nil
 		},
 	}

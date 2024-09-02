@@ -150,6 +150,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdList())
+	cmd.AddCommand(NewCmdTypes())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdUpgrade())
