@@ -182,11 +182,6 @@ func (me *App) LoadConfig() error {
 }
 
 func (me *App) LoadEnv() error {
-	for _, e := range os.Environ() {
-		pair := strings.SplitN(e, "=", 2)
-		me.Env[pair[0]] = pair[1]
-	}
-
 	me.Env["DENO_DIR"] = filepath.Join(os.Getenv("HOME"), ".cache", "smallweb", "deno")
 	if dotenvPath := filepath.Join(me.Dir, ".env"); utils.FileExists(dotenvPath) {
 		dotenv, err := godotenv.Read(dotenvPath)
