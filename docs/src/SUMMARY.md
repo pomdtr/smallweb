@@ -12,6 +12,7 @@
 - [Plugins](./guides/plugins.md)
 - [Templates](./guides/templates.md)
 - [File Sync](./guides/file-sync.md)
+- [Authentication](./guides/auth.md)
 - [App Sandbox](./guides/sandbox.md)
 
 # Hosting

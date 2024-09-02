@@ -506,6 +506,26 @@ Manage smallweb service
   -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
+## smallweb service edit
+
+Edit smallweb service configuration
+
+```
+smallweb service edit [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for edit
+```
+
+### Options inherited from parent commands
+
+```
+  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
+```
+
 ## smallweb service help
 
 Help about any command
@@ -664,6 +684,26 @@ smallweb service uninstall [flags]
 
 ```
   -h, --help   help for uninstall
+```
+
+### Options inherited from parent commands
+
+```
+  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
+```
+
+## smallweb token
+
+Generate a random token
+
+```
+smallweb token [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for token
 ```
 
 ### Options inherited from parent commands
