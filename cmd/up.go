@@ -78,8 +78,8 @@ func NewCmdUp() *cobra.Command {
 							LockSystem: webdav.NewMemLS(),
 						}
 
-						if k.String("username") != "" || k.String("password") != "" {
-							handler = basicAuth(handler, k.String("username"), k.String("password"))
+						if k.String("auth.username") != "" || k.String("auth.password") != "" {
+							handler = basicAuth(handler, k.String("auth.username"), k.String("auth.password"))
 						}
 
 						handler.ServeHTTP(w, r)
@@ -204,11 +204,11 @@ func NewCmdUp() *cobra.Command {
 
 				server.TLSConfig = tlsConfig
 
-				cmd.Printf("Evaluation server listening on %s\n", addr)
+				cmd.Printf("Serving %s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
 				return server.ListenAndServeTLS(cert, key)
 			}
 
-			cmd.Printf("Serving %s on %s\n", k.String("domain"), addr)
+			cmd.Printf("Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
 			return server.ListenAndServe()
 		},
 	}
