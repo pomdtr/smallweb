@@ -151,7 +151,8 @@ func NewCmdRoot(version string) *cobra.Command {
 	})
 
 	cmd.PersistentFlags().StringVarP(&flags.config, "config", "c", findConfigPath(), "config file")
-	cmd.AddCommand(NewCmdUp())
+	cmd.AddCommand(NewCmdServe())
+	cmd.AddCommand(NewCmdEdit())
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdService())
