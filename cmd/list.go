@@ -37,9 +37,9 @@ func ListApps(rootDir string) []string {
 }
 
 type AppItem struct {
-	Name string `json:"name"`
-	Dir  string `json:"dir"`
-	Url  string `json:"url"`
+	Name string   `json:"name"`
+	Dir  string   `json:"dir"`
+	Urls []string `json:"urls"`
 }
 
 func NewCmdList() *cobra.Command {
@@ -54,14 +54,23 @@ func NewCmdList() *cobra.Command {
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			var apps []AppItem
+			var items []AppItem
 			for _, a := range ListApps(rootDir) {
 				appDir := filepath.Join(rootDir, a)
-				apps = append(apps, AppItem{
+				item := AppItem{
 					Name: a,
 					Dir:  strings.Replace(appDir, os.Getenv("HOME"), "~", 1),
-					Url:  fmt.Sprintf("https://%s.%s", a, k.String("domain")),
-				})
+					Urls: []string{fmt.Sprintf("https://%s.%s", a, k.String("domain"))},
+				}
+
+				if cnamePath := filepath.Join(appDir, "CNAME"); utils.FileExists(cnamePath) {
+					cname, err := os.ReadFile(cnamePath)
+					if err == nil {
+						item.Urls = []string{fmt.Sprintf("https://%s", strings.TrimSpace(string(cname))), item.Urls[0]}
+					}
+				}
+
+				items = append(items, item)
 			}
 
 			if flags.json {
@@ -71,14 +80,14 @@ func NewCmdList() *cobra.Command {
 					encoder.SetIndent("", "  ")
 				}
 
-				if err := encoder.Encode(apps); err != nil {
+				if err := encoder.Encode(items); err != nil {
 					return fmt.Errorf("failed to encode tree: %w", err)
 				}
 
 				return nil
 			}
 
-			if len(apps) == 0 {
+			if len(items) == 0 {
 				cmd.Println("No apps found")
 				return nil
 			}
@@ -96,10 +105,10 @@ func NewCmdList() *cobra.Command {
 			}
 
 			printer.AddHeader([]string{"Name", "Dir", "Url"})
-			for _, app := range apps {
+			for _, app := range items {
 				printer.AddField(app.Name)
 				printer.AddField(strings.Replace(app.Dir, os.Getenv("HOME"), "~", 1))
-				printer.AddField(app.Url)
+				printer.AddField(app.Urls[0])
 
 				printer.EndRow()
 			}

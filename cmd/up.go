@@ -3,6 +3,7 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -41,7 +42,7 @@ func basicAuth(h http.Handler, user, pass string) http.Handler {
 
 func NewCmdUp() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "up <domain>",
+		Use:     "up",
 		Short:   "Start the smallweb evaluation server",
 		GroupID: CoreGroupID,
 		Aliases: []string{"serve"},
@@ -63,15 +64,15 @@ func NewCmdUp() *cobra.Command {
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					rootDir := utils.ExpandTilde(k.String("dir"))
-					baseDomain := k.String("domain")
-					if r.Host == baseDomain {
+					domain := k.String("domain")
+					if r.Host == domain {
 						target := r.URL
 						target.Scheme = "https"
-						target.Host = "www." + baseDomain
+						target.Host = "www." + domain
 						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 					}
 
-					if r.Host == fmt.Sprintf("webdav.%s", baseDomain) {
+					if r.Host == fmt.Sprintf("webdav.%s", domain) {
 						var handler http.Handler = &webdav.Handler{
 							FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
 							LockSystem: webdav.NewMemLS(),
@@ -85,7 +86,7 @@ func NewCmdUp() *cobra.Command {
 						return
 					}
 
-					if r.Host == fmt.Sprintf("cli.%s", baseDomain) {
+					if r.Host == fmt.Sprintf("cli.%s", domain) {
 						var handler http.Handler = cliHandler
 						if k.String("auth.username") != "" || k.String("auth.password") != "" {
 							handler = basicAuth(handler, k.String("auth.username"), k.String("auth.password"))
@@ -96,8 +97,8 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					var appDir string
-					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", baseDomain)) {
-						appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", baseDomain))
+					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", domain)) {
+						appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
 						appDir = filepath.Join(rootDir, appname)
 						if !utils.FileExists(appDir) {
 							w.WriteHeader(http.StatusNotFound)
@@ -123,6 +124,7 @@ func NewCmdUp() *cobra.Command {
 						}
 
 						if appDir == "" {
+							log.Printf("App not found for %s", r.Host)
 							w.WriteHeader(http.StatusNotFound)
 							return
 						}
@@ -206,7 +208,7 @@ func NewCmdUp() *cobra.Command {
 				return server.ListenAndServeTLS(cert, key)
 			}
 
-			cmd.Printf("Evaluation server listening on %s\n", addr)
+			cmd.Printf("Serving %s on %s\n", k.String("domain"), addr)
 			return server.ListenAndServe()
 		},
 	}
