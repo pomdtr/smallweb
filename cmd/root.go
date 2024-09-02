@@ -43,14 +43,21 @@ func NewCmdRoot(version string) *cobra.Command {
 				"host":   "127.0.0.1",
 				"dir":    "~/smallweb",
 				"domain": "localhost",
+				"tokens": []string{},
 				"env": map[string]string{
 					"DENO_TLS_CA_STORE": "system",
 				},
 			}, "")
 
-			envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
-				return strings.Replace(strings.ToLower(
-					strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
+			envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s, v string) (string, interface{}) {
+				key := strings.Replace(strings.ToLower(strings.TrimPrefix(s, "MYVAR_")), "_", ".", -1)
+				// If there is a space in the value, split the value into a slice by the space.
+				if strings.Contains(v, ":") {
+					return key, strings.Split(v, ":")
+				}
+
+				// Otherwise, return the plain string.
+				return key, v
 			})
 
 			fileProvider := file.Provider(flags.config)
@@ -155,6 +162,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdUpgrade())
 	cmd.AddCommand(NewCmdInit())
+	cmd.AddCommand(NewCmdToken())
 
 	path := os.Getenv("PATH")
 	for _, dir := range filepath.SplitList(path) {

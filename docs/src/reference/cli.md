@@ -672,12 +672,32 @@ smallweb service uninstall [flags]
   -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
+## smallweb types
+
+Print smallweb types
+
+```
+smallweb types [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for types
+```
+
+### Options inherited from parent commands
+
+```
+  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
+```
+
 ## smallweb up
 
 Start the smallweb evaluation server
 
 ```
-smallweb up <domain> [flags]
+smallweb up [flags]
 ```
 
 ### Options

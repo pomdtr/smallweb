@@ -27,16 +27,39 @@ func StripAnsi(b []byte) []byte {
 	return re.ReplaceAll(b, nil)
 }
 
-func basicAuth(h http.Handler, user, pass string) http.Handler {
+func authMiddleware(h http.Handler, tokens []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, p, ok := r.BasicAuth()
-		if !ok || u != user || p != pass {
+		token, _, ok := r.BasicAuth()
+		if ok {
+			for _, t := range tokens {
+				if token == t {
+					h.ServeHTTP(w, r)
+					return
+				}
+			}
+
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, "Unauthorized", http.StatusForbidden)
 			return
 		}
 
-		h.ServeHTTP(w, r)
+		authorization := r.Header.Get("Authorization")
+		if authorization != "" {
+			token := strings.TrimPrefix(authorization, "Bearer ")
+			for _, t := range tokens {
+				if token == t {
+					h.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			w.Header().Set("WWW-Authenticate", `Bearer realm="Restricted"`)
+			http.Error(w, "Unauthorized", http.StatusForbidden)
+			return
+		}
+
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	})
 }
 
@@ -77,9 +100,8 @@ func NewCmdUp() *cobra.Command {
 							FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
 							LockSystem: webdav.NewMemLS(),
 						}
-
-						if k.String("auth.username") != "" || k.String("auth.password") != "" {
-							handler = basicAuth(handler, k.String("auth.username"), k.String("auth.password"))
+						if k.String("tokens") != "" {
+							handler = authMiddleware(handler, k.Strings("tokens"))
 						}
 
 						handler.ServeHTTP(w, r)
@@ -88,8 +110,8 @@ func NewCmdUp() *cobra.Command {
 
 					if r.Host == fmt.Sprintf("cli.%s", domain) {
 						var handler http.Handler = cliHandler
-						if k.String("auth.username") != "" || k.String("auth.password") != "" {
-							handler = basicAuth(handler, k.String("auth.username"), k.String("auth.password"))
+						if k.String("tokens") != "" {
+							handler = authMiddleware(handler, k.Strings("tokens"))
 						}
 
 						handler.ServeHTTP(w, r)
@@ -144,7 +166,7 @@ func NewCmdUp() *cobra.Command {
 
 					var handler http.Handler = a
 					if a.Config.Private {
-						handler = basicAuth(a, k.String("auth.username"), k.String("auth.password"))
+						handler = authMiddleware(a, k.Strings("tokens"))
 					}
 					handler.ServeHTTP(w, r)
 				}),
@@ -217,6 +239,11 @@ func NewCmdUp() *cobra.Command {
 }
 
 var cliHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/favicon.ico" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	executable, err := os.Executable()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

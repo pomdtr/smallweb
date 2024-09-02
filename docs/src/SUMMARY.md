@@ -5,12 +5,14 @@
 # Guides
 
 - [Routing](./guides/routing.md)
-- [Hosting Servers](./guides/server.md)
-- [CLi Commands](./guides/commands.md)
+- [HTTP Servers](./guides/server.md)
+- [Cli Commands](./guides/commands.md)
 - [Environment Variables](./guides/env.md)
-- [Cron Jobs](./guides/cron.md)
+- [Cron Tasks](./guides/cron.md)
 - [Plugins](./guides/plugins.md)
+- [Templates](./guides/templates.md)
 - [File Sync](./guides/file-sync.md)
+- [App Sandbox](./guides/sandbox.md)
 
 # Hosting
 

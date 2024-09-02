@@ -3,7 +3,7 @@
 To add a cli command to your app, you'll need to add a `run` method to your app's default export.
 
 ```ts
-// File: ~/smallweb/cli-example/main.ts
+// File: ~/smallweb/custom-command/main.ts
 export default {
     run(args: string[]) {
         console.log("Hello world");
@@ -14,7 +14,7 @@ export default {
 Use `smallweb run` to execute the command:
 
 ```console
-$ smallweb run cli-example
+$ smallweb run custom-command
 Hello world
 ```
 
@@ -38,5 +38,24 @@ export default {
         await command.parse(args);
     }
 }
+```
 
+## Accessing cli commands from your browser
+
+Smallweb automatically serves its own cli commands at `<cli>.<domain>`.
+
+Positional args are mapped to path segments, and flags are mapped to query parameters.
+
+- `smallweb cron ls --json` becomes `https://cli.<domain>/cron/ls?json`
+
+It also allows you to access your app commands and crons:
+
+- `smallweb run custom-command` becomes `https://cli.<domain>/run/custom-command`
+- `smallweb cron trigger daily-task` becomes `https://cli.<domain>/cron/trigger/daily-task`
+
+You can specify stdin by sending a POST request with the body as the input.
+
+```sh
+# stdin will be "Hello world"
+curl -X POST https://cli.<domain>/run/custom-command --data "Hello world"
 ```

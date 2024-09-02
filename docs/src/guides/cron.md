@@ -1,4 +1,4 @@
-# Cron Jobs
+# Cron Tasks
 
 You can register configure cron tasks from your `smallweb.json[c]` or the `smallweb` field from your `deno.json[c]`.
 
