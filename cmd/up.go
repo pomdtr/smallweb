@@ -19,14 +19,6 @@ import (
 	"golang.org/x/net/webdav"
 )
 
-const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
-
-var re = regexp.MustCompile(ansi)
-
-func StripAnsi(b []byte) []byte {
-	return re.ReplaceAll(b, nil)
-}
-
 func authMiddleware(h http.Handler, tokens []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, _, ok := r.BasicAuth()
@@ -63,12 +55,12 @@ func authMiddleware(h http.Handler, tokens []string) http.Handler {
 	})
 }
 
-func NewCmdUp() *cobra.Command {
+func NewCmdServe() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "up",
+		Use:     "serve",
 		Short:   "Start the smallweb evaluation server",
 		GroupID: CoreGroupID,
-		Aliases: []string{"serve"},
+		Aliases: []string{"up"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			port := k.Int("port")
@@ -238,6 +230,14 @@ func NewCmdUp() *cobra.Command {
 	return cmd
 }
 
+const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+
+var re = regexp.MustCompile(ansi)
+
+func StripAnsi(b []byte) []byte {
+	return re.ReplaceAll(b, nil)
+}
+
 var cliHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/favicon.ico" {
 		w.WriteHeader(http.StatusNotFound)
@@ -260,12 +260,12 @@ var cliHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *ht
 			} else {
 				args = append(args, fmt.Sprintf("-%s=%s", key, value))
 			}
-		}
-
-		if value == "" {
-			args = append(args, fmt.Sprintf("--%s", key))
 		} else {
-			args = append(args, fmt.Sprintf("--%s=%s", key, value))
+			if value == "" {
+				args = append(args, fmt.Sprintf("--%s", key))
+			} else {
+				args = append(args, fmt.Sprintf("--%s=%s", key, value))
+			}
 		}
 	}
 
@@ -283,5 +283,6 @@ var cliHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *ht
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
+	w.Header().Set("Content-Type", "text/plain")
 	w.Write(StripAnsi(output))
 })
