@@ -270,6 +270,10 @@ var cliHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *ht
 	}
 
 	command := exec.Command(executable, args...)
+	command.Env = os.Environ()
+	command.Env = append(command.Env, "NO_COLOR=1")
+	command.Env = append(command.Env, "CI=1")
+
 	if r.Method == http.MethodPost {
 		command.Stdin = r.Body
 	}

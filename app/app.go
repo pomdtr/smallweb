@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -427,10 +426,7 @@ func (me *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush() // flush the buffer to the client
 		}
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return
+			break
 		}
 	}
 }
