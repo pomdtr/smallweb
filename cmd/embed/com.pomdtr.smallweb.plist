@@ -7,9 +7,7 @@
         <key>ProgramArguments</key>
         <array>
             <string>{{ .ExecPath }}</string>
-            {{- range .ExecArgs }}
-            <string>{{ . }}</string>
-            {{- end }}
+            <string>up</string>
         </array>
         <key>RunAtLoad</key>
         <true />

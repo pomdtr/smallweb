@@ -6,8 +6,9 @@ You can register configure cron tasks from your `smallweb.json[c]` or the `small
 {
     "crons": [
         {
-            "path": "/refresh",
+            "name": "daily-task",
             "schedule": "0 0 * * *",
+            "args": [],
         }
     ]
 }
@@ -21,10 +22,24 @@ The schedule field is a cron expression that defines when the task should run. I
 - `@monthly`: Run once a month, at midnight on the first day of the month.
 - `@yearly`: Run once a year, at midnight on January 1st.
 
-The `path` field is the path to the endpoint that should be called when the cron task runs.
+In order to handle the cron tasks, your app default export should have a `run` method that will be called when the task is triggered.
+
+```ts
+export default {
+    run(_args: string[]) {
+        console.log("Running daily task");
+    }
+}
+```
 
 If you want to see a list of all cron tasks, you can run:
 
 ```sh
-smallweb crons
+smallweb cron ls
+```
+
+To trigger one, you can use either the `smallweb cron trigger` or the `smallweb run` command:
+
+```sh
+smallweb cron trigger daily-task
 ```

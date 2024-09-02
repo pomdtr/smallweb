@@ -13,6 +13,7 @@ func NewCmdService() *cobra.Command {
 		GroupID: CoreGroupID,
 	}
 
+	cmd.AddCommand(NewCmdServiceInstall())
 	cmd.AddCommand(NewCmdServiceUninstall())
 	cmd.AddCommand(NewCmdServiceLogs())
 	cmd.AddCommand(NewCmdServiceStatus())
@@ -20,6 +21,22 @@ func NewCmdService() *cobra.Command {
 	cmd.AddCommand(NewCmdServiceStop())
 	cmd.AddCommand(NewCmdServiceRestart())
 
+	return cmd
+}
+
+func NewCmdServiceInstall() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "install",
+		Short: "Install smallweb as a service",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := InstallService(); err != nil {
+				return err
+			}
+
+			cmd.Println("Service installed successfully")
+			return nil
+		},
+	}
 	return cmd
 }
 

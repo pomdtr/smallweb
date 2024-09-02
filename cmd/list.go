@@ -9,11 +9,12 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
-func ListApps() []string {
+func ListApps(rootDir string) []string {
 	entries, err := os.ReadDir(rootDir)
 	if err != nil {
 		return nil
@@ -35,6 +36,12 @@ func ListApps() []string {
 	return apps
 }
 
+type AppItem struct {
+	Name string `json:"name"`
+	Dir  string `json:"dir"`
+	Url  string `json:"url"`
+}
+
 func NewCmdList() *cobra.Command {
 	var flags struct {
 		json bool
@@ -46,7 +53,16 @@ func NewCmdList() *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apps := ListApps()
+			rootDir := utils.ExpandTilde(k.String("dir"))
+			var apps []AppItem
+			for _, a := range ListApps(rootDir) {
+				appDir := filepath.Join(rootDir, a)
+				apps = append(apps, AppItem{
+					Name: a,
+					Dir:  strings.Replace(appDir, os.Getenv("HOME"), "~", 1),
+					Url:  fmt.Sprintf("https://%s.%s", a, k.String("domain")),
+				})
+			}
 
 			if flags.json {
 				encoder := json.NewEncoder(os.Stdout)
@@ -79,11 +95,12 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir"})
+			printer.AddHeader([]string{"Name", "Dir", "Url"})
 			for _, app := range apps {
-				printer.AddField(app)
-				appDir := filepath.Join(rootDir, app)
-				printer.AddField(strings.Replace(appDir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(app.Name)
+				printer.AddField(strings.Replace(app.Dir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(app.Url)
+
 				printer.EndRow()
 			}
 

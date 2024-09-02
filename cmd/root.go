@@ -10,6 +10,10 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/adrg/xdg"
+	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
@@ -21,24 +25,47 @@ const (
 )
 
 var (
-	rootDir           string
 	cachedUpgradePath = filepath.Join(xdg.CacheHome, "smallweb", "latest_version")
+	k                 = koanf.New(".")
 )
 
-func init() {
-	if env, ok := os.LookupEnv("SMALLWEB_ROOT"); ok {
-		rootDir = env
-	} else {
-		rootDir = filepath.Join(os.Getenv("HOME"), "smallweb")
-	}
-}
-
 func NewCmdRoot(version string) *cobra.Command {
+	var flags struct {
+		config string
+	}
+
 	cmd := &cobra.Command{
 		Use:     "smallweb",
 		Short:   "Host websites from your internet folder",
 		Version: version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			defaultProvider := confmap.Provider(map[string]interface{}{
+				"host":   "127.0.0.1",
+				"dir":    "~/smallweb",
+				"domain": "localhost",
+				"env": map[string]string{
+					"DENO_TLS_CA_STORE": "system",
+				},
+			}, "")
+
+			envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
+				return strings.Replace(strings.ToLower(
+					strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
+			})
+
+			fileProvider := file.Provider(flags.config)
+			fileProvider.Watch(func(event interface{}, err error) {
+				k = koanf.New(".")
+				k.Load(defaultProvider, nil)
+				k.Load(fileProvider, utils.ConfigParser())
+				k.Load(envProvider, nil)
+			})
+
+			k.Load(defaultProvider, nil)
+			k.Load(fileProvider, utils.ConfigParser())
+			k.Load(envProvider, nil)
+
+			rootDir := utils.ExpandTilde(k.String("dir"))
 			if !utils.FileExists(rootDir) {
 				if err := os.MkdirAll(rootDir, 0755); err != nil {
 					return fmt.Errorf("failed to create root directory: %w", err)
@@ -116,9 +143,12 @@ func NewCmdRoot(version string) *cobra.Command {
 		Title: "Extension Commands",
 	})
 
+	cmd.PersistentFlags().StringVarP(&flags.config, "config", "c", findConfigPath(), "config file")
 	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdRun())
+	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdService())
+	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCron())

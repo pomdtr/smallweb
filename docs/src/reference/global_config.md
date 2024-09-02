@@ -26,19 +26,27 @@ The `port` field defines the port to bind to. By default, it is `7777`.
 }
 ```
 
-## `domains`
+## `domain`
 
-The `domains` field defines a list of domains to folders. By default, it maps `*.localhost` to `~/smallweb/*`, but you can add more hostnames from the config.
+The `domain` field defines the apex domain used for routing.
 
 ```json
 {
-  "domains": {
-    "example.com": "~/example.com"
-  }
+  "domain": "smallweb.run"
 }
 ```
 
 See the [Routing](../guides/routing.md) guide for more information.
+
+## `dir`
+
+The `dir` field defines the root directory for all apps.
+
+```json
+{
+  "dir": "~/smallweb"
+}
+```
 
 ## `env`
 
@@ -48,6 +56,19 @@ The `env` field defines a list of environment variables to set for all apps.
 {
   "env": {
     "NODE_ENV": "production"
+  }
+}
+```
+
+## `auth`
+
+The `auth` field allows you to define an admin username and password for all apps.
+
+```json
+{
+  "auth": {
+    "username": "admin",
+    "password": "password"
   }
 }
 ```

@@ -25,4 +25,4 @@ export default function (req: Request) {
 }
 ```
 
-If you want to set an environment variable for all your apps, you can use the `env` property from the smallweb global config (`~/.config/smallweb/config.json[c]`).
+If you want to set an environment variable for all your apps, you can use the `env` property from the smallweb global config (`~/.config/smallweb/config.json`).

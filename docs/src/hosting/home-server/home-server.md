@@ -22,6 +22,13 @@ Additionally, it provides some protection against DDoS attacks, and allows you t
     smallweb service status
     ```
 
+1. Set the `domain` field in your smallweb config to your domain name.
+
+```sh
+# open the smallweb config in your default editor
+smallweb config
+```
+
 1. From your cloudflare dashboard, navigate to `Zero Trust > Networks > Tunnels`
 
 1. Click on `Create a tunnel`, and select the `Clouflared` option

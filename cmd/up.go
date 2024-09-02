@@ -3,10 +3,11 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,6 +17,14 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/net/webdav"
 )
+
+const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
+
+var re = regexp.MustCompile(ansi)
+
+func StripAnsi(b []byte) []byte {
+	return re.ReplaceAll(b, nil)
+}
 
 func basicAuth(h http.Handler, user, pass string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,17 +40,6 @@ func basicAuth(h http.Handler, user, pass string) http.Handler {
 }
 
 func NewCmdUp() *cobra.Command {
-	var flags struct {
-		domain         string
-		host           string
-		port           int
-		cert           string
-		key            string
-		user           string
-		pass           string
-		installService bool
-	}
-
 	cmd := &cobra.Command{
 		Use:     "up <domain>",
 		Short:   "Start the smallweb evaluation server",
@@ -49,166 +47,116 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if flags.port == 0 {
-				if flags.cert != "" || flags.key != "" {
-					flags.port = 443
+			port := k.Int("port")
+			cert := k.String("cert")
+			key := k.String("key")
+			if port == 0 {
+				if cert != "" || key != "" {
+					port = 443
 				} else {
-					flags.port = 7777
+					port = 7777
 				}
 			}
 
-			if flags.installService {
-				args := []string{
-					"up",
-					fmt.Sprintf("--domain=%s", flags.domain),
-					fmt.Sprintf("--host=%s", flags.host),
-					fmt.Sprintf("--port=%d", flags.port),
-				}
-
-				if flags.cert != "" {
-					cert, err := filepath.Abs(flags.cert)
-					if err != nil {
-						return fmt.Errorf("failed to get absolute path of TLS certificate: %w", err)
-					}
-
-					args = append(args, fmt.Sprintf("--cert=%s", cert))
-				}
-
-				if flags.key != "" {
-					key, err := filepath.Abs(flags.key)
-					if err != nil {
-						return fmt.Errorf("failed to get absolute path of TLS key: %w", err)
-					}
-
-					args = append(args, fmt.Sprintf("--key=%s", key))
-				}
-
-				if flags.user != "" {
-					args = append(args, fmt.Sprintf("--user=%s", flags.user))
-				}
-
-				if flags.pass != "" {
-					args = append(args, fmt.Sprintf("--pass=%s", flags.pass))
-				}
-
-				return InstallService(args)
-			}
-
-			addr := fmt.Sprintf("%s:%d", flags.host, flags.port)
-
-			var webdavHandler http.Handler = &webdav.Handler{
-				FileSystem: webdav.Dir(rootDir),
-				LockSystem: webdav.NewMemLS(),
-			}
-
-			if flags.user != "" || flags.pass != "" {
-				webdavHandler = basicAuth(webdavHandler, flags.user, flags.pass)
-			}
-
+			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Host == flags.domain {
+					rootDir := utils.ExpandTilde(k.String("dir"))
+					baseDomain := k.String("domain")
+					if r.Host == baseDomain {
 						target := r.URL
 						target.Scheme = "https"
-						target.Host = "www." + flags.domain
+						target.Host = "www." + baseDomain
 						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 					}
 
-					if !strings.HasSuffix(r.Host, flags.domain) {
-						for _, a := range ListApps() {
-							cnamePath := filepath.Join(rootDir, a, "CNAME")
-							if !utils.FileExists(cnamePath) {
-								continue
-							}
-
-							cname, err := os.ReadFile(cnamePath)
-							if err != nil {
-								log.Printf("failed to read CNAME file: %v", err)
-								continue
-							}
-
-							if strings.TrimSpace(string(cname)) == r.Host {
-								wk, err := app.NewApp(filepath.Join(rootDir, a))
-								if err != nil {
-									w.WriteHeader(http.StatusNotFound)
-									return
-								}
-
-								if err := wk.Start(); err != nil {
-									http.Error(w, err.Error(), http.StatusInternalServerError)
-									return
-								}
-
-								if wk.Config.Private {
-									handler := basicAuth(wk, flags.user, flags.pass)
-									handler.ServeHTTP(w, r)
-								} else {
-									wk.ServeHTTP(w, r)
-								}
-
-								if err := wk.Stop(); err != nil {
-									log.Printf("failed to stop worker: %v", err)
-									return
-								}
-								return
-							}
+					if r.Host == fmt.Sprintf("webdav.%s", baseDomain) {
+						var handler http.Handler = &webdav.Handler{
+							FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
+							LockSystem: webdav.NewMemLS(),
 						}
 
+						if k.String("username") != "" || k.String("password") != "" {
+							handler = basicAuth(handler, k.String("username"), k.String("password"))
+						}
+
+						handler.ServeHTTP(w, r)
+						return
+					}
+
+					if r.Host == fmt.Sprintf("cli.%s", baseDomain) {
+						var handler http.Handler = cliHandler
+						if k.String("auth.username") != "" || k.String("auth.password") != "" {
+							handler = basicAuth(handler, k.String("auth.username"), k.String("auth.password"))
+						}
+
+						handler.ServeHTTP(w, r)
+						return
+					}
+
+					var appDir string
+					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", baseDomain)) {
+						appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", baseDomain))
+						appDir = filepath.Join(rootDir, appname)
+						if !utils.FileExists(appDir) {
+							w.WriteHeader(http.StatusNotFound)
+							return
+						}
+					} else {
+						for _, appname := range ListApps(rootDir) {
+							cnamePath := filepath.Join(rootDir, appname, "CNAME")
+							if !utils.FileExists("CNAME") {
+								continue
+							}
+
+							cnameBytes, err := os.ReadFile(cnamePath)
+							if err != nil {
+								continue
+							}
+
+							if r.Host != string(cnameBytes) {
+								continue
+							}
+
+							appDir = filepath.Join(rootDir, appname)
+						}
+
+						if appDir == "" {
+							w.WriteHeader(http.StatusNotFound)
+							return
+						}
+					}
+
+					a, err := app.NewApp(appDir, k.StringMap("env"))
+					if err != nil {
 						w.WriteHeader(http.StatusNotFound)
 						return
 					}
 
-					if r.Host == fmt.Sprintf("webdav.%s", flags.domain) {
-						webdavHandler.ServeHTTP(w, r)
+					if err := a.Start(); err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
 					}
+					defer a.Stop()
 
-					apps := ListApps()
-					for _, a := range apps {
-						if r.Host != fmt.Sprintf("%s.%s", a, flags.domain) {
-							continue
-						}
-
-						wk, err := app.NewApp(filepath.Join(rootDir, a))
-						if err != nil {
-							w.WriteHeader(http.StatusNotFound)
-							return
-						}
-
-						if err := wk.Start(); err != nil {
-							http.Error(w, err.Error(), http.StatusInternalServerError)
-							return
-						}
-
-						if wk.Config.Private {
-							handler := basicAuth(wk, flags.user, flags.pass)
-							handler.ServeHTTP(w, r)
-						} else {
-							wk.ServeHTTP(w, r)
-						}
-
-						if err := wk.Stop(); err != nil {
-							log.Printf("failed to stop worker: %v", err)
-							return
-						}
-						return
+					var handler http.Handler = a
+					if a.Config.Private {
+						handler = basicAuth(a, k.String("auth.username"), k.String("auth.password"))
 					}
-
-					// no app was found
-					w.WriteHeader(http.StatusNotFound)
+					handler.ServeHTTP(w, r)
 				}),
 			}
 
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 			c := cron.New(cron.WithParser(parser))
 			c.AddFunc("* * * * *", func() {
+				rootDir := utils.ExpandTilde(k.String("dir"))
 				rounded := time.Now().Truncate(time.Minute)
-
-				apps := ListApps()
+				apps := ListApps(rootDir)
 
 				for _, name := range apps {
-					a, err := app.NewApp(name)
+					a, err := app.NewApp(name, k.StringMap("env"))
 					if err != nil {
 						fmt.Println(err)
 						continue
@@ -233,29 +181,29 @@ func NewCmdUp() *cobra.Command {
 
 			go c.Start()
 
-			if flags.cert != "" || flags.key != "" {
-				if flags.cert == "" {
+			if cert != "" || key != "" {
+				if cert == "" {
 					return fmt.Errorf("TLS certificate file is required")
 				}
 
-				if flags.key == "" {
+				if key == "" {
 					return fmt.Errorf("TLS key file is required")
 				}
 
-				cert, err := tls.LoadX509KeyPair(flags.cert, flags.key)
+				certificate, err := tls.LoadX509KeyPair(cert, key)
 				if err != nil {
 					return fmt.Errorf("failed to load TLS certificate and key: %w", err)
 				}
 
 				tlsConfig := &tls.Config{
-					Certificates: []tls.Certificate{cert},
+					Certificates: []tls.Certificate{certificate},
 					MinVersion:   tls.VersionTLS12,
 				}
 
 				server.TLSConfig = tlsConfig
 
 				cmd.Printf("Evaluation server listening on %s\n", addr)
-				return server.ListenAndServeTLS(flags.cert, flags.key)
+				return server.ListenAndServeTLS(cert, key)
 			}
 
 			cmd.Printf("Evaluation server listening on %s\n", addr)
@@ -263,14 +211,44 @@ func NewCmdUp() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&flags.installService, "install-service", false, "Install the smallweb evaluation server as a service")
-	cmd.Flags().StringVar(&flags.domain, "domain", "localhost", "Domain name")
-	cmd.Flags().StringVar(&flags.host, "host", "127.0.0.1", "Server host")
-	cmd.Flags().IntVar(&flags.port, "port", 0, "Server port")
-	cmd.Flags().StringVar(&flags.cert, "cert", "", "TLS certificate file path")
-	cmd.Flags().StringVar(&flags.key, "key", "", "TLS key file path")
-	cmd.Flags().StringVar(&flags.user, "user", "", "Basic auth username")
-	cmd.Flags().StringVar(&flags.pass, "pass", "", "Basic auth password")
-
 	return cmd
 }
+
+var cliHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	executable, err := os.Executable()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	args := strings.Split(r.URL.Path[1:], "/")
+	for key, values := range r.URL.Query() {
+		value := values[0]
+
+		if len(key) == 1 {
+			if value == "" {
+				args = append(args, fmt.Sprintf("-%s", key))
+			} else {
+				args = append(args, fmt.Sprintf("-%s=%s", key, value))
+			}
+		}
+
+		if value == "" {
+			args = append(args, fmt.Sprintf("--%s", key))
+		} else {
+			args = append(args, fmt.Sprintf("--%s=%s", key, value))
+		}
+	}
+
+	command := exec.Command(executable, args...)
+	if r.Method == http.MethodPost {
+		command.Stdin = r.Body
+	}
+
+	output, err := command.CombinedOutput()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	w.Write(StripAnsi(output))
+})

@@ -29,9 +29,10 @@ type AppConfig struct {
 }
 
 type CronJob struct {
-	Name     string   `json:"name"`
-	Schedule string   `json:"schedule"`
-	Args     []string `json:"args"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Schedule    string   `json:"schedule"`
+	Args        []string `json:"args"`
 }
 
 type CronJobRequest struct {
@@ -49,9 +50,10 @@ type App struct {
 	cmd    *exec.Cmd
 }
 
-func NewApp(dir string) (*App, error) {
+func NewApp(dir string, env map[string]string) (*App, error) {
 	worker := &App{
 		Dir: dir,
+		Env: env,
 	}
 
 	if err := worker.LoadConfig(); err != nil {
@@ -180,24 +182,12 @@ func (me *App) LoadConfig() error {
 }
 
 func (me *App) LoadEnv() error {
-	me.Env = make(map[string]string)
 	for _, e := range os.Environ() {
 		pair := strings.SplitN(e, "=", 2)
 		me.Env[pair[0]] = pair[1]
 	}
 
 	me.Env["DENO_DIR"] = filepath.Join(os.Getenv("HOME"), ".cache", "smallweb", "deno")
-	if dotenvPath := filepath.Join(me.Dir, "..", ".env"); utils.FileExists(dotenvPath) {
-		dotenv, err := godotenv.Read(dotenvPath)
-		if err != nil {
-			return fmt.Errorf("could not read .env: %v", err)
-		}
-
-		for key, value := range dotenv {
-			me.Env[key] = value
-		}
-	}
-
 	if dotenvPath := filepath.Join(me.Dir, ".env"); utils.FileExists(dotenvPath) {
 		dotenv, err := godotenv.Read(dotenvPath)
 		if err != nil {

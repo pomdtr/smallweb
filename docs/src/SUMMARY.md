@@ -5,13 +5,12 @@
 # Guides
 
 - [Routing](./guides/routing.md)
-- [Static Websites](./guides/static.md)
-- [Dynamic Websites](./guides/dynamic.md)
+- [Hosting Servers](./guides/server.md)
+- [CLi Commands](./guides/commands.md)
 - [Environment Variables](./guides/env.md)
-- [Permissions](./guides/permissions.md)
 - [Cron Jobs](./guides/cron.md)
 - [Plugins](./guides/plugins.md)
-- [Tooling](./guides/tooling.md)
+- [File Sync](./guides/file-sync.md)
 
 # Hosting
 
