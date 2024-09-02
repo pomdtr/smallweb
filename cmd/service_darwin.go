@@ -17,14 +17,9 @@ import (
 //go:embed embed/com.pomdtr.smallweb.plist
 var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
+var servicePath = filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
 
 func InstallService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
 	if utils.FileExists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
@@ -46,7 +41,7 @@ func InstallService() error {
 
 	if err := serviceConfig.Execute(f, map[string]any{
 		"ExecPath": execPath,
-		"HomeDir":  homeDir,
+		"HomeDir":  os.Getenv("HOME"),
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)
 	}
@@ -59,12 +54,6 @@ func InstallService() error {
 }
 
 func StartService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -77,12 +66,6 @@ func StartService() error {
 }
 
 func StopService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -99,12 +82,6 @@ func RestartService() error {
 }
 
 func UninstallService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -122,12 +99,6 @@ func UninstallService() error {
 }
 
 func PrintServiceLogs(follow bool) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -136,7 +107,7 @@ func PrintServiceLogs(follow bool) error {
 		return fmt.Errorf("service not installed")
 	}
 
-	logPath := filepath.Join(homeDir, "Library", "Logs", "smallweb.log")
+	logPath := filepath.Join(os.Getenv("HOME"), "Library", "Logs", "smallweb.log")
 	if !utils.FileExists(logPath) {
 		return fmt.Errorf("log file not found")
 	}

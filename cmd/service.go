@@ -2,7 +2,12 @@ package cmd
 
 import (
 	_ "embed"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 
+	"github.com/google/shlex"
 	"github.com/spf13/cobra"
 )
 
@@ -15,6 +20,7 @@ func NewCmdService() *cobra.Command {
 
 	cmd.AddCommand(NewCmdServiceInstall())
 	cmd.AddCommand(NewCmdServiceUninstall())
+	cmd.AddCommand(NewCmdServiceEdit())
 	cmd.AddCommand(NewCmdServiceLogs())
 	cmd.AddCommand(NewCmdServiceStatus())
 	cmd.AddCommand(NewCmdServiceStart())
@@ -54,6 +60,37 @@ func NewCmdServiceUninstall() *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+func NewCmdServiceEdit() *cobra.Command {
+	return &cobra.Command{
+		Use:   "edit",
+		Short: "Edit smallweb service configuration",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			editor := findEditor()
+			if err := os.MkdirAll(filepath.Dir(servicePath), 0755); err != nil {
+				return err
+			}
+
+			editorArgs, err := shlex.Split(editor)
+			if err != nil {
+				return err
+			}
+			editorArgs = append(editorArgs, servicePath)
+
+			command := exec.Command(editorArgs[0], editorArgs[1:]...)
+			command.Stdin = os.Stdin
+			command.Stdout = os.Stdout
+			command.Stderr = os.Stderr
+
+			if err := command.Run(); err != nil {
+				return fmt.Errorf("failed to run editor: %v", err)
+			}
+
+			return nil
+		},
+	}
 }
 
 func NewCmdServiceStart() *cobra.Command {
