@@ -33,6 +33,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"host":   "127.0.0.1",
 		"dir":    "~/smallweb",
+		"editor": findEditor(),
 		"domain": "localhost",
 		"tokens": []string{},
 		"env": map[string]string{

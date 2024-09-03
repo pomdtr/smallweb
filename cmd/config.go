@@ -107,8 +107,7 @@ func NewCmdConfig() *cobra.Command {
 				return nil
 			}
 
-			editorCmd := findEditor()
-			editorArgs, err := shlex.Split(editorCmd)
+			editorArgs, err := shlex.Split(k.String("editor"))
 			if err != nil {
 				return err
 			}

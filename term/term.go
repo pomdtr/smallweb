@@ -33,8 +33,10 @@ func StripAnsi(b []byte) []byte {
 }
 
 type Handler struct {
+	Dir    string
+	Editor string
+
 	fileServer http.Handler
-	Dir        string
 	lock       sync.Mutex
 	ttys       map[string]*os.File
 }
@@ -45,10 +47,10 @@ type ResizePayload struct {
 	Rows int    `json:"rows"`
 }
 
-func NewHandler(dir string, shell string, editor string) (*Handler, error) {
+func NewHandler(dir string, editor string) (*Handler, error) {
 	subFS, err := fs.Sub(embedFs, "frontend/dist")
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to get sub fs: %w", err)
 	}
 
 	return &Handler{

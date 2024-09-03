@@ -42,7 +42,7 @@ func NewCmdEdit() *cobra.Command {
 						return fmt.Errorf("failed to get entrypoint: %v", err)
 					}
 
-					editorCmd := findEditor()
+					editorCmd := k.String("editor")
 					editorArgs, err := shlex.Split(editorCmd)
 					if err != nil {
 						return err

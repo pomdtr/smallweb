@@ -81,7 +81,7 @@ func NewCmdServe() *cobra.Command {
 				}
 			}
 
-			cliHandler, err := term.NewHandler(rootDir, k.String("shell"), k.String("editor"))
+			cliHandler, err := term.NewHandler(rootDir, k.String("editor"))
 			if err != nil {
 				return fmt.Errorf("failed to create cli handler: %w", err)
 			}
