@@ -83,8 +83,8 @@ func (me *App) Flags(sandboxPath string) []string {
 		"--allow-net",
 		"--allow-env",
 		"--allow-sys",
-		fmt.Sprintf("--allow-read=.,%s,%s", me.Env["DENO_DIR"], sandboxPath),
-		"--allow-write=.",
+		fmt.Sprintf("--allow-read=%s,%s,%s", me.Root(), me.Env["DENO_DIR"], sandboxPath),
+		fmt.Sprintf("--allow-write=%s", me.Root()),
 		fmt.Sprintf("--location=%s", me.Location),
 	}
 
