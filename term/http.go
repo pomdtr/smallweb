@@ -91,8 +91,11 @@ var Handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.
 func streamOutput(w http.ResponseWriter, r io.Reader) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		w.Write(StripAnsi(scanner.Bytes()))
-		w.Write([]byte("\n"))
-		w.(http.Flusher).Flush()
+		line := StripAnsi(scanner.Bytes())
+		line = append(line, '\n')
+		w.Write(line)
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
 	}
 }
