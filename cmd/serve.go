@@ -35,7 +35,7 @@ func authMiddleware(h http.Handler, username string, password string, tokens []s
 			}
 
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-			http.Error(w, "Unauthorized", http.StatusForbidden)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
@@ -50,7 +50,7 @@ func authMiddleware(h http.Handler, username string, password string, tokens []s
 			}
 
 			w.Header().Set("WWW-Authenticate", `Bearer realm="Restricted"`)
-			http.Error(w, "Unauthorized", http.StatusForbidden)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
