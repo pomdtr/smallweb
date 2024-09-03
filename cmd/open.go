@@ -56,16 +56,16 @@ func NewCmdOpen() *cobra.Command {
 				return fmt.Errorf("app not found: %s", args[0])
 			}
 
-			dir, err := os.Getwd()
+			cwd, err := os.Getwd()
 			if err != nil {
 				return fmt.Errorf("failed to get current dir: %v", err)
 			}
 
-			if filepath.Dir(dir) == rootDir {
+			if filepath.Dir(cwd) != rootDir {
 				return fmt.Errorf("current dir is not a smallweb app")
 			}
 
-			if cnamePath := filepath.Join(dir, "CNAME"); utils.FileExists(cnamePath) {
+			if cnamePath := filepath.Join(cwd, "CNAME"); utils.FileExists(cnamePath) {
 				cname, err := os.ReadFile(cnamePath)
 				if err != nil {
 					return fmt.Errorf("failed to read CNAME file: %v", err)
@@ -79,7 +79,7 @@ func NewCmdOpen() *cobra.Command {
 				return nil
 			}
 
-			url := fmt.Sprintf("https://%s.%s/", filepath.Base(dir), k.String("domain"))
+			url := fmt.Sprintf("https://%s.%s/", filepath.Base(cwd), k.String("domain"))
 			if err := browser.OpenURL(url); err != nil {
 				return fmt.Errorf("failed to open browser: %v", err)
 			}

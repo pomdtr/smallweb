@@ -25,9 +25,10 @@ func generateToken(n int) (string, error) {
 
 func NewCmdToken() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "token",
-		Short: "Generate a random token",
-		Args:  cobra.NoArgs,
+		Use:     "token",
+		Short:   "Generate a random token",
+		GroupID: CoreGroupID,
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			token, err := generateToken(16)
 			if err != nil {

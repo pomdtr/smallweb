@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,19 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/spf13/cobra"
 )
+
+func NewCmdVersion() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "version",
+		Short:   "Manage smallweb versions",
+		GroupID: CoreGroupID,
+	}
+
+	cmd.AddCommand(NewCmdVersionUpgrade())
+	cmd.AddCommand(NewCmdVersionList())
+
+	return cmd
+}
 
 func IsUnderHomebrew() bool {
 	binary, err := os.Executable()
@@ -33,12 +47,31 @@ func IsUnderHomebrew() bool {
 	return strings.HasPrefix(binary, brewBinPrefix)
 }
 
-func NewCmdUpgrade() *cobra.Command {
+func NewCmdVersionList() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "upgrade [version]",
-		Short:   "Upgrade to the latest version",
-		GroupID: CoreGroupID,
-		Args:    cobra.MaximumNArgs(1),
+		Use:   "list",
+		Short: "List available versions",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			versions, err := fetchVersions()
+			if err != nil {
+				return fmt.Errorf("failed to fetch versions: %w", err)
+			}
+
+			for _, v := range versions {
+				fmt.Println(v)
+			}
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func NewCmdVersionUpgrade() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "upgrade [version]",
+		Short: "Upgrade to the latest version",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			version := cmd.Root().Version
 			if version == "dev" {
@@ -108,12 +141,45 @@ func NewCmdUpgrade() *cobra.Command {
 	return cmd
 }
 
+func fetchVersions() ([]*semver.Version, error) {
+	resp, err := http.Get("https://api.smallweb.run/v1/versions")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch version information: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch version information: %s", resp.Status)
+	}
+
+	var versions []string
+	if err := json.NewDecoder(resp.Body).Decode(&versions); err != nil {
+		return nil, fmt.Errorf("failed to decode version information: %w", err)
+	}
+
+	var semverVersions []*semver.Version
+	for _, v := range versions {
+		version, err := semver.NewVersion(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse version information: %w", err)
+		}
+
+		semverVersions = append(semverVersions, version)
+	}
+
+	return semverVersions, nil
+}
+
 func fetchLatestVersion() (*semver.Version, error) {
 	resp, err := http.Get("https://api.smallweb.run/v1/versions/latest")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch version information: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch version information: %s", resp.Status)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -6,13 +6,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/term"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
@@ -101,7 +100,7 @@ func NewCmdServe() *cobra.Command {
 					}
 
 					if r.Host == fmt.Sprintf("cli.%s", domain) {
-						var handler http.Handler = cliHandler
+						var handler http.Handler = term.Handler
 						if k.String("tokens") != "" {
 							handler = authMiddleware(handler, k.Strings("tokens"))
 						}
@@ -229,60 +228,3 @@ func NewCmdServe() *cobra.Command {
 
 	return cmd
 }
-
-const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
-
-var re = regexp.MustCompile(ansi)
-
-func StripAnsi(b []byte) []byte {
-	return re.ReplaceAll(b, nil)
-}
-
-var cliHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/favicon.ico" {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	executable, err := os.Executable()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	args := strings.Split(r.URL.Path[1:], "/")
-	for key, values := range r.URL.Query() {
-		value := values[0]
-
-		if len(key) == 1 {
-			if value == "" {
-				args = append(args, fmt.Sprintf("-%s", key))
-			} else {
-				args = append(args, fmt.Sprintf("-%s=%s", key, value))
-			}
-		} else {
-			if value == "" {
-				args = append(args, fmt.Sprintf("--%s", key))
-			} else {
-				args = append(args, fmt.Sprintf("--%s=%s", key, value))
-			}
-		}
-	}
-
-	command := exec.Command(executable, args...)
-	command.Env = os.Environ()
-	command.Env = append(command.Env, "NO_COLOR=1")
-	command.Env = append(command.Env, "CI=1")
-
-	if r.Method == http.MethodPost {
-		command.Stdin = r.Body
-	}
-
-	output, err := command.CombinedOutput()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write(StripAnsi(output))
-})
