@@ -1,10 +1,8 @@
 package term
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -23,6 +21,11 @@ func StripAnsi(b []byte) []byte {
 var Handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/favicon.ico" {
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -55,47 +58,24 @@ var Handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "NO_COLOR=1")
 	cmd.Env = append(cmd.Env, "CI=1")
+	cmd.Stdin = r.Body
 
-	if r.Method == http.MethodPost {
-		cmd.Stdin = r.Body
-	}
-
-	stdout, err := cmd.StdoutPipe()
+	output, err := cmd.Output()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := cmd.Start(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	go streamOutput(w, stdout)
-	go streamOutput(w, stderr)
-
-	if err := cmd.Wait(); err != nil {
-		log.Printf("Command finished with error: %v", err)
-	}
-})
-
-func streamOutput(w http.ResponseWriter, r io.Reader) {
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := StripAnsi(scanner.Bytes())
-		line = append(line, '\n')
-		w.Write(line)
-		if flusher, ok := w.(http.Flusher); ok {
-			flusher.Flush()
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(StripAnsi(exitError.Stderr))
+			return
 		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Write(StripAnsi(output))
+})
