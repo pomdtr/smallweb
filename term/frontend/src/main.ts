@@ -24,6 +24,8 @@ async function main() {
       if (event.metaKey || event.ctrlKey) {
         window.open(uri, "_blank");
       }
+
+      window.open(uri, "_self");
     },
   );
   terminal.loadAddon(webLinksAddon);
@@ -77,7 +79,7 @@ async function main() {
 
   ws.onclose = () => {
     attachAddon.dispose()
-    terminal.write("\r\nPress any key to close this terminal.\r\n");
+    terminal.write("\r\nConnection closed, press any key to close the terminal.\r\n");
     terminal.onData(() => {
       window.close();
     });
