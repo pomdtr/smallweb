@@ -18,12 +18,17 @@ import (
 	"golang.org/x/net/webdav"
 )
 
-func authMiddleware(h http.Handler, tokens []string) http.Handler {
+func authMiddleware(h http.Handler, username string, password string, tokens []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, _, ok := r.BasicAuth()
+		u, p, ok := r.BasicAuth()
 		if ok {
+			if u == username && p == password {
+				h.ServeHTTP(w, r)
+				return
+			}
+
 			for _, t := range tokens {
-				if token == t {
+				if u == t {
 					h.ServeHTTP(w, r)
 					return
 				}
@@ -92,7 +97,7 @@ func NewCmdServe() *cobra.Command {
 							LockSystem: webdav.NewMemLS(),
 						}
 						if k.String("tokens") != "" {
-							handler = authMiddleware(handler, k.Strings("tokens"))
+							handler = authMiddleware(handler, k.String("username"), k.String("password"), k.Strings("tokens"))
 						}
 
 						handler.ServeHTTP(w, r)
@@ -102,7 +107,7 @@ func NewCmdServe() *cobra.Command {
 					if r.Host == fmt.Sprintf("cli.%s", domain) {
 						var handler http.Handler = term.Handler
 						if k.String("tokens") != "" {
-							handler = authMiddleware(handler, k.Strings("tokens"))
+							handler = authMiddleware(handler, k.String("username"), k.String("password"), k.Strings("tokens"))
 						}
 
 						handler.ServeHTTP(w, r)
@@ -157,7 +162,7 @@ func NewCmdServe() *cobra.Command {
 
 					var handler http.Handler = a
 					if a.Config.Private {
-						handler = authMiddleware(a, k.Strings("tokens"))
+						handler = authMiddleware(a, k.String("username"), k.String("password"), k.Strings("tokens"))
 					}
 					handler.ServeHTTP(w, r)
 				}),
