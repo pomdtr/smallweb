@@ -7,8 +7,7 @@ Host websites from your internet folder
 ### Options
 
 ```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-  -h, --help            help for smallweb
+  -h, --help   help for smallweb
 ```
 
 ## smallweb capture
@@ -25,12 +24,6 @@ smallweb capture [flags]
   -h, --help   help for capture
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb completion
 
 Generate the autocompletion script for the specified shell
@@ -45,12 +38,6 @@ See each sub-command's help for details on how to use the generated script.
 
 ```
   -h, --help   help for completion
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb completion bash
@@ -92,12 +79,6 @@ smallweb completion bash
       --no-descriptions   disable completion descriptions
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb completion fish
 
 Generate the autocompletion script for fish
@@ -128,12 +109,6 @@ smallweb completion fish [flags]
       --no-descriptions   disable completion descriptions
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb completion help
 
 Help about any command
@@ -151,12 +126,6 @@ smallweb completion help [command] [flags]
 
 ```
   -h, --help   help for help
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb completion powershell
@@ -184,12 +153,6 @@ smallweb completion powershell [flags]
 ```
   -h, --help              help for powershell
       --no-descriptions   disable completion descriptions
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb completion zsh
@@ -233,12 +196,6 @@ smallweb completion zsh [flags]
       --no-descriptions   disable completion descriptions
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb config
 
 Open the smallweb config in your editor
@@ -254,12 +211,6 @@ smallweb config [flags]
   -j, --json   Output as JSON
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb cron
 
 Manage cron jobs
@@ -268,12 +219,6 @@ Manage cron jobs
 
 ```
   -h, --help   help for cron
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb cron help
@@ -295,12 +240,6 @@ smallweb cron help [command] [flags]
   -h, --help   help for help
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb cron list
 
 List cron jobs
@@ -317,12 +256,6 @@ smallweb cron list [flags]
       --json         output as json
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb cron trigger
 
 Trigger a cron job
@@ -335,12 +268,6 @@ smallweb cron trigger <id> [flags]
 
 ```
   -h, --help   help for trigger
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb docs
@@ -357,10 +284,19 @@ smallweb docs [flags]
   -h, --help   help for docs
 ```
 
-### Options inherited from parent commands
+## smallweb edit
+
+Open the smallweb config in your editor
 
 ```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
+smallweb edit <app> [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for edit
+  -j, --json   Output as JSON
 ```
 
 ## smallweb gallery
@@ -375,12 +311,6 @@ smallweb gallery [flags]
 
 ```
   -h, --help   help for gallery
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb help
@@ -402,12 +332,6 @@ smallweb help [command] [flags]
   -h, --help   help for help
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb init
 
 Init a new smallweb app
@@ -421,12 +345,6 @@ smallweb init [dir] [flags]
 ```
   -h, --help              help for init
   -t, --template string   The template to use
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb list
@@ -444,12 +362,6 @@ smallweb list [flags]
       --json   output as json
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb open
 
 Open the smallweb app specified by dir in the browser
@@ -462,12 +374,6 @@ smallweb open [app] [flags]
 
 ```
   -h, --help   help for open
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb run
@@ -484,10 +390,18 @@ smallweb run <app> [args...] [flags]
   -h, --help   help for run
 ```
 
-### Options inherited from parent commands
+## smallweb serve
+
+Start the smallweb evaluation server
 
 ```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
+smallweb serve [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for serve
 ```
 
 ## smallweb service
@@ -498,12 +412,6 @@ Manage smallweb service
 
 ```
   -h, --help   help for service
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb service edit
@@ -518,12 +426,6 @@ smallweb service edit [flags]
 
 ```
   -h, --help   help for edit
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb service help
@@ -545,12 +447,6 @@ smallweb service help [command] [flags]
   -h, --help   help for help
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb service install
 
 Install smallweb as a service
@@ -563,12 +459,6 @@ smallweb service install [flags]
 
 ```
   -h, --help   help for install
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb service logs
@@ -586,12 +476,6 @@ smallweb service logs [flags]
   -h, --help     help for logs
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb service restart
 
 Restart smallweb service
@@ -604,12 +488,6 @@ smallweb service restart [flags]
 
 ```
   -h, --help   help for restart
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb service start
@@ -626,12 +504,6 @@ smallweb service start [flags]
   -h, --help   help for start
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb service status
 
 View service status
@@ -644,12 +516,6 @@ smallweb service status [flags]
 
 ```
   -h, --help   help for status
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb service stop
@@ -666,12 +532,6 @@ smallweb service stop [flags]
   -h, --help   help for stop
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb service uninstall
 
 Uninstall smallweb service
@@ -684,12 +544,6 @@ smallweb service uninstall [flags]
 
 ```
   -h, --help   help for uninstall
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 ## smallweb token
@@ -706,12 +560,6 @@ smallweb token [flags]
   -h, --help   help for token
 ```
 
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
-```
-
 ## smallweb types
 
 Print smallweb types
@@ -726,50 +574,61 @@ smallweb types [flags]
   -h, --help   help for types
 ```
 
-### Options inherited from parent commands
+## smallweb version
+
+Manage smallweb versions
+
+### Options
 
 ```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
+  -h, --help   help for version
 ```
 
-## smallweb up
+## smallweb version help
 
-Start the smallweb evaluation server
+Help about any command
+
+### Synopsis
+
+Help provides help for any command in the application.
+Simply type version help [path to command] for full details.
 
 ```
-smallweb up [flags]
+smallweb version help [command] [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for up
+  -h, --help   help for help
 ```
 
-### Options inherited from parent commands
+## smallweb version list
+
+List available versions
 
 ```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
+smallweb version list [flags]
 ```
 
-## smallweb upgrade
+### Options
+
+```
+  -h, --help   help for list
+```
+
+## smallweb version upgrade
 
 Upgrade to the latest version
 
 ```
-smallweb upgrade [version] [flags]
+smallweb version upgrade [version] [flags]
 ```
 
 ### Options
 
 ```
   -h, --help   help for upgrade
-```
-
-### Options inherited from parent commands
-
-```
-  -c, --config string   config file (default "/Users/pomdtr/.config/smallweb/config.json")
 ```
 
 

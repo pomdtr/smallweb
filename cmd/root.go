@@ -30,48 +30,45 @@ var (
 )
 
 func NewCmdRoot(version string) *cobra.Command {
-	var flags struct {
-		config string
-	}
+	defaultProvider := confmap.Provider(map[string]interface{}{
+		"host":   "127.0.0.1",
+		"dir":    "~/smallweb",
+		"domain": "localhost",
+		"tokens": []string{},
+		"env": map[string]string{
+			"DENO_TLS_CA_STORE": "system",
+		},
+	}, "")
+
+	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s, v string) (string, interface{}) {
+		key := strings.Replace(strings.ToLower(strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
+		// If there is a space in the value, split the value into a slice by the space.
+		if strings.Contains(v, ":") {
+			return key, strings.Split(v, ":")
+		}
+
+		// Otherwise, return the plain string.
+		return key, v
+	})
+
+	configPath := findConfigPath()
+	fileProvider := file.Provider(configPath)
+	fileProvider.Watch(func(event interface{}, err error) {
+		k = koanf.New(".")
+		k.Load(defaultProvider, nil)
+		k.Load(fileProvider, utils.ConfigParser())
+		k.Load(envProvider, nil)
+	})
+
+	k.Load(defaultProvider, nil)
+	k.Load(fileProvider, utils.ConfigParser())
+	k.Load(envProvider, nil)
 
 	cmd := &cobra.Command{
 		Use:     "smallweb",
 		Short:   "Host websites from your internet folder",
 		Version: version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			defaultProvider := confmap.Provider(map[string]interface{}{
-				"host":   "127.0.0.1",
-				"dir":    "~/smallweb",
-				"domain": "localhost",
-				"tokens": []string{},
-				"env": map[string]string{
-					"DENO_TLS_CA_STORE": "system",
-				},
-			}, "")
-
-			envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s, v string) (string, interface{}) {
-				key := strings.Replace(strings.ToLower(strings.TrimPrefix(s, "MYVAR_")), "_", ".", -1)
-				// If there is a space in the value, split the value into a slice by the space.
-				if strings.Contains(v, ":") {
-					return key, strings.Split(v, ":")
-				}
-
-				// Otherwise, return the plain string.
-				return key, v
-			})
-
-			fileProvider := file.Provider(flags.config)
-			fileProvider.Watch(func(event interface{}, err error) {
-				k = koanf.New(".")
-				k.Load(defaultProvider, nil)
-				k.Load(fileProvider, utils.ConfigParser())
-				k.Load(envProvider, nil)
-			})
-
-			k.Load(defaultProvider, nil)
-			k.Load(fileProvider, utils.ConfigParser())
-			k.Load(envProvider, nil)
-
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			if !utils.FileExists(rootDir) {
 				if err := os.MkdirAll(rootDir, 0755); err != nil {
@@ -147,7 +144,6 @@ func NewCmdRoot(version string) *cobra.Command {
 		Title: "Core Commands",
 	})
 
-	cmd.PersistentFlags().StringVarP(&flags.config, "config", "c", findConfigPath(), "config file")
 	cmd.AddCommand(NewCmdServe())
 	cmd.AddCommand(NewCmdEdit())
 	cmd.AddCommand(NewCmdRun())
