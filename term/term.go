@@ -230,7 +230,7 @@ func (me *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			// data processing
 			_, data, err := connection.ReadMessage()
 			if err != nil {
-				log.Printf("failed to get next reader: %s", err)
+				// log.Printf("failed to get next reader: %s", err)
 				waiter.Done()
 				return
 			}
@@ -245,7 +245,7 @@ func (me *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 			// write to tty
 			if _, err := tty.Write(dataBuffer); err != nil {
-				log.Printf("failed to write %v bytes to tty: %s", len(dataBuffer), err)
+				// log.Printf("failed to write %v bytes to tty: %s", len(dataBuffer), err)
 				continue
 			}
 		}
@@ -259,7 +259,7 @@ func (me *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			readLength, err := tty.Read(buffer)
 			if err != nil {
 				connection.Close()
-				log.Printf("failed to read from tty: %s", err)
+				// log.Printf("failed to read from tty: %s", err)
 				return
 			}
 
@@ -280,18 +280,15 @@ func (me *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case <-ticker.C:
-				if err := connection.WriteMessage(websocket.PingMessage, []byte("keepalive")); err != nil {
-					log.Printf("failed to write ping message")
-				}
-
+				connection.WriteMessage(websocket.PingMessage, []byte("keepalive"))
 				if time.Since(lastPingTime) > keepalivePingTimeout {
-					log.Printf("connection timeout, closing connection")
+					// log.Printf("connection timeout, closing connection")
 					connection.Close()
 					return
 				}
 			case m := <-messages:
 				if err := connection.WriteMessage(websocket.BinaryMessage, m); err != nil {
-					log.Printf("failed to send %v bytes from tty to xterm.js", len(m))
+					// log.Printf("failed to send %v bytes from tty to xterm.js", len(m))
 					continue
 				}
 			}
