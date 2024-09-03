@@ -75,9 +75,19 @@ async function main() {
       // terminal.options.theme = e.matches ? darkTheme : lightTheme;
     });
 
+  ws.onclose = () => {
+    attachAddon.dispose()
+    terminal.write("\r\nPress any key to close this terminal.\r\n");
+    terminal.onData(() => {
+      window.close();
+    });
+  }
+
   window.onbeforeunload = () => {
+    ws.onclose = () => { };
     ws.close();
   };
+
 
   window.onfocus = () => {
     terminal.focus();
