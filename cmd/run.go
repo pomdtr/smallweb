@@ -30,12 +30,12 @@ func NewCmdRun() *cobra.Command {
 			}
 
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			for _, a := range ListApps(rootDir) {
-				if a != args[0] {
+			for _, appname := range ListApps(rootDir) {
+				if appname != args[0] {
 					continue
 				}
 
-				worker, err := app.NewApp(filepath.Join(rootDir, args[0]), k.StringMap("env"))
+				worker, err := app.NewApp(filepath.Join(rootDir, args[0]), fmt.Sprintf("%s.%s", appname, k.String("domain")), k.StringMap("env"))
 				if err != nil {
 					return fmt.Errorf("could not create worker: %w", err)
 				}

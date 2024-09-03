@@ -145,9 +145,6 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddGroup(&cobra.Group{
 		ID:    CoreGroupID,
 		Title: "Core Commands",
-	}, &cobra.Group{
-		ID:    ExtensionGroupID,
-		Title: "Extension Commands",
 	})
 
 	cmd.PersistentFlags().StringVarP(&flags.config, "config", "c", findConfigPath(), "config file")
@@ -165,6 +162,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdInit())
 	cmd.AddCommand(NewCmdToken())
 
+	var extensions []string
 	path := os.Getenv("PATH")
 	for _, dir := range filepath.SplitList(path) {
 		entries, err := os.ReadDir(dir)
@@ -186,25 +184,38 @@ func NewCmdRoot(version string) *cobra.Command {
 				continue
 			}
 
-			name := strings.TrimPrefix(entry.Name(), "smallweb-")
-			if HasCommand(cmd, name) {
-				continue
-			}
-
-			cmd.AddCommand(&cobra.Command{
-				Use:                name,
-				Short:              fmt.Sprintf("Extension %s", name),
-				GroupID:            ExtensionGroupID,
-				DisableFlagParsing: true,
-				RunE: func(cmd *cobra.Command, args []string) error {
-					command := exec.Command(entrypoint, args...)
-					command.Stdin = os.Stdin
-					command.Stdout = os.Stdout
-					command.Stderr = os.Stderr
-					return command.Run()
-				},
-			})
+			extensions = append(extensions, entrypoint)
 		}
+	}
+
+	if len(extensions) == 0 {
+		return cmd
+	}
+
+	cmd.AddGroup(&cobra.Group{
+		ID:    ExtensionGroupID,
+		Title: "Extension Commands",
+	})
+
+	for _, entrypoint := range extensions {
+		name := strings.TrimPrefix(filepath.Base(entrypoint), "smallweb-")
+		if HasCommand(cmd, name) {
+			continue
+		}
+
+		cmd.AddCommand(&cobra.Command{
+			Use:                name,
+			Short:              fmt.Sprintf("Extension %s", name),
+			GroupID:            ExtensionGroupID,
+			DisableFlagParsing: true,
+			RunE: func(cmd *cobra.Command, args []string) error {
+				command := exec.Command(entrypoint, args...)
+				command.Stdin = os.Stdin
+				command.Stdout = os.Stdout
+				command.Stderr = os.Stderr
+				return command.Run()
+			},
+		})
 	}
 
 	return cmd

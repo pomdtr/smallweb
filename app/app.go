@@ -44,12 +44,13 @@ type CronJobRequest struct {
 type App struct {
 	Config AppConfig
 	Dir    string
+	Domain string
 	Env    map[string]string
 	port   int
 	cmd    *exec.Cmd
 }
 
-func NewApp(dir string, env map[string]string) (*App, error) {
+func NewApp(dir string, Domain string, env map[string]string) (*App, error) {
 	worker := &App{
 		Dir: dir,
 		Env: env,
@@ -83,6 +84,7 @@ func (me *App) Flags(sandboxPath string) []string {
 		"--allow-sys",
 		fmt.Sprintf("--allow-read=.,%s,%s", me.Env["DENO_DIR"], sandboxPath),
 		"--allow-write=.",
+		fmt.Sprintf("--location=https://%s/", me.Domain),
 	}
 
 	if configPath := filepath.Join(me.Dir, "deno.json"); utils.FileExists(configPath) {

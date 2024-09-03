@@ -143,7 +143,7 @@ func NewCmdServe() *cobra.Command {
 						}
 					}
 
-					a, err := app.NewApp(appDir, k.StringMap("env"))
+					a, err := app.NewApp(appDir, r.Host, k.StringMap("env"))
 					if err != nil {
 						w.WriteHeader(http.StatusNotFound)
 						return
@@ -170,8 +170,8 @@ func NewCmdServe() *cobra.Command {
 				rounded := time.Now().Truncate(time.Minute)
 				apps := ListApps(rootDir)
 
-				for _, name := range apps {
-					a, err := app.NewApp(name, k.StringMap("env"))
+				for _, appname := range apps {
+					a, err := app.NewApp(appname, fmt.Sprintf("%s.%s", appname, k.String("domain")), k.StringMap("env"))
 					if err != nil {
 						fmt.Println(err)
 						continue
