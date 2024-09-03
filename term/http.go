@@ -3,6 +3,7 @@ package term
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -65,6 +66,12 @@ var Handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.
 		return
 	}
 
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	if err := cmd.Start(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -73,14 +80,19 @@ var Handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		w.Write(StripAnsi(scanner.Bytes()))
-		w.Write([]byte("\n"))
-		w.(http.Flusher).Flush()
-	}
+	go streamOutput(w, stdout)
+	go streamOutput(w, stderr)
 
 	if err := cmd.Wait(); err != nil {
 		log.Printf("Command finished with error: %v", err)
 	}
 })
+
+func streamOutput(w http.ResponseWriter, r io.Reader) {
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		w.Write(StripAnsi(scanner.Bytes()))
+		w.Write([]byte("\n"))
+		w.(http.Flusher).Flush()
+	}
+}
