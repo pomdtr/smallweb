@@ -1,5 +1,5 @@
 {
-    "deno.enable": true,
+    "deno.enable": false,
     "deno.disablePaths": [
         "templates/templates/astro"
     ],

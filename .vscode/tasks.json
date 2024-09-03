@@ -11,6 +11,15 @@
             "label": "Generate CLI Docs",
             "type": "shell",
             "command": "smallweb docs > docs/src/reference/cli.md",
+        },
+        {
+            "label": "Build Terminal",
+            "type": "shell",
+            "command": "npm run build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/term/frontend"
+            }
         }
     ]
 }

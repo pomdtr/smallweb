@@ -67,9 +67,12 @@ func NewCmdServe() *cobra.Command {
 		Aliases: []string{"up"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			rootDir := utils.ExpandTilde(k.String("dir"))
+			domain := k.String("domain")
 			port := k.Int("port")
 			cert := k.String("cert")
 			key := k.String("key")
+
 			if port == 0 {
 				if cert != "" || key != "" {
 					port = 443
@@ -78,12 +81,15 @@ func NewCmdServe() *cobra.Command {
 				}
 			}
 
+			cliHandler, err := term.NewHandler(rootDir, k.String("shell"), k.String("editor"))
+			if err != nil {
+				return fmt.Errorf("failed to create cli handler: %w", err)
+			}
+
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			server := http.Server{
 				Addr: addr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					rootDir := utils.ExpandTilde(k.String("dir"))
-					domain := k.String("domain")
 					if r.Host == domain {
 						target := r.URL
 						target.Scheme = "https"
@@ -105,9 +111,9 @@ func NewCmdServe() *cobra.Command {
 					}
 
 					if r.Host == fmt.Sprintf("cli.%s", domain) {
-						var handler http.Handler = term.Handler
+						var handler http.Handler = cliHandler
 						if k.String("tokens") != "" {
-							handler = authMiddleware(handler, k.String("username"), k.String("password"), k.Strings("tokens"))
+							handler = authMiddleware(cliHandler, k.String("username"), k.String("password"), k.Strings("tokens"))
 						}
 
 						handler.ServeHTTP(w, r)
