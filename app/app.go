@@ -21,11 +21,12 @@ import (
 )
 
 type AppConfig struct {
-	Entrypoint   string    `json:"entrypoint"`
-	Root         string    `json:"dir"`
-	Private      bool      `json:"private"`
-	PublicRoutes []string  `json:"publicRoutes"`
-	Crons        []CronJob `json:"crons"`
+	Entrypoint    string    `json:"entrypoint"`
+	Root          string    `json:"dir"`
+	Private       bool      `json:"private"`
+	PublicRoutes  []string  `json:"publicRoutes"`
+	PrivateRoutes []string  `json:"privateRoutes"`
+	Crons         []CronJob `json:"crons"`
 }
 
 type CronJob struct {
