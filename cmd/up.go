@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"crypto/tls"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,115 +11,85 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	_ "embed"
 
 	"github.com/adrg/xdg"
 	"github.com/gobwas/glob"
-	"github.com/google/uuid"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/term"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/webdav"
 	"golang.org/x/oauth2"
-	"tailscale.com/jsondb"
 )
 
-type Session struct {
-	ID        string    `json:"id"`
-	Domain    string    `json:"domain"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
-}
-
-type SessionDB struct {
-	Sessions map[string]Session `json:"sessions"`
-}
-
 type AuthMiddleware struct {
-	sync.Mutex
-	db *jsondb.DB[SessionDB]
-}
-
-func NewAuthMiddleware(dbPath string) (*AuthMiddleware, error) {
-	sessionDB, err := jsondb.Open[SessionDB](dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open session database: %w", err)
-	}
-
-	if sessionDB.Data.Sessions == nil {
-		sessionDB.Data.Sessions = make(map[string]Session)
-	}
-
-	return &AuthMiddleware{db: sessionDB}, nil
+	db *sql.DB
 }
 
 func (me *AuthMiddleware) CreateSession(email string, domain string) (string, error) {
-	sessionID := uuid.New()
-	session := Session{
-		ID:        sessionID.String(),
+	sessionID, err := gonanoid.New()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate session ID: %w", err)
+	}
+
+	session := database.Session{
+		ID:        sessionID,
 		Email:     email,
 		Domain:    domain,
 		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(14 * 24 * time.Hour),
 	}
 
-	me.Lock()
-	defer me.Unlock()
+	if err := database.InsertSession(me.db, &session); err != nil {
+		return "", fmt.Errorf("failed to insert session: %w", err)
+	}
 
-	me.db.Data.Sessions[sessionID.String()] = session
-	me.db.Save()
-	return sessionID.String(), nil
+	return sessionID, nil
 }
 
 func (me *AuthMiddleware) DeleteSession(sessionID string) error {
-	if _, ok := me.db.Data.Sessions[sessionID]; !ok {
-		return fmt.Errorf("session not found")
+	if err := database.DeleteSession(me.db, sessionID); err != nil {
+		return fmt.Errorf("failed to delete session: %w", err)
 	}
 
-	me.Lock()
-	defer me.Unlock()
-
-	delete(me.db.Data.Sessions, sessionID)
-	me.db.Save()
 	return nil
 }
 
-func (me *AuthMiddleware) GetSession(sessionID string, domain string) (Session, error) {
-	session, ok := me.db.Data.Sessions[sessionID]
-	if !ok {
-		return Session{}, fmt.Errorf("session not found")
+func (me *AuthMiddleware) GetSession(sessionID string, domain string) (database.Session, error) {
+	session, err := database.GetSession(me.db, sessionID)
+	if err != nil {
+		return database.Session{}, fmt.Errorf("failed to get session: %w", err)
 	}
 
 	if session.Domain != domain {
-		return Session{}, fmt.Errorf("domain mismatch")
+		return database.Session{}, fmt.Errorf("session not found")
 	}
 
-	return session, nil
+	return *session, nil
 }
 
 func (me *AuthMiddleware) ExtendSession(sessionID string, expiresAt time.Time) error {
-	if _, ok := me.db.Data.Sessions[sessionID]; !ok {
-		return fmt.Errorf("session not found")
+	session, err := database.GetSession(me.db, sessionID)
+	if err != nil {
+		return fmt.Errorf("failed to get session: %w", err)
 	}
 
-	session := me.db.Data.Sessions[sessionID]
 	session.ExpiresAt = expiresAt
-	me.Lock()
-	defer me.Unlock()
-
-	me.db.Data.Sessions[sessionID] = session
-	me.db.Save()
+	if err := database.UpdateSession(me.db, session); err != nil {
+		return fmt.Errorf("failed to update session: %w", err)
+	}
 
 	return nil
 }
 
-func (me *AuthMiddleware) Wrap(next http.Handler, email string, tokens []string) http.Handler {
+func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 	sessionCookieName := "smallweb-session"
 	oauthCookieName := "smallweb-oauth-store"
 	type oauthStore struct {
@@ -135,41 +106,61 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string, tokens []string)
 				AuthStyle: oauth2.AuthStyleInParams,
 			},
 			Scopes:      []string{"email"},
-			RedirectURL: fmt.Sprintf("https://%s/_auth/callback", r.Host),
+			RedirectURL: fmt.Sprintf("https://%s/_smallweb/auth/callback", r.Host),
 		}
 
-		u, _, ok := r.BasicAuth()
+		username, _, ok := r.BasicAuth()
 		if ok {
+			tokens, err := database.ListTokens(me.db)
+			if err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
 			for _, t := range tokens {
-				if u == t {
+				if bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(username)) == nil {
 					next.ServeHTTP(w, r)
 					return
 				}
 			}
 
-			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
 		authorization := r.Header.Get("Authorization")
 		if authorization != "" {
-			token := strings.TrimPrefix(authorization, "Bearer ")
+			if !strings.HasPrefix(authorization, "Bearer ") {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			}
+
+			token := strings.Trim(strings.TrimPrefix(authorization, "Bearer "), " ")
+
+			tokens, err := database.ListTokens(me.db)
+			if err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
 			for _, t := range tokens {
-				if token == t {
+				if bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(token)) == nil {
 					next.ServeHTTP(w, r)
 					return
 				}
 			}
 
-			w.Header().Set("WWW-Authenticate", `Bearer realm="Restricted"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		if r.URL.Path == "/_auth/login" {
+		if r.URL.Path == "/_smallweb/auth/login" {
 			query := r.URL.Query()
-			state := uuid.New().String()
+			state, err := generateToken(16)
+			if err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
 			store := oauthStore{
 				State:    state,
 				Redirect: query.Get("redirect"),
@@ -194,7 +185,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string, tokens []string)
 			return
 		}
 
-		if r.URL.Path == "/_auth/callback" {
+		if r.URL.Path == "/_smallweb/auth/callback" {
 			query := r.URL.Query()
 			oauthCookie, err := r.Cookie(oauthCookieName)
 			if err != nil {
@@ -289,7 +280,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string, tokens []string)
 			return
 		}
 
-		if r.URL.Path == "/_auth/logout" {
+		if r.URL.Path == "/_smallweb/auth/logout" {
 			cookie, err := r.Cookie(sessionCookieName)
 			if err != nil {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -320,7 +311,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string, tokens []string)
 
 		cookie, err := r.Cookie(sessionCookieName)
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/_smallweb/auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 			return
 		}
 
@@ -333,7 +324,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string, tokens []string)
 				Secure:   true,
 			})
 
-			http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/_smallweb/auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 			return
 		}
 
@@ -350,7 +341,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string, tokens []string)
 				Secure:   true,
 			})
 
-			http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/_smallweb/auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 			return
 		}
 
@@ -373,7 +364,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string, tokens []string)
 	})
 }
 
-func NewCmdUp() *cobra.Command {
+func NewCmdUp(db *sql.DB) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "up",
 		Short:   "Start the smallweb evaluation server",
@@ -410,7 +401,7 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("failed to create session database directory: %w", err)
 			}
 
-			authMiddleware, err := NewAuthMiddleware(filepath.Join(rootDir, ".sessions.json"))
+			authMiddleware := AuthMiddleware{db}
 			if err != nil {
 				return fmt.Errorf("failed to create auth middleware: %w", err)
 			}
@@ -427,13 +418,13 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					if r.Host == fmt.Sprintf("webdav.%s", domain) {
-						handler := authMiddleware.Wrap(webdavHandler, k.String("email"), k.Strings("tokens"))
+						handler := authMiddleware.Wrap(webdavHandler, k.String("email"))
 						handler.ServeHTTP(w, r)
 						return
 					}
 
 					if r.Host == fmt.Sprintf("cli.%s", domain) {
-						handler := authMiddleware.Wrap(cliHandler, k.String("email"), k.Strings("tokens"))
+						handler := authMiddleware.Wrap(cliHandler, k.String("email"))
 						handler.ServeHTTP(w, r)
 						return
 					}
@@ -501,8 +492,8 @@ func NewCmdUp() *cobra.Command {
 						}
 					}
 
-					if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
-						handler = authMiddleware.Wrap(handler, k.String("email"), k.Strings("tokens"))
+					if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_smallweb/auth") {
+						handler = authMiddleware.Wrap(handler, k.String("email"))
 					}
 
 					handler.ServeHTTP(w, r)

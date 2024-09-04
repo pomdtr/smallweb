@@ -15,6 +15,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 
+	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
@@ -30,26 +31,29 @@ var (
 )
 
 func NewCmdRoot(version string) *cobra.Command {
+	dataHome := filepath.Join(xdg.DataHome, "smallweb")
+	if err := os.MkdirAll(dataHome, 0755); err != nil {
+		fmt.Println("failed to create data directory:", err)
+	}
+
+	db, err := database.OpenDB(filepath.Join(dataHome, "smallweb.db"))
+	if err != nil {
+		fmt.Println("failed to open database:", err)
+		return nil
+	}
+
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"host":   "127.0.0.1",
 		"dir":    "~/smallweb",
 		"editor": findEditor(),
 		"domain": "localhost",
-		"tokens": []string{},
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",
 		},
 	}, "")
 
-	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s, v string) (string, interface{}) {
-		key := strings.Replace(strings.ToLower(strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
-		// If there is a space in the value, split the value into a slice by the space.
-		if strings.Contains(v, ":") {
-			return key, strings.Split(v, ":")
-		}
-
-		// Otherwise, return the plain string.
-		return key, v
+	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
+		return strings.Replace(strings.ToLower(strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
 	})
 
 	configPath := findConfigPath()
@@ -145,7 +149,7 @@ func NewCmdRoot(version string) *cobra.Command {
 		Title: "Core Commands",
 	})
 
-	cmd.AddCommand(NewCmdUp())
+	cmd.AddCommand(NewCmdUp(db))
 	cmd.AddCommand(NewCmdEdit())
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdConfig())
@@ -157,7 +161,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdVersion())
 	cmd.AddCommand(NewCmdInit())
-	cmd.AddCommand(NewCmdToken())
+	cmd.AddCommand(NewCmdToken(db))
 
 	var extensions []string
 	path := os.Getenv("PATH")
