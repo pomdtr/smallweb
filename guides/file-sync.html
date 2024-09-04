@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Static Websites - Smallweb</title>
+        <title>File Sync - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/static.html" class="active"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="../guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">13.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">14.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">15.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">16.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">17.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/file-sync.html" class="active"><strong aria-hidden="true">8.</strong> File Sync</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/static.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/file-sync.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,54 +179,51 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="static"><a class="header" href="#static">Static</a></h1>
-<h2 id="static-assets"><a class="header" href="#static-assets">Static Assets</a></h2>
-<p>The simplest smallweb app you can create is just a folder with a text file in it.</p>
-<pre><code class="language-sh">mkdir -p ~/localhost/example-website
-echo "Hello, world!" &gt; ~/localhost/example-website/hello.txt
-</code></pre>
-<p>If you open <code>https://hello-world.localhost/hello.txt</code> in your browser, you should see the content of the file.</p>
-<h2 id="static-websites"><a class="header" href="#static-websites">Static Websites</a></h2>
-<p>If the folder contains an <code>index.html</code> file, it will be served as the root of the website.</p>
-<pre><code class="language-html">&lt;!-- File: ~/localhost/example-website/index.html --&gt;
-&lt;!DOCTYPE html&gt;
-&lt;html lang="en"&gt;
-&lt;head&gt;
-  &lt;meta charset="UTF-8"&gt;
-  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-  &lt;title&gt;Smallweb - Host websites from your internet folder&lt;/title&gt;
-  &lt;link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet"&gt;
-&lt;/head&gt;
-&lt;body class="bg-white flex items-center justify-center min-h-screen text-black"&gt;
-  &lt;div class="border-4 border-black p-10 text-center"&gt;
-    &lt;h1 class="text-6xl font-extrabold mb-4"&gt;Smallweb&lt;/h1&gt;
-    &lt;p class="text-2xl mb-6"&gt;Host websites from your internet folder&lt;/p&gt;
-  &lt;/div&gt;
-&lt;/body&gt;
-&lt;/html&gt;
-</code></pre>
-<p>If you open <code>https://example-website.localhost</code> in your browser, you should see the content of the <code>index.html</code> file.</p>
-<h2 id="static-site-generation"><a class="header" href="#static-site-generation">Static Site Generation</a></h2>
-<p>In order to integrate with SSG tools like <a href="https://astro.build">Astro</a>, <a href="https://gohugo.io">Hugo</a> or <a href="https://lume.land">Lume</a>, smallweb automatically serves the content of the <code>dist</code> folder if it contains an <code>index.html</code> file.</p>
-<p>If you static site generator does not use the <code>dist</code> folder, you can either configure it to do so, or create a <code>smallweb.json</code> file at the root of your project to specify the folder to serve.</p>
-<pre><code class="language-json">{
-  "serve": "public"
-}
-</code></pre>
-<p>Vite projects are also supported out of the box.</p>
-<pre><code class="language-sh">cd ~/localhost
-npm create vite@latest
-</code></pre>
+                        <h1 id="syncing-files"><a class="header" href="#syncing-files">Syncing Files</a></h1>
+<p>Smallweb automatically starts a webdav server at on the <code>webdav</code> subdomain.</p>
+<p>You can easily mount the webdav server to your local filesystem on a Windows, MacOS, or Linux machine.</p>
+<h2 id="windows"><a class="header" href="#windows">Windows</a></h2>
+<ol>
+<li>Open the File Explorer.</li>
+<li>Click on the <code>Computer</code> tab.</li>
+<li>Click on <code>Map network drive</code>.</li>
+<li>Enter the URL of the webdav server in the <code>Folder</code> field.</li>
+<li>Click <code>Finish</code>.</li>
+<li>Enter your Smallweb username and password.</li>
+<li>Click <code>OK</code>.</li>
+</ol>
+<h2 id="macos"><a class="header" href="#macos">MacOS</a></h2>
+<ol>
+<li>Open the Finder.</li>
+<li>Click on <code>Go</code> in the menu bar.</li>
+<li>Click on <code>Connect to Server</code>.</li>
+<li>Enter the URL of the webdav server in the <code>Server Address</code> field.</li>
+<li>Click <code>Connect</code>.</li>
+<li>Enter your Smallweb username and password.</li>
+<li>Click <code>Connect</code>.</li>
+<li>Click <code>Done</code>.</li>
+</ol>
+<h2 id="linux-ubuntu"><a class="header" href="#linux-ubuntu">Linux (Ubuntu)</a></h2>
+<ol>
+<li>Open Nautilus / Files.</li>
+<li>Click on <code>Other Locations</code>.</li>
+<li>Enter the URL of the webdav server, and prefix with <code>davs://</code> (ex: <code>davs://webdav.example.com</code>).</li>
+<li>Click <code>Connect</code>.</li>
+<li>Enter your Smallweb username and password.</li>
+<li>Click <code>Connect</code>.</li>
+</ol>
+<h2 id="android"><a class="header" href="#android">Android</a></h2>
+<p><a href="https://play.google.com/store/apps/details?id=me.zhanghai.android.files">Material Files</a> has built-in support for WebDAV.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../guides/routing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guides/templates.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../guides/dynamic.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guides/auth.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -236,11 +233,11 @@ npm create vite@latest
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../guides/routing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guides/templates.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../guides/dynamic.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guides/auth.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html" class="active"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="../guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">13.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">14.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">15.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">16.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">17.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html" class="active"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/file-sync.html"><strong aria-hidden="true">8.</strong> File Sync</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -180,28 +180,17 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="routing"><a class="header" href="#routing">Routing</a></h1>
-<p>Smallweb maps domains to folders. By default, it will maps <code>*.localhost</code> to <code>~/localhost/*</code>, but you can add more hostnames from the config (<code>~/.config/smallweb/config.json[c]</code>).</p>
-<h2 id="mapping-a-single-domain-to-a-folder"><a class="header" href="#mapping-a-single-domain-to-a-folder">Mapping a single domain to a folder</a></h2>
-<pre><code class="language-json">{
-  "domains": {
-    "example.com": "~/example.com"
-  }
+<p>Smallweb maps every subdomains of your root domain to a directory in your root directory.</p>
+<p>For example with, the following configuration:</p>
+<pre><code class="language-json">// ~/.config/smallweb/config.json
+{
+    "domain": "example.com",
+    "root": "~/smallweb"
 }
 </code></pre>
-<h2 id="mapping-a-wildcard-domain-to-a-single-folder"><a class="header" href="#mapping-a-wildcard-domain-to-a-single-folder">Mapping a wildcard domain to a single folder</a></h2>
-<pre><code class="language-json">{
-  "domains": {
-    "*.example.com": "~/example.com",
-  }
-}
-</code></pre>
-<h2 id="mapping-a-wildcard-domain-to-multiple-folders"><a class="header" href="#mapping-a-wildcard-domain-to-multiple-folders">Mapping a wildcard domain to multiple folders</a></h2>
-<pre><code class="language-json">{
-  "domains": {
-    "*.example.com": "~/example.com/*"
-  }
-}
-</code></pre>
+<p><code>api.example.com</code> will be mapped to <code>~/smallweb/api</code>, <code>blog.example.com</code> will be mapped to <code>~/smallweb/blog</code>, and so on.</p>
+<p>The apex domain (<code>example.com</code>) will be automatically redirected to <code>www.example.com</code>.</p>
+<p>If you want to register a custom domain to a specific application, you can create a <code>CNAME</code> file in the application directory, with the custom domain name as the content of the file.</p>
 
                     </main>
 
@@ -211,7 +200,7 @@
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../guides/static.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guides/server.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -225,7 +214,7 @@
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../guides/static.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guides/server.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

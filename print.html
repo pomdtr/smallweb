@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS</a></li><li class="chapter-item expanded "><a href="hosting/fly.html"><strong aria-hidden="true">13.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="hosting/deno-deploy.html"><strong aria-hidden="true">14.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="reference/global_config.html"><strong aria-hidden="true">15.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="reference/app_config.html"><strong aria-hidden="true">16.</strong> App Config</a></li><li class="chapter-item expanded "><a href="reference/cli.html"><strong aria-hidden="true">17.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="guides/file-sync.html"><strong aria-hidden="true">8.</strong> File Sync</a></li><li class="chapter-item expanded "><a href="guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -190,70 +190,21 @@
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
 <p>Follow the <a href="./guides/routing.html">Routing</a> guide to learn more about the smallweb folder structure, and create your first app.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="routing"><a class="header" href="#routing">Routing</a></h1>
-<p>Smallweb maps domains to folders. By default, it will maps <code>*.localhost</code> to <code>~/localhost/*</code>, but you can add more hostnames from the config (<code>~/.config/smallweb/config.json[c]</code>).</p>
-<h2 id="mapping-a-single-domain-to-a-folder"><a class="header" href="#mapping-a-single-domain-to-a-folder">Mapping a single domain to a folder</a></h2>
-<pre><code class="language-json">{
-  "domains": {
-    "example.com": "~/example.com"
-  }
+<p>Smallweb maps every subdomains of your root domain to a directory in your root directory.</p>
+<p>For example with, the following configuration:</p>
+<pre><code class="language-json">// ~/.config/smallweb/config.json
+{
+    "domain": "example.com",
+    "root": "~/smallweb"
 }
 </code></pre>
-<h2 id="mapping-a-wildcard-domain-to-a-single-folder"><a class="header" href="#mapping-a-wildcard-domain-to-a-single-folder">Mapping a wildcard domain to a single folder</a></h2>
-<pre><code class="language-json">{
-  "domains": {
-    "*.example.com": "~/example.com",
-  }
-}
-</code></pre>
-<h2 id="mapping-a-wildcard-domain-to-multiple-folders"><a class="header" href="#mapping-a-wildcard-domain-to-multiple-folders">Mapping a wildcard domain to multiple folders</a></h2>
-<pre><code class="language-json">{
-  "domains": {
-    "*.example.com": "~/example.com/*"
-  }
-}
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="static"><a class="header" href="#static">Static</a></h1>
-<h2 id="static-assets"><a class="header" href="#static-assets">Static Assets</a></h2>
-<p>The simplest smallweb app you can create is just a folder with a text file in it.</p>
-<pre><code class="language-sh">mkdir -p ~/localhost/example-website
-echo "Hello, world!" &gt; ~/localhost/example-website/hello.txt
-</code></pre>
-<p>If you open <code>https://hello-world.localhost/hello.txt</code> in your browser, you should see the content of the file.</p>
-<h2 id="static-websites"><a class="header" href="#static-websites">Static Websites</a></h2>
-<p>If the folder contains an <code>index.html</code> file, it will be served as the root of the website.</p>
-<pre><code class="language-html">&lt;!-- File: ~/localhost/example-website/index.html --&gt;
-&lt;!DOCTYPE html&gt;
-&lt;html lang="en"&gt;
-&lt;head&gt;
-  &lt;meta charset="UTF-8"&gt;
-  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-  &lt;title&gt;Smallweb - Host websites from your internet folder&lt;/title&gt;
-  &lt;link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet"&gt;
-&lt;/head&gt;
-&lt;body class="bg-white flex items-center justify-center min-h-screen text-black"&gt;
-  &lt;div class="border-4 border-black p-10 text-center"&gt;
-    &lt;h1 class="text-6xl font-extrabold mb-4"&gt;Smallweb&lt;/h1&gt;
-    &lt;p class="text-2xl mb-6"&gt;Host websites from your internet folder&lt;/p&gt;
-  &lt;/div&gt;
-&lt;/body&gt;
-&lt;/html&gt;
-</code></pre>
-<p>If you open <code>https://example-website.localhost</code> in your browser, you should see the content of the <code>index.html</code> file.</p>
-<h2 id="static-site-generation"><a class="header" href="#static-site-generation">Static Site Generation</a></h2>
-<p>In order to integrate with SSG tools like <a href="https://astro.build">Astro</a>, <a href="https://gohugo.io">Hugo</a> or <a href="https://lume.land">Lume</a>, smallweb automatically serves the content of the <code>dist</code> folder if it contains an <code>index.html</code> file.</p>
-<p>If you static site generator does not use the <code>dist</code> folder, you can either configure it to do so, or create a <code>smallweb.json</code> file at the root of your project to specify the folder to serve.</p>
-<pre><code class="language-json">{
-  "serve": "public"
-}
-</code></pre>
-<p>Vite projects are also supported out of the box.</p>
-<pre><code class="language-sh">cd ~/localhost
-npm create vite@latest
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="dynamic-websites"><a class="header" href="#dynamic-websites">Dynamic Websites</a></h1>
+<p><code>api.example.com</code> will be mapped to <code>~/smallweb/api</code>, <code>blog.example.com</code> will be mapped to <code>~/smallweb/blog</code>, and so on.</p>
+<p>The apex domain (<code>example.com</code>) will be automatically redirected to <code>www.example.com</code>.</p>
+<p>If you want to register a custom domain to a specific application, you can create a <code>CNAME</code> file in the application directory, with the custom domain name as the content of the file.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="hosting-websites"><a class="header" href="#hosting-websites">Hosting Websites</a></h1>
 <p>Smallweb can also host dynamic websites. To create a dynamic website, you need to create a folder with a <code>main.[js,ts,jsx,tsx]</code> file in it.</p>
 <p>The file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
-<pre><code class="language-ts">// File: ~/localhost/example-server/main.ts
+<pre><code class="language-ts">// File: ~/smallweb/example-server/main.ts
 
 export default {
   fetch(request: Request) {
@@ -271,23 +222,23 @@ export default {
 <p>To access the server, open <code>https://example-server.localhost</code> in your browser.</p>
 <h2 id="using-jsx"><a class="header" href="#using-jsx">Using JSX</a></h2>
 <p>You can use the <code>@jsxImportSource</code> pragma to define the source of the jsx factory function. This allows you to use jsx in your server code.</p>
-<pre><code class="language-tsx">// File: ~/localhost/jsx-example/main.tsx
+<pre><code class="language-tsx">// File: ~/smallweb/jsx-example/main.tsx
 /** @jsxImportSource npm:@preact **/
 import render from "npm:preact-render-to-string";
 
-const handler = () =&gt; new Response(render(&lt;h1&gt;Hello, world!&lt;/h1&gt;), {
+const requestHandler = () =&gt; new Response(render(&lt;h1&gt;Hello, world!&lt;/h1&gt;), {
   headers: {
     "Content-Type": "text/html",
   },
 });
 
-export default { fetch: handler };
+export default { fetch: requestHandler };
 </code></pre>
 <p>To access the server, open <code>https://jsx-example.localhost</code> in your browser.</p>
 <h2 id="routing-requests-using-hono"><a class="header" href="#routing-requests-using-hono">Routing Requests using Hono</a></h2>
 <p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
 <p>As an example, the following code snippet use the <code>@hono/hono</code> extract params from the request url.</p>
-<pre><code class="language-jsx">// File: ~/localhost/hono-example/main.ts
+<pre><code class="language-jsx">// File: ~/smallweb/hono-example/main.ts
 
 import { Hono } from "jsr:@hono/hono";
 
@@ -297,16 +248,84 @@ app.get("/", c =&gt; c.text("Hello, world!"));
 
 app.get("/:name", c =&gt; c.text(`Hello, ${c.params.name}!`));
 
+// Hono instances have a `fetch`, so they can be used as the default export
 export default app;
 </code></pre>
 <p>To access the server, open <code>https://hono-example.localhost</code> in your browser.</p>
+<h2 id="static-websites"><a class="header" href="#static-websites">Static Websites</a></h2>
+<p>You have multiple options to host static websitest with Smallweb.</p>
+<p>First, you can store your static websites in a subdirectory, the server it using the <code>@std/http/file-server</code> module.</p>
+<pre><code class="language-ts">import { serveDir } from "jsr:@std/http/file-server";
+
+export default {
+  fetch: (req: Request) =&gt; serveDir(req, {
+    fsRoot: "./public",
+  }),
+}
+</code></pre>
+<p>Alternatively, if your static websites is stored on github, you can use the <code>serveGithubRepo</code> helper:</p>
+<pre><code class="language-ts">import { serveGithubRepo } from "https://esm.town/v/pomdtr/serveGithubRepo?v=34";
+
+export default {
+    fetch: serveGithubRepo({
+        owner: "pomdtr",
+        repo: "smallweb",
+        ref: "bab42e6", // use the commit hash or a branch name (default: main)
+    }),
+} satisfies Deno.ServeDefaultExport;
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="adding-cli-commands-to-your-app"><a class="header" href="#adding-cli-commands-to-your-app">Adding cli commands to your app</a></h1>
+<p>To add a cli command to your app, you'll need to add a <code>run</code> method to your app's default export.</p>
+<pre><code class="language-ts">// File: ~/smallweb/custom-command/main.ts
+export default {
+    run(args: string[]) {
+        console.log("Hello world");
+    }
+}
+</code></pre>
+<p>Use <code>smallweb run</code> to execute the command:</p>
+<pre><code class="language-console">$ smallweb run custom-command
+Hello world
+</code></pre>
+<h2 id="using-a-cli-framework"><a class="header" href="#using-a-cli-framework">Using a cli framework</a></h2>
+<p><a href="https://cliffy.io/">Cliffy</a> is an excellent Deno CLI framework that you can use to build more complex CLI applications.</p>
+<p>You can easily wire it to smallweb:</p>
+<pre><code class="language-ts">import { Command } from "jsr:@cliffy/command@1.0.0-rc.5";
+
+export default {
+    run(args: string[]) {
+        const name = basename(Deno.cwd());
+        const command = new Command().name().action(() =&gt; {
+            console.log(`Hello ${name}`);
+        });
+
+
+        await command.parse(args);
+    }
+}
+</code></pre>
+<h2 id="accessing-cli-commands-from-your-browser"><a class="header" href="#accessing-cli-commands-from-your-browser">Accessing cli commands from your browser</a></h2>
+<p>Smallweb automatically serves its own cli commands at <code>&lt;cli&gt;.&lt;domain&gt;</code>.</p>
+<p>Positional args are mapped to path segments, and flags are mapped to query parameters.</p>
+<ul>
+<li><code>smallweb cron ls --json</code> becomes <code>https://cli.&lt;domain&gt;/cron/ls?json</code></li>
+</ul>
+<p>It also allows you to access your app commands and crons:</p>
+<ul>
+<li><code>smallweb run custom-command</code> becomes <code>https://cli.&lt;domain&gt;/run/custom-command</code></li>
+<li><code>smallweb cron trigger daily-task</code> becomes <code>https://cli.&lt;domain&gt;/cron/trigger/daily-task</code></li>
+</ul>
+<p>You can specify stdin by sending a POST request with the body as the input.</p>
+<pre><code class="language-sh"># stdin will be "Hello world"
+curl -X POST https://cli.&lt;domain&gt;/run/custom-command --data "Hello world"
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h3 id="setting-env-variables"><a class="header" href="#setting-env-variables">Setting env variables</a></h3>
 <p>You can set environment variables for your app by creating a file called <code>.env</code> in the application folder.</p>
 <p>Here is an example of a <code>.env</code> file:</p>
 <pre><code class="language-txt">BEARER_TOKEN=SECURE_TOKEN
 </code></pre>
 <p>Use the <code>Deno.env.get</code> method to access the environment variables in your app:</p>
-<pre><code class="language-ts">// File: ~/localhost/demo/main.ts
+<pre><code class="language-ts">// File: ~/smallweb/demo/main.ts
 export default function (req: Request) {
   if (req.headers.get("Authorization") !== `Bearer ${Deno.env.get("BEARER_TOKEN")}`) {
     return new Response("Unauthorized", { status: 401 });
@@ -319,64 +338,15 @@ export default function (req: Request) {
   });
 }
 </code></pre>
-<p>If you want to set an environment variable for all your apps, you can use the <code>env</code> property from the smallweb global config (<code>~/.config/smallweb/config.json[c]</code>).</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="configuring-permissions"><a class="header" href="#configuring-permissions">Configuring permissions</a></h1>
-<p>By default, a smallweb app can:</p>
-<ul>
-<li>read and write the current directory</li>
-<li>access environment variables using <code>Deno.env.get</code></li>
-<li>access the network with <code>fetch</code></li>
-</ul>
-<p>If you want to add more permissions to your app (or restrict it even further), you can either:</p>
-<ul>
-<li>add <code>smallweb.json</code> configuration file at the root of the folder</li>
-<li>add a <code>smallweb</code> field in your <code>deno.json</code></li>
-</ul>
-<p>A json schema for the config file is available <a href="https://schema.smallweb.run">here</a>. See the deno docs to learn the <a href="https://docs.deno.com/runtime/manual/basics/permissions">available permissions</a>.</p>
-<p>Here is the default config when no <code>smallweb.json</code> file is present:</p>
-<pre><code class="language-json">{
-  "$schema": "https://schema.smallweb.run",
-  "permissions": {
-    "env": true,
-    "net": true,
-    "read": ["."],
-    "write": {
-      "allow": ["."],
-      "deny": [ "smallweb.json", "smallweb.jsonc", "deno.json", "deno.jsonc"]
-    }
-  }
-}
-</code></pre>
-<p>If you want to add permissions to run a binary, you should start from it, then add the required permissions:</p>
-<pre><code class="language-json">{
-  "$schema": "https://schema.smallweb.run",
-  "permissions": {
-    "env": true,
-    "net": true,
-    "read": ["."],
-    "write": {
-      "allow": ["."],
-      "deny": [ "smallweb.json", "smallweb.jsonc", "deno.json", "deno.jsonc"]
-    },
-    "run": ["/opt/homebrew/bin/gh"],
-  }
-}
-</code></pre>
-<p>As a general rule, you should only add permissions that are required for your app to run. The more permissions you add, the more attack surface you expose to potential attackers. If you know what you are doing (or just don't care), you can allow all permissions by setting the <code>all</code> field to <code>true</code>.</p>
-<pre><code class="language-json">{
-  "$schema": "https://schema.smallweb.run",
-  "permissions": {
-    "all": true
-  }
-}
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="cron-jobs"><a class="header" href="#cron-jobs">Cron Jobs</a></h1>
+<p>If you want to set an environment variable for all your apps, you can use the <code>env</code> property from the smallweb global config (<code>~/.config/smallweb/config.json</code>).</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="cron-tasks"><a class="header" href="#cron-tasks">Cron Tasks</a></h1>
 <p>You can register configure cron tasks from your <code>smallweb.json[c]</code> or the <code>smallweb</code> field from your <code>deno.json[c]</code>.</p>
 <pre><code class="language-json">{
     "crons": [
         {
-            "path": "/refresh",
+            "name": "daily-task",
             "schedule": "0 0 * * *",
+            "args": [],
         }
     ]
 }
@@ -389,25 +359,19 @@ export default function (req: Request) {
 <li><code>@monthly</code>: Run once a month, at midnight on the first day of the month.</li>
 <li><code>@yearly</code>: Run once a year, at midnight on January 1st.</li>
 </ul>
-<p>The <code>path</code> field is the path to the endpoint that should be called when the cron task runs.</p>
+<p>In order to handle the cron tasks, your app default export should have a <code>run</code> method that will be called when the task is triggered.</p>
+<pre><code class="language-ts">export default {
+    run(_args: string[]) {
+        console.log("Running daily task");
+    }
+}
+</code></pre>
 <p>If you want to see a list of all cron tasks, you can run:</p>
-<pre><code class="language-sh">smallweb crons
+<pre><code class="language-sh">smallweb cron ls
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="templates"><a class="header" href="#templates">Templates</a></h1>
-<p>Smallweb comes with a list of templates to help you get started with your project. You can use the <code>smallweb init</code> command to create a new project from a template.</p>
-<pre><code class="language-sh"># Interactive mode
-smallweb init
-
-# Init a project from a template
-smallweb init ~/localhost/hono-app --template hono
+<p>To trigger one, you can use either the <code>smallweb cron trigger</code> or the <code>smallweb run</code> command:</p>
+<pre><code class="language-sh">smallweb cron trigger daily-task
 </code></pre>
-<p>In addition to this, smallweb is compatible with most static sites generator, so you can use your favorite generator to create your project.</p>
-<p>Ex: <code>npm create vite@latest ~/localhost/my-vite-app</code></p>
-<p>Depending on the framework you choose, you might need to either:</p>
-<ul>
-<li>Setup your build process to output files in a <code>dist</code> folder (smallweb will serve the content of this by default).</li>
-<li>Add a <code>smallweb.json</code> file to the root of your project to specify the folder to serve using the <code>serve</code> field.</li>
-</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="smallweb-plugins"><a class="header" href="#smallweb-plugins">Smallweb Plugins</a></h1>
 <p>The smallweb CLI can be extennded with plugins. To create a new plugin, just add a binary to your PATH that starts with <code>smallweb-</code> and the CLI will automatically detect it.</p>
 <p>For example, if you create a new <code>smallweb-choose</code> file in your PATH with the following content:</p>
@@ -430,32 +394,94 @@ smallweb list | cut -f1 | fzf | xargs smallweb open --app
 <pre><code class="language-sh">deno install -Agf jsr:@iamseeley/simpl-site/smallweb-simpl-site
 </code></pre>
 <p>You will then be able to run <code>smallweb simpl-site</code> to create a new static site.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="tooling"><a class="header" href="#tooling">Tooling</a></h1>
-<p>Smallweb is not tied to any specific tooling, but here are some tools that I use to develop and deploy my smallweb apps.</p>
-<h2 id="cloudflare-tunnel"><a class="header" href="#cloudflare-tunnel">Cloudflare Tunnel</a></h2>
-<p>I use <a href="https://www.cloudflare.com/products/tunnel/">Cloudflare Tunnel</a> to expose my smallweb instances to the internet. It gives me a bunch of features for free:</p>
-<ul>
-<li>DDoS protection</li>
-<li>CDN caching</li>
-<li>Access control (using Cloudflare Access)</li>
-<li>Analytics</li>
-<li>And a bunch more (that I don't know objet)</li>
-</ul>
-<p>I evaluated a bunch of tunneling solutions (and even started building my own), but the set of features that Cloudflare provides for free is hard to beat.</p>
-<h2 id="mutagen"><a class="header" href="#mutagen">Mutagen</a></h2>
-<p><a href="https://mutagen.io/">Mutagen</a> is an excellent 2-way file synchronization tool that can keep your local and remote files in sync. It's a great way to develop your smallweb apps locally and deploy them to your server.</p>
-<p>Here is how I sync the <code>smallweb.run</code> folders between my VPS and my macbook:</p>
-<pre><code class="language-sh">mutagen sync create --name=smallweb-run ~/smallweb.run vps:/home/smallweb/smallweb/smallweb.run
+<div style="break-before: page; page-break-before: always;"></div><h1 id="templates"><a class="header" href="#templates">Templates</a></h1>
+<p>Smallweb comes with a list of templates to help you get started with your project. You can use the <code>smallweb init</code> command to create a new project.</p>
+<pre><code class="language-sh"># create a new project in the current directory
+smallweb init
+# create a new project in a specific directory
+smallweb init &lt;directory&gt;
 </code></pre>
-<h2 id="vs-code-remote---ssh"><a class="header" href="#vs-code-remote---ssh">VS Code Remote - SSH</a></h2>
-<p>When I want to debug my smallweb apps running on the VPS, I use <a href="https://code.visualstudio.com/docs/remote/ssh">VS Code Remote - SSH</a>. It allows me to connect to my VPS and run the VS Code debugger on the remote machine.</p>
-<h2 id="tailscale"><a class="header" href="#tailscale">Tailscale</a></h2>
-<p>I use <a href="https://tailscale.com/">Tailscale</a> to connect all my devices, including my VPS. It allows me to access my smallweb instances from anywhere, as if they were on my local network.</p>
-<h2 id="la-terminal"><a class="header" href="#la-terminal">La Terminal</a></h2>
-<p>To edit websites from an ipad or iphone, I recommend using <a href="https://la-terminal.net/">La Terminal</a>. It's the best free option available.</p>
-<p>If you're ok with paying a yearly fee for a better experience, I recommend using <a href="https://blink.sh/">Blink Shell</a>.</p>
-<h2 id="termux"><a class="header" href="#termux">Termux</a></h2>
-<p>On android, there is no better option than <a href="https://termux.dev/en/">Termux</a>. It's a full-featured terminal emulator that allows me to connect to my VPS and run smallweb apps from my phone.</p>
+<p>You can also specify custom a template to use:</p>
+<pre><code class="language-sh">smallweb init --template pomdtr/smallweb-template-http
+</code></pre>
+<p>Any github repository can be used as a template. View a list of the available templates <a href="https://github.com/topic/smallweb-template">here</a>.</p>
+<p>To create your own template, just add the <code>smallweb-template</code> topic to your repository, and it will be automatically added to the list of available templates.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="syncing-files"><a class="header" href="#syncing-files">Syncing Files</a></h1>
+<p>Smallweb automatically starts a webdav server at on the <code>webdav</code> subdomain.</p>
+<p>You can easily mount the webdav server to your local filesystem on a Windows, MacOS, or Linux machine.</p>
+<h2 id="windows"><a class="header" href="#windows">Windows</a></h2>
+<ol>
+<li>Open the File Explorer.</li>
+<li>Click on the <code>Computer</code> tab.</li>
+<li>Click on <code>Map network drive</code>.</li>
+<li>Enter the URL of the webdav server in the <code>Folder</code> field.</li>
+<li>Click <code>Finish</code>.</li>
+<li>Enter your Smallweb username and password.</li>
+<li>Click <code>OK</code>.</li>
+</ol>
+<h2 id="macos"><a class="header" href="#macos">MacOS</a></h2>
+<ol>
+<li>Open the Finder.</li>
+<li>Click on <code>Go</code> in the menu bar.</li>
+<li>Click on <code>Connect to Server</code>.</li>
+<li>Enter the URL of the webdav server in the <code>Server Address</code> field.</li>
+<li>Click <code>Connect</code>.</li>
+<li>Enter your Smallweb username and password.</li>
+<li>Click <code>Connect</code>.</li>
+<li>Click <code>Done</code>.</li>
+</ol>
+<h2 id="linux-ubuntu"><a class="header" href="#linux-ubuntu">Linux (Ubuntu)</a></h2>
+<ol>
+<li>Open Nautilus / Files.</li>
+<li>Click on <code>Other Locations</code>.</li>
+<li>Enter the URL of the webdav server, and prefix with <code>davs://</code> (ex: <code>davs://webdav.example.com</code>).</li>
+<li>Click <code>Connect</code>.</li>
+<li>Enter your Smallweb username and password.</li>
+<li>Click <code>Connect</code>.</li>
+</ol>
+<h2 id="android"><a class="header" href="#android">Android</a></h2>
+<p><a href="https://play.google.com/store/apps/details?id=me.zhanghai.android.files">Material Files</a> has built-in support for WebDAV.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="private-apps"><a class="header" href="#private-apps">Private Apps</a></h1>
+<p>You can automatically protects private apps behind a login prompt. In order to achieve this, you'll need to:</p>
+<ol>
+<li>
+<p>Use the <code>smallweb token</code> command to generate a new token.</p>
+<pre><code class="language-console">$ smallweb token
+SF7RZt9shD6UnUcl
+</code></pre>
+</li>
+<li>
+<p>Add an <code>tokens</code> property to your global config.</p>
+<pre><code class="language-json">// ~/.config/smallweb/config.json
+{
+    "tokens": ["SF7RZt9shD6UnUcl"]
+}
+</code></pre>
+</li>
+<li>
+<p>Set the private field to true in your app's config.</p>
+<pre><code class="language-json">// ~/smallweb/private-app/smallweb.json
+{
+    "private": true
+}
+</code></pre>
+</li>
+</ol>
+<p>The next time you'll try to access the app, you'll be prompted with a basic auth dialog.</p>
+<p>Use the token as the username, and leave the password empty.</p>
+<p>Your tokens are also used to protect internal services that smallweb provides, such as:</p>
+<ul>
+<li><code>webdav.&lt;domain&gt;</code>: A webdav server allowing you to access your files.</li>
+<li><code>cli.&lt;domain&gt;</code>: A web interface to run cli commands.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="app-sandbox"><a class="header" href="#app-sandbox">App Sandbox</a></h1>
+<p>Smallweb apps have access to:</p>
+<ul>
+<li>read and write access to their own directory, and the deno cache directory.</li>
+<li>access to the network, to make HTTP requests.</li>
+<li>access to the env files defined in the global config and in the <code>.env</code> file in the app directory.</li>
+</ul>
+<p>This sandbox protects the host system from malicious code, and ensures that apps can only access the resources they need.</p>
 <div style="break-before: page; page-break-before: always;"></div><p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
 <p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
 <p>If you want to expose your apps to the internet instead, you can follow the <a href="hosting/localhost/../home-server/home-server.html">Cloudflare Tunnel setup guide</a>.</p>
@@ -466,7 +492,7 @@ smallweb list | cut -f1 | fzf | xargs smallweb open --app
 <ul>
 <li>a dns server to map <code>*.localhost</code> domains to <code>127.0.0.1</code> ip address (dnsmasq)</li>
 <li>a reverse proxy to automatically generate https certificates for each domain, and redirect traffic to the smallweb evaluation server (caddy)</li>
-<li>a service to map each domain to the corresponding folder in ~/localhost, and spawn a deno subprocess for each request (smallweb)</li>
+<li>a service to map each domain to the corresponding folder in ~/smallweb, and spawn a deno subprocess for each request (smallweb)</li>
 </ul>
 <h2 id="macos-setup"><a class="header" href="#macos-setup">MacOS setup</a></h2>
 <p>In the future, we might provide a script to automate this process, but for now, it's a manual process.</p>
@@ -517,8 +543,8 @@ EOF
 </code></pre>
 <h2 id="testing-the-setup-macos"><a class="header" href="#testing-the-setup-macos">Testing the setup</a></h2>
 <p>First, let's create a dummy smallweb website:</p>
-<pre><code class="language-sh">mkdir -p ~/localhost/example
-CAT &lt;&lt;EOF &gt; ~/localhost/example/main.ts
+<pre><code class="language-sh">mkdir -p ~/smallweb/example
+CAT &lt;&lt;EOF &gt; ~/smallweb/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -564,8 +590,8 @@ caddy trust
 <p>There is no need to setup dnsmasq on Ubuntu, as it seems to be already configured to resolve <code>.localhost</code> domains to <code>127.0.0.1</code>.</p>
 <h3 id="testing-setup-ubuntu"><a class="header" href="#testing-setup-ubuntu">Testing the setup</a></h3>
 <p>First, let's create a dummy smallweb website:</p>
-<pre><code class="language-sh">mkdir -p ~/localhost/example
-CAT &lt;&lt;EOF &gt; ~/localhost/example/main.ts
+<pre><code class="language-sh">mkdir -p ~/smallweb/example
+CAT &lt;&lt;EOF &gt; ~/smallweb/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -601,6 +627,14 @@ smallweb service status
 </code></pre>
 </li>
 <li>
+<p>Set the <code>domain</code> field in your smallweb config to your domain name.</p>
+</li>
+</ol>
+<pre><code class="language-sh"># open the smallweb config in your default editor
+smallweb config
+</code></pre>
+<ol>
+<li>
 <p>From your cloudflare dashboard, navigate to <code>Zero Trust &gt; Networks &gt; Tunnels</code></p>
 </li>
 <li>
@@ -625,9 +659,9 @@ smallweb service status
 </ol>
 <p><img src="hosting/home-server/./dns.png" alt="DNS Configuration" /></p>
 <h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
-<p>Create a dummy smallweb app in <code>~/localhost/example</code></p>
-<pre><code class="language-sh">mkdir -p ~/localhost/example
-CAT &lt;&lt;EOF &gt; ~/localhost/example/main.ts
+<p>Create a dummy smallweb app in <code>~/smallweb/example</code></p>
+<pre><code class="language-sh">mkdir -p ~/smallweb/example
+CAT &lt;&lt;EOF &gt; ~/smallweb/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {
@@ -704,32 +738,63 @@ smallweb service install
 <p>The smallweb config is located at <code>~/.config/smallweb/config.json[c]</code>. It is a json file that defines global settings for smallweb.</p>
 <p>You can also specify a custom config file by setting the <code>SMALLWEB_CONFIG</code> environment variable.</p>
 <p>Smallweb also respects the <code>XDG_CONFIG_HOME</code> environment variable.</p>
-<h2 id="host"><a class="header" href="#host"><code>host</code></a></h2>
+<h2 id="available-fields"><a class="header" href="#available-fields">Available Fields</a></h2>
+<h3 id="host"><a class="header" href="#host"><code>host</code></a></h3>
 <p>The <code>host</code> field defines the host to bind to. By default, it is <code>127.0.0.1</code>.</p>
 <pre><code class="language-json">{
   "host": "0.0.0.0"
 }
 </code></pre>
-<h2 id="port"><a class="header" href="#port"><code>port</code></a></h2>
+<h3 id="port"><a class="header" href="#port"><code>port</code></a></h3>
 <p>The <code>port</code> field defines the port to bind to. By default, it is <code>7777</code>.</p>
 <pre><code class="language-json">{
   "port": 8000
 }
 </code></pre>
-<h2 id="domains"><a class="header" href="#domains"><code>domains</code></a></h2>
-<p>The <code>domains</code> field defines a list of domains to folders. By default, it maps <code>*.localhost</code> to <code>~/localhost/*</code>, but you can add more hostnames from the config.</p>
+<h3 id="domain"><a class="header" href="#domain"><code>domain</code></a></h3>
+<p>The <code>domain</code> field defines the apex domain used for routing.</p>
 <pre><code class="language-json">{
-  "domains": {
-    "example.com": "~/example.com"
-  }
+  "domain": "smallweb.run"
 }
 </code></pre>
 <p>See the <a href="reference/../guides/routing.html">Routing</a> guide for more information.</p>
-<h2 id="env"><a class="header" href="#env"><code>env</code></a></h2>
+<h3 id="dir"><a class="header" href="#dir"><code>dir</code></a></h3>
+<p>The <code>dir</code> field defines the root directory for all apps.</p>
+<pre><code class="language-json">{
+  "dir": "~/smallweb"
+}
+</code></pre>
+<h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
 <p>The <code>env</code> field defines a list of environment variables to set for all apps.</p>
 <pre><code class="language-json">{
   "env": {
     "NODE_ENV": "production"
+  }
+}
+</code></pre>
+<h3 id="tokens"><a class="header" href="#tokens"><code>tokens</code></a></h3>
+<p>The <code>tokens</code> field defines a list of tokens used for authentication.</p>
+<pre><code class="language-json">{
+  "tokens": ["SF7RZt9shD6UnUcl"]
+}
+</code></pre>
+<p>You can protect private apps by setting the <code>private</code> field in the app's config.</p>
+<p>You can generate a new token using the <code>smallweb token</code> command (you'll still need to add it to your config).</p>
+<p>Token are also used to protect internal services that smallweb provides, such as:</p>
+<ul>
+<li>webdav.<code>&lt;domain&gt;</code>: A webdav server allowing you to access your files.</li>
+<li>cli.<code>&lt;domain&gt;</code>: A web interface to run cli commands.</li>
+</ul>
+<h2 id="default-config"><a class="header" href="#default-config">Default Config</a></h2>
+<p>By default the config file looks like this:</p>
+<pre><code class="language-json">{
+  "host": "127.0.0.1",
+  "port": 7777,
+  "domain": "localhost",
+  "dir": "~/smallweb",
+  "env": {
+    // allow smallweb apps to communicate with each other when using self-signed certificates
+    "DENO_TLS_CA_STORE": "system"
   }
 }
 </code></pre>
@@ -739,10 +804,9 @@ smallweb service install
 <p>You can set it using a <code>$schema</code> field in your <code>smallweb.json[c]</code> file:</p>
 <pre><code class="language-json">{
   "$schema": "https://schema.smallweb.run",
-  "serve": "./build"
 }
 </code></pre>
-<p>VS Code Users can also set it globally in their <code>settings.json</code>:</p>
+<p>VS Code users can also set it globally in their <code>settings.json</code>:</p>
 <pre><code class="language-json">{
   "json.schemas": [
     {
@@ -755,69 +819,26 @@ smallweb service install
   ]
 }
 </code></pre>
-<h2 id="serve"><a class="header" href="#serve"><code>serve</code></a></h2>
-<p>The <code>serve</code> field defines the file / directory to serve. If this field is not provided, the following defaults are used:</p>
-<ul>
-<li>if a <code>main.[js,jsx,ts,tsx]</code> file exists in the root directory, it is served</li>
-<li>if a <code>dist</code> directory exists and contains an <code>index.html</code> file, it is served</li>
-<li>the root directory is served</li>
-</ul>
-<h3 id="serve-examples"><a class="header" href="#serve-examples">Examples</a></h3>
-<ul>
-<li>
-<p>Serve a file</p>
-<pre><code class="language-json">{
-  "serve": "./serve.js"
-}
-</code></pre>
-</li>
-<li>
-<p>Statically serve a directory</p>
-<pre><code class="language-json">{
-  "serve": "./build"
-}
-</code></pre>
-</li>
-</ul>
-<h2 id="crons"><a class="header" href="#crons"><code>crons</code></a></h2>
+<h2 id="available-fields-1"><a class="header" href="#available-fields-1">Available Fields</a></h2>
+<h3 id="entrypoint"><a class="header" href="#entrypoint"><code>entrypoint</code></a></h3>
+<p>The <code>entrypoint</code> field defines the file to serve. If this field is not provided, the app will look for a <code>main.[js,ts,jsx,tsx]</code> file in the root directory.</p>
+<h3 id="root"><a class="header" href="#root"><code>root</code></a></h3>
+<p>The <code>root</code> field defines the root directory of the app. If this field is not provided, the app will use the app directory as the root directory.</p>
+<h3 id="private"><a class="header" href="#private"><code>private</code></a></h3>
+<p>If the <code>private</code> field is set to <code>true</code>, the app will ask for your admin username and password before serving the app using basic auth.</p>
+<h3 id="crons"><a class="header" href="#crons"><code>crons</code></a></h3>
 <p>The <code>crons</code> field defines a list of cron jobs to run. See the <a href="reference/../guides/cron.html">Cron Jobs</a> guide for more information.</p>
 <pre><code class="language-json">{
   "crons": [
     {
-      "path": "/refresh",
-      "schedule": "0 0 * * *"
+      "name": "daily-task", // The name of the cron task (required)
+      "description": "A daily task", // A description for the task (optional)
+      "schedule": "0 0 * * *", // a cron expression (required)
+      "args": [] // arguments to pass to the task (required)
     }
   ]
 }
 </code></pre>
-<h2 id="permissions"><a class="header" href="#permissions"><code>permissions</code></a></h2>
-<p>The <code>permissions</code> field defines a list of permissions to grant to the Deno process. See the <a href="reference/../guides/permissions.html">Permissions</a> guide for more information.</p>
-<h3 id="permissions-examples"><a class="header" href="#permissions-examples">Examples</a></h3>
-<ul>
-<li>
-<p>Giving all permissions</p>
-<pre><code class="language-json">{
-  "permissions": {
-    "all": true
-  }
-}
-</code></pre>
-</li>
-<li>
-<p>Giving specific permissions</p>
-<pre><code class="language-json">{
-  "permissions": {
-    "read": true,
-    "write": {
-      "allow": ["./", "/tmp"],
-      "deny": ["./smallweb.json"]
-    },
-    "net": ["deno.land"]
-  }
-}
-</code></pre>
-</li>
-</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cli-reference"><a class="header" href="#cli-reference">CLI Reference</a></h1>
 <h2 id="smallweb"><a class="header" href="#smallweb">smallweb</a></h2>
 <p>Host websites from your internet folder</p>
@@ -831,19 +852,12 @@ smallweb service install
 <h3 id="options-1"><a class="header" href="#options-1">Options</a></h3>
 <pre><code>  -h, --help   help for capture
 </code></pre>
-<h2 id="smallweb-choose"><a class="header" href="#smallweb-choose">smallweb choose</a></h2>
-<p>Extension choose</p>
-<pre><code>smallweb choose [flags]
-</code></pre>
-<h3 id="options-2"><a class="header" href="#options-2">Options</a></h3>
-<pre><code>  -h, --help   help for choose
-</code></pre>
 <h2 id="smallweb-completion"><a class="header" href="#smallweb-completion">smallweb completion</a></h2>
 <p>Generate the autocompletion script for the specified shell</p>
 <h3 id="synopsis"><a class="header" href="#synopsis">Synopsis</a></h3>
 <p>Generate the autocompletion script for smallweb for the specified shell.
 See each sub-command's help for details on how to use the generated script.</p>
-<h3 id="options-3"><a class="header" href="#options-3">Options</a></h3>
+<h3 id="options-2"><a class="header" href="#options-2">Options</a></h3>
 <pre><code>  -h, --help   help for completion
 </code></pre>
 <h2 id="smallweb-completion-bash"><a class="header" href="#smallweb-completion-bash">smallweb completion bash</a></h2>
@@ -859,13 +873,13 @@ If it is not installed already, you can install it via your OS's package manager
 <h4 id="linux"><a class="header" href="#linux">Linux:</a></h4>
 <pre><code>smallweb completion bash &gt; /etc/bash_completion.d/smallweb
 </code></pre>
-<h4 id="macos"><a class="header" href="#macos">macOS:</a></h4>
+<h4 id="macos-1"><a class="header" href="#macos-1">macOS:</a></h4>
 <pre><code>smallweb completion bash &gt; $(brew --prefix)/etc/bash_completion.d/smallweb
 </code></pre>
 <p>You will need to start a new shell for this setup to take effect.</p>
 <pre><code>smallweb completion bash
 </code></pre>
-<h3 id="options-4"><a class="header" href="#options-4">Options</a></h3>
+<h3 id="options-3"><a class="header" href="#options-3">Options</a></h3>
 <pre><code>  -h, --help              help for bash
       --no-descriptions   disable completion descriptions
 </code></pre>
@@ -882,7 +896,7 @@ If it is not installed already, you can install it via your OS's package manager
 <p>You will need to start a new shell for this setup to take effect.</p>
 <pre><code>smallweb completion fish [flags]
 </code></pre>
-<h3 id="options-5"><a class="header" href="#options-5">Options</a></h3>
+<h3 id="options-4"><a class="header" href="#options-4">Options</a></h3>
 <pre><code>  -h, --help              help for fish
       --no-descriptions   disable completion descriptions
 </code></pre>
@@ -893,7 +907,7 @@ If it is not installed already, you can install it via your OS's package manager
 Simply type completion help [path to command] for full details.</p>
 <pre><code>smallweb completion help [command] [flags]
 </code></pre>
-<h3 id="options-6"><a class="header" href="#options-6">Options</a></h3>
+<h3 id="options-5"><a class="header" href="#options-5">Options</a></h3>
 <pre><code>  -h, --help   help for help
 </code></pre>
 <h2 id="smallweb-completion-powershell"><a class="header" href="#smallweb-completion-powershell">smallweb completion powershell</a></h2>
@@ -907,7 +921,7 @@ Simply type completion help [path to command] for full details.</p>
 to your powershell profile.</p>
 <pre><code>smallweb completion powershell [flags]
 </code></pre>
-<h3 id="options-7"><a class="header" href="#options-7">Options</a></h3>
+<h3 id="options-6"><a class="header" href="#options-6">Options</a></h3>
 <pre><code>  -h, --help              help for powershell
       --no-descriptions   disable completion descriptions
 </code></pre>
@@ -926,13 +940,13 @@ to enable it.  You can execute the following once:</p>
 <h4 id="linux-1"><a class="header" href="#linux-1">Linux:</a></h4>
 <pre><code>smallweb completion zsh &gt; "${fpath[1]}/_smallweb"
 </code></pre>
-<h4 id="macos-1"><a class="header" href="#macos-1">macOS:</a></h4>
+<h4 id="macos-2"><a class="header" href="#macos-2">macOS:</a></h4>
 <pre><code>smallweb completion zsh &gt; $(brew --prefix)/share/zsh/site-functions/_smallweb
 </code></pre>
 <p>You will need to start a new shell for this setup to take effect.</p>
 <pre><code>smallweb completion zsh [flags]
 </code></pre>
-<h3 id="options-8"><a class="header" href="#options-8">Options</a></h3>
+<h3 id="options-7"><a class="header" href="#options-7">Options</a></h3>
 <pre><code>  -h, --help              help for zsh
       --no-descriptions   disable completion descriptions
 </code></pre>
@@ -940,12 +954,13 @@ to enable it.  You can execute the following once:</p>
 <p>Open the smallweb config in your editor</p>
 <pre><code>smallweb config [flags]
 </code></pre>
-<h3 id="options-9"><a class="header" href="#options-9">Options</a></h3>
+<h3 id="options-8"><a class="header" href="#options-8">Options</a></h3>
 <pre><code>  -h, --help   help for config
+  -j, --json   Output as JSON
 </code></pre>
 <h2 id="smallweb-cron"><a class="header" href="#smallweb-cron">smallweb cron</a></h2>
 <p>Manage cron jobs</p>
-<h3 id="options-10"><a class="header" href="#options-10">Options</a></h3>
+<h3 id="options-9"><a class="header" href="#options-9">Options</a></h3>
 <pre><code>  -h, --help   help for cron
 </code></pre>
 <h2 id="smallweb-cron-help"><a class="header" href="#smallweb-cron-help">smallweb cron help</a></h2>
@@ -955,35 +970,39 @@ to enable it.  You can execute the following once:</p>
 Simply type cron help [path to command] for full details.</p>
 <pre><code>smallweb cron help [command] [flags]
 </code></pre>
-<h3 id="options-11"><a class="header" href="#options-11">Options</a></h3>
+<h3 id="options-10"><a class="header" href="#options-10">Options</a></h3>
 <pre><code>  -h, --help   help for help
 </code></pre>
 <h2 id="smallweb-cron-list"><a class="header" href="#smallweb-cron-list">smallweb cron list</a></h2>
 <p>List cron jobs</p>
 <pre><code>smallweb cron list [flags]
 </code></pre>
-<h3 id="options-12"><a class="header" href="#options-12">Options</a></h3>
-<pre><code>      --all          list all cron jobs
-      --app string   filter by app
-      --dir string   filter by dir
+<h3 id="options-11"><a class="header" href="#options-11">Options</a></h3>
+<pre><code>      --app string   filter by app
   -h, --help         help for list
       --json         output as json
 </code></pre>
 <h2 id="smallweb-cron-trigger"><a class="header" href="#smallweb-cron-trigger">smallweb cron trigger</a></h2>
 <p>Trigger a cron job</p>
-<pre><code>smallweb cron trigger &lt;cron&gt; [flags]
+<pre><code>smallweb cron trigger &lt;id&gt; [flags]
 </code></pre>
-<h3 id="options-13"><a class="header" href="#options-13">Options</a></h3>
-<pre><code>      --app string   app cron job belongs to
-      --dir string   dir cron job belongs to
-  -h, --help         help for trigger
+<h3 id="options-12"><a class="header" href="#options-12">Options</a></h3>
+<pre><code>  -h, --help   help for trigger
 </code></pre>
 <h2 id="smallweb-docs"><a class="header" href="#smallweb-docs">smallweb docs</a></h2>
 <p>Generate smallweb cli documentation</p>
 <pre><code>smallweb docs [flags]
 </code></pre>
-<h3 id="options-14"><a class="header" href="#options-14">Options</a></h3>
+<h3 id="options-13"><a class="header" href="#options-13">Options</a></h3>
 <pre><code>  -h, --help   help for docs
+</code></pre>
+<h2 id="smallweb-edit"><a class="header" href="#smallweb-edit">smallweb edit</a></h2>
+<p>Open the smallweb config in your editor</p>
+<pre><code>smallweb edit &lt;app&gt; [flags]
+</code></pre>
+<h3 id="options-14"><a class="header" href="#options-14">Options</a></h3>
+<pre><code>  -h, --help   help for edit
+  -j, --json   Output as JSON
 </code></pre>
 <h2 id="smallweb-gallery"><a class="header" href="#smallweb-gallery">smallweb gallery</a></h2>
 <p>Extension gallery</p>
@@ -1010,34 +1029,46 @@ Simply type smallweb help [path to command] for full details.</p>
 <pre><code>  -h, --help              help for init
   -t, --template string   The template to use
 </code></pre>
-<h2 id="smallweb-install"><a class="header" href="#smallweb-install">smallweb install</a></h2>
-<pre><code>smallweb install [app] [dir] [flags]
-</code></pre>
-<h3 id="options-18"><a class="header" href="#options-18">Options</a></h3>
-<pre><code>      --branch string   branch to checkout (default "smallweb")
-  -h, --help            help for install
-</code></pre>
 <h2 id="smallweb-list"><a class="header" href="#smallweb-list">smallweb list</a></h2>
 <p>List all smallweb apps</p>
 <pre><code>smallweb list [flags]
 </code></pre>
-<h3 id="options-19"><a class="header" href="#options-19">Options</a></h3>
+<h3 id="options-18"><a class="header" href="#options-18">Options</a></h3>
 <pre><code>  -h, --help   help for list
       --json   output as json
 </code></pre>
 <h2 id="smallweb-open"><a class="header" href="#smallweb-open">smallweb open</a></h2>
 <p>Open the smallweb app specified by dir in the browser</p>
-<pre><code>smallweb open &lt;dir&gt; [flags]
+<pre><code>smallweb open [app] [flags]
+</code></pre>
+<h3 id="options-19"><a class="header" href="#options-19">Options</a></h3>
+<pre><code>  -h, --help   help for open
+</code></pre>
+<h2 id="smallweb-run"><a class="header" href="#smallweb-run">smallweb run</a></h2>
+<p>Run an app cli</p>
+<pre><code>smallweb run &lt;app&gt; [args...] [flags]
 </code></pre>
 <h3 id="options-20"><a class="header" href="#options-20">Options</a></h3>
-<pre><code>      --app string   app to open
-      --dir string   dir to open
-  -h, --help         help for open
+<pre><code>  -h, --help   help for run
+</code></pre>
+<h2 id="smallweb-serve"><a class="header" href="#smallweb-serve">smallweb serve</a></h2>
+<p>Start the smallweb evaluation server</p>
+<pre><code>smallweb serve [flags]
+</code></pre>
+<h3 id="options-21"><a class="header" href="#options-21">Options</a></h3>
+<pre><code>  -h, --help   help for serve
 </code></pre>
 <h2 id="smallweb-service"><a class="header" href="#smallweb-service">smallweb service</a></h2>
 <p>Manage smallweb service</p>
-<h3 id="options-21"><a class="header" href="#options-21">Options</a></h3>
+<h3 id="options-22"><a class="header" href="#options-22">Options</a></h3>
 <pre><code>  -h, --help   help for service
+</code></pre>
+<h2 id="smallweb-service-edit"><a class="header" href="#smallweb-service-edit">smallweb service edit</a></h2>
+<p>Edit smallweb service configuration</p>
+<pre><code>smallweb service edit [flags]
+</code></pre>
+<h3 id="options-23"><a class="header" href="#options-23">Options</a></h3>
+<pre><code>  -h, --help   help for edit
 </code></pre>
 <h2 id="smallweb-service-help"><a class="header" href="#smallweb-service-help">smallweb service help</a></h2>
 <p>Help about any command</p>
@@ -1046,21 +1077,21 @@ Simply type smallweb help [path to command] for full details.</p>
 Simply type service help [path to command] for full details.</p>
 <pre><code>smallweb service help [command] [flags]
 </code></pre>
-<h3 id="options-22"><a class="header" href="#options-22">Options</a></h3>
+<h3 id="options-24"><a class="header" href="#options-24">Options</a></h3>
 <pre><code>  -h, --help   help for help
 </code></pre>
 <h2 id="smallweb-service-install"><a class="header" href="#smallweb-service-install">smallweb service install</a></h2>
 <p>Install smallweb as a service</p>
 <pre><code>smallweb service install [flags]
 </code></pre>
-<h3 id="options-23"><a class="header" href="#options-23">Options</a></h3>
+<h3 id="options-25"><a class="header" href="#options-25">Options</a></h3>
 <pre><code>  -h, --help   help for install
 </code></pre>
 <h2 id="smallweb-service-logs"><a class="header" href="#smallweb-service-logs">smallweb service logs</a></h2>
 <p>Print service logs</p>
 <pre><code>smallweb service logs [flags]
 </code></pre>
-<h3 id="options-24"><a class="header" href="#options-24">Options</a></h3>
+<h3 id="options-26"><a class="header" href="#options-26">Options</a></h3>
 <pre><code>  -f, --follow   Follow log output
   -h, --help     help for logs
 </code></pre>
@@ -1068,56 +1099,78 @@ Simply type service help [path to command] for full details.</p>
 <p>Restart smallweb service</p>
 <pre><code>smallweb service restart [flags]
 </code></pre>
-<h3 id="options-25"><a class="header" href="#options-25">Options</a></h3>
+<h3 id="options-27"><a class="header" href="#options-27">Options</a></h3>
 <pre><code>  -h, --help   help for restart
 </code></pre>
 <h2 id="smallweb-service-start"><a class="header" href="#smallweb-service-start">smallweb service start</a></h2>
 <p>Start smallweb service</p>
 <pre><code>smallweb service start [flags]
 </code></pre>
-<h3 id="options-26"><a class="header" href="#options-26">Options</a></h3>
+<h3 id="options-28"><a class="header" href="#options-28">Options</a></h3>
 <pre><code>  -h, --help   help for start
 </code></pre>
 <h2 id="smallweb-service-status"><a class="header" href="#smallweb-service-status">smallweb service status</a></h2>
 <p>View service status</p>
 <pre><code>smallweb service status [flags]
 </code></pre>
-<h3 id="options-27"><a class="header" href="#options-27">Options</a></h3>
+<h3 id="options-29"><a class="header" href="#options-29">Options</a></h3>
 <pre><code>  -h, --help   help for status
 </code></pre>
 <h2 id="smallweb-service-stop"><a class="header" href="#smallweb-service-stop">smallweb service stop</a></h2>
 <p>Stop smallweb service</p>
 <pre><code>smallweb service stop [flags]
 </code></pre>
-<h3 id="options-28"><a class="header" href="#options-28">Options</a></h3>
+<h3 id="options-30"><a class="header" href="#options-30">Options</a></h3>
 <pre><code>  -h, --help   help for stop
 </code></pre>
 <h2 id="smallweb-service-uninstall"><a class="header" href="#smallweb-service-uninstall">smallweb service uninstall</a></h2>
 <p>Uninstall smallweb service</p>
 <pre><code>smallweb service uninstall [flags]
 </code></pre>
-<h3 id="options-29"><a class="header" href="#options-29">Options</a></h3>
+<h3 id="options-31"><a class="header" href="#options-31">Options</a></h3>
 <pre><code>  -h, --help   help for uninstall
 </code></pre>
-<h2 id="smallweb-up"><a class="header" href="#smallweb-up">smallweb up</a></h2>
-<p>Start the smallweb evaluation server</p>
-<pre><code>smallweb up [flags]
+<h2 id="smallweb-token"><a class="header" href="#smallweb-token">smallweb token</a></h2>
+<p>Generate a random token</p>
+<pre><code>smallweb token [flags]
 </code></pre>
-<h3 id="options-30"><a class="header" href="#options-30">Options</a></h3>
-<pre><code>  -h, --help                     help for up
-      --host string              Host to listen on (default "localhost")
-  -p, --port int                 Port to listen on
-      --tls                      Enable TLS
-      --tls-ca-cert string       TLS CA certificate file path
-      --tls-cert string          TLS certificate file path
-      --tls-client-auth string   TLS client auth mode (require, request, verify) (default "require")
-      --tls-key string           TLS key file path
+<h3 id="options-32"><a class="header" href="#options-32">Options</a></h3>
+<pre><code>  -h, --help   help for token
 </code></pre>
-<h2 id="smallweb-upgrade"><a class="header" href="#smallweb-upgrade">smallweb upgrade</a></h2>
+<h2 id="smallweb-types"><a class="header" href="#smallweb-types">smallweb types</a></h2>
+<p>Print smallweb types</p>
+<pre><code>smallweb types [flags]
+</code></pre>
+<h3 id="options-33"><a class="header" href="#options-33">Options</a></h3>
+<pre><code>  -h, --help   help for types
+</code></pre>
+<h2 id="smallweb-version"><a class="header" href="#smallweb-version">smallweb version</a></h2>
+<p>Manage smallweb versions</p>
+<h3 id="options-34"><a class="header" href="#options-34">Options</a></h3>
+<pre><code>  -h, --help   help for version
+</code></pre>
+<h2 id="smallweb-version-help"><a class="header" href="#smallweb-version-help">smallweb version help</a></h2>
+<p>Help about any command</p>
+<h3 id="synopsis-9"><a class="header" href="#synopsis-9">Synopsis</a></h3>
+<p>Help provides help for any command in the application.
+Simply type version help [path to command] for full details.</p>
+<pre><code>smallweb version help [command] [flags]
+</code></pre>
+<h3 id="options-35"><a class="header" href="#options-35">Options</a></h3>
+<pre><code>  -h, --help   help for help
+</code></pre>
+<h2 id="smallweb-version-list"><a class="header" href="#smallweb-version-list">smallweb version list</a></h2>
+<p>List available versions</p>
+<pre><code>smallweb version list [flags]
+</code></pre>
+<h3 id="options-36"><a class="header" href="#options-36">Options</a></h3>
+<pre><code>  -h, --help   help for list
+</code></pre>
+<h2 id="smallweb-version-upgrade"><a class="header" href="#smallweb-version-upgrade">smallweb version upgrade</a></h2>
 <p>Upgrade to the latest version</p>
-<pre><code>smallweb upgrade [version] [flags]
+<pre><code>smallweb version upgrade [version] [flags]
 </code></pre>
-<h3 id="options-31"><a class="header" href="#options-31">Options</a></h3>
+<h3 id="options-37"><a class="header" href="#options-37">Options</a></h3>
 <pre><code>  -h, --help   help for upgrade
 </code></pre>
 <!-- markdownlint-disable-file -->

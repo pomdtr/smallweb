@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="../guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">13.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">14.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">15.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html" class="active"><strong aria-hidden="true">16.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">17.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/file-sync.html"><strong aria-hidden="true">8.</strong> File Sync</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html" class="active"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -185,10 +185,9 @@
 <p>You can set it using a <code>$schema</code> field in your <code>smallweb.json[c]</code> file:</p>
 <pre><code class="language-json">{
   "$schema": "https://schema.smallweb.run",
-  "serve": "./build"
 }
 </code></pre>
-<p>VS Code Users can also set it globally in their <code>settings.json</code>:</p>
+<p>VS Code users can also set it globally in their <code>settings.json</code>:</p>
 <pre><code class="language-json">{
   "json.schemas": [
     {
@@ -201,69 +200,26 @@
   ]
 }
 </code></pre>
-<h2 id="serve"><a class="header" href="#serve"><code>serve</code></a></h2>
-<p>The <code>serve</code> field defines the file / directory to serve. If this field is not provided, the following defaults are used:</p>
-<ul>
-<li>if a <code>main.[js,jsx,ts,tsx]</code> file exists in the root directory, it is served</li>
-<li>if a <code>dist</code> directory exists and contains an <code>index.html</code> file, it is served</li>
-<li>the root directory is served</li>
-</ul>
-<h3 id="serve-examples"><a class="header" href="#serve-examples">Examples</a></h3>
-<ul>
-<li>
-<p>Serve a file</p>
-<pre><code class="language-json">{
-  "serve": "./serve.js"
-}
-</code></pre>
-</li>
-<li>
-<p>Statically serve a directory</p>
-<pre><code class="language-json">{
-  "serve": "./build"
-}
-</code></pre>
-</li>
-</ul>
-<h2 id="crons"><a class="header" href="#crons"><code>crons</code></a></h2>
+<h2 id="available-fields"><a class="header" href="#available-fields">Available Fields</a></h2>
+<h3 id="entrypoint"><a class="header" href="#entrypoint"><code>entrypoint</code></a></h3>
+<p>The <code>entrypoint</code> field defines the file to serve. If this field is not provided, the app will look for a <code>main.[js,ts,jsx,tsx]</code> file in the root directory.</p>
+<h3 id="root"><a class="header" href="#root"><code>root</code></a></h3>
+<p>The <code>root</code> field defines the root directory of the app. If this field is not provided, the app will use the app directory as the root directory.</p>
+<h3 id="private"><a class="header" href="#private"><code>private</code></a></h3>
+<p>If the <code>private</code> field is set to <code>true</code>, the app will ask for your admin username and password before serving the app using basic auth.</p>
+<h3 id="crons"><a class="header" href="#crons"><code>crons</code></a></h3>
 <p>The <code>crons</code> field defines a list of cron jobs to run. See the <a href="../guides/cron.html">Cron Jobs</a> guide for more information.</p>
 <pre><code class="language-json">{
   "crons": [
     {
-      "path": "/refresh",
-      "schedule": "0 0 * * *"
+      "name": "daily-task", // The name of the cron task (required)
+      "description": "A daily task", // A description for the task (optional)
+      "schedule": "0 0 * * *", // a cron expression (required)
+      "args": [] // arguments to pass to the task (required)
     }
   ]
 }
 </code></pre>
-<h2 id="permissions"><a class="header" href="#permissions"><code>permissions</code></a></h2>
-<p>The <code>permissions</code> field defines a list of permissions to grant to the Deno process. See the <a href="../guides/permissions.html">Permissions</a> guide for more information.</p>
-<h3 id="permissions-examples"><a class="header" href="#permissions-examples">Examples</a></h3>
-<ul>
-<li>
-<p>Giving all permissions</p>
-<pre><code class="language-json">{
-  "permissions": {
-    "all": true
-  }
-}
-</code></pre>
-</li>
-<li>
-<p>Giving specific permissions</p>
-<pre><code class="language-json">{
-  "permissions": {
-    "read": true,
-    "write": {
-      "allow": ["./", "/tmp"],
-      "deny": ["./smallweb.json"]
-    },
-    "net": ["deno.land"]
-  }
-}
-</code></pre>
-</li>
-</ul>
 
                     </main>
 

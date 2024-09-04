@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="../guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="../guides/templates.html" class="active"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">11.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">13.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">14.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">15.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">16.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">17.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html" class="active"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/file-sync.html"><strong aria-hidden="true">8.</strong> File Sync</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -180,30 +180,27 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="templates"><a class="header" href="#templates">Templates</a></h1>
-<p>Smallweb comes with a list of templates to help you get started with your project. You can use the <code>smallweb init</code> command to create a new project from a template.</p>
-<pre><code class="language-sh"># Interactive mode
+<p>Smallweb comes with a list of templates to help you get started with your project. You can use the <code>smallweb init</code> command to create a new project.</p>
+<pre><code class="language-sh"># create a new project in the current directory
 smallweb init
-
-# Init a project from a template
-smallweb init ~/localhost/hono-app --template hono
+# create a new project in a specific directory
+smallweb init &lt;directory&gt;
 </code></pre>
-<p>In addition to this, smallweb is compatible with most static sites generator, so you can use your favorite generator to create your project.</p>
-<p>Ex: <code>npm create vite@latest ~/localhost/my-vite-app</code></p>
-<p>Depending on the framework you choose, you might need to either:</p>
-<ul>
-<li>Setup your build process to output files in a <code>dist</code> folder (smallweb will serve the content of this by default).</li>
-<li>Add a <code>smallweb.json</code> file to the root of your project to specify the folder to serve using the <code>serve</code> field.</li>
-</ul>
+<p>You can also specify custom a template to use:</p>
+<pre><code class="language-sh">smallweb init --template pomdtr/smallweb-template-http
+</code></pre>
+<p>Any github repository can be used as a template. View a list of the available templates <a href="https://github.com/topic/smallweb-template">here</a>.</p>
+<p>To create your own template, just add the <code>smallweb-template</code> topic to your repository, and it will be automatically added to the list of available templates.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../guides/cron.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guides/plugins.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../guides/plugins.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guides/file-sync.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -213,11 +210,11 @@ smallweb init ~/localhost/hono-app --template hono
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../guides/cron.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guides/plugins.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../guides/plugins.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guides/file-sync.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

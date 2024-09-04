@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../../guides/static.html"><strong aria-hidden="true">2.</strong> Static Websites</a></li><li class="chapter-item expanded "><a href="../../guides/dynamic.html"><strong aria-hidden="true">3.</strong> Dynamic Websites</a></li><li class="chapter-item expanded "><a href="../../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../../guides/permissions.html"><strong aria-hidden="true">5.</strong> Permissions</a></li><li class="chapter-item expanded "><a href="../../guides/cron.html"><strong aria-hidden="true">6.</strong> Cron Jobs</a></li><li class="chapter-item expanded "><a href="../../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../../guides/plugins.html"><strong aria-hidden="true">8.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../../guides/tooling.html"><strong aria-hidden="true">9.</strong> Tooling</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../../hosting/localhost/localhost.html"><strong aria-hidden="true">10.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../../hosting/home-server/home-server.html" class="active"><strong aria-hidden="true">11.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../../hosting/vps.html"><strong aria-hidden="true">12.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../../hosting/fly.html"><strong aria-hidden="true">13.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../../hosting/deno-deploy.html"><strong aria-hidden="true">14.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../../reference/global_config.html"><strong aria-hidden="true">15.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../../reference/app_config.html"><strong aria-hidden="true">16.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../../reference/cli.html"><strong aria-hidden="true">17.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../../guides/file-sync.html"><strong aria-hidden="true">8.</strong> File Sync</a></li><li class="chapter-item expanded "><a href="../../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../../hosting/home-server/home-server.html" class="active"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -202,6 +202,14 @@ smallweb service status
 </code></pre>
 </li>
 <li>
+<p>Set the <code>domain</code> field in your smallweb config to your domain name.</p>
+</li>
+</ol>
+<pre><code class="language-sh"># open the smallweb config in your default editor
+smallweb config
+</code></pre>
+<ol>
+<li>
 <p>From your cloudflare dashboard, navigate to <code>Zero Trust &gt; Networks &gt; Tunnels</code></p>
 </li>
 <li>
@@ -226,9 +234,9 @@ smallweb service status
 </ol>
 <p><img src="./dns.png" alt="DNS Configuration" /></p>
 <h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
-<p>Create a dummy smallweb app in <code>~/localhost/example</code></p>
-<pre><code class="language-sh">mkdir -p ~/localhost/example
-CAT &lt;&lt;EOF &gt; ~/localhost/example/main.ts
+<p>Create a dummy smallweb app in <code>~/smallweb/example</code></p>
+<pre><code class="language-sh">mkdir -p ~/smallweb/example
+CAT &lt;&lt;EOF &gt; ~/smallweb/example/main.ts
 export default {
   fetch() {
     return new Response("Smallweb is running", {

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Global Config - Smallweb</title>
+        <title>HTTP Servers - Smallweb</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/file-sync.html"><strong aria-hidden="true">8.</strong> File Sync</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html" class="active"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html" class="active"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/file-sync.html"><strong aria-hidden="true">8.</strong> File Sync</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -150,7 +150,7 @@
                         <a href="https://github.com/pomdtr/smallweb" title="Git repository" aria-label="Git repository">
                             <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
-                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/reference/global_config.md" title="Suggest an edit" aria-label="Suggest an edit">
+                        <a href="https://github.com/pomdtr/smallweb/edit/main/docs/src/guides/server.md" title="Suggest an edit" aria-label="Suggest an edit">
                             <i id="git-edit-button" class="fa fa-edit"></i>
                         </a>
 
@@ -179,80 +179,89 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="global-config"><a class="header" href="#global-config">Global Config</a></h1>
-<p>The smallweb config is located at <code>~/.config/smallweb/config.json[c]</code>. It is a json file that defines global settings for smallweb.</p>
-<p>You can also specify a custom config file by setting the <code>SMALLWEB_CONFIG</code> environment variable.</p>
-<p>Smallweb also respects the <code>XDG_CONFIG_HOME</code> environment variable.</p>
-<h2 id="available-fields"><a class="header" href="#available-fields">Available Fields</a></h2>
-<h3 id="host"><a class="header" href="#host"><code>host</code></a></h3>
-<p>The <code>host</code> field defines the host to bind to. By default, it is <code>127.0.0.1</code>.</p>
-<pre><code class="language-json">{
-  "host": "0.0.0.0"
+                        <h1 id="hosting-websites"><a class="header" href="#hosting-websites">Hosting Websites</a></h1>
+<p>Smallweb can also host dynamic websites. To create a dynamic website, you need to create a folder with a <code>main.[js,ts,jsx,tsx]</code> file in it.</p>
+<p>The file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
+<pre><code class="language-ts">// File: ~/smallweb/example-server/main.ts
+
+export default {
+  fetch(request: Request) {
+    const url = new URL(request.url);
+    const name = url.searchParams.get("name") || "world";
+
+    return new Response(`Hello, ${name}!`, {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
+  },
 }
 </code></pre>
-<h3 id="port"><a class="header" href="#port"><code>port</code></a></h3>
-<p>The <code>port</code> field defines the port to bind to. By default, it is <code>7777</code>.</p>
-<pre><code class="language-json">{
-  "port": 8000
+<p>To access the server, open <code>https://example-server.localhost</code> in your browser.</p>
+<h2 id="using-jsx"><a class="header" href="#using-jsx">Using JSX</a></h2>
+<p>You can use the <code>@jsxImportSource</code> pragma to define the source of the jsx factory function. This allows you to use jsx in your server code.</p>
+<pre><code class="language-tsx">// File: ~/smallweb/jsx-example/main.tsx
+/** @jsxImportSource npm:@preact **/
+import render from "npm:preact-render-to-string";
+
+const requestHandler = () =&gt; new Response(render(&lt;h1&gt;Hello, world!&lt;/h1&gt;), {
+  headers: {
+    "Content-Type": "text/html",
+  },
+});
+
+export default { fetch: requestHandler };
+</code></pre>
+<p>To access the server, open <code>https://jsx-example.localhost</code> in your browser.</p>
+<h2 id="routing-requests-using-hono"><a class="header" href="#routing-requests-using-hono">Routing Requests using Hono</a></h2>
+<p>Smallweb use the <a href="https://deno.com">deno</a> runtime to evaluate the server code. You get typescript and jsx support out of the box, and you can import any module from the npm and jsr registry by prefixing the module name with <code>npm:</code> or <code>jsr:</code>.</p>
+<p>As an example, the following code snippet use the <code>@hono/hono</code> extract params from the request url.</p>
+<pre><code class="language-jsx">// File: ~/smallweb/hono-example/main.ts
+
+import { Hono } from "jsr:@hono/hono";
+
+const app = new Hono();
+
+app.get("/", c =&gt; c.text("Hello, world!"));
+
+app.get("/:name", c =&gt; c.text(`Hello, ${c.params.name}!`));
+
+// Hono instances have a `fetch`, so they can be used as the default export
+export default app;
+</code></pre>
+<p>To access the server, open <code>https://hono-example.localhost</code> in your browser.</p>
+<h2 id="static-websites"><a class="header" href="#static-websites">Static Websites</a></h2>
+<p>You have multiple options to host static websitest with Smallweb.</p>
+<p>First, you can store your static websites in a subdirectory, the server it using the <code>@std/http/file-server</code> module.</p>
+<pre><code class="language-ts">import { serveDir } from "jsr:@std/http/file-server";
+
+export default {
+  fetch: (req: Request) =&gt; serveDir(req, {
+    fsRoot: "./public",
+  }),
 }
 </code></pre>
-<h3 id="domain"><a class="header" href="#domain"><code>domain</code></a></h3>
-<p>The <code>domain</code> field defines the apex domain used for routing.</p>
-<pre><code class="language-json">{
-  "domain": "smallweb.run"
-}
-</code></pre>
-<p>See the <a href="../guides/routing.html">Routing</a> guide for more information.</p>
-<h3 id="dir"><a class="header" href="#dir"><code>dir</code></a></h3>
-<p>The <code>dir</code> field defines the root directory for all apps.</p>
-<pre><code class="language-json">{
-  "dir": "~/smallweb"
-}
-</code></pre>
-<h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
-<p>The <code>env</code> field defines a list of environment variables to set for all apps.</p>
-<pre><code class="language-json">{
-  "env": {
-    "NODE_ENV": "production"
-  }
-}
-</code></pre>
-<h3 id="tokens"><a class="header" href="#tokens"><code>tokens</code></a></h3>
-<p>The <code>tokens</code> field defines a list of tokens used for authentication.</p>
-<pre><code class="language-json">{
-  "tokens": ["SF7RZt9shD6UnUcl"]
-}
-</code></pre>
-<p>You can protect private apps by setting the <code>private</code> field in the app's config.</p>
-<p>You can generate a new token using the <code>smallweb token</code> command (you'll still need to add it to your config).</p>
-<p>Token are also used to protect internal services that smallweb provides, such as:</p>
-<ul>
-<li>webdav.<code>&lt;domain&gt;</code>: A webdav server allowing you to access your files.</li>
-<li>cli.<code>&lt;domain&gt;</code>: A web interface to run cli commands.</li>
-</ul>
-<h2 id="default-config"><a class="header" href="#default-config">Default Config</a></h2>
-<p>By default the config file looks like this:</p>
-<pre><code class="language-json">{
-  "host": "127.0.0.1",
-  "port": 7777,
-  "domain": "localhost",
-  "dir": "~/smallweb",
-  "env": {
-    // allow smallweb apps to communicate with each other when using self-signed certificates
-    "DENO_TLS_CA_STORE": "system"
-  }
-}
+<p>Alternatively, if your static websites is stored on github, you can use the <code>serveGithubRepo</code> helper:</p>
+<pre><code class="language-ts">import { serveGithubRepo } from "https://esm.town/v/pomdtr/serveGithubRepo?v=34";
+
+export default {
+    fetch: serveGithubRepo({
+        owner: "pomdtr",
+        repo: "smallweb",
+        ref: "bab42e6", // use the commit hash or a branch name (default: main)
+    }),
+} satisfies Deno.ServeDefaultExport;
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../hosting/deno-deploy.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guides/routing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../reference/app_config.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guides/commands.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -262,11 +271,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../hosting/deno-deploy.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guides/routing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../reference/app_config.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guides/commands.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
