@@ -402,10 +402,6 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			}
 
 			authMiddleware := AuthMiddleware{db}
-			if err != nil {
-				return fmt.Errorf("failed to create auth middleware: %w", err)
-			}
-
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			server := http.Server{
 				Addr: addr,
