@@ -37,9 +37,9 @@ func NewCmdEdit() *cobra.Command {
 						return fmt.Errorf("failed to load app: %v", err)
 					}
 
-					entrypoint, err := a.Entrypoint()
-					if err != nil {
-						return fmt.Errorf("failed to get entrypoint: %v", err)
+					entrypoint := a.Entrypoint()
+					if !utils.FileExists(entrypoint) {
+						return fmt.Errorf("entrypoint is not a file: %s", entrypoint)
 					}
 
 					editorCmd := k.String("editor")

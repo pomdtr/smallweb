@@ -201,13 +201,13 @@ func (me *App) LoadEnv() error {
 	return nil
 }
 
-func (me *App) Entrypoint() (string, error) {
+func (me *App) Entrypoint() string {
 	if strings.HasPrefix(me.Config.Entrypoint, "jsr:") || strings.HasPrefix(me.Config.Entrypoint, "npm:") {
-		return me.Config.Entrypoint, nil
+		return me.Config.Entrypoint
 	}
 
 	if strings.HasPrefix(me.Config.Entrypoint, "https://") || strings.HasPrefix(me.Config.Entrypoint, "http://") {
-		return me.Config.Entrypoint, nil
+		return me.Config.Entrypoint
 	}
 
 	rootDir := me.Root()
@@ -216,28 +216,23 @@ func (me *App) Entrypoint() (string, error) {
 	}
 
 	if me.Config.Entrypoint != "" {
-		return filepath.Join(rootDir, me.Config.Entrypoint), nil
+		return filepath.Join(rootDir, me.Config.Entrypoint)
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
 		path := filepath.Join(rootDir, candidate)
 		if utils.FileExists(path) {
-			return path, nil
+			return path
 		}
 	}
 
-	return "", fmt.Errorf("could not find entrypoint")
+	return "jsr:@smallweb/file-server"
 }
 
 //go:embed sandbox.ts
 var sandboxBytes []byte
 
 func (me *App) Start() error {
-	entrypoint, err := me.Entrypoint()
-	if err != nil {
-		return fmt.Errorf("could not get entrypoint: %w", err)
-	}
-
 	port, err := GetFreePort()
 	if err != nil {
 		return fmt.Errorf("could not get free port: %w", err)
@@ -262,7 +257,7 @@ func (me *App) Start() error {
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(map[string]any{
 		"command":    "serve",
-		"entrypoint": entrypoint,
+		"entrypoint": me.Entrypoint(),
 		"port":       port,
 	})
 	args = append(args, tempfile.Name(), input.String())
@@ -465,20 +460,6 @@ func DenoExecutable() (string, error) {
 }
 
 func (me *App) Run(args []string) error {
-	entrypoint, err := me.Entrypoint()
-	if err != nil {
-		return err
-	}
-
-	info, err := os.Stat(entrypoint)
-	if err != nil {
-		return fmt.Errorf("could not stat entrypoint: %w", err)
-	}
-
-	if info.IsDir() {
-		return fmt.Errorf("entrypoint is a directory")
-	}
-
 	tempfile, err := os.CreateTemp("", "sandbox-*.ts")
 	if err != nil {
 		return fmt.Errorf("could not create temporary file: %w", err)
@@ -496,7 +477,7 @@ func (me *App) Run(args []string) error {
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(map[string]any{
 		"command":    "run",
-		"entrypoint": entrypoint,
+		"entrypoint": me.Entrypoint(),
 		"args":       args,
 	})
 	denoArgs = append(denoArgs, tempfile.Name(), input.String())
