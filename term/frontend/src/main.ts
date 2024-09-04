@@ -8,6 +8,7 @@ import { nanoid } from "nanoid";
 
 async function main() {
   const terminal = new Terminal({
+    cursorBlink: true,
     allowProposedApi: true,
     macOptionIsMeta: true,
     macOptionClickForcesSelection: true,
