@@ -163,9 +163,10 @@ func NewCmdTokenList(db *sql.DB) *cobra.Command {
 
 func NewCmdTokenRemove(db *sql.DB) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "remove <id>",
-		Short: "Remove a token",
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove <id>",
+		Short:   "Remove a token",
+		Args:    cobra.ExactArgs(1),
+		Aliases: []string{"rm"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := database.DeleteToken(db, args[0]); err != nil {
 				return fmt.Errorf("failed to delete token: %v", err)
