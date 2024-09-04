@@ -22,6 +22,7 @@ import (
 func NewCmdToken(db *sql.DB) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "token",
+		Short:   "Manage api tokens",
 		GroupID: CoreGroupID,
 	}
 
@@ -37,9 +38,9 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create [name]",
+		Use:   "create",
 		Short: "Create a new token",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, err := generateToken(16)
 			if err != nil {
@@ -140,7 +141,7 @@ func NewCmdTokenList(db *sql.DB) *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"id", "Description", "Created At"})
+			printer.AddHeader([]string{"ID", "Description", "Creation Time"})
 			for _, token := range tokens {
 				printer.AddField(token.ID)
 				description := token.Description
