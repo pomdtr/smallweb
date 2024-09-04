@@ -46,6 +46,7 @@ func NewCmdRoot(version string) *cobra.Command {
 		"host":   "127.0.0.1",
 		"dir":    "~/smallweb",
 		"editor": findEditor(),
+		"shell":  findShell(),
 		"domain": "localhost",
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",

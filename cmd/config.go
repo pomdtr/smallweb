@@ -41,6 +41,14 @@ func findEditor() string {
 	return "vim"
 }
 
+func findShell() string {
+	if env, ok := os.LookupEnv("SHELL"); ok {
+		return env
+	}
+
+	return "/bin/bash"
+}
+
 func NewCmdConfig() *cobra.Command {
 	var flags struct {
 		json bool

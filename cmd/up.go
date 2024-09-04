@@ -5,17 +5,23 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	vscode "github.com/progrium/go-vscode"
+	"github.com/progrium/go-vscode/product"
+
 	_ "embed"
 
 	"github.com/adrg/xdg"
+	"github.com/creack/pty"
 	"github.com/gobwas/glob"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/pomdtr/smallweb/app"
@@ -419,6 +425,24 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 					if r.Host == fmt.Sprintf("webdav.%s", domain) {
 						handler := authMiddleware.Wrap(webdavHandler, k.String("email"))
+						handler.ServeHTTP(w, r)
+						return
+					}
+
+					if r.Host == fmt.Sprintf("vscode.%s", domain) {
+						var handler http.Handler = &vscode.Workbench{
+							ProductConfiguration: product.Configuration{
+								NameShort: "Smallweb Editor",
+							},
+							FS: os.DirFS(rootDir),
+							MakePTY: func() (io.ReadWriteCloser, error) {
+								cmd := exec.Command(k.String("shell"))
+								return pty.Start(cmd)
+							},
+						}
+
+						handler = authMiddleware.Wrap(handler, k.String("email"))
+
 						handler.ServeHTTP(w, r)
 						return
 					}
