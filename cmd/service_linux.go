@@ -13,17 +13,12 @@ import (
 	"github.com/pomdtr/smallweb/utils"
 )
 
-//go:embed service/smallweb.service
+//go:embed embed/smallweb.service
 var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
+var servicePath = filepath.Join(os.Getenv("HOME"), ".config", "systemd", "user", "smallweb.service")
 
 func InstallService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, ".config", "systemd", "user", "smallweb.service")
 	if utils.FileExists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
@@ -45,7 +40,6 @@ func InstallService() error {
 
 	if err := serviceConfig.Execute(f, map[string]string{
 		"ExecPath": execPath,
-		"HomeDir":  homeDir,
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)
 	}
@@ -69,12 +63,6 @@ func InstallService() error {
 }
 
 func StartService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, ".config", "systemd", "user", "smallweb.service")
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -87,12 +75,6 @@ func StartService() error {
 }
 
 func StopService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, ".config", "systemd", "user", "smallweb.service")
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -105,12 +87,6 @@ func StopService() error {
 }
 
 func RestartService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, ".config", "systemd", "user", "smallweb.service")
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -123,12 +99,6 @@ func RestartService() error {
 }
 
 func UninstallService() error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, ".config", "systemd", "user", "smallweb.service")
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -156,12 +126,6 @@ func UninstallService() error {
 }
 
 func PrintServiceLogs(follow bool) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	servicePath := filepath.Join(homeDir, ".config", "systemd", "user", "smallweb.service")
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}

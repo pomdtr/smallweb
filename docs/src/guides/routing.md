@@ -1,33 +1,19 @@
 # Routing
 
-Smallweb maps domains to folders. By default, it will maps `*.localhost` to `~/localhost/*`, but you can add more hostnames from the config (`~/.config/smallweb/config.json[c]`).
+Smallweb maps every subdomains of your root domain to a directory in your root directory.
 
-## Mapping a single domain to a folder
+For example with, the following configuration:
 
 ```json
+// ~/.config/smallweb/config.json
 {
-  "domains": {
-    "example.com": "~/example.com"
-  }
+    "domain": "example.com",
+    "root": "~/smallweb"
 }
 ```
 
-## Mapping a wildcard domain to a single folder
+`api.example.com` will be mapped to `~/smallweb/api`, `blog.example.com` will be mapped to `~/smallweb/blog`, and so on.
 
-```json
-{
-  "domains": {
-    "*.example.com": "~/example.com",
-  }
-}
-```
+The apex domain (`example.com`) will be automatically redirected to `www.example.com`.
 
-## Mapping a wildcard domain to multiple folders
-
-```json
-{
-  "domains": {
-    "*.example.com": "~/example.com/*"
-  }
-}
-```
+If you want to register a custom domain to a specific application, you can create a `CNAME` file in the application directory, with the custom domain name as the content of the file.

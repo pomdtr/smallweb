@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -15,52 +14,32 @@ import (
 	"golang.org/x/term"
 )
 
-type App struct {
-	Name string `json:"name"`
-	Url  string `json:"url"`
-	Dir  string `json:"dir"`
-}
+func ListApps(rootDir string) []string {
+	entries, err := os.ReadDir(rootDir)
+	if err != nil {
+		return nil
+	}
 
-func ListApps(domains map[string]string) ([]App, error) {
-	apps := make([]App, 0)
-
-	for domain, rootDir := range domains {
-		if !utils.IsGlob(rootDir) {
-			apps = append(apps, App{
-				Name: domain,
-				Dir:  rootDir,
-				Url:  fmt.Sprintf("https://%s/", domain),
-			})
+	apps := make([]string, 0)
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
 
-		entries, err := filepath.Glob(rootDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list apps: %w", err)
+		if !entry.IsDir() {
+			continue
 		}
 
-		for _, entry := range entries {
-			match, err := utils.ExtractGlobPattern(entry, rootDir)
-			if err != nil {
-				continue
-			}
-
-			hostname := strings.Replace(domain, "*", match, 1)
-
-			apps = append(apps, App{
-				Name: hostname,
-				Url:  fmt.Sprintf("https://%s/", hostname),
-				Dir:  strings.Replace(rootDir, "*", match, 1),
-			})
-		}
+		apps = append(apps, entry.Name())
 	}
 
-	// sort by hostname
-	slices.SortFunc(apps, func(a, b App) int {
-		return strings.Compare(a.Url, b.Url)
-	})
+	return apps
+}
 
-	return apps, nil
+type AppItem struct {
+	Name string   `json:"name"`
+	Dir  string   `json:"dir"`
+	Urls []string `json:"urls"`
 }
 
 func NewCmdList() *cobra.Command {
@@ -74,10 +53,24 @@ func NewCmdList() *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domains := expandDomains(k.StringMap("domains"))
-			apps, err := ListApps(domains)
-			if err != nil {
-				return fmt.Errorf("failed to list apps: %w", err)
+			rootDir := utils.ExpandTilde(k.String("dir"))
+			var items []AppItem
+			for _, a := range ListApps(rootDir) {
+				appDir := filepath.Join(rootDir, a)
+				item := AppItem{
+					Name: a,
+					Dir:  strings.Replace(appDir, os.Getenv("HOME"), "~", 1),
+					Urls: []string{fmt.Sprintf("https://%s.%s", a, k.String("domain"))},
+				}
+
+				if cnamePath := filepath.Join(appDir, "CNAME"); utils.FileExists(cnamePath) {
+					cname, err := os.ReadFile(cnamePath)
+					if err == nil {
+						item.Urls = []string{fmt.Sprintf("https://%s", strings.TrimSpace(string(cname))), item.Urls[0]}
+					}
+				}
+
+				items = append(items, item)
 			}
 
 			if flags.json {
@@ -87,14 +80,14 @@ func NewCmdList() *cobra.Command {
 					encoder.SetIndent("", "  ")
 				}
 
-				if err := encoder.Encode(apps); err != nil {
+				if err := encoder.Encode(items); err != nil {
 					return fmt.Errorf("failed to encode tree: %w", err)
 				}
 
 				return nil
 			}
 
-			if len(apps) == 0 {
+			if len(items) == 0 {
 				cmd.Println("No apps found")
 				return nil
 			}
@@ -112,10 +105,11 @@ func NewCmdList() *cobra.Command {
 			}
 
 			printer.AddHeader([]string{"Name", "Dir", "Url"})
-			for _, app := range apps {
+			for _, app := range items {
 				printer.AddField(app.Name)
-				printer.AddField(app.Dir)
-				printer.AddField(app.Url)
+				printer.AddField(strings.Replace(app.Dir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(app.Urls[0])
+
 				printer.EndRow()
 			}
 

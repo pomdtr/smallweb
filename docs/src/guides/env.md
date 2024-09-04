@@ -11,7 +11,7 @@ BEARER_TOKEN=SECURE_TOKEN
 Use the `Deno.env.get` method to access the environment variables in your app:
 
 ```ts
-// File: ~/localhost/demo/main.ts
+// File: ~/smallweb/demo/main.ts
 export default function (req: Request) {
   if (req.headers.get("Authorization") !== `Bearer ${Deno.env.get("BEARER_TOKEN")}`) {
     return new Response("Unauthorized", { status: 401 });
@@ -25,4 +25,4 @@ export default function (req: Request) {
 }
 ```
 
-If you want to set an environment variable for all your apps, you can use the `env` property from the smallweb global config (`~/.config/smallweb/config.json[c]`).
+If you want to set an environment variable for all your apps, you can use the `env` property from the smallweb global config (`~/.config/smallweb/config.json`).

@@ -13,8 +13,9 @@ import (
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
-
 	"github.com/knadh/koanf/v2"
+
+	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
@@ -26,42 +27,37 @@ const (
 
 var (
 	cachedUpgradePath = filepath.Join(xdg.CacheHome, "smallweb", "latest_version")
+	k                 = koanf.New(".")
 )
 
-// Global koanf instance. Use "." as the key path delimiter. This can be "/" or any character.
-var k = koanf.New(".")
-
-func expandDomains(domains map[string]string) map[string]string {
-	for key, value := range domains {
-		domains[key] = utils.ExpandTilde(value)
+func NewCmdRoot(version string) *cobra.Command {
+	dataHome := filepath.Join(xdg.DataHome, "smallweb")
+	if err := os.MkdirAll(dataHome, 0755); err != nil {
+		fmt.Println("failed to create data directory:", err)
 	}
 
-	return domains
-}
-
-func NewCmdRoot(version string) *cobra.Command {
+	db, err := database.OpenDB(filepath.Join(dataHome, "smallweb.db"))
+	if err != nil {
+		fmt.Println("failed to open database:", err)
+		return nil
+	}
 
 	defaultProvider := confmap.Provider(map[string]interface{}{
-		"host": "127.0.0.1",
-		"port": 7777,
-		"domains": map[string]string{
-			"*.localhost": "~/localhost/*",
-		},
+		"host":   "127.0.0.1",
+		"dir":    "~/smallweb",
+		"editor": findEditor(),
+		"domain": "localhost",
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",
 		},
 	}, "")
 
-	fileProvider := file.Provider(findConfigPath())
 	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
-		return strings.Replace(strings.ToLower(
-			strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
+		return strings.Replace(strings.ToLower(strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
 	})
 
-	k.Load(defaultProvider, nil)
-	k.Load(fileProvider, utils.ConfigParser())
-	k.Load(envProvider, nil)
-
+	configPath := findConfigPath()
+	fileProvider := file.Provider(configPath)
 	fileProvider.Watch(func(event interface{}, err error) {
 		k = koanf.New(".")
 		k.Load(defaultProvider, nil)
@@ -69,11 +65,22 @@ func NewCmdRoot(version string) *cobra.Command {
 		k.Load(envProvider, nil)
 	})
 
+	k.Load(defaultProvider, nil)
+	k.Load(fileProvider, utils.ConfigParser())
+	k.Load(envProvider, nil)
+
 	cmd := &cobra.Command{
 		Use:     "smallweb",
 		Short:   "Host websites from your internet folder",
 		Version: version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			rootDir := utils.ExpandTilde(k.String("dir"))
+			if !utils.FileExists(rootDir) {
+				if err := os.MkdirAll(rootDir, 0755); err != nil {
+					return fmt.Errorf("failed to create root directory: %w", err)
+				}
+			}
+
 			if version == "dev" {
 				return nil
 			}
@@ -140,22 +147,23 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddGroup(&cobra.Group{
 		ID:    CoreGroupID,
 		Title: "Core Commands",
-	}, &cobra.Group{
-		ID:    ExtensionGroupID,
-		Title: "Extension Commands",
 	})
 
-	cmd.AddCommand(NewCmdUp())
-	cmd.AddCommand(NewCmdService())
-	cmd.AddCommand(NewCmdList())
-	cmd.AddCommand(NewCmdDocs())
-	cmd.AddCommand(NewCmdInit())
-	cmd.AddCommand(NewCmdInstall())
-	cmd.AddCommand(NewCmdCrons())
-	cmd.AddCommand(NewCmdOpen())
+	cmd.AddCommand(NewCmdUp(db))
+	cmd.AddCommand(NewCmdEdit())
+	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdConfig())
-	cmd.AddCommand(NewCmdUpgrade())
+	cmd.AddCommand(NewCmdService())
+	cmd.AddCommand(NewCmdOpen())
+	cmd.AddCommand(NewCmdList())
+	cmd.AddCommand(NewCmdTypes())
+	cmd.AddCommand(NewCmdDocs())
+	cmd.AddCommand(NewCmdCron())
+	cmd.AddCommand(NewCmdVersion())
+	cmd.AddCommand(NewCmdInit())
+	cmd.AddCommand(NewCmdToken(db))
 
+	var extensions []string
 	path := os.Getenv("PATH")
 	for _, dir := range filepath.SplitList(path) {
 		entries, err := os.ReadDir(dir)
@@ -164,37 +172,51 @@ func NewCmdRoot(version string) *cobra.Command {
 		}
 
 		for _, entry := range entries {
-			if strings.HasPrefix(entry.Name(), "smallweb-") {
-				entrypoint := filepath.Join(dir, entry.Name())
-				// check if the entrypoint is executable
-				if _, err := os.Stat(entrypoint); err != nil {
-					continue
-				}
-
-				if ok, err := isExecutable(entrypoint); !ok || err != nil {
-					continue
-				}
-
-				name := strings.TrimPrefix(entry.Name(), "smallweb-")
-				if HasCommand(cmd, name) {
-					continue
-				}
-
-				cmd.AddCommand(&cobra.Command{
-					Use:                name,
-					Short:              fmt.Sprintf("Extension %s", name),
-					GroupID:            ExtensionGroupID,
-					DisableFlagParsing: true,
-					RunE: func(cmd *cobra.Command, args []string) error {
-						command := exec.Command(entrypoint, args...)
-						command.Stdin = os.Stdin
-						command.Stdout = os.Stdout
-						command.Stderr = os.Stderr
-						return command.Run()
-					},
-				})
+			if entry.IsDir() {
+				continue
 			}
+
+			if !strings.HasPrefix(entry.Name(), "smallweb-") {
+				continue
+			}
+
+			entrypoint := filepath.Join(dir, entry.Name())
+			if ok, err := isExecutable(entrypoint); !ok || err != nil {
+				continue
+			}
+
+			extensions = append(extensions, entrypoint)
 		}
+	}
+
+	if len(extensions) == 0 {
+		return cmd
+	}
+
+	cmd.AddGroup(&cobra.Group{
+		ID:    ExtensionGroupID,
+		Title: "Extension Commands",
+	})
+
+	for _, entrypoint := range extensions {
+		name := strings.TrimPrefix(filepath.Base(entrypoint), "smallweb-")
+		if HasCommand(cmd, name) {
+			continue
+		}
+
+		cmd.AddCommand(&cobra.Command{
+			Use:                name,
+			Short:              fmt.Sprintf("Extension %s", name),
+			GroupID:            ExtensionGroupID,
+			DisableFlagParsing: true,
+			RunE: func(cmd *cobra.Command, args []string) error {
+				command := exec.Command(entrypoint, args...)
+				command.Stdin = os.Stdin
+				command.Stdout = os.Stdout
+				command.Stderr = os.Stderr
+				return command.Run()
+			},
+		})
 	}
 
 	return cmd

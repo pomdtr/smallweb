@@ -9,11 +9,10 @@ You can set it using a `$schema` field in your `smallweb.json[c]` file:
 ```json
 {
   "$schema": "https://schema.smallweb.run",
-  "serve": "./build"
 }
 ```
 
-VS Code Users can also set it globally in their `settings.json`:
+VS Code users can also set it globally in their `settings.json`:
 
 ```json
 {
@@ -29,33 +28,21 @@ VS Code Users can also set it globally in their `settings.json`:
 }
 ```
 
-## `serve`
+## Available Fields
 
-The `serve` field defines the file / directory to serve. If this field is not provided, the following defaults are used:
+### `entrypoint`
 
-- if a `main.[js,jsx,ts,tsx]` file exists in the root directory, it is served
-- if a `dist` directory exists and contains an `index.html` file, it is served
-- the root directory is served
+The `entrypoint` field defines the file to serve. If this field is not provided, the app will look for a `main.[js,ts,jsx,tsx]` file in the root directory.
 
-### Examples {#serve-examples}
+### `root`
 
-- Serve a file
+The `root` field defines the root directory of the app. If this field is not provided, the app will use the app directory as the root directory.
 
-    ```json
-    {
-      "serve": "./serve.js"
-    }
-    ```
+### `private`
 
-- Statically serve a directory
+If the `private` field is set to `true`, the app will ask for your admin username and password before serving the app using basic auth.
 
-    ```json
-    {
-      "serve": "./build"
-    }
-    ```
-
-## `crons`
+### `crons`
 
 The `crons` field defines a list of cron jobs to run. See the [Cron Jobs](../guides/cron.md) guide for more information.
 
@@ -63,40 +50,11 @@ The `crons` field defines a list of cron jobs to run. See the [Cron Jobs](../gui
 {
   "crons": [
     {
-      "path": "/refresh",
-      "schedule": "0 0 * * *"
+      "name": "daily-task", // The name of the cron task (required)
+      "description": "A daily task", // A description for the task (optional)
+      "schedule": "0 0 * * *", // a cron expression (required)
+      "args": [] // arguments to pass to the task (required)
     }
   ]
 }
 ```
-
-## `permissions`
-
-The `permissions` field defines a list of permissions to grant to the Deno process. See the [Permissions](../guides/permissions.md) guide for more information.
-
-### Examples {#permissions-examples}
-
-- Giving all permissions
-
-    ```json
-    {
-      "permissions": {
-        "all": true
-      }
-    }
-    ```
-
-- Giving specific permissions
-
-    ```json
-    {
-      "permissions": {
-        "read": true,
-        "write": {
-          "allow": ["./", "/tmp"],
-          "deny": ["./smallweb.json"]
-        },
-        "net": ["deno.land"]
-      }
-    }
-    ```

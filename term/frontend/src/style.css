@@ -1,0 +1,35 @@
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+div::-webkit-scrollbar {
+  display: none;
+  width: 0;
+}
+
+html,
+body {
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  /* default background color */
+  background-color: #ffffff;
+
+  /* Dark mode */
+  @media (prefers-color-scheme: dark) {
+    background-color: #1d1f21;
+  }
+}
+
+div#terminal {
+  height: 100%;
+  width: 100%;
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+.xterm {
+  box-sizing: border-box;
+  padding: 10px;
+  height: 100%;
+  width: 100%;
+}

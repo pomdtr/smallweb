@@ -5,14 +5,15 @@
 # Guides
 
 - [Routing](./guides/routing.md)
-- [Static Websites](./guides/static.md)
-- [Dynamic Websites](./guides/dynamic.md)
+- [HTTP Servers](./guides/server.md)
+- [Cli Commands](./guides/commands.md)
 - [Environment Variables](./guides/env.md)
-- [Permissions](./guides/permissions.md)
-- [Cron Jobs](./guides/cron.md)
-- [Templates](./guides/templates.md)
+- [Cron Tasks](./guides/cron.md)
 - [Plugins](./guides/plugins.md)
-- [Tooling](./guides/tooling.md)
+- [Templates](./guides/templates.md)
+- [File Sync](./guides/file-sync.md)
+- [Authentication](./guides/auth.md)
+- [App Sandbox](./guides/sandbox.md)
 
 # Hosting
 

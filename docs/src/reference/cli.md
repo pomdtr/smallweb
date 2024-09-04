@@ -24,20 +24,6 @@ smallweb capture [flags]
   -h, --help   help for capture
 ```
 
-## smallweb choose
-
-Extension choose
-
-```
-smallweb choose [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for choose
-```
-
 ## smallweb completion
 
 Generate the autocompletion script for the specified shell
@@ -222,6 +208,7 @@ smallweb config [flags]
 
 ```
   -h, --help   help for config
+  -j, --json   Output as JSON
 ```
 
 ## smallweb cron
@@ -264,9 +251,7 @@ smallweb cron list [flags]
 ### Options
 
 ```
-      --all          list all cron jobs
       --app string   filter by app
-      --dir string   filter by dir
   -h, --help         help for list
       --json         output as json
 ```
@@ -276,15 +261,13 @@ smallweb cron list [flags]
 Trigger a cron job
 
 ```
-smallweb cron trigger <cron> [flags]
+smallweb cron trigger <id> [flags]
 ```
 
 ### Options
 
 ```
-      --app string   app cron job belongs to
-      --dir string   dir cron job belongs to
-  -h, --help         help for trigger
+  -h, --help   help for trigger
 ```
 
 ## smallweb docs
@@ -299,6 +282,21 @@ smallweb docs [flags]
 
 ```
   -h, --help   help for docs
+```
+
+## smallweb edit
+
+Open the smallweb config in your editor
+
+```
+smallweb edit <app> [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for edit
+  -j, --json   Output as JSON
 ```
 
 ## smallweb gallery
@@ -349,21 +347,6 @@ smallweb init [dir] [flags]
   -t, --template string   The template to use
 ```
 
-## smallweb install
-
-
-
-```
-smallweb install [app] [dir] [flags]
-```
-
-### Options
-
-```
-      --branch string   branch to checkout (default "smallweb")
-  -h, --help            help for install
-```
-
 ## smallweb list
 
 List all smallweb apps
@@ -384,15 +367,41 @@ smallweb list [flags]
 Open the smallweb app specified by dir in the browser
 
 ```
-smallweb open <dir> [flags]
+smallweb open [app] [flags]
 ```
 
 ### Options
 
 ```
-      --app string   app to open
-      --dir string   dir to open
-  -h, --help         help for open
+  -h, --help   help for open
+```
+
+## smallweb run
+
+Run an app cli
+
+```
+smallweb run <app> [args...] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for run
+```
+
+## smallweb serve
+
+Start the smallweb evaluation server
+
+```
+smallweb serve [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for serve
 ```
 
 ## smallweb service
@@ -403,6 +412,20 @@ Manage smallweb service
 
 ```
   -h, --help   help for service
+```
+
+## smallweb service edit
+
+Edit smallweb service configuration
+
+```
+smallweb service edit [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for edit
 ```
 
 ## smallweb service help
@@ -523,33 +546,83 @@ smallweb service uninstall [flags]
   -h, --help   help for uninstall
 ```
 
-## smallweb up
+## smallweb token
 
-Start the smallweb evaluation server
+Generate a random token
 
 ```
-smallweb up [flags]
+smallweb token [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help                     help for up
-      --host string              Host to listen on (default "localhost")
-  -p, --port int                 Port to listen on
-      --tls                      Enable TLS
-      --tls-ca-cert string       TLS CA certificate file path
-      --tls-cert string          TLS certificate file path
-      --tls-client-auth string   TLS client auth mode (require, request, verify) (default "require")
-      --tls-key string           TLS key file path
+  -h, --help   help for token
 ```
 
-## smallweb upgrade
+## smallweb types
+
+Print smallweb types
+
+```
+smallweb types [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for types
+```
+
+## smallweb version
+
+Manage smallweb versions
+
+### Options
+
+```
+  -h, --help   help for version
+```
+
+## smallweb version help
+
+Help about any command
+
+### Synopsis
+
+Help provides help for any command in the application.
+Simply type version help [path to command] for full details.
+
+```
+smallweb version help [command] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for help
+```
+
+## smallweb version list
+
+List available versions
+
+```
+smallweb version list [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for list
+```
+
+## smallweb version upgrade
 
 Upgrade to the latest version
 
 ```
-smallweb upgrade [version] [flags]
+smallweb version upgrade [version] [flags]
 ```
 
 ### Options
