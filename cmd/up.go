@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gobwas/glob"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/term"
 	"github.com/pomdtr/smallweb/utils"
@@ -59,12 +60,12 @@ func authMiddleware(h http.Handler, username string, password string, tokens []s
 	})
 }
 
-func NewCmdServe() *cobra.Command {
+func NewCmdUp() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "serve",
+		Use:     "up",
 		Short:   "Start the smallweb evaluation server",
 		GroupID: CoreGroupID,
-		Aliases: []string{"up"},
+		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
@@ -168,7 +169,16 @@ func NewCmdServe() *cobra.Command {
 
 					var handler http.Handler = a
 					if a.Config.Private {
-						handler = authMiddleware(a, k.String("username"), k.String("password"), k.Strings("tokens"))
+						private := true
+						for _, publicRoute := range a.Config.PublicRoutes {
+							glob := glob.MustCompile(publicRoute)
+							if glob.Match(r.URL.Path) {
+								private = false
+							}
+						}
+						if private {
+							handler = authMiddleware(a, k.String("username"), k.String("password"), k.Strings("tokens"))
+						}
 					}
 					handler.ServeHTTP(w, r)
 				}),

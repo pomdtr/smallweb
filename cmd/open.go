@@ -13,7 +13,7 @@ import (
 func NewCmdOpen() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "open [app]",
-		Short: "Open the smallweb app specified by dir in the browser",
+		Short: "Open an app in the browser",
 		Args:  cobra.MaximumNArgs(1),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			rootDir := utils.ExpandTilde(k.String("dir"))

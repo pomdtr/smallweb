@@ -19,7 +19,7 @@ func NewCmdEdit() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "edit <app>",
-		Short:   "Open the smallweb config in your editor",
+		Short:   "Open an app in your editor",
 		GroupID: CoreGroupID,
 		Args:    cobra.ExactArgs(1),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
