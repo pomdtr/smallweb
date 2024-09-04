@@ -1,4 +1,4 @@
-# Smallweb - Host websites from your internet folder
+# Smallweb - Host your own Personal Cloud
 
 ## Links
 
