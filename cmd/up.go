@@ -414,8 +414,33 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					}
 
 					if r.Host == fmt.Sprintf("webdav.%s", domain) {
-						handler := authMiddleware.Wrap(webdavHandler, k.String("email"))
-						handler.ServeHTTP(w, r)
+						var token string
+						if t, _, ok := r.BasicAuth(); ok {
+							token = t
+						} else if authorization := r.Header.Get("Authorization"); strings.HasPrefix(authorization, "Bearer ") {
+							token = strings.Trim(strings.TrimPrefix(authorization, "Bearer "), " ")
+						}
+
+						if token == "" {
+							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+							http.Error(w, "Unauthorized", http.StatusUnauthorized)
+							return
+						}
+
+						tokens, err := database.ListTokens(db)
+						if err != nil {
+							http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+							return
+						}
+
+						for _, t := range tokens {
+							if bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(token)) == nil {
+								webdavHandler.ServeHTTP(w, r)
+								return
+							}
+						}
+
+						http.Error(w, "Unauthorized", http.StatusUnauthorized)
 						return
 					}
 
