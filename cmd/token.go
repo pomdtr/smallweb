@@ -83,7 +83,7 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&flags.description, "description", "t", "", "description of the token")
+	cmd.Flags().StringVarP(&flags.description, "description", "d", "", "description of the token")
 
 	return cmd
 }
