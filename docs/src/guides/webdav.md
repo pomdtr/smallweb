@@ -1,4 +1,4 @@
-# Syncing Files
+# WebDAV
 
 Smallweb automatically starts a webdav server at on the `webdav` subdomain.
 
