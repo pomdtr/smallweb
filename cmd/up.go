@@ -136,22 +136,22 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 		}
 
 		authorization := r.Header.Get("Authorization")
-		if authorization != "" {
-			public, secret, err := parseToken(username)
+		if strings.HasPrefix(authorization, "Bearer ") {
+			public, secret, err := parseToken(strings.TrimPrefix(authorization, "Bearer "))
 			if err != nil {
 				w.Header().Add("WWW-Authenticate", `Bearer realm="smallweb"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			token, err := database.GetToken(me.db, public)
+			t, err := database.GetToken(me.db, public)
 			if err != nil {
 				w.Header().Add("WWW-Authenticate", `Bearer realm="smallweb"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			if bcrypt.CompareHashAndPassword([]byte(token.Hash), []byte(secret)) != nil {
+			if bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(secret)) != nil {
 				w.Header().Add("WWW-Authenticate", `Bearer realm="smallweb"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
