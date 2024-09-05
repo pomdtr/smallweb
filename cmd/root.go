@@ -75,7 +75,7 @@ func NewCmdRoot(version string) *cobra.Command {
 			Short:              "Proxy args to remote smallweb server",
 			DisableFlagParsing: true,
 			RunE: func(cmd *cobra.Command, args []string) error {
-				sshArgs := []string{"-t", k.String("remote"), "~/.local/bin/smallweb"}
+				sshArgs := []string{"-t", "-o", "LogLevel=QUIET", k.String("remote"), "~/.local/bin/smallweb"}
 				sshArgs = append(sshArgs, args...)
 				command := exec.Command("ssh", sshArgs...)
 				command.Stdin = os.Stdin
