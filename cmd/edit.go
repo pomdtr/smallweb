@@ -38,8 +38,22 @@ func NewCmdEdit() *cobra.Command {
 					}
 
 					entrypoint := a.Entrypoint()
+
 					if !utils.FileExists(entrypoint) {
-						return fmt.Errorf("entrypoint is not a file: %s", entrypoint)
+						if utils.FileExists(filepath.Join(a.Root(), "index.html")) {
+							entrypoint = filepath.Join(a.Root(), "index.html")
+						} else {
+							entries, err := os.ReadDir(a.Root())
+							if err != nil {
+								return fmt.Errorf("failed to read directory: %v", err)
+							}
+
+							if len(entries) == 0 {
+								return fmt.Errorf("no files in app directory")
+							}
+
+							entrypoint = filepath.Join(a.Root(), entries[0].Name())
+						}
 					}
 
 					editorCmd := k.String("editor")
