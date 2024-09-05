@@ -106,56 +106,64 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				AuthStyle: oauth2.AuthStyleInParams,
 			},
 			Scopes:      []string{"email"},
-			RedirectURL: fmt.Sprintf("https://%s/_auth/callback", r.Host),
+			RedirectURL: fmt.Sprintf("https://%s/_smallweb/auth/callback", r.Host),
 		}
 
 		username, _, ok := r.BasicAuth()
 		if ok {
-			tokens, err := database.ListTokens(me.db)
+			public, secret, err := parseToken(username)
 			if err != nil {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			for _, t := range tokens {
-				if bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(username)) == nil {
-					next.ServeHTTP(w, r)
-					return
-				}
+			token, err := database.GetToken(me.db, public)
+			if err != nil {
+				w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
 			}
 
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			if bcrypt.CompareHashAndPassword([]byte(token.Hash), []byte(secret)) != nil {
+				w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
 			return
 		}
 
 		authorization := r.Header.Get("Authorization")
 		if authorization != "" {
-			if !strings.HasPrefix(authorization, "Bearer ") {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			}
-
-			token := strings.Trim(strings.TrimPrefix(authorization, "Bearer "), " ")
-
-			tokens, err := database.ListTokens(me.db)
+			public, secret, err := parseToken(username)
 			if err != nil {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				w.Header().Add("WWW-Authenticate", `Bearer realm="smallweb"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			for _, t := range tokens {
-				if bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(token)) == nil {
-					next.ServeHTTP(w, r)
-					return
-				}
+			token, err := database.GetToken(me.db, public)
+			if err != nil {
+				w.Header().Add("WWW-Authenticate", `Bearer realm="smallweb"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
 			}
 
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			if bcrypt.CompareHashAndPassword([]byte(token.Hash), []byte(secret)) != nil {
+				w.Header().Add("WWW-Authenticate", `Bearer realm="smallweb"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
 			return
 		}
 
-		if r.URL.Path == "/_auth/login" {
+		if r.URL.Path == "/_smallweb/auth/login" {
 			query := r.URL.Query()
-			state, err := generateToken(16)
+			state, err := generateBase62String(16)
 			if err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
@@ -185,7 +193,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			return
 		}
 
-		if r.URL.Path == "/_auth/callback" {
+		if r.URL.Path == "/_smallweb/auth/callback" {
 			query := r.URL.Query()
 			oauthCookie, err := r.Cookie(oauthCookieName)
 			if err != nil {
@@ -280,7 +288,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			return
 		}
 
-		if r.URL.Path == "/_auth/logout" {
+		if r.URL.Path == "/_smallweb/auth/logout" {
 			cookie, err := r.Cookie(sessionCookieName)
 			if err != nil {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -311,7 +319,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 
 		cookie, err := r.Cookie(sessionCookieName)
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/_smallweb/auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 			return
 		}
 
@@ -324,7 +332,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				Secure:   true,
 			})
 
-			http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/_smallweb/auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 			return
 		}
 
@@ -341,7 +349,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				Secure:   true,
 			})
 
-			http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/_smallweb/auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 			return
 		}
 
@@ -421,27 +429,28 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 							token = strings.Trim(strings.TrimPrefix(authorization, "Bearer "), " ")
 						}
 
-						if token == "" {
+						public, secret, err := parseToken(token)
+						if err != nil {
 							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
 							http.Error(w, "Unauthorized", http.StatusUnauthorized)
 							return
 						}
 
-						tokens, err := database.ListTokens(db)
+						t, err := database.GetToken(db, public)
 						if err != nil {
-							http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+							http.Error(w, "Unauthorized", http.StatusUnauthorized)
 							return
 						}
 
-						for _, t := range tokens {
-							if bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(token)) == nil {
-								webdavHandler.ServeHTTP(w, r)
-								return
-							}
+						if bcrypt.CompareHashAndPassword(t.Hash, []byte(secret)) != nil {
+							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+							http.Error(w, "Unauthorized", http.StatusUnauthorized)
+							return
 						}
 
-						http.Error(w, "Unauthorized", http.StatusUnauthorized)
-						return
+						webdavHandler.ServeHTTP(w, r)
+
 					}
 
 					if r.Host == fmt.Sprintf("cli.%s", domain) {
@@ -450,17 +459,17 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						return
 					}
 
-					var appDir, appName string
+					var appDir string
 					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", domain)) {
-						appName = strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
-						appDir = filepath.Join(rootDir, appName)
+						appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
+						appDir = filepath.Join(rootDir, appname)
 						if !utils.FileExists(appDir) {
 							w.WriteHeader(http.StatusNotFound)
 							return
 						}
 					} else {
-						for _, a := range ListApps(rootDir) {
-							cnamePath := filepath.Join(rootDir, a, "CNAME")
+						for _, appname := range ListApps(rootDir) {
+							cnamePath := filepath.Join(rootDir, appname, "CNAME")
 							if !utils.FileExists("CNAME") {
 								continue
 							}
@@ -474,8 +483,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 								continue
 							}
 
-							appName = a
-							appDir = filepath.Join(rootDir, appName)
+							appDir = filepath.Join(rootDir, appname)
 						}
 
 						if appDir == "" {
@@ -483,11 +491,6 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 							w.WriteHeader(http.StatusNotFound)
 							return
 						}
-					}
-
-					if r.URL.Path == "/_edit" {
-						http.Redirect(w, r, fmt.Sprintf("https://cli.%s/edit/%s", domain, appName), http.StatusSeeOther)
-						return
 					}
 
 					a, err := app.NewApp(appDir, r.Host, k.StringMap("env"))
@@ -519,7 +522,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						}
 					}
 
-					if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
+					if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_smallweb/auth") {
 						handler = authMiddleware.Wrap(handler, k.String("email"))
 					}
 

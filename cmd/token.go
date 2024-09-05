@@ -5,13 +5,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
-	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/database"
 	"github.com/spf13/cobra"
@@ -38,27 +39,19 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create",
-		Short: "Create a new token",
-		Args:  cobra.NoArgs,
+		Use:     "create",
+		Aliases: []string{"add", "new"},
+		Short:   "Create a new token",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			value, err := generateToken(16)
+			value, public, secret, err := generateToken()
 			if err != nil {
 				return fmt.Errorf("failed to generate token: %v", err)
 			}
 
-			hash, err := HashToken(value)
-			if err != nil {
-				return fmt.Errorf("failed to hash token: %v", err)
-			}
-
-			tokenID, err := gonanoid.New()
-			if err != nil {
-				return fmt.Errorf("failed to generate token ID: %v", err)
-			}
-
+			hash, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
 			token := database.Token{
-				ID:          tokenID,
+				ID:          public,
 				Description: flags.description,
 				Hash:        hash,
 				CreatedAt:   time.Now(),
@@ -99,11 +92,6 @@ func NewCmdTokenList(db *sql.DB) *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dataHome := filepath.Join(xdg.DataHome, "smallweb")
-			if err := os.MkdirAll(dataHome, 0755); err != nil {
-				return fmt.Errorf("failed to create data directory: %v", err)
-			}
-
 			tokens, err := database.ListTokens(db)
 			if err != nil {
 				return fmt.Errorf("failed to list tokens: %v", err)
@@ -149,7 +137,7 @@ func NewCmdTokenList(db *sql.DB) *cobra.Command {
 					description = "N/A"
 				}
 				printer.AddField(description)
-				printer.AddField(token.CreatedAt.Format(time.RFC3339))
+				printer.AddField(token.CreatedAt.Format("2006-01-02 15:04:05"))
 				printer.EndRow()
 			}
 
@@ -165,14 +153,30 @@ func NewCmdTokenRemove(db *sql.DB) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "remove <id>",
 		Short:   "Remove a token",
-		Args:    cobra.ExactArgs(1),
-		Aliases: []string{"rm"},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := database.DeleteToken(db, args[0]); err != nil {
-				return fmt.Errorf("failed to delete token: %v", err)
+		Args:    cobra.ArbitraryArgs,
+		Aliases: []string{"rm", "delete"},
+		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			tokens, err := database.ListTokens(db)
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
 			}
 
-			cmd.Println("Token removed")
+			var completions []string
+			for _, token := range tokens {
+				completions = append(completions, fmt.Sprintf("%s\t%s", token.ID, token.Description))
+			}
+
+			return completions, cobra.ShellCompDirectiveNoFileComp
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			for _, arg := range args {
+				if err := database.DeleteToken(db, arg); err != nil {
+					return fmt.Errorf("failed to delete token: %v", err)
+				}
+
+				cmd.Printf("Token %s removed\n", arg)
+			}
+
 			return nil
 		},
 	}
@@ -180,21 +184,59 @@ func NewCmdTokenRemove(db *sql.DB) *cobra.Command {
 	return cmd
 }
 
-func generateToken(n int) (string, error) {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	bytes := make([]byte, n)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
+// Base62 character set
+const base62Charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
-	for i := 0; i < n; i++ {
-		bytes[i] = letters[bytes[i]%byte(len(letters))]
-	}
+// Lengths for the public and secret parts
+const publicPartLength = 16 // 16 characters for public part
+const secretPartLength = 59 // 43 characters for secret part
 
-	return string(bytes), nil
+// Base62 encoding function to generate random Base62 strings
+func generateBase62String(length int) (string, error) {
+	result := make([]byte, length)
+	charsetLen := big.NewInt(int64(len(base62Charset)))
+
+	for i := range result {
+		num, err := rand.Int(rand.Reader, charsetLen)
+		if err != nil {
+			return "", err
+		}
+		result[i] = base62Charset[num.Int64()]
+	}
+	return string(result), nil
 }
 
-func HashToken(token string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(token), 14)
-	return string(bytes), err
+const tokenPrefix = "smallweb_pat"
+
+func generateToken() (string, string, string, error) {
+	// Generate public and secret parts with Base62 encoding
+	publicPart, err := generateBase62String(publicPartLength)
+	if err != nil {
+		return "", "", "", err
+	}
+	secretPart, err := generateBase62String(secretPartLength)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// Assemble the token with the given prefix
+	return fmt.Sprintf("%s_%s_%s", tokenPrefix, publicPart, secretPart), publicPart, secretPart, nil
+}
+
+func parseToken(token string) (string, string, error) {
+	if !strings.HasPrefix(token, tokenPrefix) {
+		return "", "", fmt.Errorf("invalid token format")
+	}
+
+	parts := strings.Split(token, "_")
+	if len(parts) != 4 {
+		return "", "", fmt.Errorf("invalid token format")
+	}
+
+	public, secret := parts[2], parts[3]
+	if len(public) != publicPartLength || len(secret) != secretPartLength {
+		return "", "", fmt.Errorf("invalid token format")
+	}
+
+	return parts[2], parts[3], nil
 }

@@ -7,7 +7,7 @@ import (
 
 type Token struct {
 	ID          string    `json:"id"`
-	Hash        string    `json:"hash"`
+	Hash        []byte    `json:"hash"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"createdAt"`
 }
