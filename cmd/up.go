@@ -106,7 +106,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				AuthStyle: oauth2.AuthStyleInParams,
 			},
 			Scopes:      []string{"email"},
-			RedirectURL: fmt.Sprintf("https://%s/_smallweb/auth/callback", r.Host),
+			RedirectURL: fmt.Sprintf("https://%s/_auth/callback", r.Host),
 		}
 
 		username, _, ok := r.BasicAuth()
@@ -161,7 +161,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			return
 		}
 
-		if r.URL.Path == "/_smallweb/auth/login" {
+		if r.URL.Path == "/_auth/login" {
 			query := r.URL.Query()
 			state, err := generateBase62String(16)
 			if err != nil {
@@ -193,7 +193,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			return
 		}
 
-		if r.URL.Path == "/_smallweb/auth/callback" {
+		if r.URL.Path == "/_auth/callback" {
 			query := r.URL.Query()
 			oauthCookie, err := r.Cookie(oauthCookieName)
 			if err != nil {
@@ -288,7 +288,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			return
 		}
 
-		if r.URL.Path == "/_smallweb/auth/logout" {
+		if r.URL.Path == "/_auth/logout" {
 			cookie, err := r.Cookie(sessionCookieName)
 			if err != nil {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -319,7 +319,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 
 		cookie, err := r.Cookie(sessionCookieName)
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("/_smallweb/auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 			return
 		}
 
@@ -332,7 +332,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				Secure:   true,
 			})
 
-			http.Redirect(w, r, fmt.Sprintf("/_smallweb/auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 			return
 		}
 
@@ -349,7 +349,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				Secure:   true,
 			})
 
-			http.Redirect(w, r, fmt.Sprintf("/_smallweb/auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 			return
 		}
 
@@ -473,6 +473,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					var appDir string
 					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", domain)) {
 						appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
+						if r.URL.Path == "/_edit" {
+							http.Redirect(w, r, fmt.Sprintf("https://cli.%s/edit/%s", domain, appname), http.StatusSeeOther)
+							return
+						}
+
 						appDir = filepath.Join(rootDir, appname)
 						if !utils.FileExists(appDir) {
 							w.WriteHeader(http.StatusNotFound)
@@ -492,6 +497,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 							if r.Host != string(cnameBytes) {
 								continue
+							}
+
+							if r.URL.Path == "/_edit" {
+								http.Redirect(w, r, fmt.Sprintf("https://cli.%s/edit/%s", domain, appname), http.StatusSeeOther)
+								return
 							}
 
 							appDir = filepath.Join(rootDir, appname)
@@ -533,7 +543,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						}
 					}
 
-					if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_smallweb/auth") {
+					if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
 						handler = authMiddleware.Wrap(handler, k.String("email"))
 					}
 
