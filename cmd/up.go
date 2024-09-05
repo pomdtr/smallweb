@@ -429,6 +429,12 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 							token = strings.Trim(strings.TrimPrefix(authorization, "Bearer "), " ")
 						}
 
+						if token == "" {
+							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+							http.Error(w, "Unauthorized", http.StatusUnauthorized)
+							return
+						}
+
 						public, secret, err := parseToken(token)
 						if err != nil {
 							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
@@ -450,7 +456,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						}
 
 						webdavHandler.ServeHTTP(w, r)
-
+						return
 					}
 
 					if r.Host == fmt.Sprintf("cli.%s", domain) {
