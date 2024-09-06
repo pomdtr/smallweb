@@ -422,7 +422,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					}
 
 					if r.Host == fmt.Sprintf("webdav.%s", domain) {
-						if r.Method == http.MethodGet {
+						if r.Method == http.MethodGet && r.URL.Path == "/" {
 							http.Redirect(w, r, "https://links.smallweb.run/webdav", http.StatusSeeOther)
 							return
 						}
