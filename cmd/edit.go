@@ -32,7 +32,7 @@ func NewCmdEdit() *cobra.Command {
 				if appname == args[0] {
 					appDir := filepath.Join(rootDir, appname)
 
-					a, err := app.NewApp(appDir, fmt.Sprintf("%s.%s", appname, k.String("domain")), k.StringMap("env"))
+					a, err := app.NewApp(appDir, fmt.Sprintf("https://%s.%s/", appname, k.String("domain")), k.StringMap("env"))
 					if err != nil {
 						return fmt.Errorf("failed to load app: %v", err)
 					}

@@ -50,6 +50,10 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 			}
 
 			hash, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
+			if err != nil {
+				return fmt.Errorf("failed to hash secret: %v", err)
+			}
+
 			token := database.Token{
 				ID:          public,
 				Description: flags.description,

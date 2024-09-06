@@ -5,17 +5,20 @@ go 1.22.3
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/adrg/xdg v0.4.0
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cli/browser v1.3.0
 	github.com/cli/go-gh/v2 v2.9.0
 	github.com/creack/pty v1.1.23
 	github.com/gobwas/glob v0.2.3
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.5.1
+	github.com/hashicorp/yamux v0.1.1
 	github.com/joho/godotenv v1.5.1
 	github.com/knadh/koanf/providers/confmap v0.1.0
 	github.com/knadh/koanf/providers/env v0.1.0
 	github.com/knadh/koanf/providers/file v1.1.0
 	github.com/knadh/koanf/v2 v2.1.1
+	github.com/koding/logging v0.0.0-20160720134017-8b5a689ed69b
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/robfig/cron/v3 v3.0.1

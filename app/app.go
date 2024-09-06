@@ -52,10 +52,10 @@ type App struct {
 	cmd      *exec.Cmd
 }
 
-func NewApp(dir string, Domain string, env map[string]string) (*App, error) {
+func NewApp(dir string, location string, env map[string]string) (*App, error) {
 	worker := &App{
 		Dir:      dir,
-		Location: fmt.Sprintf("https://%s/", Domain),
+		Location: location,
 		Env:      env,
 	}
 
@@ -85,6 +85,7 @@ func (me *App) Flags(sandboxPath string) []string {
 		"--allow-net",
 		"--allow-env",
 		"--allow-sys",
+		"--unstable-kv",
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.Root(), me.Env["DENO_DIR"], sandboxPath),
 		fmt.Sprintf("--allow-write=%s", me.Root()),
 		fmt.Sprintf("--location=%s", me.Location),

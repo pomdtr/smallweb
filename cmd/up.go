@@ -471,8 +471,10 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					}
 
 					var appDir string
+					var location string
 					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", domain)) {
 						appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
+						location = fmt.Sprintf("https://%s.%s/", appname, domain)
 						if r.URL.Path == "/_edit" {
 							http.Redirect(w, r, fmt.Sprintf("https://cli.%s/edit/%s", domain, appname), http.StatusSeeOther)
 							return
@@ -505,6 +507,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 							}
 
 							appDir = filepath.Join(rootDir, appname)
+							location = fmt.Sprintf("https://%s.localhost/", appname)
 						}
 
 						if appDir == "" {
@@ -514,7 +517,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						}
 					}
 
-					a, err := app.NewApp(appDir, r.Host, k.StringMap("env"))
+					a, err := app.NewApp(appDir, location, k.StringMap("env"))
 					if err != nil {
 						w.WriteHeader(http.StatusNotFound)
 						return
@@ -559,7 +562,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				apps := ListApps(rootDir)
 
 				for _, appname := range apps {
-					a, err := app.NewApp(appname, fmt.Sprintf("%s.%s", appname, domain), k.StringMap("env"))
+					a, err := app.NewApp(appname, fmt.Sprintf("https://%s.%s/", appname, domain), k.StringMap("env"))
 					if err != nil {
 						fmt.Println(err)
 						continue
