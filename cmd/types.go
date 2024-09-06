@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//go:embed embed/types.d.ts
+//go:embed embed/template/smallweb.d.ts
 var typesBytes []byte
 
 func NewCmdTypes() *cobra.Command {
