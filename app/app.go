@@ -86,6 +86,7 @@ func (me *App) Flags(sandboxPath string) []string {
 		"--allow-env",
 		"--allow-sys",
 		"--unstable-kv",
+		"--no-prompt",
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.Root(), me.Env["DENO_DIR"], sandboxPath),
 		fmt.Sprintf("--allow-write=%s", me.Root()),
 		fmt.Sprintf("--location=%s", me.Location),
