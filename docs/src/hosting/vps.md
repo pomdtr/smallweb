@@ -6,15 +6,12 @@ These steps will also work on other distributions, but you may need to adjust th
 
 ```bash
 # create user with homedir and default shell
-useradd -m -s $(which bash) smallweb
-
-# fix home directory permissions
-chown smallweb:smallweb /home/smallweb
+useradd --system --user-group --create-home --shell $(which bash) smallweb
 
 # set a password for the smallweb user
 passwd smallweb
 
-# give the user sudo access
+# give the user sudo access (optional)
 usermod -aG sudo smallweb
 
 # allow the user to use systemd
