@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -596,20 +595,8 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					return fmt.Errorf("TLS key file is required")
 				}
 
-				certificate, err := tls.LoadX509KeyPair(cert, key)
-				if err != nil {
-					return fmt.Errorf("failed to load TLS certificate and key: %w", err)
-				}
-
-				tlsConfig := &tls.Config{
-					Certificates: []tls.Certificate{certificate},
-					MinVersion:   tls.VersionTLS12,
-				}
-
-				server.TLSConfig = tlsConfig
-
 				cmd.Printf("Serving %s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
-				return server.ListenAndServeTLS(cert, key)
+				return server.ListenAndServeTLS(utils.ExpandTilde(cert), utils.ExpandTilde(key))
 			}
 
 			cmd.Printf("Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
