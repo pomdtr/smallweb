@@ -38,7 +38,7 @@ func findEditor() string {
 		return env
 	}
 
-	return "vim"
+	return "vim -Z"
 }
 
 func NewCmdConfig() *cobra.Command {
