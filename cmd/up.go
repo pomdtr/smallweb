@@ -502,14 +502,14 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
 						location = fmt.Sprintf("https://%s.%s/", appname, domain)
 						if strings.HasPrefix(r.URL.Path, "/_edit") {
-							pathname := strings.Replace(r.URL.Path, "_edit", appname, 1)
-							http.Redirect(w, r, fmt.Sprintf("https://editor.%s%s", domain, pathname), http.StatusSeeOther)
+							path := strings.Replace(r.URL.String(), "_edit", appname, 1)
+							http.Redirect(w, r, fmt.Sprintf("https://editor.%s%s", domain, path), http.StatusSeeOther)
 							return
 						}
 
 						if strings.HasPrefix(r.URL.Path, "/_run") {
-							pathname := strings.Replace(r.URL.Path, "_run", appname, 1)
-							http.Redirect(w, r, fmt.Sprintf("https://cli.%s%s", domain, pathname), http.StatusSeeOther)
+							path := strings.Replace(r.URL.String(), "_run", appname, 1)
+							http.Redirect(w, r, fmt.Sprintf("https://cli.%s%s", domain, path), http.StatusSeeOther)
 							return
 						}
 
