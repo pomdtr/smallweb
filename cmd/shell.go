@@ -20,7 +20,7 @@ func NewCmdShell() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			shell := ishell.NewWithConfig(&readline.Config{
-				Prompt: "$ ",
+				Prompt: "\033[32m$\033[0m ",
 			})
 
 			for _, appname := range ListApps(rootDir) {
@@ -43,6 +43,7 @@ func NewCmdShell() *cobra.Command {
 							}
 
 							c.Print(err.Error())
+							c.Err(err)
 							return
 						}
 
