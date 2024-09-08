@@ -1,5 +1,8 @@
 {
     "deno.enable": true,
+    "deno.disablePaths": [
+        "term"
+    ],
     "search.exclude": {
         "docs/book": true,
     }

@@ -22,6 +22,7 @@ const webLinksAddon = new WebLinksAddon(
     // check if cmd key is pressed
     if (event.metaKey || event.ctrlKey) {
       window.open(uri, "_blank");
+      return;
     }
 
     window.open(uri, "_self");
