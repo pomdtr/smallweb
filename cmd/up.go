@@ -499,7 +499,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						}
 
 						if strings.HasPrefix(r.URL.Path, "/_run") {
-							pathname := strings.Replace(r.URL.Path, "_urn", appname, 1)
+							pathname := strings.Replace(r.URL.Path, "_run", appname, 1)
 							http.Redirect(w, r, fmt.Sprintf("https://cli.%s%s", domain, pathname), http.StatusSeeOther)
 							return
 						}
