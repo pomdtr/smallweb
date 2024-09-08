@@ -32,6 +32,7 @@ func NewCmdShell() *cobra.Command {
 							c.Println(err)
 							return
 						}
+						a.Env["FORCE_COLOR"] = "1"
 
 						output, err := a.Output(c.Args...)
 						if err != nil {

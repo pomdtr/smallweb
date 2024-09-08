@@ -53,6 +53,10 @@ type App struct {
 }
 
 func NewApp(dir string, location string, env map[string]string) (*App, error) {
+	if env == nil {
+		env = map[string]string{}
+	}
+
 	worker := &App{
 		Dir:      dir,
 		Location: location,
@@ -496,11 +500,9 @@ func (me *App) Run(args ...string) error {
 
 	cmd := exec.Command(deno, denoArgs...)
 	cmd.Dir = me.Root()
-	var env []string
 	for k, v := range me.Env {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
-	cmd.Env = env
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -541,11 +543,9 @@ func (me *App) Output(args ...string) ([]byte, error) {
 
 	cmd := exec.Command(deno, denoArgs...)
 	cmd.Dir = me.Root()
-	var env []string
 	for k, v := range me.Env {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
-	cmd.Env = env
 
 	return cmd.Output()
 }
