@@ -44,7 +44,7 @@ func NewCmdRun() *cobra.Command {
 				}
 
 				cmd.SilenceErrors = true
-				return worker.Run(args[1:])
+				return worker.Run(args[1:]...)
 			}
 
 			return fmt.Errorf("app not found: %s", args[0])

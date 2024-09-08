@@ -463,7 +463,11 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-func (me *App) Run(args []string) error {
+func (me *App) Run(args ...string) error {
+	if args == nil {
+		args = []string{}
+	}
+
 	tempfile, err := os.CreateTemp("", "sandbox-*.ts")
 	if err != nil {
 		return fmt.Errorf("could not create temporary file: %w", err)
@@ -502,6 +506,48 @@ func (me *App) Run(args []string) error {
 	cmd.Stderr = os.Stderr
 
 	return cmd.Run()
+}
+
+func (me *App) Output(args ...string) ([]byte, error) {
+	if args == nil {
+		args = []string{}
+	}
+
+	tempfile, err := os.CreateTemp("", "sandbox-*.ts")
+	if err != nil {
+		return nil, fmt.Errorf("could not create temporary file: %w", err)
+	}
+	defer os.Remove(tempfile.Name())
+	if _, err := tempfile.Write(sandboxBytes); err != nil {
+		return nil, err
+	}
+
+	denoArgs := []string{"run"}
+	denoArgs = append(denoArgs, me.Flags(tempfile.Name())...)
+
+	input := strings.Builder{}
+	encoder := json.NewEncoder(&input)
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(map[string]any{
+		"command":    "run",
+		"entrypoint": me.Entrypoint(),
+		"args":       args,
+	})
+	denoArgs = append(denoArgs, tempfile.Name(), input.String())
+	deno, err := DenoExecutable()
+	if err != nil {
+		return nil, fmt.Errorf("could not find deno executable")
+	}
+
+	cmd := exec.Command(deno, denoArgs...)
+	cmd.Dir = me.Root()
+	var env []string
+	for k, v := range me.Env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+	cmd.Env = env
+
+	return cmd.Output()
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.

@@ -197,7 +197,7 @@ func NewCmdCronTrigger() *cobra.Command {
 						return fmt.Errorf("could not create worker")
 					}
 
-					return w.Run(cron.Args)
+					return w.Run(cron.Args...)
 				}
 
 				return fmt.Errorf("could not find job")

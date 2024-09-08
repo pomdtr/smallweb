@@ -171,6 +171,7 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdUp(db))
 	cmd.AddCommand(NewCmdEdit())
 	cmd.AddCommand(NewCmdRun())
+	cmd.AddCommand(NewCmdShell())
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdOpen())

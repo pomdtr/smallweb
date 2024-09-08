@@ -398,8 +398,12 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				return fmt.Errorf("failed to get executable path: %w", err)
 			}
 
+			shellHandler, err := term.NewHandler(execPath, "shell")
+			if err != nil {
+				return fmt.Errorf("failed to create shell handler: %w", err)
+			}
+
 			cliHandler, err := term.NewHandler(execPath, "run")
-			cliHandler.Dir = rootDir
 			if err != nil {
 				return fmt.Errorf("failed to create cli handler: %w", err)
 			}
@@ -476,6 +480,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					}
 
 					if r.Host == fmt.Sprintf("cli.%s", domain) {
+						if r.URL.Path == "/" {
+							handler := authMiddleware.Wrap(shellHandler, k.String("email"))
+							handler.ServeHTTP(w, r)
+							return
+						}
 						handler := authMiddleware.Wrap(cliHandler, k.String("email"))
 						handler.ServeHTTP(w, r)
 						return
@@ -598,7 +607,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 							continue
 						}
 
-						go a.Run(job.Args)
+						go a.Run(job.Args...)
 					}
 
 				}
