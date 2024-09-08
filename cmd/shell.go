@@ -24,7 +24,7 @@ func NewCmdShell() *cobra.Command {
 			})
 
 			shell.AddCmd(&ishell.Cmd{
-				Name: k.String("domain"),
+				Name: fmt.Sprintf("cli.%s", k.String("domain")),
 				Func: func(c *ishell.Context) {
 					execPath, err := os.Executable()
 					if err != nil {
