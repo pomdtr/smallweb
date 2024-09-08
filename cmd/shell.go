@@ -21,7 +21,7 @@ func NewCmdShell() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			shell := ishell.NewWithConfig(&readline.Config{
-				Prompt: fmt.Sprintf("\033[32m%s\033[0m $ ", k.String("domain")),
+				Prompt: "\033[32m$\033[0m ",
 			})
 
 			shell.AddCmd(&ishell.Cmd{
