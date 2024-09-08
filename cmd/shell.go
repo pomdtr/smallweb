@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -57,15 +56,7 @@ func NewCmdShell() *cobra.Command {
 
 						output, err := a.Output(c.Args...)
 						if err != nil {
-							var exitErr *exec.ExitError
-							if errors.As(err, &exitErr) {
-								c.Print(string(exitErr.Stderr))
-								return
-							}
-
-							c.Print(err.Error())
 							c.Err(err)
-							return
 						}
 
 						c.Print(string(output))
