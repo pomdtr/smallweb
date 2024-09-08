@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -21,6 +22,26 @@ func NewCmdShell() *cobra.Command {
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			shell := ishell.NewWithConfig(&readline.Config{
 				Prompt: fmt.Sprintf("\033[32m%s\033[0m $ ", k.String("domain")),
+			})
+
+			shell.AddCmd(&ishell.Cmd{
+				Name: k.String("domain"),
+				Func: func(c *ishell.Context) {
+					execPath, err := os.Executable()
+					if err != nil {
+						c.Println(err)
+						c.Err(err)
+						return
+					}
+
+					command := exec.Command(execPath, c.Args...)
+					output, err := command.CombinedOutput()
+					if err != nil {
+						c.Err(err)
+					}
+
+					c.Print(string(output))
+				},
 			})
 
 			for _, appname := range ListApps(rootDir) {

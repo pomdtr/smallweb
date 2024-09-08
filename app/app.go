@@ -547,7 +547,7 @@ func (me *App) Output(args ...string) ([]byte, error) {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	return cmd.Output()
+	return cmd.CombinedOutput()
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.
