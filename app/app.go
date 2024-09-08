@@ -84,7 +84,7 @@ func (me *App) Flags(sandboxPath string) []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-env",
-		"--allow-sys",
+		"--allow-sys=osRelease,homedir,cpus,hostname",
 		"--unstable-kv",
 		"--no-prompt",
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.Root(), me.Env["DENO_DIR"], sandboxPath),
@@ -188,6 +188,7 @@ func (me *App) LoadConfig() error {
 }
 
 func (me *App) LoadEnv() error {
+	me.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	me.Env["DENO_DIR"] = filepath.Join(os.Getenv("HOME"), ".cache", "smallweb", "deno")
 	if dotenvPath := filepath.Join(me.Dir, ".env"); utils.FileExists(dotenvPath) {
 		dotenv, err := godotenv.Read(dotenvPath)
