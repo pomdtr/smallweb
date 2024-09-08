@@ -21,7 +21,6 @@ func NewCmdEdit() *cobra.Command {
 		Use:     "edit <app>",
 		Short:   "Open an app in your editor",
 		GroupID: CoreGroupID,
-		Args:    cobra.ExactArgs(1),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			if len(args) == 0 {
@@ -31,6 +30,10 @@ func NewCmdEdit() *cobra.Command {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			for _, appname := range ListApps(rootDir) {
 				if appname == args[0] {

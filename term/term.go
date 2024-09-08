@@ -33,9 +33,10 @@ func StripAnsi(b []byte) []byte {
 }
 
 type Handler struct {
-	Dir    string
-	Editor string
-
+	Name       string
+	Args       []string
+	Dir        string
+	Env        []string
 	fileServer http.Handler
 	lock       sync.Mutex
 	ttys       map[string]*os.File
@@ -47,14 +48,15 @@ type ResizePayload struct {
 	Rows int    `json:"rows"`
 }
 
-func NewHandler(dir string, editor string) (*Handler, error) {
+func NewHandler(name string, args ...string) (*Handler, error) {
 	subFS, err := fs.Sub(embedFs, "frontend/dist")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get sub fs: %w", err)
 	}
 
 	return &Handler{
-		Dir:        dir,
+		Name:       name,
+		Args:       args,
 		fileServer: http.FileServer(http.FS(subFS)),
 		ttys:       make(map[string]*os.File),
 	}, nil
@@ -100,19 +102,15 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		defer r.Body.Close()
 
-		executable, err := os.Executable()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		args := extractArgs(r.URL)
-		cmd := exec.Command(executable, args...)
+		cmd := exec.Command(me.Name, me.Args...)
+		cmd.Args = append(cmd.Args, extractArgs(r.URL)...)
+		cmd.Stdin = r.Body
 		cmd.Dir = me.Dir
-		cmd.Env = os.Environ()
+		if cmd.Env == nil {
+			cmd.Env = os.Environ()
+		}
 		cmd.Env = append(cmd.Env, "NO_COLOR=1")
 		cmd.Env = append(cmd.Env, "CI=1")
-		cmd.Stdin = r.Body
 
 		output, err := cmd.Output()
 		if err != nil {
@@ -188,18 +186,14 @@ func (me *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	executable, err := os.Executable()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("failed to get executable: %s", err)))
-		return
-	}
-
-	args := extractArgs(r.URL)
-	cmd := exec.Command(executable, args...)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "TERM=xterm-256color")
+	cmd := exec.Command(me.Name, me.Args...)
+	cmd.Args = append(cmd.Args, extractArgs(r.URL)...)
 	cmd.Dir = me.Dir
+	cmd.Env = me.Env
+	if cmd.Env == nil {
+		cmd.Env = os.Environ()
+	}
+	cmd.Env = append(cmd.Env, "TERM=xterm-256color")
 
 	tty, err := pty.StartWithSize(cmd, &pty.Winsize{Cols: uint16(payload.Cols), Rows: uint16(payload.Rows)})
 	if err != nil {

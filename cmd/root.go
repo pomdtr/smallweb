@@ -89,9 +89,10 @@ func NewCmdRoot(version string) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:     "smallweb",
-		Short:   "Host websites from your internet folder",
-		Version: version,
+		Use:          "smallweb",
+		Short:        "Host websites from your internet folder",
+		Version:      version,
+		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			if !utils.FileExists(rootDir) {
@@ -161,7 +162,6 @@ func NewCmdRoot(version string) *cobra.Command {
 				cmd.PrintErrln("Run `smallweb upgrade` to upgrade to the latest version")
 			}
 		},
-		SilenceUsage: true,
 	}
 	cmd.AddGroup(&cobra.Group{
 		ID:    CoreGroupID,

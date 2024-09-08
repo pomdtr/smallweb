@@ -393,10 +393,22 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				}
 			}
 
-			cliHandler, err := term.NewHandler(rootDir, k.String("editor"))
+			execPath, err := os.Executable()
+			if err != nil {
+				return fmt.Errorf("failed to get executable path: %w", err)
+			}
+
+			cliHandler, err := term.NewHandler(execPath, "run")
+			cliHandler.Dir = rootDir
 			if err != nil {
 				return fmt.Errorf("failed to create cli handler: %w", err)
 			}
+
+			editorHandler, err := term.NewHandler(execPath, "edit")
+			if err != nil {
+				return fmt.Errorf("failed to create editor handler: %w", err)
+			}
+			editorHandler.Dir = rootDir
 
 			webdavHandler := &webdav.Handler{
 				FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
@@ -469,13 +481,26 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						return
 					}
 
+					if r.Host == fmt.Sprintf("editor.%s", domain) {
+						handler := authMiddleware.Wrap(editorHandler, k.String("email"))
+						handler.ServeHTTP(w, r)
+						return
+					}
+
 					var appDir string
 					var location string
 					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", domain)) {
 						appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
 						location = fmt.Sprintf("https://%s.%s/", appname, domain)
-						if r.URL.Path == "/_edit" {
-							http.Redirect(w, r, fmt.Sprintf("https://cli.%s/edit/%s", domain, appname), http.StatusSeeOther)
+						if strings.HasPrefix(r.URL.Path, "/_edit") {
+							pathname := strings.Replace(r.URL.Path, "_edit", appname, 1)
+							http.Redirect(w, r, fmt.Sprintf("https://editor.%s%s", domain, pathname), http.StatusSeeOther)
+							return
+						}
+
+						if strings.HasPrefix(r.URL.Path, "/_run") {
+							pathname := strings.Replace(r.URL.Path, "_urn", appname, 1)
+							http.Redirect(w, r, fmt.Sprintf("https://cli.%s%s", domain, pathname), http.StatusSeeOther)
 							return
 						}
 
@@ -498,11 +523,6 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 							if r.Host != string(cnameBytes) {
 								continue
-							}
-
-							if r.URL.Path == "/_edit" {
-								http.Redirect(w, r, fmt.Sprintf("https://cli.%s/edit/%s", domain, appname), http.StatusSeeOther)
-								return
 							}
 
 							appDir = filepath.Join(rootDir, appname)

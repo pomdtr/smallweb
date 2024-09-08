@@ -14,7 +14,6 @@ func NewCmdRun() *cobra.Command {
 		Use:                "run <app> [args...]",
 		Short:              "Run an app cli",
 		GroupID:            CoreGroupID,
-		Args:               cobra.MinimumNArgs(1),
 		DisableFlagParsing: true,
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			rootDir := utils.ExpandTilde(k.String("dir"))
@@ -25,6 +24,10 @@ func NewCmdRun() *cobra.Command {
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+
 			if args[0] == "-h" || args[0] == "--help" {
 				return cmd.Help()
 			}
