@@ -19,7 +19,9 @@ if (input.command === "serve") {
             try {
                 const mod = await import(entrypoint);
                 if (!mod.default || typeof mod.default !== "object") {
-                    console.error("Mod does not export a default object");
+                    console.error(
+                        "The app does not provides an object as it's default export.",
+                    );
                     Deno.exit(1);
                 }
 
@@ -27,7 +29,9 @@ if (input.command === "serve") {
                 if (
                     !("fetch" in handler) || typeof handler.fetch !== "function"
                 ) {
-                    console.error("Mod has no fetch function");
+                    console.error(
+                        "The app default export does not have a fetch function.",
+                    );
                     Deno.exit(1);
                 }
 
@@ -48,9 +52,12 @@ if (input.command === "serve") {
                     }),
                 );
                 if (!(resp instanceof Response)) {
-                    return new Response("Mod did not return a Response", {
-                        status: 500,
-                    });
+                    return new Response(
+                        "The app fetch function must return a Response object",
+                        {
+                            status: 500,
+                        },
+                    );
                 }
                 return resp;
             } catch (e) {
@@ -67,18 +74,20 @@ if (input.command === "serve") {
     const { entrypoint, args } = input;
     const mod = await import(entrypoint);
     if (!mod.default || typeof mod.default !== "object") {
-        console.error("Mod does not export a default object");
+        console.error(
+            "The mod does not provide an object as it's default export.",
+        );
         Deno.exit(1);
     }
 
     const handler = mod.default;
     if (!("run" in handler) || typeof handler.run !== "function") {
-        console.error("Mod has no run function");
+        console.error("The mod default export does not have a run function.");
         Deno.exit(1);
     }
 
     await handler.run(args);
 } else {
-    console.error("Invalid command");
+    console.error("Unknown command");
     Deno.exit(1);
 }
