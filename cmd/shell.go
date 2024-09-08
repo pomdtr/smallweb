@@ -25,7 +25,7 @@ func NewCmdShell() *cobra.Command {
 
 			for _, appname := range ListApps(rootDir) {
 				shell.AddCmd(&ishell.Cmd{
-					Name: appname,
+					Name: fmt.Sprintf("%s.%s", appname, k.String("domain")),
 					Func: func(c *ishell.Context) {
 						a, err := app.NewApp(filepath.Join(rootDir, appname), fmt.Sprintf("https://%s.%s/", appname, k.String("domain")), k.StringMap("env"))
 						if err != nil {
