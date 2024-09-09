@@ -99,7 +99,12 @@ func NewCmdRoot(version string) *cobra.Command {
 			shell := ishell.NewWithConfig(&readline.Config{
 				Prompt: "\033[32m$\033[0m ",
 			})
+			cacheDir := filepath.Join(xdg.DataHome, "smallweb", "history")
+			if err := os.MkdirAll(cacheDir, 0755); err != nil {
+				return fmt.Errorf("failed to create history directory: %w", err)
+			}
 
+			shell.SetHistoryPath(filepath.Join(cacheDir, "history"))
 			for _, subcommand := range cmd.Commands() {
 				if subcommand.GroupID == "" {
 					continue
@@ -281,6 +286,7 @@ func NewCmdRoot(version string) *cobra.Command {
 			Short:              fmt.Sprintf("Extension %s", name),
 			GroupID:            ExtensionGroupID,
 			DisableFlagParsing: true,
+			SilenceErrors:      true,
 			RunE: func(cmd *cobra.Command, args []string) error {
 				command := exec.Command(entrypoint, args...)
 				command.Stdin = os.Stdin
