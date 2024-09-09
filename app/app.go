@@ -234,7 +234,7 @@ func (me *App) Entrypoint() string {
 		}
 	}
 
-	return "jsr:@smallweb/file-server"
+	return "jsr:@smallweb/file-server@0.1.1"
 }
 
 //go:embed sandbox.ts
