@@ -468,7 +468,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						return
 					}
 
-					if r.Host == fmt.Sprintf("shell.%s", domain) {
+					if r.Host == fmt.Sprintf("cli.%s", domain) {
 						handler := authMiddleware.Wrap(cliHandler, k.String("email"))
 						handler.ServeHTTP(w, r)
 						return
