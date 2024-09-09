@@ -101,6 +101,10 @@ func NewCmdRoot(version string) *cobra.Command {
 			})
 
 			for _, subcommand := range cmd.Commands() {
+				if subcommand.GroupID == "" {
+					continue
+				}
+
 				shell.AddCmd(&ishell.Cmd{
 					Name:     subcommand.Name(),
 					Aliases:  subcommand.Aliases,
