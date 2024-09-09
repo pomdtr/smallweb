@@ -243,8 +243,9 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdToken(db))
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   "changelog",
-		Short: "Show the changelog",
+		Use:     "changelog",
+		GroupID: CoreGroupID,
+		Short:   "Show the changelog",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out, err := glamour.Render(changelog, "dark")
 			if err != nil {
