@@ -12,9 +12,6 @@ const terminal = new Terminal({
   macOptionClickForcesSelection: true,
   fontSize: 13,
   fontFamily: "Consolas,Liberation Mono,Menlo,Courier,monospace",
-  // theme: window.matchMedia("(prefers-color-scheme: dark)").matches
-  //   ? darkTheme
-  //   : lightTheme,
 });
 
 const webLinksAddon = new WebLinksAddon(
@@ -37,7 +34,6 @@ terminal.loadAddon(fitAddon);
 
 terminal.open(document.getElementById("terminal")!);
 fitAddon.fit();
-
 document.title = "Smalleb - Terminal";
 const terminalID = nanoid();
 
@@ -82,12 +78,6 @@ terminal.onResize((size) => {
 
 const attachAddon = new AttachAddon(ws);
 terminal.loadAddon(attachAddon);
-
-window
-  .matchMedia("(prefers-color-scheme: dark)")
-  .addEventListener("change", function () {
-    // terminal.options.theme = e.matches ? darkTheme : lightTheme;
-  });
 
 ws.onclose = () => {
   attachAddon.dispose();
