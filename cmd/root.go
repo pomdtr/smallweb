@@ -12,6 +12,7 @@ import (
 	"github.com/abiosoft/ishell/v2"
 	"github.com/abiosoft/readline"
 	"github.com/adrg/xdg"
+	"github.com/charmbracelet/glamour"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -32,7 +33,7 @@ var (
 	k                 = koanf.New(".")
 )
 
-func NewCmdRoot(version string) *cobra.Command {
+func NewCmdRoot(version string, changelog string) *cobra.Command {
 	dataHome := filepath.Join(xdg.DataHome, "smallweb")
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
 		fmt.Println("failed to create data directory:", err)
@@ -221,6 +222,7 @@ func NewCmdRoot(version string) *cobra.Command {
 			}
 		},
 	}
+
 	cmd.AddGroup(&cobra.Group{
 		ID:    CoreGroupID,
 		Title: "Core Commands",
@@ -239,6 +241,20 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdVersion())
 	cmd.AddCommand(NewCmdInit())
 	cmd.AddCommand(NewCmdToken(db))
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "changelog",
+		Short: "Show the changelog",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out, err := glamour.Render(changelog, "dark")
+			if err != nil {
+				return fmt.Errorf("failed to render changelog: %w", err)
+			}
+
+			fmt.Println(out)
+			return nil
+		},
+	})
 
 	var extensions []string
 	path := os.Getenv("PATH")
