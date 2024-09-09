@@ -36,7 +36,7 @@ type CronItem struct {
 func ListCronItems(appname string) ([]CronItem, error) {
 	rootDir := utils.ExpandTilde(k.String("dir"))
 	appDir := filepath.Join(rootDir, appname)
-	wk, err := app.NewApp(appDir, fmt.Sprintf("https://%s.%s/", appname, k.String("domain")), k.StringMap("env"))
+	wk, err := app.NewApp(appDir, fmt.Sprintf("%s.%s", appname, k.String("domain")), k.StringMap("env"))
 	if err != nil {
 		return nil, fmt.Errorf("could not create worker: %w", err)
 	}
@@ -192,7 +192,7 @@ func NewCmdCronTrigger() *cobra.Command {
 						continue
 					}
 
-					w, err := app.NewApp(filepath.Join(rootDir, a), fmt.Sprintf("https://%s.%s/", cron.App, k.String("domain")), k.StringMap("env"))
+					w, err := app.NewApp(filepath.Join(rootDir, a), fmt.Sprintf("%s.%s", cron.App, k.String("domain")), k.StringMap("env"))
 					if err != nil {
 						return fmt.Errorf("could not create worker")
 					}

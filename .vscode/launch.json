@@ -14,10 +14,7 @@
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "args": [
-                "run",
-                "tldraw"
-            ]
+            "console": "integratedTerminal"
         }
     ],
     "inputs": [

@@ -398,21 +398,10 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				return fmt.Errorf("failed to get executable path: %w", err)
 			}
 
-			shellHandler, err := term.NewHandler(execPath, "shell")
+			cliHandler, err := term.NewHandler(execPath)
 			if err != nil {
 				return fmt.Errorf("failed to create shell handler: %w", err)
 			}
-
-			cliHandler, err := term.NewHandler(execPath, "run")
-			if err != nil {
-				return fmt.Errorf("failed to create cli handler: %w", err)
-			}
-
-			editorHandler, err := term.NewHandler(execPath, "edit")
-			if err != nil {
-				return fmt.Errorf("failed to create editor handler: %w", err)
-			}
-			editorHandler.Dir = rootDir
 
 			webdavHandler := &webdav.Handler{
 				FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
@@ -479,73 +468,34 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						return
 					}
 
-					if r.Host == fmt.Sprintf("cli.%s", domain) {
-						if r.URL.Path == "/" {
-							handler := authMiddleware.Wrap(shellHandler, k.String("email"))
-							handler.ServeHTTP(w, r)
-							return
-						}
+					if r.Host == fmt.Sprintf("shell.%s", domain) {
 						handler := authMiddleware.Wrap(cliHandler, k.String("email"))
 						handler.ServeHTTP(w, r)
 						return
 					}
 
-					if r.Host == fmt.Sprintf("editor.%s", domain) {
-						handler := authMiddleware.Wrap(editorHandler, k.String("email"))
-						handler.ServeHTTP(w, r)
+					appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
+					if strings.HasPrefix(r.URL.Path, "/_edit") {
+						path := strings.Replace(r.URL.String(), "_edit", appname, 1)
+						http.Redirect(w, r, fmt.Sprintf("https://editor.%s%s", domain, path), http.StatusSeeOther)
 						return
 					}
 
-					var appDir string
-					var location string
-					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", domain)) {
-						appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
-						location = fmt.Sprintf("https://%s.%s/", appname, domain)
-						if strings.HasPrefix(r.URL.Path, "/_edit") {
-							path := strings.Replace(r.URL.String(), "_edit", appname, 1)
-							http.Redirect(w, r, fmt.Sprintf("https://editor.%s%s", domain, path), http.StatusSeeOther)
-							return
-						}
+					if strings.HasPrefix(r.URL.Path, "/_run") {
+						// TODO: change this
 
-						if strings.HasPrefix(r.URL.Path, "/_run") {
-							path := strings.Replace(r.URL.String(), "_run", appname, 1)
-							http.Redirect(w, r, fmt.Sprintf("https://cli.%s%s", domain, path), http.StatusSeeOther)
-							return
-						}
-
-						appDir = filepath.Join(rootDir, appname)
-						if !utils.FileExists(appDir) {
-							w.WriteHeader(http.StatusNotFound)
-							return
-						}
-					} else {
-						for _, appname := range ListApps(rootDir) {
-							cnamePath := filepath.Join(rootDir, appname, "CNAME")
-							if !utils.FileExists("CNAME") {
-								continue
-							}
-
-							cnameBytes, err := os.ReadFile(cnamePath)
-							if err != nil {
-								continue
-							}
-
-							if r.Host != string(cnameBytes) {
-								continue
-							}
-
-							appDir = filepath.Join(rootDir, appname)
-							location = fmt.Sprintf("https://%s.localhost/", appname)
-						}
-
-						if appDir == "" {
-							log.Printf("App not found for %s", r.Host)
-							w.WriteHeader(http.StatusNotFound)
-							return
-						}
+						path := strings.Replace(r.URL.String(), "_run", appname, 1)
+						http.Redirect(w, r, fmt.Sprintf("https://cli.%s%s", domain, path), http.StatusSeeOther)
+						return
 					}
 
-					a, err := app.NewApp(appDir, location, k.StringMap("env"))
+					appDir := filepath.Join(rootDir, appname)
+					if !utils.FileExists(appDir) {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					a, err := app.NewApp(appDir, r.Host, k.StringMap("env"))
 					if err != nil {
 						w.WriteHeader(http.StatusNotFound)
 						return

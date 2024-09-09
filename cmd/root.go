@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
+	"github.com/abiosoft/ishell/v2"
+	"github.com/abiosoft/readline"
 	"github.com/adrg/xdg"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
@@ -93,6 +95,53 @@ func NewCmdRoot(version string) *cobra.Command {
 		Short:        "Host websites from your internet folder",
 		Version:      version,
 		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			shell := ishell.NewWithConfig(&readline.Config{
+				Prompt: "\033[32m$\033[0m ",
+			})
+
+			for _, subcommand := range cmd.Commands() {
+				shell.AddCmd(&ishell.Cmd{
+					Name:     subcommand.Name(),
+					Aliases:  subcommand.Aliases,
+					Help:     subcommand.Short,
+					LongHelp: subcommand.Long,
+					CompleterWithPrefix: func(prefix string, args []string) []string {
+						if subcommand.ValidArgsFunction != nil {
+							completions, _ := subcommand.ValidArgsFunction(subcommand, args, prefix)
+							return completions
+						}
+
+						if subcommand.ValidArgs != nil {
+							return subcommand.ValidArgs
+						}
+
+						return nil
+					},
+					Func: func(c *ishell.Context) {
+						executable, err := os.Executable()
+						if err != nil {
+							c.Err(err)
+							return
+						}
+
+						args := []string{subcommand.Name()}
+						args = append(args, c.Args...)
+						cmd := exec.Command(executable, args...)
+						cmd.Stdin = os.Stdin
+						cmd.Stdout = os.Stdout
+						cmd.Stderr = os.Stderr
+
+						if err := cmd.Run(); err != nil {
+							c.Err(err)
+						}
+					},
+				})
+			}
+
+			shell.Run()
+			return nil
+		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			if !utils.FileExists(rootDir) {
@@ -171,7 +220,6 @@ func NewCmdRoot(version string) *cobra.Command {
 	cmd.AddCommand(NewCmdUp(db))
 	cmd.AddCommand(NewCmdEdit())
 	cmd.AddCommand(NewCmdRun())
-	cmd.AddCommand(NewCmdShell())
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdOpen())

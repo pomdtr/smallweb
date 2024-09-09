@@ -44,23 +44,23 @@ type CronJobRequest struct {
 }
 
 type App struct {
-	Config   AppConfig
-	Dir      string
-	Location string
-	Env      map[string]string
-	port     int
-	cmd      *exec.Cmd
+	Config AppConfig
+	Dir    string
+	Domain string
+	Env    map[string]string
+	port   int
+	cmd    *exec.Cmd
 }
 
-func NewApp(dir string, location string, env map[string]string) (*App, error) {
+func NewApp(dir string, domain string, env map[string]string) (*App, error) {
 	if env == nil {
 		env = map[string]string{}
 	}
 
 	worker := &App{
-		Dir:      dir,
-		Location: location,
-		Env:      env,
+		Dir:    dir,
+		Domain: domain,
+		Env:    env,
 	}
 
 	if err := worker.LoadConfig(); err != nil {
@@ -94,7 +94,7 @@ func (me *App) Flags(sandboxPath string) []string {
 		"--quiet",
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.Root(), me.Env["DENO_DIR"], sandboxPath),
 		fmt.Sprintf("--allow-write=%s", me.Root()),
-		fmt.Sprintf("--location=%s", me.Location),
+		fmt.Sprintf("--location=https://%s/", me.Domain),
 	}
 
 	if configPath := filepath.Join(me.Dir, "deno.json"); utils.FileExists(configPath) {

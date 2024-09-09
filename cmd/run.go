@@ -38,7 +38,7 @@ func NewCmdRun() *cobra.Command {
 					continue
 				}
 
-				worker, err := app.NewApp(filepath.Join(rootDir, args[0]), fmt.Sprintf("https://%s.%s/", appname, k.String("domain")), k.StringMap("env"))
+				worker, err := app.NewApp(filepath.Join(rootDir, args[0]), fmt.Sprintf("%s.%s", appname, k.String("domain")), k.StringMap("env"))
 				if err != nil {
 					return fmt.Errorf("could not create worker: %w", err)
 				}
