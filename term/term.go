@@ -21,7 +21,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//go:embed frontend/dist
+//go:embed dist
 var embedFs embed.FS
 
 const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
@@ -194,7 +194,6 @@ func (me *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		cmd.Env = os.Environ()
 	}
 	cmd.Env = append(cmd.Env, "TERM=xterm-256color")
-
 	tty, err := pty.StartWithSize(cmd, &pty.Winsize{Cols: uint16(payload.Cols), Rows: uint16(payload.Rows)})
 	if err != nil {
 		log.Printf("failed to start pty: %s", err)
@@ -202,6 +201,29 @@ func (me *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprintf("failed to start pty: %s", err)))
 		return
 	}
+
+	defer func() {
+		if err := tty.Close(); err != nil {
+			log.Printf("failed to close tty: %s", err)
+		}
+
+		done := make(chan error, 1)
+		go func() {
+			done <- cmd.Wait()
+		}()
+
+		select {
+		case <-time.After(5 * time.Second):
+			if err := cmd.Process.Kill(); err != nil {
+				log.Printf("failed to kill command: %s", err)
+			}
+			log.Println("command timed out")
+		case err := <-done:
+			if err != nil {
+				log.Printf("failed to wait for command: %s", err)
+			}
+		}
+	}()
 
 	me.lock.Lock()
 	me.ttys[payload.ID] = tty
