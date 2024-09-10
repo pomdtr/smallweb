@@ -78,7 +78,7 @@ func StopService() error {
 }
 
 func RestartService() error {
-	return fmt.Errorf("`smallweb service start restart` is not supported on macOS")
+	return fmt.Errorf("`smallweb service restart` is not supported on macOS")
 }
 
 func UninstallService() error {

@@ -92,8 +92,8 @@ func (me *App) Flags(sandboxPath string) []string {
 		"--unstable-kv",
 		"--no-prompt",
 		"--quiet",
-		fmt.Sprintf("--allow-read=%s,%s,%s", me.Root(), me.Env["DENO_DIR"], sandboxPath),
-		fmt.Sprintf("--allow-write=%s", me.Root()),
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.Root(), me.Env["DENO_DIR"], me.Env["TMPDIR"], sandboxPath),
+		fmt.Sprintf("--allow-write=%s,%s", me.Root(), me.Env["TMPDIR"]),
 		fmt.Sprintf("--location=https://%s/", me.Domain),
 	}
 
@@ -195,6 +195,13 @@ func (me *App) LoadConfig() error {
 func (me *App) LoadEnv() error {
 	me.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	me.Env["DENO_DIR"] = filepath.Join(os.Getenv("HOME"), ".cache", "smallweb", "deno")
+
+	tmpdir, err := os.MkdirTemp("", fmt.Sprintf("smallweb-%s-*", me.Domain))
+	if err != nil {
+		return fmt.Errorf("could not create temporary directory: %v", err)
+	}
+	me.Env["TMPDIR"] = tmpdir
+
 	if dotenvPath := filepath.Join(me.Dir, ".env"); utils.FileExists(dotenvPath) {
 		dotenv, err := godotenv.Read(dotenvPath)
 		if err != nil {
@@ -313,6 +320,10 @@ func (me *App) Start() error {
 func (me *App) Stop() error {
 	if err := me.cmd.Process.Signal(os.Interrupt); err != nil {
 		log.Printf("Failed to send interrupt signal: %v", err)
+	}
+
+	if err := os.RemoveAll(me.Env["TMPDIR"]); err != nil {
+		log.Printf("Failed to remove temporary directory: %v", err)
 	}
 
 	done := make(chan error, 1)
