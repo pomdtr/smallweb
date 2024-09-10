@@ -14,7 +14,7 @@ func NewCmdOpen() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "open [app]",
 		Short: "Open an app in the browser",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			if len(args) > 0 {
