@@ -18,7 +18,7 @@
             "command": "npm run build",
             "problemMatcher": [],
             "options": {
-                "cwd": "${workspaceFolder}/term/frontend"
+                "cwd": "${workspaceFolder}/term"
             }
         }
     ]

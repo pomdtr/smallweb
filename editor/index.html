@@ -1,0 +1,50 @@
+<html>
+
+</html>
+
+<head>
+    <title>{{ .Title }}</title>
+    <script type="module" src="https://raw.esm.sh/code-mirror-web-component@0.0.20/dist/code-mirror.js"></script>
+    <script type="module">
+        const editor = document.getElementById("editor");
+        let current = editor.code;
+        let timeoutId;
+
+        document.getElementById("editor").addEventListener("code-change", async (e) => {
+            const code = e.detail.code;
+            updateTitle(code !== current);
+
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(async () => {
+                const resp = await fetch(window.location.href, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: e.detail.code
+                });
+                if (!resp.ok) {
+                    console.error("Failed to save code:", await resp.text());
+                }
+
+                current = e.detail.code;
+                updateTitle(false);
+            }, 1000);
+        });
+
+        function updateTitle(isDirty) {
+            if (isDirty) {
+                document.title = "{{ .Title }} •";
+            } else {
+                document.title = "{{ .Title }}";
+            }
+        }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body style="margin: 0px; height: 100vh;">
+    <code-mirror id="editor" language="{{ .Language }}" code="{{ .Code }}"></code-mirror>
+</body>
+
+</html>

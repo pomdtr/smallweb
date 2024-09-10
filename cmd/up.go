@@ -19,6 +19,7 @@ import (
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/database"
+	"github.com/pomdtr/smallweb/editor"
 	"github.com/pomdtr/smallweb/term"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/robfig/cron/v3"
@@ -403,6 +404,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				return fmt.Errorf("failed to create shell handler: %w", err)
 			}
 
+			editorHandler := editor.NewHandler(rootDir)
 			webdavHandler := &webdav.Handler{
 				FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
 				LockSystem: webdav.NewMemLS(),
@@ -474,12 +476,13 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						return
 					}
 
-					appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
-					if strings.HasPrefix(r.URL.Path, "/_edit") {
-						path := strings.Replace(r.URL.String(), "/_edit", "/edit/"+appname, 1)
-						http.Redirect(w, r, fmt.Sprintf("https://cli.%s%s", domain, path), http.StatusSeeOther)
+					if r.Host == fmt.Sprintf("editor.%s", domain) {
+						handler := authMiddleware.Wrap(editorHandler, k.String("email"))
+						handler.ServeHTTP(w, r)
 						return
 					}
+
+					appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
 
 					appDir := filepath.Join(rootDir, appname)
 					if !utils.FileExists(appDir) {
