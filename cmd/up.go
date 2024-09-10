@@ -100,8 +100,8 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 		oauth2Config := oauth2.Config{
 			ClientID: fmt.Sprintf("https://%s/", r.Host),
 			Endpoint: oauth2.Endpoint{
-				AuthURL:   "https://lastlogin.io/auth",
-				TokenURL:  "https://lastlogin.io/token",
+				AuthURL:   "https://lastlogin.net/auth",
+				TokenURL:  "https://lastlogin.net/token",
 				AuthStyle: oauth2.AuthStyleInParams,
 			},
 			Scopes:      []string{"email"},
@@ -229,7 +229,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				return
 			}
 
-			req, err := http.NewRequest("GET", "https://lastlogin.io/userinfo", nil)
+			req, err := http.NewRequest("GET", "https://lastlogin.net/userinfo", nil)
 			if err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
