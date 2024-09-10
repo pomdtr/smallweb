@@ -24,8 +24,16 @@ func NewCmdOpen() *cobra.Command {
 			return ListApps(rootDir), cobra.ShellCompDirectiveNoFileComp
 		},
 		GroupID: CoreGroupID,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Run: func(cmd *cobra.Command, args []string) {
 			rootDir := utils.ExpandTilde(k.String("dir"))
+
+			if args[0] == "cli" {
+				if err := browser.OpenURL(fmt.Sprintf("https://cli.%s/", k.String("domain"))); err != nil {
+					cmd.PrintErrf("failed to open browser: %v", err)
+					os.Exit(1)
+				}
+			}
+
 			for _, app := range ListApps(rootDir) {
 				if app != args[0] {
 					continue
@@ -34,25 +42,27 @@ func NewCmdOpen() *cobra.Command {
 				if cnamePath := filepath.Join(rootDir, app, "CNAME"); utils.FileExists(cnamePath) {
 					cname, err := os.ReadFile(cnamePath)
 					if err != nil {
-						return fmt.Errorf("failed to read CNAME file: %v", err)
+						cmd.PrintErrf("failed to read CNAME file: %v", err)
+						os.Exit(1)
 					}
 
 					url := fmt.Sprintf("https://%s/", string(cname))
 					if err := browser.OpenURL(url); err != nil {
-						return fmt.Errorf("failed to open browser: %v", err)
+						cmd.PrintErrf("failed to open browser: %v", err)
+						os.Exit(1)
 					}
-
-					return nil
 				}
 
 				url := fmt.Sprintf("https://%s.%s/", app, k.String("domain"))
 				if err := browser.OpenURL(url); err != nil {
-					return fmt.Errorf("failed to open browser: %v", err)
+					cmd.PrintErrf("failed to open browser: %v", err)
+					os.Exit(1)
 				}
-				return nil
+				return
 			}
 
-			return fmt.Errorf("app not found: %s", args[0])
+			cmd.PrintErrf("app not found: %s", args[0])
+			os.Exit(1)
 		},
 	}
 
