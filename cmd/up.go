@@ -98,17 +98,6 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		oauth2Config := oauth2.Config{
-			ClientID: fmt.Sprintf("https://%s/", r.Host),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:   "https://lastlogin.net/auth",
-				TokenURL:  "https://lastlogin.net/token",
-				AuthStyle: oauth2.AuthStyleInParams,
-			},
-			Scopes:      []string{"email"},
-			RedirectURL: fmt.Sprintf("https://%s/_auth/callback", r.Host),
-		}
-
 		username, _, ok := r.BasicAuth()
 		if ok {
 			public, secret, err := parseToken(username)
@@ -159,6 +148,23 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 
 			next.ServeHTTP(w, r)
 			return
+		}
+
+		if email == "" {
+			w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		oauth2Config := oauth2.Config{
+			ClientID: fmt.Sprintf("https://%s/", r.Host),
+			Endpoint: oauth2.Endpoint{
+				AuthURL:   "https://lastlogin.net/auth",
+				TokenURL:  "https://lastlogin.net/token",
+				AuthStyle: oauth2.AuthStyleInParams,
+			},
+			Scopes:      []string{"email"},
+			RedirectURL: fmt.Sprintf("https://%s/_auth/callback", r.Host),
 		}
 
 		if r.URL.Path == "/_auth/login" {
