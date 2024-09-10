@@ -49,7 +49,7 @@ type ResizePayload struct {
 }
 
 func NewHandler(name string, args ...string) (*Handler, error) {
-	subFS, err := fs.Sub(embedFs, "frontend/dist")
+	subFS, err := fs.Sub(embedFs, "dist")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get sub fs: %w", err)
 	}
