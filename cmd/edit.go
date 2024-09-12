@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/google/shlex"
 	"github.com/pomdtr/smallweb/app"
@@ -36,9 +35,14 @@ func NewCmdEdit() *cobra.Command {
 			if flags.file != "" {
 				file = filepath.Join(app.Dir, flags.file)
 			} else {
-				entrypoint := app.Config.Entrypoint
-				if strings.HasPrefix(entrypoint, "jsr:") || strings.HasPrefix(entrypoint, "npm:") || strings.HasPrefix(entrypoint, "smallweb:") {
-
+				if utils.FileExists(app.Entrypoint()) {
+					file = app.Entrypoint()
+				} else if utils.FileExists(filepath.Join(app.Root(), "index.html")) {
+					file = filepath.Join(app.Root(), "index.html")
+				} else if utils.FileExists(filepath.Join(app.Root(), "smallweb.json")) {
+					file = filepath.Join(app.Root(), "smallweb.json")
+				} else {
+					return NewExitError(1, "could not find a file to edit, please specify one with --file")
 				}
 			}
 
