@@ -21,7 +21,7 @@ type CronJob struct {
 
 type AppConfig struct {
 	Entrypoint    string    `json:"entrypoint"`
-	Root          string    `json:"dir"`
+	Root          string    `json:"root"`
 	Private       bool      `json:"private"`
 	PublicRoutes  []string  `json:"publicRoutes"`
 	PrivateRoutes []string  `json:"privateRoutes"`
