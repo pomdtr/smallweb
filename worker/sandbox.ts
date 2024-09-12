@@ -24,27 +24,23 @@ if (input.command === "fetch") {
                     Deno.exit(1);
                 }
 
-                let handler: (req: Request) => Response | Promise<Response>;
-                if (typeof mod.default === "object") {
-                    if (
-                        !("fetch" in mod.default) ||
-                        typeof mod.default.fetch !== "function"
-                    ) {
-                        console.error(
-                            "The app default export does not have a fetch function.",
-                        );
-                        Deno.exit(1);
-                    }
-
-                    handler = mod.default.fetch;
-                } else if (typeof mod.default === "function") {
-                    handler = mod.default;
-                } else {
+                if (typeof mod.default !== "object") {
                     console.error(
                         "The app default export must be either an object or a function.",
                     );
                     Deno.exit(1);
                 }
+                if (
+                    !("fetch" in mod.default) ||
+                    typeof mod.default.fetch !== "function"
+                ) {
+                    console.error(
+                        "The app default export does not have a fetch method.",
+                    );
+                    Deno.exit(1);
+                }
+
+                const handler = mod.default.fetch;
 
                 const headers = new Headers(req.headers);
                 const url = req.headers.get("x-smallweb-url");
