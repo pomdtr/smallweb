@@ -452,7 +452,15 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					case "smallweb:editor":
 						handler = editorHandler
 					case "smallweb:static":
-						handler = http.FileServer(http.Dir(a.Root()))
+						handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							w.Header().Set("Access-Control-Allow-Origin", "*")
+							w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+							w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+							if r.Method == "OPTIONS" {
+								return
+							}
+							http.FileServer(http.Dir(a.Root())).ServeHTTP(w, r)
+						})
 					default:
 						wk := worker.NewWorker(a, k.StringMap("env"))
 						if err := wk.StartServer(); err != nil {
