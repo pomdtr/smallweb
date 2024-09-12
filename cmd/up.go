@@ -20,6 +20,7 @@ import (
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/docs"
+	"github.com/pomdtr/smallweb/editor"
 	"github.com/pomdtr/smallweb/term"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -416,10 +417,14 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				return fmt.Errorf("failed to get executable path: %w", err)
 			}
 			cliHandler := term.NewHandler(executable)
-			editorHandler := term.NewHandler(executable, "edit")
 			docsHandler, err := docs.NewHandler()
 			if err != nil {
 				return fmt.Errorf("failed to create docs handler: %w", err)
+			}
+
+			editorHandler, err := editor.NewHandler()
+			if err != nil {
+				return fmt.Errorf("failed to create editor handler: %w", err)
 			}
 
 			authMiddleware := AuthMiddleware{db}

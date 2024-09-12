@@ -16,14 +16,14 @@ import (
 //go:embed embed/template/*
 var initTemplate embed.FS
 
-func NewCmdInit() *cobra.Command {
+func NewCmdCreate() *cobra.Command {
 	var flags struct {
 		template string
 	}
 	repoRegexp := regexp.MustCompile(`^[a-zA-Z0-9-]+/[a-zA-Z0-9_.-]+$`)
 
 	cmd := &cobra.Command{
-		Use:     "init <name>",
+		Use:     "create <app>",
 		Short:   "Init a new smallweb app",
 		GroupID: CoreGroupID,
 		Args:    cobra.ExactArgs(1),

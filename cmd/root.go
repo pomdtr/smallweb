@@ -6,10 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/Masterminds/semver"
-	"github.com/abiosoft/ishell/v2"
+	"github.com/abiosoft/ishell"
 	"github.com/abiosoft/readline"
 	"github.com/adrg/xdg"
 	"github.com/charmbracelet/glamour"
@@ -18,6 +16,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 
+	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
@@ -29,8 +28,7 @@ const (
 )
 
 var (
-	cachedUpgradePath = filepath.Join(xdg.CacheHome, "smallweb", "latest_version")
-	k                 = koanf.New(".")
+	k = koanf.New(".")
 )
 
 type ExitError struct {
@@ -111,6 +109,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			rootDir := utils.ExpandTilde(k.String("dir"))
 			shell := ishell.NewWithConfig(&readline.Config{
 				Prompt: "\033[32m$\033[0m ",
 			})
@@ -119,29 +118,20 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 				return fmt.Errorf("failed to create history directory: %w", err)
 			}
 
-			shell.SetHistoryPath(filepath.Join(cacheDir, "history"))
-			for _, subcommand := range cmd.Commands() {
-				if subcommand.GroupID == "" {
+			apps, err := app.ListApps(rootDir)
+			if err != nil {
+				return fmt.Errorf("failed to list apps: %w", err)
+			}
+
+			for _, name := range apps {
+				a, err := app.LoadApp(filepath.Join(rootDir, name))
+				if err != nil {
+					shell.Println("failed to load app:", err)
 					continue
 				}
 
 				shell.AddCmd(&ishell.Cmd{
-					Name:     subcommand.Name(),
-					Aliases:  subcommand.Aliases,
-					Help:     subcommand.Short,
-					LongHelp: subcommand.Long,
-					CompleterWithPrefix: func(prefix string, args []string) []string {
-						if subcommand.ValidArgsFunction != nil {
-							completions, _ := subcommand.ValidArgsFunction(subcommand, args, prefix)
-							return completions
-						}
-
-						if subcommand.ValidArgs != nil {
-							return subcommand.ValidArgs
-						}
-
-						return nil
-					},
+					Name: a.Name(),
 					Func: func(c *ishell.Context) {
 						executable, err := os.Executable()
 						if err != nil {
@@ -149,9 +139,10 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 							return
 						}
 
-						args := []string{subcommand.Name()}
-						args = append(args, c.Args...)
-						cmd := exec.Command(executable, args...)
+						cmd := exec.Command(executable, "run", a.Name())
+						cmd.Env = os.Environ()
+						cmd.Env = append(cmd.Env, "SMALLWEB=1")
+						cmd.Args = append(cmd.Args, c.Args...)
 						cmd.Stdin = os.Stdin
 						cmd.Stdout = os.Stdout
 						cmd.Stderr = os.Stderr
@@ -163,78 +154,16 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 				})
 			}
 
+			shell.SetHistoryPath(filepath.Join(cacheDir, "history"))
+
 			shell.Run()
 			return nil
 		},
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
-			if !utils.FileExists(rootDir) {
-				if err := os.MkdirAll(rootDir, 0755); err != nil {
-					return fmt.Errorf("failed to create root directory: %w", err)
-				}
-			}
+	}
 
-			if version == "dev" {
-				return nil
-			}
-
-			if stat, err := os.Stat(cachedUpgradePath); err == nil && stat.ModTime().Add(24*time.Hour).After(time.Now()) {
-				return nil
-			}
-
-			v, err := fetchLatestVersion()
-			if err != nil {
-				cmd.PrintErrln("failed to get version information:", err)
-				return nil
-			}
-
-			if err := os.MkdirAll(filepath.Dir(cachedUpgradePath), 0755); err != nil {
-				cmd.PrintErrln("failed to create upgrade cache directory:", err)
-				return nil
-			}
-
-			if err := os.WriteFile(cachedUpgradePath, []byte(v.String()), 0644); err != nil {
-				cmd.PrintErrln("failed to write upgrade cache:", err)
-				return nil
-			}
-
-			return nil
-		},
-		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			if version == "dev" {
-				return
-			}
-
-			current, err := semver.NewVersion(cmd.Root().Version)
-			if err != nil {
-				cmd.PrintErrln("failed to parse current version:", err)
-				return
-			}
-
-			if !utils.FileExists(cachedUpgradePath) {
-				return
-			}
-
-			var latest *semver.Version
-			data, err := os.ReadFile(cachedUpgradePath)
-			if err != nil {
-				cmd.PrintErrln("failed to read upgrade cache:", err)
-				return
-			}
-
-			v, err := semver.NewVersion(string(data))
-			if err != nil {
-				cmd.PrintErrln("failed to parse cached version:", err)
-				return
-			}
-			latest = v
-
-			if latest.GreaterThan(current) {
-				cmd.PrintErrln()
-				cmd.PrintErrln("A new smallweb version is available:", latest.String())
-				cmd.PrintErrln("Run `smallweb upgrade` to upgrade to the latest version")
-			}
-		},
+	// prevent nested shells
+	if os.Getenv("SMALLWEB") == "1" {
+		cmd.RunE = nil
 	}
 
 	cmd.AddGroup(&cobra.Group{
@@ -245,15 +174,13 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdUp(db))
 	cmd.AddCommand(NewCmdEdit())
 	cmd.AddCommand(NewCmdRun())
-	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdList())
-	cmd.AddCommand(NewCmdTypes())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdVersion())
-	cmd.AddCommand(NewCmdInit())
+	cmd.AddCommand(NewCmdCreate())
 	cmd.AddCommand(NewCmdToken(db))
 
 	cmd.AddCommand(&cobra.Command{
@@ -345,4 +272,12 @@ func isExecutable(path string) (bool, error) {
 		return false, err
 	}
 	return fileInfo.Mode().Perm()&0111 != 0, nil
+}
+
+func findEditor() string {
+	if env, ok := os.LookupEnv("EDITOR"); ok {
+		return env
+	}
+
+	return "vim -Z"
 }

@@ -129,11 +129,6 @@ func NewCmdVersionUpgrade() *cobra.Command {
 
 			fmt.Println("Ugrade completed successfully")
 			fmt.Println("Make sure to restart smallweb to apply the changes")
-
-			if err := os.Remove(cachedUpgradePath); err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("failed to remove upgrade cache: %w", err)
-			}
-
 			return nil
 		},
 	}

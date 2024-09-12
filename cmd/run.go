@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/pomdtr/smallweb/app"
@@ -32,8 +34,23 @@ func NewCmdRun() *cobra.Command {
 				return fmt.Errorf("failed to get app: %w", err)
 			}
 
-			worker := worker.NewWorker(app, k.StringMap("env"))
-			return worker.Run(args[1:]...)
+			switch app.Entrypoint() {
+			case "smallweb:cli":
+				executable, err := os.Executable()
+				cmd := exec.Command(executable, args[1:]...)
+				if err != nil {
+					return fmt.Errorf("failed to get executable: %w", err)
+				}
+
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				return cmd.Run()
+			default:
+				worker := worker.NewWorker(app, k.StringMap("env"))
+				return worker.Run(args[1:]...)
+			}
+
 		},
 	}
 
