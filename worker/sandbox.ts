@@ -1,6 +1,6 @@
 const input = JSON.parse(Deno.args[0]);
 
-if (input.command === "serve") {
+if (input.command === "fetch") {
     const { entrypoint, port } = input;
     const server = Deno.serve(
         {
@@ -15,22 +15,33 @@ if (input.command === "serve") {
             queueMicrotask(async () => {
                 await server.shutdown();
             });
-
             try {
                 const mod = await import(entrypoint);
-                if (!mod.default || typeof mod.default !== "object") {
+                if (!mod.default) {
                     console.error(
-                        "The app does not provides an object as it's default export.",
+                        "The app does not provide a default export.",
                     );
                     Deno.exit(1);
                 }
 
-                const handler = mod.default;
-                if (
-                    !("fetch" in handler) || typeof handler.fetch !== "function"
-                ) {
+                let handler: (req: Request) => Response | Promise<Response>;
+                if (typeof mod.default === "object") {
+                    if (
+                        !("fetch" in mod.default) ||
+                        typeof mod.default.fetch !== "function"
+                    ) {
+                        console.error(
+                            "The app default export does not have a fetch function.",
+                        );
+                        Deno.exit(1);
+                    }
+
+                    handler = mod.default.fetch;
+                } else if (typeof mod.default === "function") {
+                    handler = mod.default;
+                } else {
                     console.error(
-                        "The app default export does not have a fetch function.",
+                        "The app default export must be either an object or a function.",
                     );
                     Deno.exit(1);
                 }
@@ -44,7 +55,7 @@ if (input.command === "serve") {
                 }
                 headers.delete("x-smallweb-url");
 
-                const resp = await handler.fetch(
+                const resp = await handler(
                     new Request(url, {
                         method: req.method,
                         headers,

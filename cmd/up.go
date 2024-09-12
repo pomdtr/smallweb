@@ -19,9 +19,10 @@ import (
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/database"
-	"github.com/pomdtr/smallweb/editor"
+	"github.com/pomdtr/smallweb/docs"
 	"github.com/pomdtr/smallweb/term"
 	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/bcrypt"
@@ -400,25 +401,19 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				}
 			}
 
-			execPath, err := os.Executable()
-			if err != nil {
-				return fmt.Errorf("failed to get executable path: %w", err)
-			}
-
-			cliHandler, err := term.NewHandler(execPath)
-			if err != nil {
-				return fmt.Errorf("failed to create shell handler: %w", err)
-			}
-
-			editorHandler := editor.NewHandler(rootDir)
 			webdavHandler := &webdav.Handler{
-				FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
+				FileSystem: webdav.Dir(rootDir),
 				LockSystem: webdav.NewMemLS(),
 			}
 
 			sessionDBPath := filepath.Join(xdg.DataHome, "smallweb", "sessions.json")
 			if err := os.MkdirAll(filepath.Dir(sessionDBPath), 0755); err != nil {
 				return fmt.Errorf("failed to create session database directory: %w", err)
+			}
+
+			executable, err := os.Executable()
+			if err != nil {
+				return fmt.Errorf("failed to get executable path: %w", err)
 			}
 
 			authMiddleware := AuthMiddleware{db}
@@ -433,82 +428,32 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 					}
 
-					if r.Host == fmt.Sprintf("webdav.%s", domain) {
-						if r.Method == http.MethodGet && r.URL.Path == "/" {
-							http.Redirect(w, r, "https://links.smallweb.run/webdav", http.StatusSeeOther)
-							return
-						}
-
-						var token string
-						if t, _, ok := r.BasicAuth(); ok {
-							token = t
-						} else if authorization := r.Header.Get("Authorization"); strings.HasPrefix(authorization, "Bearer ") {
-							token = strings.Trim(strings.TrimPrefix(authorization, "Bearer "), " ")
-						}
-
-						if token == "" {
-							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
-							http.Error(w, "Unauthorized", http.StatusUnauthorized)
-							return
-						}
-
-						public, secret, err := parseToken(token)
-						if err != nil {
-							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
-							http.Error(w, "Unauthorized", http.StatusUnauthorized)
-							return
-						}
-
-						t, err := database.GetToken(db, public)
-						if err != nil {
-							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
-							http.Error(w, "Unauthorized", http.StatusUnauthorized)
-							return
-						}
-
-						if bcrypt.CompareHashAndPassword(t.Hash, []byte(secret)) != nil {
-							w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
-							http.Error(w, "Unauthorized", http.StatusUnauthorized)
-							return
-						}
-
-						webdavHandler.ServeHTTP(w, r)
-						return
-					}
-
-					if r.Host == fmt.Sprintf("cli.%s", domain) {
-						handler := authMiddleware.Wrap(cliHandler, k.String("email"))
-						handler.ServeHTTP(w, r)
-						return
-					}
-
-					if r.Host == fmt.Sprintf("editor.%s", domain) {
-						handler := authMiddleware.Wrap(editorHandler, k.String("email"))
-						handler.ServeHTTP(w, r)
-						return
-					}
-
 					appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
-
-					appDir := filepath.Join(rootDir, appname)
-					if !utils.FileExists(appDir) {
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					a, err := app.NewApp(appDir, r.Host, k.StringMap("env"))
+					a, err := app.LoadApp(filepath.Join(rootDir, appname))
 					if err != nil {
 						w.WriteHeader(http.StatusNotFound)
 						return
 					}
 
-					if err := a.Start(); err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
+					var handler http.Handler
+					switch a.Entrypoint() {
+					case "smallweb:webdav":
+						handler = webdavHandler
+					case "smallweb:cli":
+						handler = term.NewHandler(executable)
+					case "smallweb:docs":
+						handler = &docs.Handler{}
+					case "smallweb:static":
+						handler = http.FileServer(http.Dir(a.Root()))
+					default:
+						wk := worker.NewWorker(a, k.StringMap("env"))
+						if err := wk.StartServer(); err != nil {
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+						defer wk.StopServer()
+						handler = wk
 					}
-					defer a.Stop()
-
-					var handler http.Handler = a
 
 					isPrivateRoute := a.Config.Private
 					for _, publicRoute := range a.Config.PublicRoutes {
@@ -538,10 +483,13 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			c.AddFunc("* * * * *", func() {
 				rootDir := utils.ExpandTilde(k.String("dir"))
 				rounded := time.Now().Truncate(time.Minute)
-				apps := ListApps(rootDir)
+				apps, err := app.ListApps(rootDir)
+				if err != nil {
+					fmt.Println(err)
+				}
 
-				for _, appname := range apps {
-					a, err := app.NewApp(appname, fmt.Sprintf("https://%s.%s/", appname, domain), k.StringMap("env"))
+				for _, name := range apps {
+					a, err := app.LoadApp(filepath.Join(rootDir, name))
 					if err != nil {
 						fmt.Println(err)
 						continue
@@ -558,7 +506,8 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 							continue
 						}
 
-						go a.Run(job.Args...)
+						wk := worker.NewWorker(a, k.StringMap("env"))
+						go wk.Run(job.Args...)
 					}
 
 				}

@@ -21,12 +21,24 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+//go:generate deno task build
+
 //go:embed dist
 var embedFs embed.FS
 
 const ansi = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
 
 var re = regexp.MustCompile(ansi)
+var distFS fs.FS
+
+func init() {
+	subFS, err := fs.Sub(embedFs, "dist")
+	if err != nil {
+		panic(err)
+	}
+
+	distFS = subFS
+}
 
 func StripAnsi(b []byte) []byte {
 	return re.ReplaceAll(b, nil)
@@ -48,18 +60,13 @@ type ResizePayload struct {
 	Rows int    `json:"rows"`
 }
 
-func NewHandler(name string, args ...string) (*Handler, error) {
-	subFS, err := fs.Sub(embedFs, "dist")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get sub fs: %w", err)
-	}
-
+func NewHandler(name string, args ...string) *Handler {
 	return &Handler{
 		Name:       name,
 		Args:       args,
-		fileServer: http.FileServer(http.FS(subFS)),
+		fileServer: http.FileServer(http.FS(distFS)),
 		ttys:       make(map[string]*os.File),
-	}, nil
+	}
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -212,16 +219,13 @@ func (me *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			done <- cmd.Wait()
 		}()
 
+		cmd.Process.Signal(os.Interrupt)
 		select {
 		case <-time.After(5 * time.Second):
 			if err := cmd.Process.Kill(); err != nil {
 				log.Printf("failed to kill command: %s", err)
 			}
-			log.Println("command timed out")
-		case err := <-done:
-			if err != nil {
-				log.Printf("failed to wait for command: %s", err)
-			}
+		case <-done:
 		}
 	}()
 

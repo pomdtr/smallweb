@@ -3,6 +3,7 @@ version: 2
 project_name: smallweb
 before:
   hooks:
+    - go generate ./...
     - go mod tidy
     - rm -rf completions
     - mkdir completions

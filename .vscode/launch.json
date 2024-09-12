@@ -5,6 +5,7 @@
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
+            "preLaunchTask": "go generate",
             "args": [
                 "up",
             ]

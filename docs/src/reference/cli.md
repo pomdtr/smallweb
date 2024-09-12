@@ -4,6 +4,10 @@
 
 Host websites from your internet folder
 
+```
+smallweb [flags]
+```
+
 ### Options
 
 ```
@@ -22,6 +26,20 @@ smallweb capture [flags]
 
 ```
   -h, --help   help for capture
+```
+
+## smallweb changelog
+
+Show the changelog
+
+```
+smallweb changelog [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for changelog
 ```
 
 ## smallweb completion
@@ -286,7 +304,7 @@ smallweb docs [flags]
 
 ## smallweb edit
 
-Open the smallweb config in your editor
+Open an app in your editor
 
 ```
 smallweb edit <app> [flags]
@@ -295,8 +313,8 @@ smallweb edit <app> [flags]
 ### Options
 
 ```
-  -h, --help   help for edit
-  -j, --json   Output as JSON
+  -f, --file string   File to edit
+  -h, --help          help for edit
 ```
 
 ## smallweb gallery
@@ -337,7 +355,7 @@ smallweb help [command] [flags]
 Init a new smallweb app
 
 ```
-smallweb init [dir] [flags]
+smallweb init <name> [flags]
 ```
 
 ### Options
@@ -364,7 +382,7 @@ smallweb list [flags]
 
 ## smallweb open
 
-Open the smallweb app specified by dir in the browser
+Open an app in the browser
 
 ```
 smallweb open [app] [flags]
@@ -388,20 +406,6 @@ smallweb run <app> [args...] [flags]
 
 ```
   -h, --help   help for run
-```
-
-## smallweb serve
-
-Start the smallweb evaluation server
-
-```
-smallweb serve [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for serve
 ```
 
 ## smallweb service
@@ -548,16 +552,75 @@ smallweb service uninstall [flags]
 
 ## smallweb token
 
-Generate a random token
-
-```
-smallweb token [flags]
-```
+Manage api tokens
 
 ### Options
 
 ```
   -h, --help   help for token
+```
+
+## smallweb token create
+
+Create a new token
+
+```
+smallweb token create [flags]
+```
+
+### Options
+
+```
+  -d, --description string   description of the token
+  -h, --help                 help for create
+```
+
+## smallweb token help
+
+Help about any command
+
+### Synopsis
+
+Help provides help for any command in the application.
+Simply type token help [path to command] for full details.
+
+```
+smallweb token help [command] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for help
+```
+
+## smallweb token list
+
+List all tokens
+
+```
+smallweb token list [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for list
+  -j, --json   output as JSON
+```
+
+## smallweb token remove
+
+Remove a token
+
+```
+smallweb token remove <id> [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for remove
 ```
 
 ## smallweb types
@@ -572,6 +635,20 @@ smallweb types [flags]
 
 ```
   -h, --help   help for types
+```
+
+## smallweb up
+
+Start the smallweb evaluation server
+
+```
+smallweb up [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for up
 ```
 
 ## smallweb version

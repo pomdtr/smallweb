@@ -6,6 +6,7 @@ import (
 
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -15,14 +16,7 @@ func NewCmdRun() *cobra.Command {
 		Short:              "Run an app cli",
 		GroupID:            CoreGroupID,
 		DisableFlagParsing: true,
-		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			rootDir := utils.ExpandTilde(k.String("dir"))
-			if len(args) == 0 {
-				return ListApps(rootDir), cobra.ShellCompDirectiveNoFileComp
-			}
-
-			return nil, cobra.ShellCompDirectiveDefault
-		},
+		ValidArgsFunction:  completeApp(utils.ExpandTilde(k.String("dir"))),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -33,22 +27,13 @@ func NewCmdRun() *cobra.Command {
 			}
 
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			for _, appname := range ListApps(rootDir) {
-				if appname != args[0] {
-					continue
-				}
-
-				worker, err := app.NewApp(filepath.Join(rootDir, args[0]), fmt.Sprintf("%s.%s", appname, k.String("domain")), k.StringMap("env"))
-				if err != nil {
-					return fmt.Errorf("could not create worker: %w", err)
-				}
-
-				cmd.SilenceErrors = true
-				return worker.Run(args[1:]...)
+			app, err := app.LoadApp(filepath.Join(rootDir, args[0]))
+			if err != nil {
+				return fmt.Errorf("failed to get app: %w", err)
 			}
 
-			return fmt.Errorf("app not found: %s", args[0])
-
+			worker := worker.NewWorker(app, k.StringMap("env"))
+			return worker.Run(args[1:]...)
 		},
 	}
 

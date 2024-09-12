@@ -81,7 +81,6 @@ terminal.loadAddon(attachAddon);
 
 ws.onclose = () => {
   attachAddon.dispose();
-  terminal.write("\r\nConnection closed, you can now close this tab.\r\n");
 };
 
 window.onbeforeunload = () => {

@@ -9,37 +9,16 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
+	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
-func ListApps(rootDir string) []string {
-	entries, err := os.ReadDir(rootDir)
-	if err != nil {
-		return nil
-	}
-
-	apps := make([]string, 0)
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-
-		if !entry.IsDir() {
-			continue
-		}
-
-		apps = append(apps, entry.Name())
-	}
-
-	return apps
-}
-
 type AppItem struct {
-	Name string   `json:"name"`
-	Dir  string   `json:"dir"`
-	Urls []string `json:"urls"`
+	Name string `json:"name"`
+	Dir  string `json:"dir"`
+	Url  string `json:"url"`
 }
 
 func NewCmdList() *cobra.Command {
@@ -54,20 +33,17 @@ func NewCmdList() *cobra.Command {
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			var items []AppItem
-			for _, a := range ListApps(rootDir) {
-				appDir := filepath.Join(rootDir, a)
-				item := AppItem{
-					Name: a,
-					Dir:  strings.Replace(appDir, os.Getenv("HOME"), "~", 1),
-					Urls: []string{fmt.Sprintf("https://%s.%s", a, k.String("domain"))},
-				}
+			apps, err := app.ListApps(rootDir)
+			if err != nil {
+				return fmt.Errorf("failed to list apps: %w", err)
+			}
 
-				if cnamePath := filepath.Join(appDir, "CNAME"); utils.FileExists(cnamePath) {
-					cname, err := os.ReadFile(cnamePath)
-					if err == nil {
-						item.Urls = []string{fmt.Sprintf("https://%s", strings.TrimSpace(string(cname))), item.Urls[0]}
-					}
+			var items []AppItem
+			for _, name := range apps {
+				item := AppItem{
+					Name: name,
+					Dir:  strings.Replace(filepath.Join(rootDir, name), os.Getenv("HOME"), "~", 1),
+					Url:  fmt.Sprintf("https://%s.%s", name, k.String("domain")),
 				}
 
 				items = append(items, item)
@@ -108,7 +84,7 @@ func NewCmdList() *cobra.Command {
 			for _, app := range items {
 				printer.AddField(app.Name)
 				printer.AddField(strings.Replace(app.Dir, os.Getenv("HOME"), "~", 1))
-				printer.AddField(app.Urls[0])
+				printer.AddField(app.Url)
 
 				printer.EndRow()
 			}

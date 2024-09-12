@@ -33,6 +33,19 @@ var (
 	k                 = koanf.New(".")
 )
 
+type ExitError struct {
+	Code    int
+	Message string
+}
+
+func NewExitError(code int, message string) *ExitError {
+	return &ExitError{Code: code}
+}
+
+func (e *ExitError) Error() string {
+	return e.Message
+}
+
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	dataHome := filepath.Join(xdg.DataHome, "smallweb")
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
@@ -92,10 +105,11 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:          "smallweb",
-		Short:        "Host websites from your internet folder",
-		Version:      version,
-		SilenceUsage: true,
+		Use:           "smallweb",
+		Short:         "Host websites from your internet folder",
+		Version:       version,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			shell := ishell.NewWithConfig(&readline.Config{
 				Prompt: "\033[32m$\033[0m ",
@@ -243,13 +257,12 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdToken(db))
 
 	cmd.AddCommand(&cobra.Command{
-		Use:     "changelog",
-		GroupID: CoreGroupID,
-		Short:   "Show the changelog",
+		Use:   "changelog",
+		Short: "Show the changelog",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out, err := glamour.Render(changelog, "dark")
 			if err != nil {
-				return fmt.Errorf("failed to render changelog: %w", err)
+				return NewExitError(1, fmt.Sprintf("failed to render changelog: %v", err))
 			}
 
 			fmt.Println(out)
