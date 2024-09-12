@@ -127,6 +127,10 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
 
+			shell.DeleteCmd("exit")
+			shell.DeleteCmd("help")
+			shell.DeleteCmd("clear")
+
 			for _, name := range apps {
 				a, err := app.LoadApp(filepath.Join(rootDir, name))
 				if err != nil {
