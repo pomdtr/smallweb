@@ -70,7 +70,7 @@ terminal.onResize((size) => {
   url.searchParams.set("cols", cols.toString());
   url.searchParams.set("rows", rows.toString());
 
-  fetch(window.location.href, {
+  fetch(window.location.origin, {
     method: "PATCH",
     body: JSON.stringify({ cols, rows, id: terminalID }),
   });

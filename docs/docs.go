@@ -11,14 +11,20 @@ import (
 //go:embed book
 var embedFS embed.FS
 
-type Handler struct{}
+type Handler struct {
+	staticFS http.FileSystem
+}
 
-func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func NewHandler() (*Handler, error) {
 	subFS, err := fs.Sub(embedFS, "book")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
-	http.FileServer(http.FS(subFS)).ServeHTTP(w, r)
+	return &Handler{staticFS: http.FS(subFS)}, nil
+}
+
+func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	http.FileServer(me.staticFS).ServeHTTP(w, r)
 }

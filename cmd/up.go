@@ -415,6 +415,12 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to get executable path: %w", err)
 			}
+			cliHandler := term.NewHandler(executable)
+			editorHandler := term.NewHandler(executable, "edit")
+			docsHandler, err := docs.NewHandler()
+			if err != nil {
+				return fmt.Errorf("failed to create docs handler: %w", err)
+			}
 
 			authMiddleware := AuthMiddleware{db}
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
@@ -440,9 +446,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					case "smallweb:webdav":
 						handler = webdavHandler
 					case "smallweb:cli":
-						handler = term.NewHandler(executable)
+						handler = cliHandler
 					case "smallweb:docs":
-						handler = &docs.Handler{}
+						handler = docsHandler
+					case "smallweb:editor":
+						handler = editorHandler
 					case "smallweb:static":
 						handler = http.FileServer(http.Dir(a.Root()))
 					default:

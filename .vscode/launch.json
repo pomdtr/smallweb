@@ -15,15 +15,11 @@
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "console": "integratedTerminal"
-        }
-    ],
-    "inputs": [
-        {
-            "type": "promptString",
-            "id": "base",
-            "description": "Enter the base name",
-            "default": "localhost"
+            "console": "integratedTerminal",
+            "args": [
+                "edit",
+                "demo"
+            ]
         }
     ]
 }
