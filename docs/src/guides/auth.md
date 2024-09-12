@@ -2,19 +2,12 @@
 
 You can automatically protects private apps behind a login prompt. In order to achieve this, you'll need to:
 
-1. Use the `smallweb token` command to generate a new token.
-
-    ```console
-    $ smallweb token
-    SF7RZt9shD6UnUcl
-    ```
-
-1. Add an `tokens` property to your global config.
+1. Add an `email` field to your global config
 
     ```json
     // ~/.config/smallweb/config.json
     {
-        "tokens": ["SF7RZt9shD6UnUcl"]
+        "email": "pomdtr@example.com"
     }
     ```
 
@@ -27,11 +20,43 @@ You can automatically protects private apps behind a login prompt. In order to a
     }
     ```
 
-The next time you'll try to access the app, you'll be prompted with a basic auth dialog.
+The next time you'll try to access the app, you'll be prompted with a login screen (provided by lastlogin.net).
 
-Use the token as the username, and leave the password empty.
+Additionaly, you can generate tokens for non-interactive clients using the `smallweb token` create command.
 
-Your tokens are also used to protect internal services that smallweb provides, such as:
+```sh
+smallweb token create --description "CI/CD pipeline"
+```
 
-- `webdav.<domain>`: A webdav server allowing you to access your files.
-- `cli.<domain>`: A web interface to run cli commands.
+Then, you can pass this token in the `Authorization` header of your requests.
+
+```sh
+curl https://private-app.smallweb.run -H "Authorization: Bearer <token>"
+```
+
+or alternatively, use the basic auth username.
+
+```sh
+curl https://private-app.smallweb.run -u "<token>"
+
+# or
+curl https://<token>@private-app.smallweb.run
+```
+
+If your app is public, but you still want to protect some routes, you can use the `privateRoutes` field in your app's config.
+
+```json
+// ~/smallweb/private-app/smallweb.json
+{
+    "privateRoutes": ["/private/*"]
+}
+```
+
+There is also a `publicRoutes` field that you can use to protect all routes except the ones listed.
+
+```json
+{
+    "private": true,
+    "publicRoutes": ["/public/*"]
+}
+```

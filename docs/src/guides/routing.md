@@ -8,11 +8,11 @@ For example with, the following configuration:
 // ~/.config/smallweb/config.json
 {
     "domain": "example.com",
-    "root": "~/smallweb"
+    "dir": "~/smallweb"
 }
 ```
 
-`api.example.com` will be mapped to `~/smallweb/api`, `blog.example.com` will be mapped to `~/smallweb/blog`, and so on.
+Here, `api.example.com` will be mapped to `~/smallweb/api`, `blog.example.com` will be mapped to `~/smallweb/blog`, and so on.
 
 The apex domain (`example.com`) will be automatically redirected to `www.example.com`.
 

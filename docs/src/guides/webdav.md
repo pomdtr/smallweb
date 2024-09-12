@@ -1,8 +1,15 @@
 # WebDAV
 
-Smallweb automatically starts a webdav server at on the `webdav` subdomain.
+You can create a webdav server by creating the following file in your smallweb folder:
 
-You can easily mount the webdav server to your local filesystem on a Windows, MacOS, or Linux machine.
+```json
+// File: ~/smallweb/webdav/smallweb.json
+{
+    "entrypoint": "smallweb:webdav"
+}
+```
+
+You can then easily connect to the webdav server using any webdav client.
 
 ## Windows
 

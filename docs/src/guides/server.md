@@ -68,31 +68,15 @@ To access the server, open `https://hono-example.localhost` in your browser.
 
 ## Static Websites
 
-You have multiple options to host static websitest with Smallweb.
+If your smallweb does not contains a `main.[js,ts,jsx,tsx]` file, Smallweb will serve the folder as a static website.
 
-First, you can store your static websites in a subdirectory, the server it using the `@std/http/file-server` module.
+If your static website contains a `main.js` file, either:
 
-```ts
-import { serveDir } from "jsr:@std/http/file-server";
+- rename it to something else
+- create a smallweb.json with the following content:
 
-export default {
-  fetch: (req: Request) => serveDir(req, {
-    fsRoot: "./public",
-  }),
+```json
+{
+  "entrypoint": "smallweb:static"
 }
 ```
-
-Alternatively, if your static websites is stored on github, you can use the `serveGithubRepo` helper:
-
-```ts
-import { serveGithubRepo } from "https://esm.town/v/pomdtr/serveGithubRepo?v=34";
-
-export default {
-    fetch: serveGithubRepo({
-        owner: "pomdtr",
-        repo: "smallweb",
-        ref: "bab42e6", // use the commit hash or a branch name (default: main)
-    }),
-} satisfies Deno.ServeDefaultExport;
-```
-

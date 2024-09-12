@@ -42,7 +42,18 @@ export default {
 
 ## Accessing cli commands from your browser
 
-Smallweb automatically serves its own cli commands at `<cli>.<domain>`.
+To access your cli commands from your browser, create the following file in your smallweb folder:
+
+```json
+// ~/smallweb/cli/smallweb.json
+{
+    "entrypoint": "smallweb:cli"
+}
+```
+
+This will create a new endpoint at `https://cli.<domain>` that maps to your cli commands.
+
+If you go to `https://cli.<domain>`, you'll get access to an interactive shell.
 
 Positional args are mapped to path segments, and flags are mapped to query parameters.
 
