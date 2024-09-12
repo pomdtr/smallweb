@@ -4,8 +4,6 @@ go 1.23
 
 require (
 	github.com/Masterminds/semver v1.5.0
-	github.com/abiosoft/ishell/v2 v2.0.2
-	github.com/abiosoft/readline v0.0.0-20180607040430-155bce2042db
 	github.com/adrg/xdg v0.4.0
 	github.com/charmbracelet/glamour v0.8.0
 	github.com/cli/browser v1.3.0
@@ -32,7 +30,6 @@ require (
 )
 
 require (
-	github.com/abiosoft/ishell v2.0.0+incompatible // indirect
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
@@ -42,8 +39,6 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/fatih/color v1.12.0 // indirect
-	github.com/flynn-archive/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
@@ -54,7 +49,6 @@ require (
 	github.com/knadh/koanf/maps v0.1.1 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect

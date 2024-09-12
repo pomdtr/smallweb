@@ -7,17 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/abiosoft/ishell"
-	"github.com/abiosoft/readline"
 	"github.com/adrg/xdg"
 	"github.com/charmbracelet/glamour"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
-	"github.com/mattn/go-isatty"
 
-	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
@@ -104,69 +100,10 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:           "smallweb",
-		Short:         "Host websites from your internet folder",
-		Version:       version,
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if !isatty.IsTerminal(os.Stdin.Fd()) || os.Getenv("SMALLWEB") == "1" {
-				return cmd.Help()
-			}
-			rootDir := utils.ExpandTilde(k.String("dir"))
-			shell := ishell.NewWithConfig(&readline.Config{
-				Prompt: "\033[32m$\033[0m ",
-			})
-			cacheDir := filepath.Join(xdg.DataHome, "smallweb", "history")
-			if err := os.MkdirAll(cacheDir, 0755); err != nil {
-				return fmt.Errorf("failed to create history directory: %w", err)
-			}
-
-			apps, err := app.ListApps(rootDir)
-			if err != nil {
-				return fmt.Errorf("failed to list apps: %w", err)
-			}
-
-			shell.DeleteCmd("exit")
-			shell.DeleteCmd("help")
-			shell.DeleteCmd("clear")
-
-			for _, name := range apps {
-				a, err := app.LoadApp(filepath.Join(rootDir, name))
-				if err != nil {
-					shell.Println("failed to load app:", err)
-					continue
-				}
-
-				shell.AddCmd(&ishell.Cmd{
-					Name: a.Name(),
-					Func: func(c *ishell.Context) {
-						executable, err := os.Executable()
-						if err != nil {
-							c.Err(err)
-							return
-						}
-
-						cmd := exec.Command(executable, "run", a.Name())
-						cmd.Env = os.Environ()
-						cmd.Env = append(cmd.Env, "SMALLWEB=1")
-						cmd.Args = append(cmd.Args, c.Args...)
-						cmd.Stdin = os.Stdin
-						cmd.Stdout = os.Stdout
-						cmd.Stderr = os.Stderr
-
-						if err := cmd.Run(); err != nil {
-							c.Err(err)
-						}
-					},
-				})
-			}
-
-			shell.SetHistoryPath(filepath.Join(cacheDir, "history"))
-
-			shell.Run()
-			return nil
-		},
+		Use:          "smallweb",
+		Short:        "Host websites from your internet folder",
+		Version:      version,
+		SilenceUsage: true,
 	}
 
 	cmd.AddGroup(&cobra.Group{
