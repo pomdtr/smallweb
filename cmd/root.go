@@ -15,6 +15,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"github.com/mattn/go-isatty"
 
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/database"
@@ -109,6 +110,9 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if !isatty.IsTerminal(os.Stdin.Fd()) || os.Getenv("SMALLWEB") == "1" {
+				return cmd.Help()
+			}
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			shell := ishell.NewWithConfig(&readline.Config{
 				Prompt: "\033[32m$\033[0m ",
@@ -159,11 +163,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 			shell.Run()
 			return nil
 		},
-	}
-
-	// prevent nested shells
-	if os.Getenv("SMALLWEB") == "1" {
-		cmd.RunE = nil
 	}
 
 	cmd.AddGroup(&cobra.Group{
