@@ -18,6 +18,7 @@ func NewCmdRun() *cobra.Command {
 		Short:              "Run an app cli",
 		GroupID:            CoreGroupID,
 		DisableFlagParsing: true,
+		SilenceErrors:      true,
 		ValidArgsFunction:  completeApp(utils.ExpandTilde(k.String("dir"))),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {

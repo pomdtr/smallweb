@@ -28,19 +28,6 @@ var (
 	k = koanf.New(".")
 )
 
-type ExitError struct {
-	Code    int
-	Message string
-}
-
-func NewExitError(code int, message string) *ExitError {
-	return &ExitError{Code: code}
-}
-
-func (e *ExitError) Error() string {
-	return e.Message
-}
-
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	dataHome := filepath.Join(xdg.DataHome, "smallweb")
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
@@ -129,7 +116,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out, err := glamour.Render(changelog, "dark")
 			if err != nil {
-				return NewExitError(1, fmt.Sprintf("failed to render changelog: %v", err))
+				return fmt.Errorf("failed to render changelog: %w", err)
 			}
 
 			fmt.Println(out)

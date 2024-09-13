@@ -68,6 +68,10 @@ func NewCmdEdit() *cobra.Command {
 				return nil
 			}
 
+			if (len(args)) == 0 {
+				return fmt.Errorf("app name is required")
+			}
+
 			app, err := app.LoadApp(filepath.Join(rootDir, args[0]))
 			if err != nil {
 				return fmt.Errorf("failed to get app: %v", err)
@@ -82,7 +86,7 @@ func NewCmdEdit() *cobra.Command {
 				} else if utils.FileExists(filepath.Join(app.Root(), "smallweb.json")) {
 					file = filepath.Join(app.Root(), "smallweb.json")
 				} else {
-					return NewExitError(1, "could not find a file to edit, please specify one with --file")
+					return fmt.Errorf("no file to edit")
 				}
 			}
 
