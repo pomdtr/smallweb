@@ -37,7 +37,7 @@ type CronItem struct {
 func ListCronItems(app app.App) ([]CronItem, error) {
 	var items []CronItem
 	for _, job := range app.Config.Crons {
-		items = append(items, CronItem{App: app.Name, ID: fmt.Sprintf("%s:%s", filepath.Base(app.Dir), job.Name)})
+		items = append(items, CronItem{App: app.Name, ID: fmt.Sprintf("%s:%s", filepath.Base(app.Dir), job.Name), CronJob: job})
 	}
 
 	return items, nil
@@ -72,12 +72,12 @@ func NewCmdCronList() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
 
-			var crons []CronItem
 			apps, err := app.ListApps(rootDir)
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
 
+			var crons []CronItem
 			for _, name := range apps {
 				if cmd.Flags().Changed("app") && flags.app != name {
 					continue

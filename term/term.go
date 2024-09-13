@@ -49,6 +49,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cmd.Env = append(cmd.Env, me.Env...)
 	cmd.Env = append(cmd.Env, "NO_COLOR=1")
 	cmd.Env = append(cmd.Env, "CI=1")
+	cmd.Env = append(cmd.Env, "SMALLWEB=1")
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")

@@ -13,6 +13,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"github.com/mattn/go-isatty"
 
 	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/utils"
@@ -62,7 +63,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"host":   "127.0.0.1",
 		"dir":    "~/smallweb",
-		"editor": findEditor(),
 		"domain": "localhost",
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",
@@ -117,10 +117,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		Title: "Core Commands",
 	})
 
-	cmd.AddCommand(NewCmdUp(db))
 	cmd.AddCommand(NewCmdRun())
-	cmd.AddCommand(NewCmdService())
-	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCron())
@@ -128,10 +125,23 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdCreate())
 	cmd.AddCommand(NewCmdToken(db))
 
+	// Skip some commands when running in a smallweb environment
+	if _, ok := os.LookupEnv("SMALLWEB"); !ok {
+		cmd.AddCommand(NewCmdUp(db))
+		cmd.AddCommand(NewCmdOpen())
+		cmd.AddCommand(NewCmdService())
+		cmd.AddCommand(NewCmdConfig())
+	}
+
 	cmd.AddCommand(&cobra.Command{
 		Use:   "changelog",
 		Short: "Show the changelog",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if !isatty.IsTerminal(os.Stdout.Fd()) {
+				fmt.Println(changelog)
+				return nil
+			}
+
 			out, err := glamour.Render(changelog, "dark")
 			if err != nil {
 				return fmt.Errorf("failed to render changelog: %w", err)
