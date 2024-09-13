@@ -1,8 +1,0 @@
-{
-    "dependencies": {
-        "vscode-web": "1.91.1"
-    },
-    "scripts": {
-        "build": "deno run -A build.ts"
-    }
-}
