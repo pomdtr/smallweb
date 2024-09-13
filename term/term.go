@@ -3,7 +3,6 @@ package term
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -51,84 +50,27 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cmd.Env = append(cmd.Env, "NO_COLOR=1")
 	cmd.Env = append(cmd.Env, "CI=1")
 
-	if r.Method == http.MethodPost {
-		output, err := cmd.Output()
-		if err != nil {
-			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			w.Header().Set("Cache-Control", "no-cache")
-			var exitError *exec.ExitError
-			if errors.As(err, &exitError) {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write(StripAnsi(exitError.Stderr))
-				return
-			}
-
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Write(StripAnsi(output))
-		return
-	}
-
-	// Set headers for streaming
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
-	// Create pipes for stdout and stderr
-	stdout, err := cmd.StdoutPipe()
+	output, err := cmd.Output()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Start the command
-	if err := cmd.Start(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Stream output
-	done := make(chan bool)
-	go func() {
-		flusher, ok := w.(http.Flusher)
-		if !ok {
-			http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			w.Header().Set("X-Exit-Code", fmt.Sprintf("%d", exitError.ExitCode()))
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(StripAnsi(exitError.Stderr))
 			return
 		}
 
-		// Combine stdout and stderr
-		multiReader := io.MultiReader(stdout, stderr)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-		buf := make([]byte, 1024)
-		for {
-			n, err := multiReader.Read(buf)
-			if n > 0 {
-				data := StripAnsi(buf[:n])
-				_, err := w.Write(data)
-				if err != nil {
-					break
-				}
-				flusher.Flush()
-			}
-			if err != nil {
-				break
-			}
-		}
-		done <- true
-	}()
-
-	// Wait for the command to finish
-	cmd.Wait()
-	<-done
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Write(StripAnsi(output))
 }
 
 func extractArgs(url *url.URL) []string {
