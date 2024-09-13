@@ -6,7 +6,7 @@ import { AttachAddon } from "@xterm/addon-attach";
 import { nanoid } from "nanoid";
 
 const terminal = new Terminal({
-  cursorBlink: true,
+  cursorBlink: false,
   allowProposedApi: true,
   macOptionIsMeta: true,
   macOptionClickForcesSelection: true,
@@ -76,7 +76,9 @@ terminal.onResize((size) => {
   });
 });
 
-const attachAddon = new AttachAddon(ws);
+const attachAddon = new AttachAddon(ws, {
+  bidirectional: false,
+});
 terminal.loadAddon(attachAddon);
 
 ws.onclose = () => {

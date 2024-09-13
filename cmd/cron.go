@@ -37,7 +37,7 @@ type CronItem struct {
 func ListCronItems(app app.App) ([]CronItem, error) {
 	var items []CronItem
 	for _, job := range app.Config.Crons {
-		items = append(items, CronItem{App: app.Name(), ID: fmt.Sprintf("%s:%s", filepath.Base(app.Dir), job.Name)})
+		items = append(items, CronItem{App: app.Name, ID: fmt.Sprintf("%s:%s", filepath.Base(app.Dir), job.Name)})
 	}
 
 	return items, nil
@@ -83,7 +83,7 @@ func NewCmdCronList() *cobra.Command {
 					continue
 				}
 
-				app, err := app.LoadApp(filepath.Join(rootDir, name))
+				app, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -171,7 +171,7 @@ func NewCmdCronTrigger() *cobra.Command {
 			}
 
 			for _, name := range apps {
-				app, err := app.LoadApp(filepath.Join(rootDir, name))
+				app, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
 				if err != nil {
 					continue
 				}
@@ -196,7 +196,7 @@ func NewCmdCronTrigger() *cobra.Command {
 			}
 
 			appname, jobName := parts[0], parts[1]
-			app, err := app.LoadApp(filepath.Join(rootDir, appname))
+			app, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to get app: %w", err)
 			}

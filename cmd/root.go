@@ -28,6 +28,25 @@ var (
 	k = koanf.New(".")
 )
 
+func findConfigPath() string {
+	if config, ok := os.LookupEnv("SMALLWEB_CONFIG"); ok {
+		return config
+	}
+
+	var configDir string
+	if configHome, ok := os.LookupEnv("XDG_CONFIG_HOME"); ok {
+		configDir = filepath.Join(configHome, "smallweb")
+	} else {
+		configDir = filepath.Join(os.Getenv("HOME"), ".config", "smallweb")
+	}
+
+	if utils.FileExists(filepath.Join(configDir, "config.jsonc")) {
+		return filepath.Join(configDir, "config.jsonc")
+	}
+
+	return filepath.Join(configDir, "config.json")
+}
+
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	dataHome := filepath.Join(xdg.DataHome, "smallweb")
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
@@ -99,7 +118,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	})
 
 	cmd.AddCommand(NewCmdUp(db))
-	cmd.AddCommand(NewCmdEdit())
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdOpen())

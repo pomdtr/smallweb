@@ -30,7 +30,7 @@ func NewCmdRun() *cobra.Command {
 			}
 
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			app, err := app.LoadApp(filepath.Join(rootDir, args[0]))
+			app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to get app: %w", err)
 			}

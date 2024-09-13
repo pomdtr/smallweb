@@ -55,6 +55,7 @@ func (me *Worker) Flags(sandboxPath string) []string {
 		"--unstable-kv",
 		"--no-prompt",
 		"--quiet",
+		fmt.Sprintf("--location=%s", me.App.Url),
 		fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], me.Env["TMPDIR"], sandboxPath),
 		fmt.Sprintf("--allow-write=%s,%s", me.App.Root(), me.Env["TMPDIR"]),
 	}
@@ -72,7 +73,7 @@ func (me *Worker) Flags(sandboxPath string) []string {
 var sandboxBytes []byte
 
 func (me *Worker) StartServer() error {
-	tmpdir, err := os.MkdirTemp("", fmt.Sprintf("smallweb-%s-*", me.App.Name()))
+	tmpdir, err := os.MkdirTemp("", fmt.Sprintf("smallweb-%s-*", me.App.Name))
 	if err != nil {
 		return fmt.Errorf("could not create temporary directory: %v", err)
 	}
@@ -316,7 +317,7 @@ func DenoExecutable() (string, error) {
 }
 
 func (me *Worker) Run(args ...string) error {
-	tmpdir, err := os.MkdirTemp("", fmt.Sprintf("smallweb-%s-*", me.App.Name()))
+	tmpdir, err := os.MkdirTemp("", fmt.Sprintf("smallweb-%s-*", me.App.Name))
 	if err != nil {
 		return fmt.Errorf("could not create temporary directory: %v", err)
 	}

@@ -15,12 +15,6 @@ import (
 	"golang.org/x/term"
 )
 
-type AppItem struct {
-	Name string `json:"name"`
-	Dir  string `json:"dir"`
-	Url  string `json:"url"`
-}
-
 func NewCmdList() *cobra.Command {
 	var flags struct {
 		json bool
@@ -33,20 +27,19 @@ func NewCmdList() *cobra.Command {
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			apps, err := app.ListApps(rootDir)
+			names, err := app.ListApps(rootDir)
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
 
-			var items []AppItem
-			for _, name := range apps {
-				item := AppItem{
-					Name: name,
-					Dir:  strings.Replace(filepath.Join(rootDir, name), os.Getenv("HOME"), "~", 1),
-					Url:  fmt.Sprintf("https://%s.%s", name, k.String("domain")),
+			apps := make([]app.App, 0)
+			for _, name := range names {
+				a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
+				if err != nil {
+					return fmt.Errorf("failed to load app: %w", err)
 				}
 
-				items = append(items, item)
+				apps = append(apps, a)
 			}
 
 			if flags.json {
@@ -56,14 +49,14 @@ func NewCmdList() *cobra.Command {
 					encoder.SetIndent("", "  ")
 				}
 
-				if err := encoder.Encode(items); err != nil {
+				if err := encoder.Encode(apps); err != nil {
 					return fmt.Errorf("failed to encode tree: %w", err)
 				}
 
 				return nil
 			}
 
-			if len(items) == 0 {
+			if len(apps) == 0 {
 				cmd.Println("No apps found")
 				return nil
 			}
@@ -81,10 +74,10 @@ func NewCmdList() *cobra.Command {
 			}
 
 			printer.AddHeader([]string{"Name", "Dir", "Url"})
-			for _, app := range items {
-				printer.AddField(app.Name)
-				printer.AddField(strings.Replace(app.Dir, os.Getenv("HOME"), "~", 1))
-				printer.AddField(app.Url)
+			for _, a := range apps {
+				printer.AddField(a.Name)
+				printer.AddField(strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(a.Url)
 
 				printer.EndRow()
 			}

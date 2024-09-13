@@ -29,13 +29,11 @@ type AppConfig struct {
 }
 
 type App struct {
-	Dir    string `json:"-"`
-	Env    map[string]string
-	Config AppConfig
-}
-
-func (me App) Name() string {
-	return filepath.Base(me.Dir)
+	Name   string            `json:"name"`
+	Dir    string            `json:"dir"`
+	Url    string            `json:"url"`
+	Env    map[string]string `json:"-"`
+	Config AppConfig         `json:"config"`
 }
 
 func (me *App) Root() string {
@@ -68,10 +66,14 @@ func ListApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func LoadApp(dir string) (App, error) {
+func LoadApp(dir string, domain string) (App, error) {
+	name := filepath.Base(dir)
+
 	app := App{
-		Dir: dir,
-		Env: make(map[string]string),
+		Name: name,
+		Dir:  dir,
+		Url:  fmt.Sprintf("https://%s.%s/", name, domain),
+		Env:  make(map[string]string),
 	}
 
 	if dotenvPath := filepath.Join(dir, ".env"); utils.FileExists(dotenvPath) {

@@ -435,7 +435,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					}
 
 					appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
-					a, err := app.LoadApp(filepath.Join(rootDir, appname))
+					a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
 					if err != nil {
 						w.WriteHeader(http.StatusNotFound)
 						return
@@ -503,7 +503,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				}
 
 				for _, name := range apps {
-					a, err := app.LoadApp(filepath.Join(rootDir, name))
+					a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
 					if err != nil {
 						fmt.Println(err)
 						continue

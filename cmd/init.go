@@ -24,7 +24,7 @@ func NewCmdCreate() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "create <app>",
-		Short:   "Init a new smallweb app",
+		Short:   "Create a new smallweb app",
 		GroupID: CoreGroupID,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
