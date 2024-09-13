@@ -20,12 +20,12 @@ type CronJob struct {
 }
 
 type AppConfig struct {
-	Entrypoint    string    `json:"entrypoint"`
-	Root          string    `json:"root"`
-	Private       bool      `json:"private"`
-	PublicRoutes  []string  `json:"publicRoutes"`
-	PrivateRoutes []string  `json:"privateRoutes"`
-	Crons         []CronJob `json:"crons"`
+	Entrypoint    string    `json:"entrypoint,omitempty"`
+	Root          string    `json:"root,omitempty"`
+	Private       bool      `json:"private,omitempty"`
+	PublicRoutes  []string  `json:"publicRoutes,omitempty"`
+	PrivateRoutes []string  `json:"privateRoutes,omitempty"`
+	Crons         []CronJob `json:"crons,omitempty"`
 }
 
 type App struct {
