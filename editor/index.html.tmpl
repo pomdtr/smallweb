@@ -28,6 +28,7 @@
 <script src="./out/vs/loader.js"></script>
 <script src="./out/vs/webPackagePaths.js"></script>
 <script>
+    window.product = {{ .ProductConfig }}
     Object.keys(self.webPackagePaths).map(function (key, index) {
         self.webPackagePaths[
             key

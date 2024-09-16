@@ -13,6 +13,8 @@ export class SmallwebFS implements vscode.FileSystemProvider, vscode.FileSearchP
 	#parser = new XMLParser()
 
 	async fetch(uri: vscode.Uri, init: RequestInit): Promise<Response> {
+		// @ts-ignore
+		console.log(globalThis)
 		return await fetch(`/webdav${uri.path}`, {
 			...init,
 		})

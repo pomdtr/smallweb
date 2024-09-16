@@ -7,8 +7,7 @@
         "build-extension": "cd extension && deno task compile",
         "copy-vscode": "cp -r node_modules/vscode-web/dist dist",
         "copy-extension": "mkdir dist/smallweb && cp -r extension/package.json extension/package.nls.json extension/dist dist/smallweb/",
-        "copy-assets": "cp index.html product.json dist/",
-        "copy": "deno task copy-vscode && deno task copy-extension && deno task copy-assets",
+        "copy": "deno task copy-vscode && deno task copy-extension",
         "build": "deno task clean && deno task build-extension && deno task copy"
     }
 }
