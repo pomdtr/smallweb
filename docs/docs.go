@@ -25,6 +25,5 @@ func NewHandler() (*Handler, error) {
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	http.FileServer(me.staticFS).ServeHTTP(w, r)
 }

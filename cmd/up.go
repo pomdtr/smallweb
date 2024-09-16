@@ -20,6 +20,7 @@ import (
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/docs"
+	"github.com/pomdtr/smallweb/editor"
 
 	"github.com/pomdtr/smallweb/term"
 	"github.com/pomdtr/smallweb/utils"
@@ -407,6 +408,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				LockSystem: webdav.NewMemLS(),
 			}
 
+			editorHandler, err := editor.NewHandler(rootDir)
+			if err != nil {
+				return fmt.Errorf("failed to create editor handler: %w", err)
+			}
+
 			sessionDBPath := filepath.Join(xdg.DataHome, "smallweb", "sessions.json")
 			if err := os.MkdirAll(filepath.Dir(sessionDBPath), 0755); err != nil {
 				return fmt.Errorf("failed to create session database directory: %w", err)
@@ -444,7 +450,16 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					var handler http.Handler
 					switch a.Entrypoint() {
 					case "smallweb:webdav":
-						handler = webdavHandler
+						handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							w.Header().Set("Access-Control-Allow-Origin", "*")
+							w.Header().Set("Access-Control-Allow-Methods", "*")
+							w.Header().Set("Access-Control-Allow-Headers", "*")
+							if r.Method == "OPTIONS" {
+								return
+							}
+
+							webdavHandler.ServeHTTP(w, r)
+						})
 					case "smallweb:cli":
 						handler = cliHandler
 					case "smallweb:docs":
@@ -452,13 +467,15 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					case "smallweb:static":
 						handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 							w.Header().Set("Access-Control-Allow-Origin", "*")
-							w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+							w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 							w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 							if r.Method == "OPTIONS" {
 								return
 							}
 							http.FileServer(http.Dir(a.Root())).ServeHTTP(w, r)
 						})
+					case "smallweb:editor":
+						handler = editorHandler
 					default:
 						wk := worker.NewWorker(a, k.StringMap("env"))
 						if err := wk.StartServer(); err != nil {
