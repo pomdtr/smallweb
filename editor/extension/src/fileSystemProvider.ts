@@ -13,8 +13,6 @@ export class SmallwebFS implements vscode.FileSystemProvider, vscode.FileSearchP
 	#parser = new XMLParser()
 
 	async fetch(uri: vscode.Uri, init: RequestInit): Promise<Response> {
-		// @ts-ignore
-		console.log(globalThis)
 		return await fetch(`/webdav${uri.path}`, {
 			...init,
 		})
@@ -57,7 +55,7 @@ export class SmallwebFS implements vscode.FileSystemProvider, vscode.FileSearchP
 			const stat = entry["D:propstat"]["D:prop"]
 			const name = path.posix.basename(entry["D:href"])
 			const type = stat["D:resourcetype"] !== "" ? vscode.FileType.Directory : vscode.FileType.File
-			return [name, type]
+			return [decodeURIComponent(name), type]
 		})
 	}
 
@@ -95,7 +93,7 @@ export class SmallwebFS implements vscode.FileSystemProvider, vscode.FileSearchP
 	async rename(oldUri: vscode.Uri, newUri: vscode.Uri, options: { overwrite: boolean }): Promise<void> {
 		const resp = await this.fetch(oldUri, {
 			method: "MOVE", headers: {
-				"Destination": newUri.path,
+				"Destination": "/webdav" + newUri.path,
 				"Overwrite": options.overwrite ? "T" : "F"
 			}
 		})
@@ -119,7 +117,7 @@ export class SmallwebFS implements vscode.FileSystemProvider, vscode.FileSearchP
 	async copy(source: vscode.Uri, destination: vscode.Uri, options: { readonly overwrite: boolean; }) {
 		const resp = await this.fetch(source, {
 			method: "COPY", headers: {
-				"Destination": destination.path,
+				"Destination": "/webdav" + destination.path,
 				"Overwrite": options.overwrite ? "T" : "F"
 			}
 		})
