@@ -438,6 +438,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						target.Scheme = "https"
 						target.Host = "www." + domain
 						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+						return
 					}
 
 					appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", domain))
