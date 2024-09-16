@@ -2,7 +2,7 @@
 	"name": "smallweb",
 	"displayName": "Smallweb",
 	"description": "Showcase for the file system provider API, also useful for testing again document that are not on disk.",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"publisher": "pomdtr",
 	"private": true,
 	"license": "MIT",
