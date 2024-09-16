@@ -1,27 +1,17 @@
 # Smallweb - Host websites from your internet folder
 
-Smallweb is a lightweight web server based on [Deno](https://deno.com). It is
-inspired both by legacy specifications like
-[CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and serverless
-platforms like [Val Town](https://val.town) and
-[Deno Deploy](https://deno.com/deploy).
+Smallweb is a lightweight web server based on [Deno](https://deno.com). It draws inspiration from both legacy specifications like [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and modern serverless platforms such as [Val Town](https://val.town) and [Deno Deploy](https://deno.com/deploy).
 
-Smallweb maps domains to folder in your filesystem. For example, if you own the
-`smallweb.run` domain:
+Smallweb maps domains to folders in your filesystem. For example, if you own the `smallweb.run` domain:
 
-- `https://smallweb.run` will be mapped to `~/smallweb/www`
-- `https://example.smallweb.run` will be mapped to `~/smallweb/example`
+- `https://smallweb.run` maps to `~/smallweb/www`
+- `https://example.smallweb.run` maps to `~/smallweb/example`
 
-Creating a new website becomes as simple a creating a folder and opening the
-corresponding url in your browser. No need to configure a build step (unless you
-want to), or start a development server. And since servers are mapped to
-folders, you can manage them using standard unix tools like `cp`, `mv` or `rm`.
+Creating a new website is as simple as creating a folder and opening the corresponding URL in your browser. There's no need to configure a build step (unless you want to) or start a development server. Since servers are mapped to folders, you can manage them using standard Unix tools like `cp`, `mv`, or `rm`.
 
-## A self-hosted serveless platform
+## A self-hosted serverless platform
 
-Each incoming http request is sandboxed in a single deno subprocess by the
-smallweb evaluation server. If there is no incoming request, no resources will
-be used, making it a great solution for low-traffic websites.
+Each incoming HTTP request is sandboxed in a single Deno subprocess by the Smallweb evaluation server. If there are no incoming requests, no resources are used, making it an ideal solution for low-traffic websites.
 
 Smallweb does not use Docker, but it still sandboxes your code using Deno. A smallweb app only has access to:
 
