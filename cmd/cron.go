@@ -212,7 +212,16 @@ func NewCmdCronTrigger() *cobra.Command {
 				}
 
 				w := worker.NewWorker(app, k.StringMap("env"))
-				return w.Run(cron.Args...)
+				command, err := w.Command(cron.Args...)
+				if err != nil {
+					return fmt.Errorf("failed to create command: %w", err)
+				}
+
+				command.Stdout = os.Stdout
+				command.Stderr = os.Stderr
+				if err := command.Run(); err != nil {
+					return fmt.Errorf("failed to run command: %w", err)
+				}
 			}
 
 			return fmt.Errorf("could not find job")

@@ -2,7 +2,9 @@ package worker
 
 import (
 	"bufio"
+	"crypto"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,10 +16,31 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 )
+
+//go:embed sandbox.ts
+var sandboxBytes []byte
+var sandboxPath string
+
+func init() {
+	sha := crypto.SHA256.New()
+	sha.Write(sandboxBytes)
+	sandboxHash := base64.URLEncoding.EncodeToString(sha.Sum(nil))
+	sandboxPath = filepath.Join(xdg.DataHome, "smallweb", string(sandboxHash), "sandbox.ts")
+	if !utils.FileExists(sandboxPath) {
+		if err := os.MkdirAll(filepath.Dir(sandboxPath), 0755); err != nil {
+			log.Fatalf("could not create directory: %v", err)
+		}
+
+		if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
+			log.Fatalf("could not write file: %v", err)
+		}
+	}
+}
 
 type Worker struct {
 	App  app.App
@@ -47,7 +70,7 @@ func NewWorker(app app.App, env map[string]string) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) Flags(sandboxPath string) []string {
+func (me *Worker) Flags() []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-env",
@@ -56,8 +79,8 @@ func (me *Worker) Flags(sandboxPath string) []string {
 		"--no-prompt",
 		"--quiet",
 		fmt.Sprintf("--location=%s", me.App.Url),
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], me.Env["TMPDIR"], sandboxPath),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.Root(), me.Env["TMPDIR"]),
+		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath),
+		fmt.Sprintf("--allow-write=%s", me.App.Root()),
 	}
 
 	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
@@ -69,34 +92,15 @@ func (me *Worker) Flags(sandboxPath string) []string {
 	return flags
 }
 
-//go:embed sandbox.ts
-var sandboxBytes []byte
-
 func (me *Worker) StartServer() error {
-	tmpdir, err := os.MkdirTemp("", fmt.Sprintf("smallweb-%s-*", me.App.Name))
-	if err != nil {
-		return fmt.Errorf("could not create temporary directory: %v", err)
-	}
-	me.Env["TMPDIR"] = tmpdir
-
 	port, err := GetFreePort()
 	if err != nil {
 		return fmt.Errorf("could not get free port: %w", err)
 	}
 	me.port = port
 
-	tempfile, err := os.CreateTemp("", "sandbox-*.ts")
-	if err != nil {
-		return fmt.Errorf("could not create temporary file: %w", err)
-	}
-
-	defer os.Remove(tempfile.Name())
-	if _, err := tempfile.Write(sandboxBytes); err != nil {
-		return fmt.Errorf("could not write to temporary file: %w", err)
-	}
-
 	args := []string{"run"}
-	args = append(args, me.Flags(tempfile.Name())...)
+	args = append(args, me.Flags()...)
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
@@ -106,7 +110,7 @@ func (me *Worker) StartServer() error {
 		"entrypoint": me.App.Entrypoint(),
 		"port":       port,
 	})
-	args = append(args, tempfile.Name(), input.String())
+	args = append(args, sandboxPath, input.String())
 
 	deno, err := DenoExecutable()
 	if err != nil {
@@ -152,16 +156,8 @@ func (me *Worker) StartServer() error {
 }
 
 func (me *Worker) StopServer() error {
-	if err := os.RemoveAll(me.Env["TMPDIR"]); err != nil {
-		log.Printf("Failed to remove temporary directory: %v", err)
-	}
-
 	if err := me.cmd.Process.Signal(os.Interrupt); err != nil {
 		log.Printf("Failed to send interrupt signal: %v", err)
-	}
-
-	if err := os.RemoveAll(me.Env["TMPDIR"]); err != nil {
-		log.Printf("Failed to remove temporary directory: %v", err)
 	}
 
 	done := make(chan error, 1)
@@ -252,16 +248,13 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	start := time.Now()
 	resp, err := client.Do(request)
-	duration := time.Since(start)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
 
-	fmt.Fprintf(os.Stderr, "%s %s %d %dms\n", r.Method, url, resp.StatusCode, duration.Milliseconds())
 	for k, v := range resp.Header {
 		for _, vv := range v {
 			w.Header().Add(k, vv)
@@ -316,29 +309,13 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-func (me *Worker) Run(args ...string) error {
-	tmpdir, err := os.MkdirTemp("", fmt.Sprintf("smallweb-%s-*", me.App.Name))
-	if err != nil {
-		return fmt.Errorf("could not create temporary directory: %v", err)
-	}
-	me.Env["TMPDIR"] = tmpdir
-	defer os.RemoveAll(tmpdir)
-
+func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	if args == nil {
 		args = []string{}
 	}
 
-	tempfile, err := os.CreateTemp("", "sandbox-*.ts")
-	if err != nil {
-		return fmt.Errorf("could not create temporary file: %w", err)
-	}
-	defer os.Remove(tempfile.Name())
-	if _, err := tempfile.Write(sandboxBytes); err != nil {
-		return err
-	}
-
 	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.Flags(tempfile.Name())...)
+	denoArgs = append(denoArgs, me.Flags()...)
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
@@ -348,10 +325,10 @@ func (me *Worker) Run(args ...string) error {
 		"entrypoint": me.App.Entrypoint(),
 		"args":       args,
 	})
-	denoArgs = append(denoArgs, tempfile.Name(), input.String())
+	denoArgs = append(denoArgs, sandboxPath, input.String())
 	deno, err := DenoExecutable()
 	if err != nil {
-		return fmt.Errorf("could not find deno executable")
+		return nil, fmt.Errorf("could not find deno executable")
 	}
 
 	cmd := exec.Command(deno, denoArgs...)
@@ -363,11 +340,7 @@ func (me *Worker) Run(args ...string) error {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
+	return cmd, nil
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.

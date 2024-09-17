@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -193,6 +195,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				Value:    url.QueryEscape(string(value)),
 				Expires:  time.Now().Add(5 * time.Minute),
 				Path:     "/",
+				SameSite: http.SameSiteLaxMode,
 				HttpOnly: true,
 				Secure:   true,
 			})
@@ -279,6 +282,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				Name:     oauthCookieName,
 				Expires:  time.Now().Add(-1 * time.Hour),
 				Path:     "/",
+				SameSite: http.SameSiteLaxMode,
 				HttpOnly: true,
 				Secure:   true,
 			})
@@ -288,6 +292,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				Name:     sessionCookieName,
 				Value:    sessionID,
 				Expires:  time.Now().Add(14 * 24 * time.Hour),
+				SameSite: http.SameSiteLaxMode,
 				HttpOnly: true,
 				Secure:   true,
 				Path:     "/",
@@ -314,6 +319,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 				Expires:  time.Now().Add(-1 * time.Hour),
 				HttpOnly: true,
 				Secure:   true,
+				SameSite: http.SameSiteLaxMode,
 				Path:     "/",
 			})
 
@@ -337,6 +343,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			http.SetCookie(w, &http.Cookie{
 				Name:     sessionCookieName,
 				Expires:  time.Now().Add(-1 * time.Hour),
+				SameSite: http.SameSiteLaxMode,
 				HttpOnly: true,
 				Secure:   true,
 			})
@@ -354,6 +361,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			http.SetCookie(w, &http.Cookie{
 				Name:     sessionCookieName,
 				Expires:  time.Now().Add(-1 * time.Hour),
+				SameSite: http.SameSiteLaxMode,
 				HttpOnly: true,
 				Secure:   true,
 			})
@@ -381,6 +389,41 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 	})
 }
 
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Flush() {
+	if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func loggingMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		rw := &responseWriter{w, http.StatusOK}
+		next.ServeHTTP(rw, r)
+
+		duration := time.Since(start)
+
+		logger.LogAttrs(context.Background(), slog.LevelInfo, "Request completed",
+			slog.String("method", r.Method),
+			slog.String("host", r.Host),
+			slog.String("path", r.URL.Path),
+			slog.Int("status", rw.statusCode),
+			slog.Duration("duration", duration),
+		)
+	})
+}
+
 func NewCmdUp(db *sql.DB) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "up",
@@ -389,6 +432,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			domain := k.String("domain")
 			port := k.Int("port")
@@ -432,7 +476,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			server := http.Server{
 				Addr: addr,
-				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Handler: loggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					if r.Host == domain {
 						target := r.URL
 						target.Scheme = "https"
@@ -507,7 +551,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					}
 
 					handler.ServeHTTP(w, r)
-				}),
+				}), logger),
 			}
 
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
@@ -539,7 +583,16 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						}
 
 						wk := worker.NewWorker(a, k.StringMap("env"))
-						go wk.Run(job.Args...)
+
+						command, err := wk.Command(job.Args...)
+						if err != nil {
+							fmt.Println(err)
+							continue
+						}
+
+						if err := command.Run(); err != nil {
+							fmt.Println(err)
+						}
 					}
 
 				}

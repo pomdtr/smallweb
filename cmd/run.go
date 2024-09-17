@@ -49,9 +49,17 @@ func NewCmdRun() *cobra.Command {
 				return cmd.Run()
 			default:
 				worker := worker.NewWorker(app, k.StringMap("env"))
-				return worker.Run(args[1:]...)
-			}
+				command, err := worker.Command(args[1:]...)
+				if err != nil {
+					return fmt.Errorf("failed to create command: %w", err)
+				}
 
+				command.Stdin = os.Stdin
+				command.Stdout = os.Stdout
+				command.Stderr = os.Stderr
+
+				return command.Run()
+			}
 		},
 	}
 
