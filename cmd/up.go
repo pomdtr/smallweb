@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -418,6 +420,14 @@ func (rw *responseWriter) Flush() {
 	}
 }
 
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hj, ok := rw.ResponseWriter.(http.Hijacker); ok {
+		return hj.Hijack()
+	}
+
+	return nil, nil, fmt.Errorf("Hijack not supported")
+}
+
 func loggingMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -475,11 +485,8 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				return fmt.Errorf("failed to create session database directory: %w", err)
 			}
 
-			executable, err := os.Executable()
-			if err != nil {
-				return fmt.Errorf("failed to get executable path: %w", err)
-			}
-			cliHandler := term.NewHandler(executable)
+			cliHandler := term.NewHandler(k.String("shell"))
+			cliHandler.Dir = rootDir
 			docsHandler, err := docs.NewHandler()
 			if err != nil {
 				return fmt.Errorf("failed to create docs handler: %w", err)
