@@ -209,6 +209,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			query := r.URL.Query()
 			oauthCookie, err := r.Cookie(oauthCookieName)
 			if err != nil {
+				log.Printf("failed to get oauth cookie: %v", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -216,34 +217,40 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			var oauthStore oauthStore
 			value, err := url.QueryUnescape(oauthCookie.Value)
 			if err != nil {
+				log.Printf("failed to unescape oauth cookie: %v", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
 			if err := json.Unmarshal([]byte(value), &oauthStore); err != nil {
+				log.Printf("failed to unmarshal oauth cookie: %v", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
 			if query.Get("state") != oauthStore.State {
+				log.Printf("state mismatch: %s != %s", query.Get("state"), oauthStore.State)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
 			code := query.Get("code")
 			if code == "" {
+				log.Printf("code not found")
 				http.Error(w, "Bad Request", http.StatusBadRequest)
 				return
 			}
 
 			token, err := oauth2Config.Exchange(r.Context(), code)
 			if err != nil {
+				log.Printf("failed to exchange code: %v", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
 			req, err := http.NewRequest("GET", "https://lastlogin.net/userinfo", nil)
 			if err != nil {
+				log.Printf("failed to create userinfo request: %v", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -251,6 +258,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
+				log.Printf("failed to execute userinfo request: %v", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -267,12 +275,14 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 			}
 
 			if err := json.NewDecoder(resp.Body).Decode(&userinfo); err != nil {
+				log.Printf("failed to decode userinfo: %v", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
 			sessionID, err := me.CreateSession(userinfo.Email, r.Host)
 			if err != nil {
+				log.Printf("failed to create session: %v", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -305,11 +315,13 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 		if r.URL.Path == "/_auth/logout" {
 			cookie, err := r.Cookie(sessionCookieName)
 			if err != nil {
+				log.Printf("failed to get session cookie: %v", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
 			if err := me.DeleteSession(cookie.Value); err != nil {
+				log.Printf("failed to delete session: %v", err)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -371,6 +383,7 @@ func (me *AuthMiddleware) Wrap(next http.Handler, email string) http.Handler {
 		}
 
 		if session.Email != email {
+			log.Printf("email mismatch: %s != %s", session.Email, email)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
