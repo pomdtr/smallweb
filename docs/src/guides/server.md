@@ -77,6 +77,6 @@ If your static website contains a `main.js` file, either:
 
 ```json
 {
-  "entrypoint": "jsr:@smallweb/file-server@0.2.1"
+  "entrypoint": "jsr:@smallweb/file-server@0.2.2"
 }
 ```
