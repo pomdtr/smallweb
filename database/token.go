@@ -2,7 +2,11 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
+
+	"github.com/pomdtr/smallweb/utils"
 )
 
 type Token struct {
@@ -10,6 +14,45 @@ type Token struct {
 	Hash        []byte    `json:"hash"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"createdAt"`
+}
+
+// Lengths for the public and secret parts
+const publicPartLength = 16 // 16 characters for public part
+const secretPartLength = 59 // 43 characters for secret part
+
+const TokenPrefix = "smallweb_pat"
+
+func GenerateToken() (string, string, string, error) {
+	// Generate public and secret parts with Base62 encoding
+	publicPart, err := utils.GenerateBase62String(publicPartLength)
+	if err != nil {
+		return "", "", "", err
+	}
+	secretPart, err := utils.GenerateBase62String(secretPartLength)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// Assemble the token with the given prefix
+	return fmt.Sprintf("%s_%s_%s", TokenPrefix, publicPart, secretPart), publicPart, secretPart, nil
+}
+
+func ParseToken(token string) (string, string, error) {
+	if !strings.HasPrefix(token, TokenPrefix) {
+		return "", "", fmt.Errorf("invalid token format")
+	}
+
+	parts := strings.Split(token, "_")
+	if len(parts) != 4 {
+		return "", "", fmt.Errorf("invalid token format")
+	}
+
+	public, secret := parts[2], parts[3]
+	if len(public) != publicPartLength || len(secret) != secretPartLength {
+		return "", "", fmt.Errorf("invalid token format")
+	}
+
+	return parts[2], parts[3], nil
 }
 
 func CreateTokenTable(db *sql.DB) error {

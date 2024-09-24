@@ -34,7 +34,7 @@ The `domain` field defines the apex domain used for routing.
 
 ```json
 {
-  "domain": "smallweb.run"
+  "domains.base": "smallweb.run"
 }
 ```
 
@@ -89,7 +89,7 @@ By default the config file looks like this:
 {
   "host": "127.0.0.1",
   "port": 7777,
-  "domain": "localhost",
+  "domains.base": "localhost",
   "dir": "~/smallweb",
   "env": {
     // allow smallweb apps to communicate with each other when using self-signed certificates

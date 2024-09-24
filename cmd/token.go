@@ -1,14 +1,11 @@
 package cmd
 
 import (
-	"crypto/rand"
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -44,7 +41,7 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 		Short:   "Create a new token",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			value, public, secret, err := generateToken()
+			value, public, secret, err := database.GenerateToken()
 			if err != nil {
 				return fmt.Errorf("failed to generate token: %v", err)
 			}
@@ -186,61 +183,4 @@ func NewCmdTokenRemove(db *sql.DB) *cobra.Command {
 	}
 
 	return cmd
-}
-
-// Base62 character set
-const base62Charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-
-// Lengths for the public and secret parts
-const publicPartLength = 16 // 16 characters for public part
-const secretPartLength = 59 // 43 characters for secret part
-
-// Base62 encoding function to generate random Base62 strings
-func generateBase62String(length int) (string, error) {
-	result := make([]byte, length)
-	charsetLen := big.NewInt(int64(len(base62Charset)))
-
-	for i := range result {
-		num, err := rand.Int(rand.Reader, charsetLen)
-		if err != nil {
-			return "", err
-		}
-		result[i] = base62Charset[num.Int64()]
-	}
-	return string(result), nil
-}
-
-const tokenPrefix = "smallweb_pat"
-
-func generateToken() (string, string, string, error) {
-	// Generate public and secret parts with Base62 encoding
-	publicPart, err := generateBase62String(publicPartLength)
-	if err != nil {
-		return "", "", "", err
-	}
-	secretPart, err := generateBase62String(secretPartLength)
-	if err != nil {
-		return "", "", "", err
-	}
-
-	// Assemble the token with the given prefix
-	return fmt.Sprintf("%s_%s_%s", tokenPrefix, publicPart, secretPart), publicPart, secretPart, nil
-}
-
-func parseToken(token string) (string, string, error) {
-	if !strings.HasPrefix(token, tokenPrefix) {
-		return "", "", fmt.Errorf("invalid token format")
-	}
-
-	parts := strings.Split(token, "_")
-	if len(parts) != 4 {
-		return "", "", fmt.Errorf("invalid token format")
-	}
-
-	public, secret := parts[2], parts[3]
-	if len(public) != publicPartLength || len(secret) != secretPartLength {
-		return "", "", fmt.Errorf("invalid token format")
-	}
-
-	return parts[2], parts[3], nil
 }

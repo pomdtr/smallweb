@@ -26,7 +26,7 @@ func NewCmdEdit() *cobra.Command {
 				return fmt.Errorf("app name is required")
 			}
 
-			app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
+			app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domains.base"))
 			if err != nil {
 				return fmt.Errorf("failed to get app: %v", err)
 			}

@@ -5,5 +5,13 @@
     ],
     "search.exclude": {
         "docs/book": true,
-    }
+    },
+    "json.schemas": [
+        {
+            "fileMatch": [
+                "openapi.json"
+            ],
+            "url": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/refs/heads/main/schemas/v3.0/schema.json"
+        }
+    ]
 }

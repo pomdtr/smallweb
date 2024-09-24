@@ -39,34 +39,3 @@ export default {
     }
 }
 ```
-
-## Accessing cli commands from your browser
-
-To access your cli commands from your browser, create the following file in your smallweb folder:
-
-```json
-// ~/smallweb/cli/smallweb.json
-{
-    "entrypoint": "smallweb:cli"
-}
-```
-
-This will create a new endpoint at `https://cli.<domain>` that maps to your cli commands.
-
-If you go to `https://cli.<domain>`, you'll get access to an interactive shell.
-
-Positional args are mapped to path segments, and flags are mapped to query parameters.
-
-- `smallweb cron ls --json` becomes `https://cli.<domain>/cron/ls?json`
-
-It also allows you to access your app commands and crons:
-
-- `smallweb run custom-command` becomes `https://cli.<domain>/run/custom-command`
-- `smallweb cron trigger daily-task` becomes `https://cli.<domain>/cron/trigger/daily-task`
-
-You can specify stdin by sending a POST request with the body as the input.
-
-```sh
-# stdin will be "Hello world"
-curl -X POST https://cli.<domain>/run/custom-command --data "Hello world"
-```

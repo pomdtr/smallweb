@@ -1,13 +1,6 @@
 # WebDAV
 
-You can create a webdav server by creating the following file in your smallweb folder:
-
-```json
-// File: ~/smallweb/webdav/smallweb.json
-{
-    "entrypoint": "smallweb:webdav"
-}
-```
+You can access a webdav server at `https://api.<your-domain>/webdav`.
 
 You can then easily connect to the webdav server using any webdav client.
 

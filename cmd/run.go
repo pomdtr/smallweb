@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/pomdtr/smallweb/app"
@@ -30,36 +29,22 @@ func NewCmdRun() *cobra.Command {
 			}
 
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
+			app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domains.base"))
 			if err != nil {
 				return fmt.Errorf("failed to get app: %w", err)
 			}
 
-			switch app.Entrypoint() {
-			case "smallweb:cli":
-				executable, err := os.Executable()
-				cmd := exec.Command(executable, args[1:]...)
-				if err != nil {
-					return fmt.Errorf("failed to get executable: %w", err)
-				}
-
-				cmd.Stdin = os.Stdin
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				return cmd.Run()
-			default:
-				worker := worker.NewWorker(app, k.StringMap("env"))
-				command, err := worker.Command(args[1:]...)
-				if err != nil {
-					return fmt.Errorf("failed to create command: %w", err)
-				}
-
-				command.Stdin = os.Stdin
-				command.Stdout = os.Stdout
-				command.Stderr = os.Stderr
-
-				return command.Run()
+			worker := worker.NewWorker(app, k.StringMap("env"))
+			command, err := worker.Command(args[1:]...)
+			if err != nil {
+				return fmt.Errorf("failed to create command: %w", err)
 			}
+
+			command.Stdin = os.Stdin
+			command.Stdout = os.Stdout
+			command.Stderr = os.Stderr
+
+			return command.Run()
 		},
 	}
 

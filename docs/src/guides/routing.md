@@ -7,7 +7,7 @@ For example with, the following configuration:
 ```json
 // ~/.config/smallweb/config.json
 {
-    "domain": "example.com",
+    "domains.base": "example.com",
     "dir": "~/smallweb"
 }
 ```

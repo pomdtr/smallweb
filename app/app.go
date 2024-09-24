@@ -30,7 +30,7 @@ type AppConfig struct {
 
 type App struct {
 	Name   string            `json:"name"`
-	Dir    string            `json:"dir"`
+	Dir    string            `json:"dir,omitempty"`
 	Url    string            `json:"url"`
 	Env    map[string]string `json:"-"`
 	Config AppConfig         `json:"config"`
@@ -173,10 +173,6 @@ func LoadApp(dir string, domain string) (App, error) {
 }
 
 func (me App) Entrypoint() string {
-	if strings.HasPrefix(me.Config.Entrypoint, "smallweb:") {
-		return me.Config.Entrypoint
-	}
-
 	if strings.HasPrefix(me.Config.Entrypoint, "jsr:") || strings.HasPrefix(me.Config.Entrypoint, "npm:") {
 		return me.Config.Entrypoint
 	}
@@ -196,5 +192,5 @@ func (me App) Entrypoint() string {
 		}
 	}
 
-	return "smallweb:static"
+	return "jsr:@smallweb/file-server@0.1.1"
 }

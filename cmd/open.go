@@ -19,7 +19,7 @@ func NewCmdOpen() *cobra.Command {
 		GroupID:           CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			a, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
+			a, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domains.base"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}

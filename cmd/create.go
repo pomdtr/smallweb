@@ -44,7 +44,7 @@ func NewCmdCreate() *cobra.Command {
 					return fmt.Errorf("failed to copy template: %w", err)
 				}
 
-				cmd.Printf("App initialized, you can now access it at %s.%s\n", args[0], k.String("domain"))
+				cmd.Printf("App initialized, you can now access it at %s.%s\n", args[0], k.String("domains.base"))
 				return nil
 			}
 
@@ -67,7 +67,7 @@ func NewCmdCreate() *cobra.Command {
 				return fmt.Errorf("failed to remove .git directory: %w", err)
 			}
 
-			cmd.Printf("App initialized, you can now access it at %s.%s\n", args[0], k.String("domain"))
+			cmd.Printf("App initialized, you can now access it at %s.%s\n", args[0], k.String("domains.base"))
 			return nil
 		},
 	}
