@@ -35,7 +35,7 @@ All the websites on the `smallweb.run` domain are hosted using smallweb (includi
 
 - <https://docs.smallweb.run>
 - <https://blog.smallweb.run>
-- <https://api.smallweb.run>
+- <https://tldraw.smallweb.run>
 
 Since creating smallweb websites is so easy, you can even create super simple ones. For example, when I want to invite someone to the smallweb discord server, I just send him the link <https://discord.smallweb.run>, which maps to `~/smallweb/discord/main.ts` on my vps.
 
