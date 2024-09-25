@@ -24,6 +24,7 @@ func NewCmdCreate() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "create <app>",
+		Aliases: []string{"new"},
 		Short:   "Create a new smallweb app",
 		GroupID: CoreGroupID,
 		Args:    cobra.ExactArgs(1),
