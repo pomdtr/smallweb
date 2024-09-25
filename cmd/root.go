@@ -104,25 +104,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	k.Load(fileProvider, utils.ConfigParser())
 	k.Load(envProvider, nil)
 
-	if k.String("remote") != "" {
-		cmd := cobra.Command{
-			Use:                "smallweb",
-			Short:              "Proxy args to remote smallweb server",
-			DisableFlagParsing: true,
-			RunE: func(cmd *cobra.Command, args []string) error {
-				sshArgs := []string{"-t", "-o", "LogLevel=QUIET", k.String("remote"), "~/.local/bin/smallweb"}
-				sshArgs = append(sshArgs, args...)
-				command := exec.Command("ssh", sshArgs...)
-				command.Stdin = os.Stdin
-				command.Stdout = os.Stdout
-				command.Stderr = os.Stderr
-				return command.Run()
-			},
-		}
-
-		return &cmd
-	}
-
 	cmd := &cobra.Command{
 		Use:          "smallweb",
 		Short:        "Host websites from your internet folder",
