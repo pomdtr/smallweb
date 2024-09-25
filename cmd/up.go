@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -99,6 +100,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			var webdavHandler http.Handler = &webdav.Handler{
 				FileSystem: webdav.Dir(rootDir),
 				LockSystem: webdav.NewMemLS(),
+				Prefix:     "/webdav",
 			}
 
 			apiServer := api.NewServer(rootDir, baseDomain)
@@ -137,9 +139,22 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 					var handler http.Handler
 					if a.Entrypoint() == "smallweb:api" {
-						handler = apiHandler
-					} else if a.Entrypoint() == "smallweb:webdav" {
-						handler = webdavHandler
+						handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							if r.URL.Path == "/openapi.json" {
+								w.Header().Set("Content-Type", "text/yaml")
+								encoder := json.NewEncoder(w)
+								encoder.SetIndent("", "  ")
+								encoder.Encode(api.Document)
+								return
+							}
+
+							if strings.HasPrefix(r.URL.Path, "/webdav") {
+								webdavHandler.ServeHTTP(w, r)
+								return
+							}
+
+							apiHandler.ServeHTTP(w, r)
+						})
 					} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
 						wk := worker.NewWorker(a, k.StringMap("env"))
 						if err := wk.StartServer(); err != nil {
