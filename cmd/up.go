@@ -175,6 +175,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 								w.Header().Set("Content-Type", "application/javascript")
 								w.Write(code)
+								return
 							case ".jsx":
 								code, err := transpile(p, esbuild.TransformOptions{
 									Loader: esbuild.LoaderJSX,
@@ -186,6 +187,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 								w.Header().Set("Content-Type", "application/javascript")
 								w.Write(code)
+								return
 							case ".tsx":
 								code, err := transpile(p, esbuild.TransformOptions{
 									Loader: esbuild.LoaderTSX,
@@ -197,10 +199,21 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 								w.Header().Set("Content-Type", "application/javascript")
 								w.Write(code)
+								return
 							default:
-								http.ServeFile(w, r, p)
-							}
+								if utils.FileExists(p) {
+									http.ServeFile(w, r, p)
+									return
+								}
 
+								if utils.FileExists(p + ".html") {
+									http.ServeFile(w, r, p+".html")
+									return
+								}
+
+								http.Error(w, "file not found", http.StatusNotFound)
+								return
+							}
 						})
 					} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
 						wk := worker.NewWorker(a, k.StringMap("env"))
