@@ -9,6 +9,7 @@ require (
 	github.com/cli/browser v1.3.0
 	github.com/cli/go-gh/v2 v2.9.0
 	github.com/creack/pty v1.1.23
+	github.com/evanw/esbuild v0.24.0
 	github.com/getkin/kin-openapi v0.127.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510

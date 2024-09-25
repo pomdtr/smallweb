@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -27,6 +28,8 @@ import (
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
+
+	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
 type responseWriter struct {
@@ -158,6 +161,47 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						})
 					} else if a.Entrypoint() == "smallweb:terminal" {
 						handler = term.NewHandler(k.String("shell"), rootDir)
+					} else if a.Entrypoint() == "smallweb:file-server" {
+						handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							p := filepath.Join(a.Root(), r.URL.Path)
+							switch path.Ext(r.URL.Path) {
+							case ".ts":
+								code, err := transpile(p, esbuild.TransformOptions{
+									Loader: esbuild.LoaderTS,
+								})
+								if err != nil {
+									http.Error(w, err.Error(), http.StatusInternalServerError)
+								}
+
+								w.Header().Set("Content-Type", "application/javascript")
+								w.Write(code)
+							case ".jsx":
+								code, err := transpile(p, esbuild.TransformOptions{
+									Loader: esbuild.LoaderJSX,
+									JSX:    esbuild.JSXAutomatic,
+								})
+								if err != nil {
+									http.Error(w, err.Error(), http.StatusInternalServerError)
+								}
+
+								w.Header().Set("Content-Type", "application/javascript")
+								w.Write(code)
+							case ".tsx":
+								code, err := transpile(p, esbuild.TransformOptions{
+									Loader: esbuild.LoaderTSX,
+									JSX:    esbuild.JSXAutomatic,
+								})
+								if err != nil {
+									http.Error(w, err.Error(), http.StatusInternalServerError)
+								}
+
+								w.Header().Set("Content-Type", "application/javascript")
+								w.Write(code)
+							default:
+								http.ServeFile(w, r, p)
+							}
+
+						})
 					} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
 						wk := worker.NewWorker(a, k.StringMap("env"))
 						if err := wk.StartServer(); err != nil {
@@ -260,4 +304,19 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 	}
 
 	return cmd
+}
+
+func transpile(p string, options esbuild.TransformOptions) ([]byte, error) {
+	content, err := os.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+
+	result := esbuild.Transform(string(content), options)
+
+	if len(result.Errors) > 0 {
+		return nil, fmt.Errorf(result.Errors[0].Text)
+	}
+
+	return result.Code, nil
 }
