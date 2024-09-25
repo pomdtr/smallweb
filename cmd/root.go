@@ -119,6 +119,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdDocs())
+	cmd.AddCommand(NewCmdAPI())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdVersion())
 	cmd.AddCommand(NewCmdCreate())
@@ -199,7 +200,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 			RunE: func(cmd *cobra.Command, args []string) error {
 				command := exec.Command(entrypoint, args...)
 				command.Env = os.Environ()
-				command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
 				for key, value := range k.StringMap("env") {
 					command.Env = append(command.Env, fmt.Sprintf("%s=%s", key, value))
 				}
