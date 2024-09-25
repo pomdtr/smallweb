@@ -74,6 +74,11 @@ func LoadApp(dir string, domain string) (App, error) {
 		Dir:  dir,
 		Url:  fmt.Sprintf("https://%s.%s/", name, domain),
 		Env:  make(map[string]string),
+		Config: AppConfig{
+			Crons:         make([]CronJob, 0),
+			PublicRoutes:  make([]string, 0),
+			PrivateRoutes: make([]string, 0),
+		},
 	}
 
 	if dotenvPath := filepath.Join(dir, ".env"); utils.FileExists(dotenvPath) {

@@ -128,6 +128,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdConfig())
+	cmd.AddCommand(NewCmdAPI())
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "changelog",
@@ -197,6 +198,12 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 			SilenceErrors:      true,
 			RunE: func(cmd *cobra.Command, args []string) error {
 				command := exec.Command(entrypoint, args...)
+				command.Env = os.Environ()
+				command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
+				for key, value := range k.StringMap("env") {
+					command.Env = append(command.Env, fmt.Sprintf("%s=%s", key, value))
+				}
+
 				command.Stdin = os.Stdin
 				command.Stdout = os.Stdout
 				command.Stderr = os.Stderr

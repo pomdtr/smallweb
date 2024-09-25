@@ -107,7 +107,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				Prefix:     "/webdav",
 			}
 
-			apiServer := api.NewServer(rootDir, baseDomain)
+			apiServer := api.NewServer(k)
 			apiHandler := api.Handler(&apiServer)
 
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
@@ -144,6 +144,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					var handler http.Handler
 					if a.Entrypoint() == "smallweb:api" {
 						handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							if strings.HasPrefix(r.URL.Path, "/v0") {
+								apiHandler.ServeHTTP(w, r)
+								return
+							}
+
 							if r.URL.Path == "/openapi.json" {
 								w.Header().Set("Content-Type", "text/yaml")
 								encoder := json.NewEncoder(w)
@@ -157,18 +162,24 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 								return
 							}
 
-							apiHandler.ServeHTTP(w, r)
+							api.SwaggerHandler.ServeHTTP(w, r)
 						})
 					} else if a.Entrypoint() == "smallweb:terminal" {
 						handler = term.NewHandler(k.String("shell"), rootDir)
 					} else if a.Entrypoint() == "smallweb:file-server" {
 						handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 							p := filepath.Join(a.Root(), r.URL.Path)
+							transformOptions := esbuild.TransformOptions{
+								Target:       esbuild.ESNext,
+								Format:       esbuild.FormatESModule,
+								MinifySyntax: false,
+								Sourcemap:    esbuild.SourceMapNone,
+							}
+
 							switch path.Ext(r.URL.Path) {
 							case ".ts":
-								code, err := transpile(p, esbuild.TransformOptions{
-									Loader: esbuild.LoaderTS,
-								})
+								transformOptions.Loader = esbuild.LoaderTS
+								code, err := transpile(p, transformOptions)
 								if err != nil {
 									http.Error(w, err.Error(), http.StatusInternalServerError)
 								}
@@ -177,10 +188,9 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 								w.Write(code)
 								return
 							case ".jsx":
-								code, err := transpile(p, esbuild.TransformOptions{
-									Loader: esbuild.LoaderJSX,
-									JSX:    esbuild.JSXAutomatic,
-								})
+								transformOptions.Loader = esbuild.LoaderJSX
+								transformOptions.JSX = esbuild.JSXAutomatic
+								code, err := transpile(p, transformOptions)
 								if err != nil {
 									http.Error(w, err.Error(), http.StatusInternalServerError)
 								}
@@ -189,10 +199,9 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 								w.Write(code)
 								return
 							case ".tsx":
-								code, err := transpile(p, esbuild.TransformOptions{
-									Loader: esbuild.LoaderTSX,
-									JSX:    esbuild.JSXAutomatic,
-								})
+								transformOptions.Loader = esbuild.LoaderTSX
+								transformOptions.JSX = esbuild.JSXAutomatic
+								code, err := transpile(p, transformOptions)
 								if err != nil {
 									http.Error(w, err.Error(), http.StatusInternalServerError)
 								}

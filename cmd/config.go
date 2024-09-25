@@ -11,7 +11,6 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
-	"github.com/tailscale/hujson"
 )
 
 func NewCmdConfig() *cobra.Command {
@@ -26,6 +25,17 @@ func NewCmdConfig() *cobra.Command {
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			configPath := findConfigPath()
+
+			if flags.json || !isatty.IsTerminal(os.Stdout.Fd()) {
+				b, err := k.Marshal(utils.ConfigParser())
+				if err != nil {
+					return err
+				}
+
+				os.Stdout.Write(b)
+				return nil
+			}
+
 			if !utils.FileExists(configPath) {
 				var config map[string]any
 				if err := k.Unmarshal("", &config); err != nil {
@@ -49,35 +59,6 @@ func NewCmdConfig() *cobra.Command {
 				if err := encoder.Encode(config); err != nil {
 					return err
 				}
-			}
-
-			if flags.json || !isatty.IsTerminal(os.Stdout.Fd()) {
-				b, err := os.ReadFile(configPath)
-				if err != nil {
-					return err
-				}
-
-				configBytes, err := hujson.Standardize(b)
-				if err != nil {
-					return err
-				}
-
-				var config map[string]any
-				if err := json.Unmarshal(configBytes, &config); err != nil {
-					return err
-				}
-
-				encoder := json.NewEncoder(os.Stdout)
-				encoder.SetEscapeHTML(false)
-				if isatty.IsTerminal(os.Stdout.Fd()) {
-					encoder.SetIndent("", "  ")
-				}
-
-				if err := encoder.Encode(config); err != nil {
-					return err
-				}
-
-				return nil
 			}
 
 			editorArgs, err := shlex.Split(findEditor())

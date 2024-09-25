@@ -1,7 +1,7 @@
-// Package json implements a koanf.Parser that parses JSON bytes as conf maps.
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 
 	"github.com/tailscale/hujson"
@@ -31,5 +31,10 @@ func (p *HuJSON) Unmarshal(b []byte) (map[string]interface{}, error) {
 
 // Marshal marshals the given config map to JSON bytes.
 func (p *HuJSON) Marshal(o map[string]interface{}) ([]byte, error) {
-	return json.Marshal(o)
+	buf := &bytes.Buffer{}
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	encoder.Encode(o)
+	return buf.Bytes(), nil
 }

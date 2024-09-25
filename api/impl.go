@@ -2,8 +2,10 @@ package api
 
 import (
 	"bytes"
+	"embed"
 	_ "embed"
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -11,13 +13,41 @@ import (
 	"strconv"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/knadh/koanf/v2"
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/utils"
 )
 
 //go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml openapi.json
 
 //go:embed openapi.json
 var specs []byte
+
+//go:generate npm install
+
+//go:embed node_modules/swagger-ui-dist
+var swaggerUiDist embed.FS
+
+//go:embed index.html
+var swaggerHomepage []byte
+
+var SwaggerHandler = http.HandlerFunc(serveSwaggerUi)
+
+func serveSwaggerUi(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/" {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(swaggerHomepage)
+		return
+	}
+
+	subfs, err := fs.Sub(swaggerUiDist, "node_modules/swagger-ui-dist")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.FileServer(http.FS(subfs)).ServeHTTP(w, r)
+}
 
 var Document = MustLoadSpecs(specs)
 
@@ -31,19 +61,18 @@ func MustLoadSpecs(data []byte) *openapi3.T {
 }
 
 type Server struct {
-	rootDir string
-	domain  string
+	k *koanf.Koanf
 }
 
-func NewServer(rootDir string, domain string) Server {
+func NewServer(k *koanf.Koanf) Server {
 	return Server{
-		rootDir: rootDir,
-		domain:  domain,
+		k: k,
 	}
 }
 
 func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
-	names, err := app.ListApps(me.rootDir)
+	rootDir := utils.ExpandTilde(me.k.String("dir"))
+	names, err := app.ListApps(rootDir)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -51,7 +80,7 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 
 	var apps []App
 	for _, name := range names {
-		a, err := app.LoadApp(name, me.domain)
+		a, err := app.LoadApp(name, me.k.String("domain"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -60,6 +89,14 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 		apps = append(apps, App{
 			Name: a.Name,
 			Url:  a.Url,
+			Config: AppConfig{
+				Entrypoint:    a.Entrypoint(),
+				Private:       a.Config.Private,
+				PrivateRoutes: a.Config.PublicRoutes,
+				PublicRoutes:  a.Config.PrivateRoutes,
+				Root:          a.Root(),
+				Crons:         []CronJob{},
+			},
 		})
 	}
 
@@ -67,6 +104,17 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(apps); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (me *Server) GetV0Config(w http.ResponseWriter, r *http.Request) {
+	b, err := me.k.Marshal(utils.ConfigParser())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
 }
 
 var ansiRegexp = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))")

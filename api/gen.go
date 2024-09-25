@@ -19,9 +19,23 @@ const (
 
 // App defines model for App.
 type App struct {
-	Name string `json:"name"`
-	Url  string `json:"url"`
+	Config AppConfig `json:"config"`
+	Name   string    `json:"name"`
+	Url    string    `json:"url"`
 }
+
+// AppConfig defines model for AppConfig.
+type AppConfig struct {
+	Crons         []CronJob `json:"crons"`
+	Entrypoint    string    `json:"entrypoint"`
+	Private       bool      `json:"private"`
+	PrivateRoutes []string  `json:"privateRoutes"`
+	PublicRoutes  []string  `json:"publicRoutes"`
+	Root          string    `json:"root"`
+}
+
+// CronJob defines model for CronJob.
+type CronJob = map[string]interface{}
 
 // PostV0RunAppJSONBody defines parameters for PostV0RunApp.
 type PostV0RunAppJSONBody struct {
@@ -36,6 +50,9 @@ type ServerInterface interface {
 
 	// (GET /v0/apps)
 	GetV0Apps(w http.ResponseWriter, r *http.Request)
+
+	// (GET /v0/config)
+	GetV0Config(w http.ResponseWriter, r *http.Request)
 
 	// (POST /v0/run/{app})
 	PostV0RunApp(w http.ResponseWriter, r *http.Request, app string)
@@ -61,6 +78,26 @@ func (siw *ServerInterfaceWrapper) GetV0Apps(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetV0Apps(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetV0Config operation middleware
+func (siw *ServerInterfaceWrapper) GetV0Config(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetV0Config(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -222,6 +259,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetV0Apps)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/config", wrapper.GetV0Config)
 	m.HandleFunc("POST "+options.BaseURL+"/v0/run/{app}", wrapper.PostV0RunApp)
 
 	return m

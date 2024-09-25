@@ -29,6 +29,22 @@
         }
       }
     },
+    "/v0/config": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Get config",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v0/run/{app}": {
       "post": {
         "parameters": [
@@ -100,7 +116,8 @@
         "type": "object",
         "required": [
           "name",
-          "url"
+          "url",
+          "config"
         ],
         "properties": {
           "name": {
@@ -108,8 +125,54 @@
           },
           "url": {
             "type": "string"
+          },
+          "config": {
+            "$ref": "#/components/schemas/AppConfig"
           }
         }
+      },
+      "AppConfig": {
+        "type": "object",
+        "required": [
+          "entrypoint",
+          "root",
+          "private",
+          "privateRoutes",
+          "publicRoutes",
+          "crons"
+        ],
+        "properties": {
+          "entrypoint": {
+            "type": "string"
+          },
+          "root": {
+            "type": "string"
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "privateRoutes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "publicRoutes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "crons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CronJob"
+            }
+          }
+        }
+      },
+      "CronJob": {
+        "type": "object"
       }
     }
   }
