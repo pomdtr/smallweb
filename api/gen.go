@@ -6,10 +6,15 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/oapi-codegen/runtime"
+)
+
+const (
+	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
 // App defines model for App.
@@ -48,6 +53,12 @@ type MiddlewareFunc func(http.Handler) http.Handler
 // GetV0Apps operation middleware
 func (siw *ServerInterfaceWrapper) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetV0Apps(w, r)
 	}))
@@ -72,6 +83,12 @@ func (siw *ServerInterfaceWrapper) PostV0RunApp(w http.ResponseWriter, r *http.R
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
 		return
 	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostV0RunApp(w, r, app)

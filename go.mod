@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/glamour v0.8.0
 	github.com/cli/browser v1.3.0
 	github.com/cli/go-gh/v2 v2.9.0
+	github.com/creack/pty v1.1.23
 	github.com/getkin/kin-openapi v0.127.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -28,7 +29,6 @@ require (
 	golang.org/x/net v0.27.0
 	golang.org/x/oauth2 v0.22.0
 	golang.org/x/term v0.23.0
-	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.32.0
 )
 
@@ -81,6 +81,7 @@ require (
 	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/gc/v3 v3.0.0-20240107210532-573471604cb6 // indirect
 	modernc.org/libc v1.55.3 // indirect
 	modernc.org/mathutil v1.6.0 // indirect

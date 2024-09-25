@@ -4,6 +4,7 @@ project_name: smallweb
 before:
   hooks:
     - go mod tidy
+    - go generate ./...
     - rm -rf completions
     - mkdir completions
     - sh -c 'go run . completion "bash" >./completions/{{ .ProjectName }}.bash'
