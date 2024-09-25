@@ -156,7 +156,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 							apiHandler.ServeHTTP(w, r)
 						})
-					} else if a.Entrypoint() == "smallweb:term" {
+					} else if a.Entrypoint() == "smallweb:terminal" {
 						handler = term.NewHandler(k.String("shell"), rootDir)
 					} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
 						wk := worker.NewWorker(a, k.StringMap("env"))
