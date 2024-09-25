@@ -173,6 +173,10 @@ func LoadApp(dir string, domain string) (App, error) {
 }
 
 func (me App) Entrypoint() string {
+	if strings.HasPrefix(me.Config.Entrypoint, "smallweb:") {
+		return me.Config.Entrypoint
+	}
+
 	if strings.HasPrefix(me.Config.Entrypoint, "jsr:") || strings.HasPrefix(me.Config.Entrypoint, "npm:") {
 		return me.Config.Entrypoint
 	}

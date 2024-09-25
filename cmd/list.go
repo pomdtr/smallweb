@@ -34,7 +34,7 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
-				a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domains.base"))
+				a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
@@ -29,9 +30,13 @@ func NewCmdRun() *cobra.Command {
 			}
 
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domains.base"))
+			app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to get app: %w", err)
+			}
+
+			if strings.HasPrefix(app.Config.Entrypoint, "smallweb:") {
+				return fmt.Errorf("smallweb built-in apps cannot be run")
 			}
 
 			worker := worker.NewWorker(app, k.StringMap("env"))

@@ -77,11 +77,11 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	}
 
 	defaultProvider := confmap.Provider(map[string]interface{}{
-		"host":         "127.0.0.1",
-		"dir":          "~/smallweb",
-		"editor":       findEditor(),
-		"shell":        findShell(),
-		"domains.base": "localhost",
+		"host":   "127.0.0.1",
+		"dir":    "~/smallweb",
+		"editor": findEditor(),
+		"shell":  findShell(),
+		"domain": "localhost",
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",
 		},

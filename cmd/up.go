@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -21,7 +20,6 @@ import (
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/auth"
 	"golang.org/x/net/webdav"
-	"gopkg.in/yaml.v3"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -84,11 +82,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 			rootDir := utils.ExpandTilde(k.String("dir"))
-			baseDomain := k.String("domains.base")
-			apiDomain := k.String("domains.api")
-			if apiDomain == "" {
-				apiDomain = fmt.Sprintf("api.%s", baseDomain)
-			}
+			baseDomain := k.String("domain")
 
 			port := k.Int("port")
 			cert := k.String("cert")
@@ -123,37 +117,8 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						return
 					}
 
-					if r.Host == apiDomain {
-						if r.URL.Path == "/openapi.json" {
-							w.Header().Set("Content-Type", "text/yaml")
-							encoder := json.NewEncoder(w)
-							encoder.SetIndent("", "  ")
-							encoder.Encode(api.Document)
-							return
-						}
-
-						if r.URL.Path == "/openapi.yaml" {
-							w.Header().Set("Content-Type", "text/yaml")
-							encoder := yaml.NewEncoder(w)
-							encoder.SetIndent(2)
-							encoder.Encode(api.Document)
-							return
-						}
-
-						authMiddleware := auth.Middleware(db, "")
-						if strings.HasPrefix(r.URL.Path, "/webdav") {
-							handler := authMiddleware(http.StripPrefix("/webdav", webdavHandler))
-							handler.ServeHTTP(w, r)
-							return
-						}
-
-						handler := authMiddleware(apiHandler)
-						handler.ServeHTTP(w, r)
-						return
-					}
-
 					var appName string
-					if a, ok := k.StringMap("domains.custom")[r.Host]; ok {
+					if a, ok := k.StringMap("custom-domains")[r.Host]; ok {
 						appName = a
 					} else {
 						if !strings.HasSuffix(r.Host, fmt.Sprintf(".%s", baseDomain)) {
@@ -164,18 +129,29 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						appName = strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", baseDomain))
 					}
 
-					a, err := app.LoadApp(filepath.Join(rootDir, appName), k.String("domains.base"))
+					a, err := app.LoadApp(filepath.Join(rootDir, appName), k.String("domain"))
 					if err != nil {
 						w.WriteHeader(http.StatusNotFound)
 						return
 					}
 
-					wk := worker.NewWorker(a, k.StringMap("env"))
-					if err := wk.StartServer(); err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
+					var handler http.Handler
+					if a.Entrypoint() == "smallweb:api" {
+						handler = apiHandler
+					} else if a.Entrypoint() == "smallweb:webdav" {
+						handler = webdavHandler
+					} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
+						wk := worker.NewWorker(a, k.StringMap("env"))
+						if err := wk.StartServer(); err != nil {
+							http.Error(w, err.Error(), http.StatusInternalServerError)
+							return
+						}
+						defer wk.StopServer()
+						handler = wk
+					} else {
+						http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
 						return
 					}
-					defer wk.StopServer()
 
 					isPrivateRoute := a.Config.Private
 					for _, publicRoute := range a.Config.PublicRoutes {
@@ -192,10 +168,9 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						}
 					}
 
-					var handler http.Handler = wk
 					if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
 						authMiddleware := auth.Middleware(db, k.String("email"))
-						handler = authMiddleware(wk)
+						handler = authMiddleware(handler)
 					}
 
 					handler.ServeHTTP(w, r)
@@ -213,7 +188,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				}
 
 				for _, name := range apps {
-					a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domains.base"))
+					a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
 					if err != nil {
 						fmt.Println(err)
 						continue
@@ -257,11 +232,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					return fmt.Errorf("TLS key file is required")
 				}
 
-				cmd.Printf("Serving %s from %s on %s\n", k.String("domains.base"), k.String("dir"), addr)
+				cmd.Printf("Serving %s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
 				return server.ListenAndServeTLS(utils.ExpandTilde(cert), utils.ExpandTilde(key))
 			}
 
-			cmd.Printf("Serving *.%s from %s on %s\n", k.String("domains.base"), k.String("dir"), addr)
+			cmd.Printf("Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
 			return server.ListenAndServe()
 		},
 	}
