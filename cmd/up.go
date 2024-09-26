@@ -93,6 +93,10 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					handler = term.NewHandler(k.String("shell"), rootDir)
 				} else if a.Entrypoint() == "smallweb:file-server" {
 					handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						w.Header().Set("Access-Control-Allow-Origin", "*")
+						w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+						w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
 						p := filepath.Join(a.Root(), r.URL.Path)
 						transformOptions := esbuild.TransformOptions{
 							Target:       esbuild.ESNext,
