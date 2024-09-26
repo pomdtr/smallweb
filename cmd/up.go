@@ -2,10 +2,8 @@ package cmd
 
 import (
 	"bufio"
-	"context"
 	"database/sql"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -54,27 +52,6 @@ func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return nil, nil, fmt.Errorf("Hijack not supported")
 }
 
-func requestLogger(logger *slog.Logger) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-
-			rw := &responseWriter{w, http.StatusOK}
-			next.ServeHTTP(rw, r)
-
-			duration := time.Since(start)
-
-			logger.LogAttrs(context.Background(), slog.LevelInfo, "Request completed",
-				slog.String("method", r.Method),
-				slog.String("host", r.Host),
-				slog.String("path", r.URL.Path),
-				slog.Int("status", rw.statusCode),
-				slog.Duration("duration", duration),
-			)
-		})
-	}
-}
-
 func NewCmdUp(db *sql.DB) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "up",
@@ -83,7 +60,6 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 			rootDir := utils.ExpandTilde(k.String("dir"))
 			baseDomain := k.String("domain")
 
@@ -100,12 +76,10 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			}
 
 			apiHandler := api.NewHandler(k)
-
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
-			loggerMiddleware := requestLogger(logger)
 			server := http.Server{
 				Addr: addr,
-				Handler: loggerMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					if r.Host == baseDomain {
 						target := r.URL
 						target.Scheme = "https"
@@ -229,7 +203,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					}
 
 					handler.ServeHTTP(w, r)
-				})),
+				}),
 			}
 
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
