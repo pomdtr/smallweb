@@ -19,23 +19,9 @@ const (
 
 // App defines model for App.
 type App struct {
-	Config AppConfig `json:"config"`
-	Name   string    `json:"name"`
-	Url    string    `json:"url"`
+	Name string `json:"name"`
+	Url  string `json:"url"`
 }
-
-// AppConfig defines model for AppConfig.
-type AppConfig struct {
-	Crons         []CronJob `json:"crons"`
-	Entrypoint    string    `json:"entrypoint"`
-	Private       bool      `json:"private"`
-	PrivateRoutes []string  `json:"privateRoutes"`
-	PublicRoutes  []string  `json:"publicRoutes"`
-	Root          string    `json:"root"`
-}
-
-// CronJob defines model for CronJob.
-type CronJob = map[string]interface{}
 
 // PostV0RunAppJSONBody defines parameters for PostV0RunApp.
 type PostV0RunAppJSONBody struct {

@@ -4,14 +4,44 @@
 
 Host websites from your internet folder
 
+### Options
+
 ```
-smallweb [flags]
+  -h, --help   help for smallweb
+```
+
+## smallweb api
+
+Interact with the smallweb API
+
+```
+smallweb api [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for smallweb
+  -d, --data string          Data to send in the request body
+  -H, --header stringArray   HTTP headers to use
+  -h, --help                 help for api
+  -X, --method string        HTTP method to use (default "GET")
+```
+
+## smallweb api
+
+Interact with the smallweb API
+
+```
+smallweb api [flags]
+```
+
+### Options
+
+```
+  -d, --data string          Data to send in the request body
+  -H, --header stringArray   HTTP headers to use
+  -h, --help                 help for api
+  -X, --method string        HTTP method to use (default "GET")
 ```
 
 ## smallweb capture
@@ -229,6 +259,21 @@ smallweb config [flags]
   -j, --json   Output as JSON
 ```
 
+## smallweb create
+
+Create a new smallweb app
+
+```
+smallweb create <app> [flags]
+```
+
+### Options
+
+```
+  -h, --help              help for create
+  -t, --template string   The template to use
+```
+
 ## smallweb cron
 
 Manage cron jobs
@@ -288,6 +333,20 @@ smallweb cron trigger <id> [flags]
   -h, --help   help for trigger
 ```
 
+## smallweb delete
+
+Delete an app
+
+```
+smallweb delete [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for delete
+```
+
 ## smallweb docs
 
 Generate smallweb cli documentation
@@ -313,8 +372,7 @@ smallweb edit <app> [flags]
 ### Options
 
 ```
-  -f, --file string   File to edit
-  -h, --help          help for edit
+  -h, --help   help for edit
 ```
 
 ## smallweb gallery
@@ -348,21 +406,6 @@ smallweb help [command] [flags]
 
 ```
   -h, --help   help for help
-```
-
-## smallweb init
-
-Init a new smallweb app
-
-```
-smallweb init <name> [flags]
-```
-
-### Options
-
-```
-  -h, --help              help for init
-  -t, --template string   The template to use
 ```
 
 ## smallweb list
@@ -416,20 +459,6 @@ Manage smallweb service
 
 ```
   -h, --help   help for service
-```
-
-## smallweb service edit
-
-Edit smallweb service configuration
-
-```
-smallweb service edit [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for edit
 ```
 
 ## smallweb service help
@@ -623,20 +652,6 @@ smallweb token remove <id> [flags]
   -h, --help   help for remove
 ```
 
-## smallweb types
-
-Print smallweb types
-
-```
-smallweb types [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for types
-```
-
 ## smallweb up
 
 Start the smallweb evaluation server
@@ -706,6 +721,20 @@ smallweb version upgrade [version] [flags]
 
 ```
   -h, --help   help for upgrade
+```
+
+## smallweb view
+
+Extension view
+
+```
+smallweb view [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for view
 ```
 
 

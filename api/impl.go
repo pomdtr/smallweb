@@ -5,17 +5,21 @@ import (
 	"embed"
 	_ "embed"
 	"encoding/json"
+	"errors"
+	"io"
 	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/knadh/koanf/v2"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
+	"golang.org/x/net/webdav"
 )
 
 //go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml openapi.json
@@ -31,25 +35,7 @@ var swaggerUiDist embed.FS
 //go:embed index.html
 var swaggerHomepage []byte
 
-var SwaggerHandler = http.HandlerFunc(serveSwaggerUi)
-
-func serveSwaggerUi(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/" {
-		w.Header().Set("Content-Type", "text/html")
-		w.Write(swaggerHomepage)
-		return
-	}
-
-	subfs, err := fs.Sub(swaggerUiDist, "node_modules/swagger-ui-dist")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	http.FileServer(http.FS(subfs)).ServeHTTP(w, r)
-}
-
-var Document = MustLoadSpecs(specs)
+var doc = MustLoadSpecs(specs)
 
 func MustLoadSpecs(data []byte) *openapi3.T {
 	loader := openapi3.NewLoader()
@@ -64,10 +50,48 @@ type Server struct {
 	k *koanf.Koanf
 }
 
-func NewServer(k *koanf.Koanf) Server {
-	return Server{
-		k: k,
+func NewHandler(k *koanf.Koanf) http.Handler {
+	server := &Server{k: k}
+	handler := Handler(server)
+	webdavHandler := webdav.Handler{
+		FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
+		LockSystem: webdav.NewMemLS(),
+		Prefix:     "/v0/webdav",
 	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/v0/webdav") {
+			webdavHandler.ServeHTTP(w, r)
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/v0") {
+			handler.ServeHTTP(w, r)
+			return
+		}
+
+		if r.URL.Path == "/openapi.json" {
+			w.Header().Set("Content-Type", "text/yaml")
+			encoder := json.NewEncoder(w)
+			encoder.SetIndent("", "  ")
+			encoder.Encode(doc)
+			return
+		}
+
+		if r.URL.Path == "/" {
+			w.Header().Set("Content-Type", "text/html")
+			w.Write(swaggerHomepage)
+			return
+		}
+
+		subfs, err := fs.Sub(swaggerUiDist, "node_modules/swagger-ui-dist")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		http.FileServer(http.FS(subfs)).ServeHTTP(w, r)
+	})
 }
 
 func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
@@ -89,14 +113,6 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 		apps = append(apps, App{
 			Name: a.Name,
 			Url:  a.Url,
-			Config: AppConfig{
-				Entrypoint:    a.Entrypoint(),
-				Private:       a.Config.Private,
-				PrivateRoutes: a.Config.PublicRoutes,
-				PublicRoutes:  a.Config.PrivateRoutes,
-				Root:          a.Root(),
-				Crons:         []CronJob{},
-			},
 		})
 	}
 
@@ -127,7 +143,7 @@ func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app strin
 	}
 
 	var body PostV0RunAppJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

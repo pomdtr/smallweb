@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -22,7 +21,6 @@ import (
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/auth"
 	"github.com/pomdtr/smallweb/term"
-	"golang.org/x/net/webdav"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -101,14 +99,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				}
 			}
 
-			var webdavHandler http.Handler = &webdav.Handler{
-				FileSystem: webdav.Dir(rootDir),
-				LockSystem: webdav.NewMemLS(),
-				Prefix:     "/webdav",
-			}
-
-			apiServer := api.NewServer(k)
-			apiHandler := api.Handler(&apiServer)
+			apiHandler := api.NewHandler(k)
 
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			loggerMiddleware := requestLogger(logger)
@@ -143,27 +134,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 					var handler http.Handler
 					if a.Entrypoint() == "smallweb:api" {
-						handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-							if strings.HasPrefix(r.URL.Path, "/v0") {
-								apiHandler.ServeHTTP(w, r)
-								return
-							}
-
-							if r.URL.Path == "/openapi.json" {
-								w.Header().Set("Content-Type", "text/yaml")
-								encoder := json.NewEncoder(w)
-								encoder.SetIndent("", "  ")
-								encoder.Encode(api.Document)
-								return
-							}
-
-							if strings.HasPrefix(r.URL.Path, "/webdav") {
-								webdavHandler.ServeHTTP(w, r)
-								return
-							}
-
-							api.SwaggerHandler.ServeHTTP(w, r)
-						})
+						handler = apiHandler
 					} else if a.Entrypoint() == "smallweb:terminal" {
 						handler = term.NewHandler(k.String("shell"), rootDir)
 					} else if a.Entrypoint() == "smallweb:file-server" {

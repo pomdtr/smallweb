@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/api"
 	"github.com/spf13/cobra"
 )
@@ -24,28 +25,13 @@ func NewCmdAPI() *cobra.Command {
 		Short: "Interact with the smallweb API",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			server := api.NewServer(k)
-			handler := api.Handler(&server)
+			handler := api.NewHandler(k)
 
 			var body io.Reader
 			if flags.data != "" {
-				if flags.method == "GET" {
-					return fmt.Errorf("cannot send data with GET request")
-				}
-
-				if flags.data == "@-" {
-					body = os.Stdin
-				} else if flags.data[0] == '@' {
-					file, err := os.Open(flags.data[1:])
-					if err != nil {
-						return fmt.Errorf("failed to open file: %w", err)
-					}
-					defer file.Close()
-
-					body = file
-				} else {
-					body = strings.NewReader(flags.data)
-				}
+				body = strings.NewReader(flags.data)
+			} else if !isatty.IsTerminal(os.Stdin.Fd()) {
+				body = os.Stdin
 			}
 
 			w := httptest.NewRecorder()

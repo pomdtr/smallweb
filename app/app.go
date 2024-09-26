@@ -33,7 +33,7 @@ type App struct {
 	Dir    string            `json:"dir,omitempty"`
 	Url    string            `json:"url"`
 	Env    map[string]string `json:"-"`
-	Config AppConfig         `json:"config"`
+	Config AppConfig         `json:"-"`
 }
 
 func (me *App) Root() string {

@@ -116,8 +116,7 @@
         "type": "object",
         "required": [
           "name",
-          "url",
-          "config"
+          "url"
         ],
         "properties": {
           "name": {
@@ -125,54 +124,8 @@
           },
           "url": {
             "type": "string"
-          },
-          "config": {
-            "$ref": "#/components/schemas/AppConfig"
           }
         }
-      },
-      "AppConfig": {
-        "type": "object",
-        "required": [
-          "entrypoint",
-          "root",
-          "private",
-          "privateRoutes",
-          "publicRoutes",
-          "crons"
-        ],
-        "properties": {
-          "entrypoint": {
-            "type": "string"
-          },
-          "root": {
-            "type": "string"
-          },
-          "private": {
-            "type": "boolean"
-          },
-          "privateRoutes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "publicRoutes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "crons": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CronJob"
-            }
-          }
-        }
-      },
-      "CronJob": {
-        "type": "object"
       }
     }
   }
