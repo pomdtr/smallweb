@@ -1,7 +1,7 @@
 const input = JSON.parse(Deno.args[0]);
 
 if (input.command === "fetch") {
-    const { entrypoint, port } = input;
+    const { entrypoint, port, url } = input;
     const server = Deno.serve(
         {
             port: parseInt(port),
@@ -42,19 +42,10 @@ if (input.command === "fetch") {
 
                 const handler = mod.default.fetch;
 
-                const headers = new Headers(req.headers);
-                const url = req.headers.get("x-smallweb-url");
-                if (!url) {
-                    return new Response("Missing x-smallweb-url header", {
-                        status: 400,
-                    });
-                }
-                headers.delete("x-smallweb-url");
-
                 const resp = await handler(
                     new Request(url, {
                         method: req.method,
-                        headers,
+                        headers: req.headers,
                         body: req.body,
                     }),
                 );

@@ -40,6 +40,9 @@ type ServerInterface interface {
 	// (GET /v0/config)
 	GetV0Config(w http.ResponseWriter, r *http.Request)
 
+	// (GET /v0/logs)
+	GetV0Logs(w http.ResponseWriter, r *http.Request)
+
 	// (POST /v0/run/{app})
 	PostV0RunApp(w http.ResponseWriter, r *http.Request, app string)
 }
@@ -84,6 +87,26 @@ func (siw *ServerInterfaceWrapper) GetV0Config(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetV0Config(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetV0Logs operation middleware
+func (siw *ServerInterfaceWrapper) GetV0Logs(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetV0Logs(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -246,6 +269,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetV0Apps)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/config", wrapper.GetV0Config)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/logs", wrapper.GetV0Logs)
 	m.HandleFunc("POST "+options.BaseURL+"/v0/run/{app}", wrapper.PostV0RunApp)
 
 	return m

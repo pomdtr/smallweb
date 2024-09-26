@@ -43,10 +43,8 @@ func init() {
 }
 
 type Worker struct {
-	App  app.App
-	Env  map[string]string
-	port int
-	cmd  *exec.Cmd
+	App app.App
+	Env map[string]string
 }
 
 func NewWorker(app app.App, env map[string]string) *Worker {
@@ -92,13 +90,7 @@ func (me *Worker) Flags() []string {
 	return flags
 }
 
-func (me *Worker) StartServer() error {
-	port, err := GetFreePort()
-	if err != nil {
-		return fmt.Errorf("could not get free port: %w", err)
-	}
-	me.port = port
-
+func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 	args := []string{"run"}
 	args = append(args, me.Flags()...)
 
@@ -108,17 +100,18 @@ func (me *Worker) StartServer() error {
 	encoder.Encode(map[string]any{
 		"command":    "fetch",
 		"entrypoint": me.App.Entrypoint(),
+		"url":        url,
 		"port":       port,
 	})
 	args = append(args, sandboxPath, input.String())
 
 	deno, err := DenoExecutable()
 	if err != nil {
-		return fmt.Errorf("could not find deno executable")
+		return nil, fmt.Errorf("could not find deno executable")
 	}
 
-	me.cmd = exec.Command(deno, args...)
-	me.cmd.Dir = me.App.Root()
+	command := exec.Command(deno, args...)
+	command.Dir = me.App.Root()
 
 	var env []string
 	for k, v := range me.Env {
@@ -127,23 +120,23 @@ func (me *Worker) StartServer() error {
 	for k, v := range me.App.Env {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
-	me.cmd.Env = env
+	command.Env = env
 
-	stdout, err := me.cmd.StdoutPipe()
+	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("could not get stdout pipe: %w", err)
+		return nil, fmt.Errorf("could not get stdout pipe: %w", err)
 	}
 
-	me.cmd.Stderr = os.Stderr
-	if err := me.cmd.Start(); err != nil {
-		return fmt.Errorf("could not start server: %w", err)
+	command.Stderr = os.Stderr
+	if err := command.Start(); err != nil {
+		return nil, fmt.Errorf("could not start server: %w", err)
 	}
 
-	scanner := bufio.NewScanner(stdout)
+	scanner := bufio.NewScanner(stdoutPipe)
 	scanner.Scan()
 	line := scanner.Text()
 	if !(line == "READY") {
-		return fmt.Errorf("server did not start correctly")
+		return nil, fmt.Errorf("server did not start correctly")
 	}
 
 	go func() {
@@ -152,37 +145,45 @@ func (me *Worker) StartServer() error {
 		}
 	}()
 
-	return nil
+	return command, nil
 }
 
-func (me *Worker) StopServer() error {
-	if err := me.cmd.Process.Signal(os.Interrupt); err != nil {
+func (me *Worker) Stop(command *exec.Cmd) error {
+	if err := command.Process.Signal(os.Interrupt); err != nil {
 		log.Printf("Failed to send interrupt signal: %v", err)
 	}
 
 	done := make(chan error, 1)
 	go func() {
-		done <- me.cmd.Wait()
+		done <- command.Wait()
 	}()
 
 	select {
 	case <-time.After(5 * time.Second):
-		if err := me.cmd.Process.Kill(); err != nil {
+		if err := command.Process.Kill(); err != nil {
 			return fmt.Errorf("failed to kill process: %w", err)
 		}
 
-		me.cmd = nil
-		me.port = 0
 		return fmt.Errorf("process did not exit after 5 seconds")
 	case <-done:
-		me.cmd = nil
-		me.port = 0
 		return nil
 	}
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.String())
+	port, err := GetFreePort()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	command, err := me.Start(url, port)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer me.Stop(command)
 
 	// handle websockets
 	if r.Header.Get("Upgrade") == "websocket" {
@@ -193,7 +194,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		defer serverConn.Close()
 
-		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", me.port, r.URL.Path), nil)
+		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", port, r.URL.Path), nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -229,7 +230,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://localhost:%d%s", me.port, r.URL.String()), r.Body)
+	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://localhost:%d%s", port, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -241,7 +242,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	request.Header.Add("X-Smallweb-Url", url)
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse

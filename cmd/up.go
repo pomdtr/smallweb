@@ -49,135 +49,144 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				}
 			}
 
-			apiHandler := api.NewHandler(k)
+			multiwriter := utils.NewMultiWriter()
+			logger := utils.NewLogger(multiwriter)
+
+			apiHandler := api.NewHandler(k, multiwriter)
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
-			server := http.Server{
-				Addr: addr,
-				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Host == baseDomain {
-						target := r.URL
-						target.Scheme = "https"
-						target.Host = "www." + baseDomain
-						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
-						return
-					}
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Host == baseDomain {
+					target := r.URL
+					target.Scheme = "https"
+					target.Host = "www." + baseDomain
+					http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+					return
+				}
 
-					var appName string
-					if a, ok := k.StringMap("custom-domains")[r.Host]; ok {
-						appName = a
-					} else {
-						if !strings.HasSuffix(r.Host, fmt.Sprintf(".%s", baseDomain)) {
-							w.WriteHeader(http.StatusNotFound)
-							return
-						}
-
-						appName = strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", baseDomain))
-					}
-
-					a, err := app.LoadApp(filepath.Join(rootDir, appName), k.String("domain"))
-					if err != nil {
+				var appName string
+				if a, ok := k.StringMap("custom-domains")[r.Host]; ok {
+					appName = a
+				} else {
+					if !strings.HasSuffix(r.Host, fmt.Sprintf(".%s", baseDomain)) {
 						w.WriteHeader(http.StatusNotFound)
 						return
 					}
 
-					var handler http.Handler
-					if a.Entrypoint() == "smallweb:api" {
-						handler = apiHandler
-					} else if a.Entrypoint() == "smallweb:terminal" {
-						handler = term.NewHandler(k.String("shell"), rootDir)
-					} else if a.Entrypoint() == "smallweb:file-server" {
-						handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-							p := filepath.Join(a.Root(), r.URL.Path)
-							transformOptions := esbuild.TransformOptions{
-								Target:       esbuild.ESNext,
-								Format:       esbuild.FormatESModule,
-								MinifySyntax: false,
-								Sourcemap:    esbuild.SourceMapNone,
+					appName = strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", baseDomain))
+				}
+
+				a, err := app.LoadApp(filepath.Join(rootDir, appName), k.String("domain"))
+				if err != nil {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+
+				var handler http.Handler
+				if a.Entrypoint() == "smallweb:api" {
+					handler = apiHandler
+				} else if a.Entrypoint() == "smallweb:terminal" {
+					handler = term.NewHandler(k.String("shell"), rootDir)
+				} else if a.Entrypoint() == "smallweb:file-server" {
+					handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						p := filepath.Join(a.Root(), r.URL.Path)
+						transformOptions := esbuild.TransformOptions{
+							Target:       esbuild.ESNext,
+							Format:       esbuild.FormatESModule,
+							MinifySyntax: false,
+							Sourcemap:    esbuild.SourceMapNone,
+						}
+
+						switch path.Ext(r.URL.Path) {
+						case ".ts":
+							transformOptions.Loader = esbuild.LoaderTS
+							code, err := transpile(p, transformOptions)
+							if err != nil {
+								http.Error(w, err.Error(), http.StatusInternalServerError)
 							}
 
-							switch path.Ext(r.URL.Path) {
-							case ".ts":
-								transformOptions.Loader = esbuild.LoaderTS
-								code, err := transpile(p, transformOptions)
-								if err != nil {
-									http.Error(w, err.Error(), http.StatusInternalServerError)
-								}
+							w.Header().Set("Content-Type", "application/javascript")
+							w.Write(code)
+							return
+						case ".jsx":
+							transformOptions.Loader = esbuild.LoaderJSX
+							transformOptions.JSX = esbuild.JSXAutomatic
+							code, err := transpile(p, transformOptions)
+							if err != nil {
+								http.Error(w, err.Error(), http.StatusInternalServerError)
+							}
 
-								w.Header().Set("Content-Type", "application/javascript")
-								w.Write(code)
-								return
-							case ".jsx":
-								transformOptions.Loader = esbuild.LoaderJSX
-								transformOptions.JSX = esbuild.JSXAutomatic
-								code, err := transpile(p, transformOptions)
-								if err != nil {
-									http.Error(w, err.Error(), http.StatusInternalServerError)
-								}
+							w.Header().Set("Content-Type", "application/javascript")
+							w.Write(code)
+							return
+						case ".tsx":
+							transformOptions.Loader = esbuild.LoaderTSX
+							transformOptions.JSX = esbuild.JSXAutomatic
+							code, err := transpile(p, transformOptions)
+							if err != nil {
+								http.Error(w, err.Error(), http.StatusInternalServerError)
+							}
 
-								w.Header().Set("Content-Type", "application/javascript")
-								w.Write(code)
-								return
-							case ".tsx":
-								transformOptions.Loader = esbuild.LoaderTSX
-								transformOptions.JSX = esbuild.JSXAutomatic
-								code, err := transpile(p, transformOptions)
-								if err != nil {
-									http.Error(w, err.Error(), http.StatusInternalServerError)
-								}
-
-								w.Header().Set("Content-Type", "application/javascript")
-								w.Write(code)
-								return
-							default:
-								if utils.FileExists(p) {
-									http.ServeFile(w, r, p)
-									return
-								}
-
-								if utils.FileExists(p + ".html") {
-									http.ServeFile(w, r, p+".html")
-									return
-								}
-
-								http.Error(w, "file not found", http.StatusNotFound)
+							w.Header().Set("Content-Type", "application/javascript")
+							w.Write(code)
+							return
+						default:
+							if utils.FileExists(p) {
+								http.ServeFile(w, r, p)
 								return
 							}
-						})
-					} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
-						wk := worker.NewWorker(a, k.StringMap("env"))
-						if err := wk.StartServer(); err != nil {
-							http.Error(w, err.Error(), http.StatusInternalServerError)
+
+							if utils.FileExists(p + ".html") {
+								http.ServeFile(w, r, p+".html")
+								return
+							}
+
+							http.Error(w, "file not found", http.StatusNotFound)
 							return
 						}
-						defer wk.StopServer()
-						handler = wk
-					} else {
-						http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
-						return
-					}
+					})
+				} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
+					handler = worker.NewWorker(a, k.StringMap("env"))
+				} else {
+					http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
+					return
+				}
 
-					isPrivateRoute := a.Config.Private
-					for _, publicRoute := range a.Config.PublicRoutes {
-						glob := glob.MustCompile(publicRoute)
-						if glob.Match(r.URL.Path) {
-							isPrivateRoute = false
-						}
+				isPrivateRoute := a.Config.Private
+				for _, publicRoute := range a.Config.PublicRoutes {
+					glob := glob.MustCompile(publicRoute)
+					if glob.Match(r.URL.Path) {
+						isPrivateRoute = false
 					}
+				}
 
-					for _, privateRoute := range a.Config.PrivateRoutes {
-						glob := glob.MustCompile(privateRoute)
-						if glob.Match(r.URL.Path) {
-							isPrivateRoute = true
-						}
+				for _, privateRoute := range a.Config.PrivateRoutes {
+					glob := glob.MustCompile(privateRoute)
+					if glob.Match(r.URL.Path) {
+						isPrivateRoute = true
 					}
+				}
 
-					if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
-						authMiddleware := auth.Middleware(db, k.String("email"))
-						handler = authMiddleware(handler)
-					}
+				if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
+					authMiddleware := auth.Middleware(db, k.String("email"))
+					handler = authMiddleware(handler)
+				}
 
-					handler.ServeHTTP(w, r)
-				}),
+				handler.ServeHTTP(w, r)
+			})
+
+			if err := os.MkdirAll(filepath.Dir(httpLogFile), 0755); err != nil {
+				return err
+			}
+
+			f, err := os.OpenFile(httpLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			server := http.Server{
+				Addr:    addr,
+				Handler: logger.HTTPResponseLogger(handler),
 			}
 
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)

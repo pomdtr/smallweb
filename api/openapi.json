@@ -45,6 +45,22 @@
         }
       }
     },
+    "/v0/logs": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Stream logs",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v0/run/{app}": {
       "post": {
         "parameters": [

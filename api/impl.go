@@ -47,11 +47,12 @@ func MustLoadSpecs(data []byte) *openapi3.T {
 }
 
 type Server struct {
-	k *koanf.Koanf
+	k           *koanf.Koanf
+	multiwriter *utils.MultiWriter
 }
 
-func NewHandler(k *koanf.Koanf) http.Handler {
-	server := &Server{k: k}
+func NewHandler(k *koanf.Koanf, writer *utils.MultiWriter) http.Handler {
+	server := &Server{k: k, multiwriter: writer}
 	handler := Handler(server)
 	webdavHandler := webdav.Handler{
 		FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
@@ -174,4 +175,40 @@ func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app strin
 	w.Header().Set("X-Exit-Code", "0")
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write(ansiRegexp.ReplaceAll(stdout.Bytes(), nil))
+}
+
+func (me *Server) GetV0Logs(w http.ResponseWriter, r *http.Request) {
+	if me.multiwriter == nil {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	// Set the necessary headers for SSE
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	// Create a new channel for this client to receive logs
+	clientChan := make(chan []byte)
+	me.multiwriter.AddClient(clientChan)
+	defer me.multiwriter.RemoveClient(clientChan)
+
+	// Listen to the client channel and send logs to the client
+	for {
+		select {
+		case logMsg := <-clientChan:
+			// Send the log message as SSE event
+			w.Write(logMsg)
+			flusher.Flush() // Push data to the client
+		case <-r.Context().Done():
+			// If the client disconnects, stop the loop
+			return
+		}
+	}
 }

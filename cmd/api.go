@@ -26,7 +26,7 @@ func NewCmdAPI() *cobra.Command {
 		GroupID: CoreGroupID,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			handler := api.NewHandler(k)
+			handler := api.NewHandler(k, nil)
 
 			var body io.Reader
 			if flags.data != "" {
