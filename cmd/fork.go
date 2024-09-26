@@ -13,6 +13,7 @@ func NewCmdFork() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "fork [app] [new-name]",
 		Short:             "Fork an app",
+		GroupID:           CoreGroupID,
 		Aliases:           []string{"cp"},
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
 		Args:              cobra.ExactArgs(2),

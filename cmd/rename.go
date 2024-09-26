@@ -13,6 +13,7 @@ func NewCmdRename() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "rename [app] [new-name]",
 		Short:             "Rename an app",
+		GroupID:           CoreGroupID,
 		Aliases:           []string{"move", "mv"},
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
 		Args:              cobra.ExactArgs(2),

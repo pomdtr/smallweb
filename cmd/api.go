@@ -21,9 +21,10 @@ func NewCmdAPI() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "api",
-		Short: "Interact with the smallweb API",
-		Args:  cobra.ExactArgs(1),
+		Use:     "api",
+		Short:   "Interact with the smallweb API",
+		GroupID: CoreGroupID,
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			handler := api.NewHandler(k)
 
