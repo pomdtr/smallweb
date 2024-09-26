@@ -21,6 +21,7 @@ import (
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/auth"
+	"github.com/pomdtr/smallweb/docs"
 	"github.com/pomdtr/smallweb/term"
 
 	"github.com/pomdtr/smallweb/utils"
@@ -91,6 +92,8 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 					handler = apiHandler
 				} else if a.Entrypoint() == "smallweb:terminal" {
 					handler = term.NewHandler(k.String("shell"), rootDir)
+				} else if a.Entrypoint() == "smallweb:docs" {
+					handler = docs.Handler
 				} else if a.Entrypoint() == "smallweb:file-server" {
 					handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						w.Header().Set("Access-Control-Allow-Origin", "*")
