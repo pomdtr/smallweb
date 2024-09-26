@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"bytes"
+	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -225,9 +230,32 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 							continue
 						}
 
+						var stdout, stderr bytes.Buffer
+						command.Stdout = &stdout
+						command.Stderr = &stderr
+
+						t1 := time.Now()
+						var exitCode int
 						if err := command.Run(); err != nil {
-							fmt.Println(err)
+							if exitError, ok := err.(*exec.ExitError); ok {
+								exitCode = exitError.ExitCode()
+							}
 						}
+						duration := time.Since(t1)
+
+						logger.LogAttrs(
+							context.Background(),
+							slog.LevelInfo,
+							"cron",
+							slog.String("type", "cron"),
+							slog.String("app", a.Name),
+							slog.String("job", job.Name),
+							slog.Int("exit_code", exitCode),
+							slog.String("stdout", base64.StdEncoding.EncodeToString(stdout.Bytes())),
+							slog.String("stderr", base64.StdEncoding.EncodeToString(stderr.Bytes())),
+							slog.Int64("duration", duration.Milliseconds()),
+						)
+
 					}
 
 				}
