@@ -107,6 +107,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 						w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
+						if strings.HasPrefix(filepath.Base(r.URL.Path), ".") {
+							http.Error(w, "file not found", http.StatusNotFound)
+							return
+						}
+
 						p := filepath.Join(a.Root(), r.URL.Path)
 						transformOptions := esbuild.TransformOptions{
 							Target:       esbuild.ESNext,
