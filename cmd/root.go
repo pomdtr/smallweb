@@ -26,8 +26,7 @@ const (
 )
 
 var (
-	k           = koanf.New(".")
-	httpLogFile = filepath.Join(xdg.CacheHome, "smallweb", "logs", "http.jsonl")
+	k = koanf.New(".")
 )
 
 func findConfigPath() string {
