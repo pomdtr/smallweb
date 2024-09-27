@@ -1,9 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## 0.14.0
 
-- smallweb shell when no command is provided
-- add smallweb editor
+- smallweb terminal
 - only redirect to lastlogin if the user configured an email
 
 ## 0.13.6

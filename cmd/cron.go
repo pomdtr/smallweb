@@ -1,14 +1,20 @@
 package cmd
 
 import (
+	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
+	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -25,6 +31,7 @@ func NewCmdCron() *cobra.Command {
 
 	cmd.AddCommand(NewCmdCronList())
 	cmd.AddCommand(NewCmdCronTrigger())
+	cmd.AddCommand(NewCmdCronLogs())
 	return cmd
 }
 
@@ -231,4 +238,76 @@ func NewCmdCronTrigger() *cobra.Command {
 
 	return cmd
 
+}
+
+func NewCmdCronLogs() *cobra.Command {
+	var flags struct {
+		host string
+		json bool
+	}
+	cmd := &cobra.Command{
+		Use:   "logs",
+		Short: "Show cron logs",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// use api unix socket if available
+			client := &http.Client{
+				Transport: &http.Transport{
+					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+						return net.Dial("unix", apiSocketPath)
+					},
+				},
+			}
+
+			req, err := http.NewRequest("GET", "http://unix/v0/logs/cron", nil)
+			if err != nil {
+				return err
+			}
+
+			q := req.URL.Query()
+			if flags.host != "" {
+				q.Add("host", flags.host)
+			}
+			req.URL.RawQuery = q.Encode()
+
+			resp, err := client.Do(req)
+			if err != nil {
+				return fmt.Errorf("failed to get logs: %w", err)
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("failed to get logs: %s", resp.Body)
+			}
+
+			scanner := bufio.NewScanner(resp.Body)
+			for scanner.Scan() {
+				if scanner.Err() != nil {
+					if scanner.Err().Error() == "EOF" {
+						break
+					}
+
+					return fmt.Errorf("failed to read logs: %w", scanner.Err())
+				}
+
+				if flags.json {
+					fmt.Println(scanner.Text())
+					continue
+				}
+
+				var log api.CronLog
+				if err := json.Unmarshal(scanner.Bytes(), &log); err != nil {
+					return fmt.Errorf("failed to parse log: %w", err)
+				}
+
+				fmt.Printf("%s %s %s %d\n", log.Time.Format(time.RFC3339), log.Id, log.Schedule, log.ExitCode)
+			}
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&flags.host, "host", "", "filter logs by host")
+	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
+
+	return cmd
 }

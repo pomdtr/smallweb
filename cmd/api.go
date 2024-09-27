@@ -1,15 +1,16 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http/httptest"
+	"net"
+	"net/http"
 	"os"
 	"strings"
 
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/api"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +27,6 @@ func NewCmdAPI() *cobra.Command {
 		GroupID: CoreGroupID,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			handler := api.NewHandler(k, nil)
-
 			var body io.Reader
 			if flags.data != "" {
 				body = strings.NewReader(flags.data)
@@ -35,15 +34,34 @@ func NewCmdAPI() *cobra.Command {
 				body = os.Stdin
 			}
 
-			w := httptest.NewRecorder()
-			req := httptest.NewRequest(flags.method, args[0], body)
-			for _, header := range flags.headers {
-				parts := strings.SplitN(header, ":", 2)
-				req.Header.Add(parts[0], parts[1])
+			// use api unix socket if available
+			client := &http.Client{
+				Transport: &http.Transport{
+					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+						return net.Dial("unix", apiSocketPath)
+					},
+				},
 			}
 
-			handler.ServeHTTP(w, req)
-			resp := w.Result()
+			req, err := http.NewRequest(flags.method, "http://smallweb"+args[0], body)
+			if err != nil {
+				return fmt.Errorf("failed to create request: %w", err)
+			}
+
+			for _, header := range flags.headers {
+				parts := strings.SplitN(header, ":", 2)
+				if len(parts) != 2 {
+					return fmt.Errorf("invalid header: %s", header)
+				}
+
+				req.Header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+			}
+
+			resp, err := client.Do(req)
+			if err != nil {
+				return fmt.Errorf("failed to send request: %w", err)
+			}
+			defer resp.Body.Close()
 
 			if resp.Header.Get("Content-Type") == "application/json" {
 				var v any

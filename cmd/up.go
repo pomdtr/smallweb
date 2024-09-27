@@ -1,15 +1,16 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"fmt"
+	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"strings"
@@ -17,6 +18,7 @@ import (
 
 	_ "embed"
 
+	"github.com/adrg/xdg"
 	"github.com/gobwas/glob"
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
@@ -30,6 +32,10 @@ import (
 	"github.com/spf13/cobra"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
+)
+
+var (
+	apiSocketPath = filepath.Join(xdg.CacheHome, "smallweb", "api.sock")
 )
 
 func NewCmdUp(db *sql.DB) *cobra.Command {
@@ -55,10 +61,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				}
 			}
 
-			multiwriter := utils.NewMultiWriter()
-			logger := utils.NewLogger(multiwriter)
+			httpWriter := utils.NewMultiWriter()
+			cronWriter := utils.NewMultiWriter()
+			httpLogger := utils.NewLogger(httpWriter)
 
-			apiHandler := api.NewHandler(k, multiwriter)
+			apiHandler := api.NewHandler(k, httpWriter, cronWriter)
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Host == baseDomain {
@@ -70,7 +77,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				}
 
 				var appName string
-				if a, ok := k.StringMap("custom-domains")[r.Host]; ok {
+				if a, ok := k.StringMap("customDomains")[r.Host]; ok {
 					appName = a
 				} else {
 					if !strings.HasSuffix(r.Host, fmt.Sprintf(".%s", baseDomain)) {
@@ -188,11 +195,12 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 			server := http.Server{
 				Addr:    addr,
-				Handler: logger.HTTPResponseLogger(handler),
+				Handler: httpLogger.Middleware(handler),
 			}
 
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 			c := cron.New(cron.WithParser(parser))
+			cronLogger := slog.New(slog.NewJSONHandler(cronWriter, nil))
 			c.AddFunc("* * * * *", func() {
 				rootDir := utils.ExpandTilde(k.String("dir"))
 				rounded := time.Now().Truncate(time.Minute)
@@ -226,10 +234,8 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 							fmt.Println(err)
 							continue
 						}
-
-						var stdout, stderr bytes.Buffer
-						command.Stdout = &stdout
-						command.Stderr = &stderr
+						command.Stdout = os.Stdout
+						command.Stderr = os.Stderr
 
 						t1 := time.Now()
 						var exitCode int
@@ -240,21 +246,20 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						}
 						duration := time.Since(t1)
 
-						logger.LogAttrs(
+						cronLogger.LogAttrs(
 							context.Background(),
 							slog.LevelInfo,
-							"cron",
+							fmt.Sprintf("Exit Code: %d", exitCode),
 							slog.String("type", "cron"),
+							slog.String("id", fmt.Sprintf("%s:%s", a.Name, job.Name)),
 							slog.String("app", a.Name),
 							slog.String("job", job.Name),
+							slog.String("schedule", job.Schedule),
+							slog.Any("args", job.Args),
 							slog.Int("exit_code", exitCode),
-							slog.String("stdout", base64.StdEncoding.EncodeToString(stdout.Bytes())),
-							slog.String("stderr", base64.StdEncoding.EncodeToString(stderr.Bytes())),
 							slog.Int64("duration", duration.Milliseconds()),
 						)
-
 					}
-
 				}
 			})
 
@@ -274,7 +279,43 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			}
 
 			cmd.Printf("Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
-			return server.ListenAndServe()
+			go server.ListenAndServe()
+
+			// start api server on unix socket
+			apiServer := http.Server{
+				Handler: apiHandler,
+			}
+
+			go func() {
+				if err := os.MkdirAll(filepath.Dir(apiSocketPath), 0755); err != nil {
+					log.Fatal(err)
+				}
+
+				if err := os.Remove(apiSocketPath); err != nil && !os.IsNotExist(err) {
+					log.Fatal(err)
+				}
+				defer os.Remove(apiSocketPath)
+
+				listener, err := net.Listen("unix", apiSocketPath)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				if err := apiServer.Serve(listener); err != nil && err != http.ErrServerClosed {
+					log.Fatal(err)
+				}
+			}()
+
+			// sigint handling
+			sigint := make(chan os.Signal, 1)
+			signal.Notify(sigint, os.Interrupt)
+			<-sigint
+
+			log.Println("Shutting down server...")
+			server.Shutdown(context.Background())
+			apiServer.Shutdown(context.Background())
+			c.Stop()
+			return nil
 		},
 	}
 

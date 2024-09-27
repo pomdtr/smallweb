@@ -119,9 +119,8 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdDocs())
-	cmd.AddCommand(NewCmdAPI())
 	cmd.AddCommand(NewCmdCron())
-	cmd.AddCommand(NewCmdVersion())
+	cmd.AddCommand(NewCmdUpgrade())
 	cmd.AddCommand(NewCmdCreate())
 	cmd.AddCommand(NewCmdDelete())
 	cmd.AddCommand(NewCmdFork())
@@ -133,10 +132,12 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdAPI())
+	cmd.AddCommand(NewCmdLogs())
 
 	cmd.AddCommand(&cobra.Command{
-		Use:   "changelog",
-		Short: "Show the changelog",
+		Use:     "changelog",
+		Short:   "Show the changelog",
+		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !isatty.IsTerminal(os.Stdout.Fd()) {
 				fmt.Println(changelog)

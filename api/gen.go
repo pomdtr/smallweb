@@ -6,21 +6,154 @@
 package api
 
 import (
-	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for CronLogLevel.
 const (
-	BearerAuthScopes = "BearerAuth.Scopes"
+	CronLogLevelDEBUG CronLogLevel = "DEBUG"
+	CronLogLevelERROR CronLogLevel = "ERROR"
+	CronLogLevelINFO  CronLogLevel = "INFO"
+	CronLogLevelWARN  CronLogLevel = "WARN"
+)
+
+// Defines values for HttpLogLevel.
+const (
+	HttpLogLevelDEBUG   HttpLogLevel = "DEBUG"
+	HttpLogLevelERROR   HttpLogLevel = "ERROR"
+	HttpLogLevelINFO    HttpLogLevel = "INFO"
+	HttpLogLevelWARNING HttpLogLevel = "WARNING"
+)
+
+// Defines values for HttpLogRequestMethod.
+const (
+	DELETE  HttpLogRequestMethod = "DELETE"
+	GET     HttpLogRequestMethod = "GET"
+	HEAD    HttpLogRequestMethod = "HEAD"
+	OPTIONS HttpLogRequestMethod = "OPTIONS"
+	PATCH   HttpLogRequestMethod = "PATCH"
+	POST    HttpLogRequestMethod = "POST"
+	PUT     HttpLogRequestMethod = "PUT"
 )
 
 // App defines model for App.
 type App struct {
 	Name string `json:"name"`
 	Url  string `json:"url"`
+}
+
+// Config defines model for Config.
+type Config struct {
+	Cert          *string           `json:"cert,omitempty"`
+	CustomDomains map[string]string `json:"customDomains"`
+	Dir           string            `json:"dir"`
+	Domain        string            `json:"domain"`
+	Editor        *string           `json:"editor,omitempty"`
+	Email         *string           `json:"email,omitempty"`
+	Env           map[string]string `json:"env"`
+	Host          string            `json:"host"`
+	Key           *string           `json:"key,omitempty"`
+	Port          *int              `json:"port,omitempty"`
+	Shell         *string           `json:"shell,omitempty"`
+}
+
+// CronLog defines model for CronLog.
+type CronLog struct {
+	// App The name of the application running the cron job
+	App string `json:"app"`
+
+	// Args The arguments passed to the cron job
+	Args []string `json:"args"`
+
+	// Duration The duration of the cron job execution in milliseconds
+	Duration int `json:"duration"`
+
+	// ExitCode The exit code of the cron job
+	ExitCode int `json:"exit_code"`
+
+	// Id A unique identifier for the cron job, typically in the format 'app:job'
+	Id string `json:"id"`
+
+	// Job The name of the cron job
+	Job string `json:"job"`
+
+	// Level The log level
+	Level CronLogLevel `json:"level"`
+
+	// Msg The log message, typically including the exit code
+	Msg string `json:"msg"`
+
+	// Schedule The schedule of the cron job
+	Schedule string `json:"schedule"`
+
+	// Time The timestamp of the log entry
+	Time time.Time `json:"time"`
+
+	// Type The type of log entry, always 'cron' for this schema
+	Type interface{} `json:"type"`
+}
+
+// CronLogLevel The log level
+type CronLogLevel string
+
+// HttpLog defines model for HttpLog.
+type HttpLog struct {
+	// Level The log level
+	Level HttpLogLevel `json:"level"`
+
+	// Msg A brief description of the logged event
+	Msg     string `json:"msg"`
+	Request struct {
+		// Headers The headers sent with the request
+		Headers map[string]string `json:"headers"`
+
+		// Host The host component of the request URL
+		Host string `json:"host"`
+
+		// Method The HTTP method used for the request
+		Method HttpLogRequestMethod `json:"method"`
+
+		// Path The path component of the request URL
+		Path string `json:"path"`
+
+		// Url The full URL of the request
+		Url string `json:"url"`
+	} `json:"request"`
+	Response struct {
+		// Bytes The number of bytes in the response body
+		Bytes int `json:"bytes"`
+
+		// Elapsed The time taken to process the request and generate the response, in seconds
+		Elapsed float32 `json:"elapsed"`
+
+		// Status The HTTP status code of the response
+		Status int `json:"status"`
+	} `json:"response"`
+
+	// Time The time when the log entry was created
+	Time time.Time `json:"time"`
+}
+
+// HttpLogLevel The log level
+type HttpLogLevel string
+
+// HttpLogRequestMethod The HTTP method used for the request
+type HttpLogRequestMethod string
+
+// GetV0LogsCronParams defines parameters for GetV0LogsCron.
+type GetV0LogsCronParams struct {
+	// App Filter logs by app
+	App *string `form:"app,omitempty" json:"app,omitempty"`
+}
+
+// GetV0LogsHttpParams defines parameters for GetV0LogsHttp.
+type GetV0LogsHttpParams struct {
+	// Host Filter logs by host
+	Host *string `form:"host,omitempty" json:"host,omitempty"`
 }
 
 // PostV0RunAppJSONBody defines parameters for PostV0RunApp.
@@ -40,8 +173,11 @@ type ServerInterface interface {
 	// (GET /v0/config)
 	GetV0Config(w http.ResponseWriter, r *http.Request)
 
-	// (GET /v0/logs)
-	GetV0Logs(w http.ResponseWriter, r *http.Request)
+	// (GET /v0/logs/cron)
+	GetV0LogsCron(w http.ResponseWriter, r *http.Request, params GetV0LogsCronParams)
+
+	// (GET /v0/logs/http)
+	GetV0LogsHttp(w http.ResponseWriter, r *http.Request, params GetV0LogsHttpParams)
 
 	// (POST /v0/run/{app})
 	PostV0RunApp(w http.ResponseWriter, r *http.Request, app string)
@@ -59,12 +195,6 @@ type MiddlewareFunc func(http.Handler) http.Handler
 // GetV0Apps operation middleware
 func (siw *ServerInterfaceWrapper) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetV0Apps(w, r)
 	}))
@@ -79,12 +209,6 @@ func (siw *ServerInterfaceWrapper) GetV0Apps(w http.ResponseWriter, r *http.Requ
 // GetV0Config operation middleware
 func (siw *ServerInterfaceWrapper) GetV0Config(w http.ResponseWriter, r *http.Request) {
 
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetV0Config(w, r)
 	}))
@@ -96,17 +220,51 @@ func (siw *ServerInterfaceWrapper) GetV0Config(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
-// GetV0Logs operation middleware
-func (siw *ServerInterfaceWrapper) GetV0Logs(w http.ResponseWriter, r *http.Request) {
+// GetV0LogsCron operation middleware
+func (siw *ServerInterfaceWrapper) GetV0LogsCron(w http.ResponseWriter, r *http.Request) {
 
-	ctx := r.Context()
+	var err error
 
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV0LogsCronParams
 
-	r = r.WithContext(ctx)
+	// ------------- Optional query parameter "app" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "app", r.URL.Query(), &params.App)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
+		return
+	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetV0Logs(w, r)
+		siw.Handler.GetV0LogsCron(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetV0LogsHttp operation middleware
+func (siw *ServerInterfaceWrapper) GetV0LogsHttp(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV0LogsHttpParams
+
+	// ------------- Optional query parameter "host" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "host", r.URL.Query(), &params.Host)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "host", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetV0LogsHttp(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -129,12 +287,6 @@ func (siw *ServerInterfaceWrapper) PostV0RunApp(w http.ResponseWriter, r *http.R
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
 		return
 	}
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostV0RunApp(w, r, app)
@@ -269,7 +421,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetV0Apps)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/config", wrapper.GetV0Config)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/logs", wrapper.GetV0Logs)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/cron", wrapper.GetV0LogsCron)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/http", wrapper.GetV0LogsHttp)
 	m.HandleFunc("POST "+options.BaseURL+"/v0/run/{app}", wrapper.PostV0RunApp)
 
 	return m

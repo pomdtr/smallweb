@@ -27,23 +27,6 @@ smallweb api [flags]
   -X, --method string        HTTP method to use (default "GET")
 ```
 
-## smallweb api
-
-Interact with the smallweb API
-
-```
-smallweb api [flags]
-```
-
-### Options
-
-```
-  -d, --data string          Data to send in the request body
-  -H, --header stringArray   HTTP headers to use
-  -h, --help                 help for api
-  -X, --method string        HTTP method to use (default "GET")
-```
-
 ## smallweb capture
 
 Extension capture
@@ -375,6 +358,20 @@ smallweb edit <app> [flags]
   -h, --help   help for edit
 ```
 
+## smallweb fork
+
+Fork an app
+
+```
+smallweb fork [app] [new-name] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for fork
+```
+
 ## smallweb gallery
 
 Extension gallery
@@ -423,6 +420,20 @@ smallweb list [flags]
       --json   output as json
 ```
 
+## smallweb logs
+
+Show logs
+
+```
+smallweb logs [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for logs
+```
+
 ## smallweb open
 
 Open an app in the browser
@@ -435,6 +446,20 @@ smallweb open [app] [flags]
 
 ```
   -h, --help   help for open
+```
+
+## smallweb rename
+
+Rename an app
+
+```
+smallweb rename [app] [new-name] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for rename
 ```
 
 ## smallweb run
@@ -666,55 +691,12 @@ smallweb up [flags]
   -h, --help   help for up
 ```
 
-## smallweb version
-
-Manage smallweb versions
-
-### Options
-
-```
-  -h, --help   help for version
-```
-
-## smallweb version help
-
-Help about any command
-
-### Synopsis
-
-Help provides help for any command in the application.
-Simply type version help [path to command] for full details.
-
-```
-smallweb version help [command] [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for help
-```
-
-## smallweb version list
-
-List available versions
-
-```
-smallweb version list [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for list
-```
-
-## smallweb version upgrade
+## smallweb upgrade
 
 Upgrade to the latest version
 
 ```
-smallweb version upgrade [version] [flags]
+smallweb upgrade [version] [flags]
 ```
 
 ### Options
