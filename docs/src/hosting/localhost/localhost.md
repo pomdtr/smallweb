@@ -162,7 +162,7 @@ echo "export PATH=\$PATH:\$HOME/.deno/bin" >> ~/.bashrc
 ### Setup Smallweb {#setup-smallweb-ubuntu}
 
 ```sh
-curl -FsSL https://install.smallweb.run | sh
+curl -fsSL https://install.smallweb.run | sh
 # add ~/.local/bin to PATH
 echo "export PATH=\$PATH:\$HOME/.local/bin" >> ~/.bashrc
 smallweb service install
