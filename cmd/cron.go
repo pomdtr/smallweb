@@ -253,7 +253,7 @@ func NewCmdCronLogs() *cobra.Command {
 			client := &http.Client{
 				Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-						return net.Dial("unix", apiSocketPath)
+						return net.Dial("unix", api.SocketPath)
 					},
 				},
 			}

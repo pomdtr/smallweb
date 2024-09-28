@@ -18,7 +18,6 @@ import (
 
 	_ "embed"
 
-	"github.com/adrg/xdg"
 	"github.com/gobwas/glob"
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
@@ -32,10 +31,6 @@ import (
 	"github.com/spf13/cobra"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-)
-
-var (
-	apiSocketPath = filepath.Join(xdg.CacheHome, "smallweb", "api.sock")
 )
 
 func NewCmdUp(db *sql.DB) *cobra.Command {
@@ -292,16 +287,16 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			}
 
 			go func() {
-				if err := os.MkdirAll(filepath.Dir(apiSocketPath), 0755); err != nil {
+				if err := os.MkdirAll(filepath.Dir(api.SocketPath), 0755); err != nil {
 					log.Fatal(err)
 				}
 
-				if err := os.Remove(apiSocketPath); err != nil && !os.IsNotExist(err) {
+				if err := os.Remove(api.SocketPath); err != nil && !os.IsNotExist(err) {
 					log.Fatal(err)
 				}
-				defer os.Remove(apiSocketPath)
+				defer os.Remove(api.SocketPath)
 
-				listener, err := net.Listen("unix", apiSocketPath)
+				listener, err := net.Listen("unix", api.SocketPath)
 				if err != nil {
 					log.Fatal(err)
 				}

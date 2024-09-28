@@ -24,6 +24,61 @@
         }
       }
     },
+    "/v0/apps/{app}/config": {
+      "get": {
+        "parameters": [
+          {
+            "name": "app",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get app config",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas/app.schema.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/apps/{app}/env": {
+      "get": {
+        "parameters": [
+          {
+            "name": "app",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get app env",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v0/config": {
       "get": {
         "responses": {
@@ -154,55 +209,7 @@
   "components": {
     "schemas": {
       "Config": {
-        "type": "object",
-        "required": [
-          "host",
-          "domain",
-          "customDomains",
-          "dir",
-          "env"
-        ],
-        "properties": {
-          "host": {
-            "type": "string"
-          },
-          "port": {
-            "type": "integer"
-          },
-          "cert": {
-            "type": "string"
-          },
-          "key": {
-            "type": "string"
-          },
-          "domain": {
-            "type": "string"
-          },
-          "customDomains": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "shell": {
-            "type": "string"
-          },
-          "editor": {
-            "type": "string"
-          },
-          "dir": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "env": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        }
+        "$ref": "./schemas/config.schema.json"
       },
       "App": {
         "type": "object",

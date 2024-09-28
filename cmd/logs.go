@@ -18,6 +18,7 @@ func NewCmdLogs() *cobra.Command {
 		host string
 		json bool
 	}
+
 	cmd := &cobra.Command{
 		Use:     "logs",
 		Short:   "Show logs",
@@ -27,7 +28,7 @@ func NewCmdLogs() *cobra.Command {
 			client := &http.Client{
 				Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-						return net.Dial("unix", apiSocketPath)
+						return net.Dial("unix", api.SocketPath)
 					},
 				},
 			}

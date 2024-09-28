@@ -1,0 +1,45 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "host": {
+            "type": "string"
+        },
+        "port": {
+            "type": "integer"
+        },
+        "cert": {
+            "type": "string"
+        },
+        "key": {
+            "type": "string"
+        },
+        "domain": {
+            "type": "string"
+        },
+        "customDomains": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "shell": {
+            "type": "string"
+        },
+        "editor": {
+            "type": "string"
+        },
+        "dir": {
+            "type": "string"
+        },
+        "email": {
+            "type": "string"
+        },
+        "env": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        }
+    }
+}

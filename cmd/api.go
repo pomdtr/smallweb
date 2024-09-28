@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/mattn/go-isatty"
+	"github.com/pomdtr/smallweb/api"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +39,7 @@ func NewCmdAPI() *cobra.Command {
 			client := &http.Client{
 				Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-						return net.Dial("unix", apiSocketPath)
+						return net.Dial("unix", api.SocketPath)
 					},
 				},
 			}

@@ -48,17 +48,17 @@ type App struct {
 
 // Config defines model for Config.
 type Config struct {
-	Cert          *string           `json:"cert,omitempty"`
-	CustomDomains map[string]string `json:"customDomains"`
-	Dir           string            `json:"dir"`
-	Domain        string            `json:"domain"`
-	Editor        *string           `json:"editor,omitempty"`
-	Email         *string           `json:"email,omitempty"`
-	Env           map[string]string `json:"env"`
-	Host          string            `json:"host"`
-	Key           *string           `json:"key,omitempty"`
-	Port          *int              `json:"port,omitempty"`
-	Shell         *string           `json:"shell,omitempty"`
+	Cert          *string            `json:"cert,omitempty"`
+	CustomDomains *map[string]string `json:"customDomains,omitempty"`
+	Dir           *string            `json:"dir,omitempty"`
+	Domain        *string            `json:"domain,omitempty"`
+	Editor        *string            `json:"editor,omitempty"`
+	Email         *string            `json:"email,omitempty"`
+	Env           *map[string]string `json:"env,omitempty"`
+	Host          *string            `json:"host,omitempty"`
+	Key           *string            `json:"key,omitempty"`
+	Port          *int               `json:"port,omitempty"`
+	Shell         *string            `json:"shell,omitempty"`
 }
 
 // CronLog defines model for CronLog.
@@ -170,6 +170,12 @@ type ServerInterface interface {
 	// (GET /v0/apps)
 	GetV0Apps(w http.ResponseWriter, r *http.Request)
 
+	// (GET /v0/apps/{app}/config)
+	GetV0AppsAppConfig(w http.ResponseWriter, r *http.Request, app string)
+
+	// (GET /v0/apps/{app}/env)
+	GetV0AppsAppEnv(w http.ResponseWriter, r *http.Request, app string)
+
 	// (GET /v0/config)
 	GetV0Config(w http.ResponseWriter, r *http.Request)
 
@@ -197,6 +203,56 @@ func (siw *ServerInterfaceWrapper) GetV0Apps(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetV0Apps(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetV0AppsAppConfig operation middleware
+func (siw *ServerInterfaceWrapper) GetV0AppsAppConfig(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "app" -------------
+	var app string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "app", r.PathValue("app"), &app, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetV0AppsAppConfig(w, r, app)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetV0AppsAppEnv operation middleware
+func (siw *ServerInterfaceWrapper) GetV0AppsAppEnv(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "app" -------------
+	var app string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "app", r.PathValue("app"), &app, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetV0AppsAppEnv(w, r, app)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -420,6 +476,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetV0Apps)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}/config", wrapper.GetV0AppsAppConfig)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}/env", wrapper.GetV0AppsAppEnv)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/config", wrapper.GetV0Config)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/cron", wrapper.GetV0LogsCron)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/http", wrapper.GetV0LogsHttp)

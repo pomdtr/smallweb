@@ -2,30 +2,41 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"embed"
-	_ "embed"
 	"encoding/json"
 	"errors"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	xj "github.com/basgys/goxml2json"
+
+	"github.com/adrg/xdg"
 	"github.com/knadh/koanf/v2"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 	"golang.org/x/net/webdav"
 )
 
-//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml openapi.json
+//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml ./openapi.json
+
+var (
+	SocketPath = filepath.Join(xdg.CacheHome, "smallweb", "api.sock")
+)
 
 //go:embed openapi.json
-var specs []byte
+var openapiSpec []byte
+
+//go:embed schemas
+var schemas embed.FS
 
 //go:generate npm install
 
@@ -34,17 +45,6 @@ var swaggerUiDist embed.FS
 
 //go:embed index.html
 var swaggerHomepage []byte
-
-var doc = MustLoadSpecs(specs)
-
-func MustLoadSpecs(data []byte) *openapi3.T {
-	loader := openapi3.NewLoader()
-	spec, err := loader.LoadFromData(data)
-	if err != nil {
-		panic(err)
-	}
-	return spec
-}
 
 type Server struct {
 	k          *koanf.Koanf
@@ -58,12 +58,64 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 	webdavHandler := webdav.Handler{
 		FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
 		LockSystem: webdav.NewMemLS(),
-		Prefix:     "/v0/webdav",
+		Prefix:     "/webdav",
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/v0/webdav") {
+		if strings.HasPrefix(r.URL.Path, "/webdav") {
+			if r.Header.Get("Accept") == "application/json" {
+				// use api unix socket if available
+				client := &http.Client{
+					Transport: &http.Transport{
+						DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+							return net.Dial("unix", SocketPath)
+						},
+					},
+				}
+
+				req, err := http.NewRequest(r.Method, "http://unix"+r.URL.Path, r.Body)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				for k, v := range r.Header {
+					if k == "Accept" {
+						continue
+					}
+
+					req.Header[k] = v
+				}
+
+				resp, err := client.Do(req)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				defer resp.Body.Close()
+
+				contentType := resp.Header.Get("Content-Type")
+				if !strings.HasPrefix(contentType, "text/xml") {
+					http.Error(w, "invalid content type", http.StatusInternalServerError)
+					return
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				body, err := xj.Convert(resp.Body)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				w.Write(body.Bytes())
+			}
+
 			webdavHandler.ServeHTTP(w, r)
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/schemas") {
+			http.ServeFileFS(w, r, schemas, r.URL.Path)
 			return
 		}
 
@@ -74,9 +126,7 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 
 		if r.URL.Path == "/openapi.json" {
 			w.Header().Set("Content-Type", "text/yaml")
-			encoder := json.NewEncoder(w)
-			encoder.SetIndent("", "  ")
-			encoder.Encode(doc)
+			w.Write(openapiSpec)
 			return
 		}
 
@@ -94,6 +144,36 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 
 		http.FileServer(http.FS(subfs)).ServeHTTP(w, r)
 	})
+}
+
+// GetV0AppsAppConfig implements ServerInterface.
+func (me *Server) GetV0AppsAppConfig(w http.ResponseWriter, r *http.Request, appname string) {
+	rootDir := utils.ExpandTilde(me.k.String("dir"))
+	a, err := app.LoadApp(filepath.Join(rootDir, appname), me.k.String("domain"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	encoder.Encode(a.Config)
+}
+
+// GetV0AppsAppEnv implements ServerInterface.
+func (me *Server) GetV0AppsAppEnv(w http.ResponseWriter, r *http.Request, appname string) {
+	rootDir := utils.ExpandTilde(me.k.String("dir"))
+	a, err := app.LoadApp(filepath.Join(rootDir, appname), me.k.String("domain"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	encoder.Encode(a.Env)
 }
 
 func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
@@ -158,16 +238,41 @@ func (me *Server) GetV0Config(w http.ResponseWriter, r *http.Request) {
 		email = &value
 	}
 
+	var dir *string
+	if value := me.k.String("dir"); value != "" {
+		dir = &value
+	}
+
+	var domain *string
+	if value := me.k.String("domain"); value != "" {
+		domain = &value
+	}
+
+	var customDomains *map[string]string
+	if value := me.k.StringMap("customDomains"); len(value) > 0 {
+		customDomains = &value
+	}
+
+	var env *map[string]string
+	if value := me.k.StringMap("env"); len(value) > 0 {
+		env = &value
+	}
+
+	var host *string
+	if value := me.k.String("host"); value != "" {
+		host = &value
+	}
+
 	encoder.Encode(Config{
-		Dir:           me.k.String("dir"),
-		Domain:        me.k.String("domain"),
-		CustomDomains: me.k.StringMap("customDomains"),
+		Dir:           dir,
+		Domain:        domain,
+		CustomDomains: customDomains,
 		Cert:          cert,
 		Key:           key,
 		Editor:        editor,
 		Email:         email,
-		Env:           me.k.StringMap("env"),
-		Host:          me.k.String("host"),
+		Env:           env,
+		Host:          host,
 		Port:          port,
 		Shell:         shell,
 	})

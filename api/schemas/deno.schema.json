@@ -1,0 +1,9 @@
+{
+    "type": "object",
+    "properties": {
+        "smallweb": {
+            "description": "Configuration for smallweb",
+            "$ref": "./app.schema.json"
+        }
+    }
+}
