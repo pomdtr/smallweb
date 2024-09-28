@@ -420,18 +420,81 @@ smallweb list [flags]
       --json   output as json
 ```
 
-## smallweb logs
+## smallweb log
 
 Show logs
 
+### Options
+
 ```
-smallweb logs [flags]
+  -h, --help   help for log
+```
+
+## smallweb log console
+
+Show console logs
+
+```
+smallweb log console [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for logs
+      --app string   filter logs by app
+  -h, --help         help for console
+      --json         output logs in JSON format
+```
+
+## smallweb log cron
+
+Show cron logs
+
+```
+smallweb log cron [flags]
+```
+
+### Options
+
+```
+  -h, --help          help for cron
+      --host string   filter logs by host
+      --json          output logs in JSON format
+```
+
+## smallweb log help
+
+Help about any command
+
+### Synopsis
+
+Help provides help for any command in the application.
+Simply type log help [path to command] for full details.
+
+```
+smallweb log help [command] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for help
+```
+
+## smallweb log http
+
+Show HTTP logs
+
+```
+smallweb log http [flags]
+```
+
+### Options
+
+```
+  -h, --help          help for http
+      --host string   filter logs by host
+      --json          output logs in JSON format
 ```
 
 ## smallweb open
