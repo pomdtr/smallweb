@@ -32,9 +32,6 @@ var (
 	SocketPath = filepath.Join(xdg.CacheHome, "smallweb", "api.sock")
 )
 
-//go:embed openapi.json
-var openapiSpec []byte
-
 //go:embed schemas
 var schemas embed.FS
 
@@ -127,7 +124,14 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 
 		if r.URL.Path == "/openapi.json" {
 			w.Header().Set("Content-Type", "text/yaml")
-			w.Write(openapiSpec)
+			spec, err := GetSwagger()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+
+			encoder := json.NewEncoder(w)
+			encoder.SetIndent("", "  ")
+			encoder.Encode(spec)
 			return
 		}
 
