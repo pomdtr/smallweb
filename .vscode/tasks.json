@@ -5,6 +5,11 @@
             "label": "Generate CLI Docs",
             "type": "shell",
             "command": "smallweb docs > docs/src/reference/cli.md",
+        },
+        {
+            "label": "Go: Generate",
+            "type": "shell",
+            "command": "go generate ./...",
         }
     ]
 }
