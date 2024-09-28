@@ -58,9 +58,12 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 
 			httpWriter := utils.NewMultiWriter()
 			cronWriter := utils.NewMultiWriter()
-			httpLogger := utils.NewLogger(httpWriter)
+			consoleWriter := utils.NewMultiWriter()
 
-			apiHandler := api.NewHandler(k, httpWriter, cronWriter)
+			httpLogger := utils.NewLogger(httpWriter)
+			consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
+
+			apiHandler := api.NewHandler(k, httpWriter, cronWriter, consoleWriter)
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Host == baseDomain {
@@ -164,7 +167,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 						}
 					})
 				} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
-					handler = worker.NewWorker(a, k.StringMap("env"))
+					handler = worker.NewWorker(a, k.StringMap("env"), consoleLogger)
 				} else {
 					http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
 					return
@@ -227,7 +230,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 							continue
 						}
 
-						wk := worker.NewWorker(a, k.StringMap("env"))
+						wk := worker.NewWorker(a, k.StringMap("env"), consoleLogger)
 
 						command, err := wk.Command(job.Args...)
 						if err != nil {

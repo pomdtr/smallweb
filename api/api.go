@@ -47,13 +47,14 @@ var swaggerUiDist embed.FS
 var swaggerHomepage []byte
 
 type Server struct {
-	k          *koanf.Koanf
-	httpWriter *utils.MultiWriter
-	cronWriter *utils.MultiWriter
+	k             *koanf.Koanf
+	httpWriter    *utils.MultiWriter
+	cronWriter    *utils.MultiWriter
+	consoleWriter *utils.MultiWriter
 }
 
-func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils.MultiWriter) http.Handler {
-	server := &Server{k: k, httpWriter: httpWriter}
+func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils.MultiWriter, consoleWriter *utils.MultiWriter) http.Handler {
+	server := &Server{k: k, httpWriter: httpWriter, cronWriter: cronWriter, consoleWriter: consoleWriter}
 	handler := Handler(server)
 	webdavHandler := webdav.Handler{
 		FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
@@ -403,6 +404,58 @@ func (me *Server) GetV0LogsCron(w http.ResponseWriter, r *http.Request, params G
 			}
 
 			var log CronLog
+			if err := json.Unmarshal(logMsg, &log); err != nil {
+				w.Write([]byte(err.Error()))
+				return
+			}
+
+			if log.App != *params.App {
+				continue
+			}
+
+			w.Write(logMsg)
+			flusher.Flush() // Push data to the client
+		case <-r.Context().Done():
+			// If the client disconnects, stop the loop
+			return
+		}
+	}
+}
+
+func (me *Server) GetV0LogsConsole(w http.ResponseWriter, r *http.Request, params GetV0LogsConsoleParams) {
+	if me.consoleWriter == nil {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	// Set the necessary headers for SSE
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	// Create a new channel for this client to receive logs
+	clientChan := make(chan []byte)
+	me.consoleWriter.AddClient(clientChan)
+	defer me.consoleWriter.RemoveClient(clientChan)
+
+	// Listen to the client channel and send logs to the client
+	for {
+		select {
+		case logMsg := <-clientChan:
+			// Send the log message as SSE event
+			if params.App == nil {
+				w.Write(logMsg)
+				flusher.Flush() // Push data to the client
+				continue
+			}
+
+			var log ConsoleLog
 			if err := json.Unmarshal(logMsg, &log); err != nil {
 				w.Write([]byte(err.Error()))
 				return

@@ -2,12 +2,14 @@ package worker
 
 import (
 	"bufio"
+	"context"
 	"crypto"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -45,16 +47,18 @@ func init() {
 type Worker struct {
 	App app.App
 	Env map[string]string
+	*slog.Logger
 }
 
-func NewWorker(app app.App, env map[string]string) *Worker {
+func NewWorker(app app.App, env map[string]string, logger *slog.Logger) *Worker {
 	if env == nil {
 		env = make(map[string]string)
 	}
 
 	worker := &Worker{
-		App: app,
-		Env: env,
+		App:    app,
+		Env:    env,
+		Logger: logger,
 	}
 
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
@@ -127,7 +131,11 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("could not get stdout pipe: %w", err)
 	}
 
-	command.Stderr = os.Stderr
+	stderrPipe, err := command.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("could not get stderr pipe: %w", err)
+	}
+
 	if err := command.Start(); err != nil {
 		return nil, fmt.Errorf("could not start server: %w", err)
 	}
@@ -141,7 +149,38 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 
 	go func() {
 		for scanner.Scan() {
-			os.Stdout.WriteString(scanner.Text() + "\n")
+			if me.Logger == nil {
+				os.Stdout.WriteString(scanner.Text() + "\n")
+				continue
+			}
+
+			me.Logger.LogAttrs(
+				context.Background(),
+				slog.LevelInfo,
+				"stdout",
+				slog.String("type", "stdout"),
+				slog.String("app", me.App.Name),
+				slog.String("text", scanner.Text()),
+			)
+		}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(stderrPipe)
+		for scanner.Scan() {
+			if me.Logger == nil {
+				os.Stdout.WriteString(scanner.Text() + "\n")
+				continue
+			}
+
+			me.Logger.LogAttrs(
+				context.Background(),
+				slog.LevelInfo,
+				"stderr",
+				slog.String("type", "stderr"),
+				slog.String("app", me.App.Name),
+				slog.String("text", scanner.Text()),
+			)
 		}
 	}()
 

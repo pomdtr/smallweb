@@ -13,6 +13,20 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for ConsoleLogLevel.
+const (
+	ConsoleLogLevelDEBUG ConsoleLogLevel = "DEBUG"
+	ConsoleLogLevelERROR ConsoleLogLevel = "ERROR"
+	ConsoleLogLevelINFO  ConsoleLogLevel = "INFO"
+	ConsoleLogLevelWARN  ConsoleLogLevel = "WARN"
+)
+
+// Defines values for ConsoleLogType.
+const (
+	Stderr ConsoleLogType = "stderr"
+	Stdout ConsoleLogType = "stdout"
+)
+
 // Defines values for CronLogLevel.
 const (
 	CronLogLevelDEBUG CronLogLevel = "DEBUG"
@@ -23,10 +37,10 @@ const (
 
 // Defines values for HttpLogLevel.
 const (
-	HttpLogLevelDEBUG   HttpLogLevel = "DEBUG"
-	HttpLogLevelERROR   HttpLogLevel = "ERROR"
-	HttpLogLevelINFO    HttpLogLevel = "INFO"
-	HttpLogLevelWARNING HttpLogLevel = "WARNING"
+	DEBUG   HttpLogLevel = "DEBUG"
+	ERROR   HttpLogLevel = "ERROR"
+	INFO    HttpLogLevel = "INFO"
+	WARNING HttpLogLevel = "WARNING"
 )
 
 // Defines values for HttpLogRequestMethod.
@@ -60,6 +74,31 @@ type Config struct {
 	Port          *int               `json:"port,omitempty"`
 	Shell         *string            `json:"shell,omitempty"`
 }
+
+// ConsoleLog defines model for ConsoleLog.
+type ConsoleLog struct {
+	// App The name of the application
+	App string `json:"app"`
+
+	// Level The log level
+	Level ConsoleLogLevel `json:"level"`
+
+	// Msg The log message
+	Msg string `json:"msg"`
+
+	// Text The standard error of the command
+	Text string `json:"text"`
+
+	// Time The timestamp of the log entry
+	Time time.Time      `json:"time"`
+	Type ConsoleLogType `json:"type"`
+}
+
+// ConsoleLogLevel The log level
+type ConsoleLogLevel string
+
+// ConsoleLogType defines model for ConsoleLog.Type.
+type ConsoleLogType string
 
 // CronLog defines model for CronLog.
 type CronLog struct {
@@ -144,6 +183,12 @@ type HttpLogLevel string
 // HttpLogRequestMethod The HTTP method used for the request
 type HttpLogRequestMethod string
 
+// GetV0LogsConsoleParams defines parameters for GetV0LogsConsole.
+type GetV0LogsConsoleParams struct {
+	// App Filter logs by app
+	App *string `form:"app,omitempty" json:"app,omitempty"`
+}
+
 // GetV0LogsCronParams defines parameters for GetV0LogsCron.
 type GetV0LogsCronParams struct {
 	// App Filter logs by app
@@ -178,6 +223,9 @@ type ServerInterface interface {
 
 	// (GET /v0/config)
 	GetV0Config(w http.ResponseWriter, r *http.Request)
+
+	// (GET /v0/logs/console)
+	GetV0LogsConsole(w http.ResponseWriter, r *http.Request, params GetV0LogsConsoleParams)
 
 	// (GET /v0/logs/cron)
 	GetV0LogsCron(w http.ResponseWriter, r *http.Request, params GetV0LogsCronParams)
@@ -267,6 +315,33 @@ func (siw *ServerInterfaceWrapper) GetV0Config(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetV0Config(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetV0LogsConsole operation middleware
+func (siw *ServerInterfaceWrapper) GetV0LogsConsole(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetV0LogsConsoleParams
+
+	// ------------- Optional query parameter "app" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "app", r.URL.Query(), &params.App)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetV0LogsConsole(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -479,6 +554,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}/config", wrapper.GetV0AppsAppConfig)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}/env", wrapper.GetV0AppsAppEnv)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/config", wrapper.GetV0Config)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/console", wrapper.GetV0LogsConsole)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/cron", wrapper.GetV0LogsCron)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/http", wrapper.GetV0LogsHttp)
 	m.HandleFunc("POST "+options.BaseURL+"/v0/run/{app}", wrapper.PostV0RunApp)

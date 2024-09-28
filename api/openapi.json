@@ -147,6 +147,32 @@
         }
       }
     },
+    "/v0/logs/console": {
+      "get": {
+        "parameters": [
+          {
+            "name": "app",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter logs by app"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream logs",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsoleLog"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v0/run/{app}": {
       "post": {
         "parameters": [
@@ -408,6 +434,54 @@
           "duration"
         ],
         "additionalProperties": false
+      },
+      "ConsoleLog": {
+        "type": "object",
+        "required": [
+          "time",
+          "level",
+          "app",
+          "msg",
+          "type",
+          "text"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp of the log entry"
+          },
+          "app": {
+            "type": "string",
+            "description": "The name of the application"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "INFO",
+              "WARN",
+              "ERROR",
+              "DEBUG"
+            ],
+            "description": "The log level"
+          },
+          "msg": {
+            "type": "string",
+            "description": "The log message"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "stdout",
+              "stderr"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "description": "The standard error of the command"
+          }
+        }
       }
     }
   }
