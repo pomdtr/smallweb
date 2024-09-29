@@ -234,11 +234,11 @@ func NewCmdLogConsole() *cobra.Command {
 				}
 
 				if log.Type == "stderr" {
-					fmt.Fprintf(os.Stderr, "%s %s %s\n", log.Time.Format(time.RFC3339), log.App, log.Text)
+					fmt.Fprintln(os.Stderr, log.Text)
 					continue
 				}
 
-				fmt.Fprintf(os.Stdout, "%s %s %s\n", log.Time.Format(time.RFC3339), log.App, log.Text)
+				fmt.Fprintln(os.Stdout, log.Text)
 			}
 
 			return nil
