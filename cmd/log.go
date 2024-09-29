@@ -18,6 +18,7 @@ import (
 func NewCmdLog() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "log",
+		Aliases: []string{"logs"},
 		Short:   "Show logs",
 		GroupID: CoreGroupID,
 	}
