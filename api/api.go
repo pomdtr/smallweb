@@ -228,16 +228,6 @@ func (me *Server) GetV0Config(w http.ResponseWriter, r *http.Request) {
 		port = &value
 	}
 
-	var editor *string
-	if value := me.k.String("editor"); value != "" {
-		editor = &value
-	}
-
-	var shell *string
-	if value := me.k.String("shell"); value != "" {
-		shell = &value
-	}
-
 	var email *string
 	if value := me.k.String("email"); value != "" {
 		email = &value
@@ -274,12 +264,10 @@ func (me *Server) GetV0Config(w http.ResponseWriter, r *http.Request) {
 		CustomDomains: customDomains,
 		Cert:          cert,
 		Key:           key,
-		Editor:        editor,
 		Email:         email,
 		Env:           env,
 		Host:          host,
 		Port:          port,
-		Shell:         shell,
 	})
 
 }

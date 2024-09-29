@@ -48,22 +48,6 @@ func findConfigPath() string {
 	return filepath.Join(configDir, "config.json")
 }
 
-func findShell() string {
-	if shell, ok := os.LookupEnv("SHELL"); ok {
-		return shell
-	}
-
-	return "bash"
-}
-
-func FindEditor() string {
-	if editor, ok := os.LookupEnv("EDITOR"); ok {
-		return editor
-	}
-
-	return "vim -Z"
-}
-
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	dataHome := filepath.Join(xdg.DataHome, "smallweb")
 	if err := os.MkdirAll(dataHome, 0755); err != nil {
@@ -79,8 +63,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"host":   "127.0.0.1",
 		"dir":    "~/smallweb",
-		"editor": findEditor(),
-		"shell":  findShell(),
 		"domain": "localhost",
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",
@@ -126,7 +108,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdFork())
 	cmd.AddCommand(NewCmdRename())
 	cmd.AddCommand(NewCmdToken(db))
-	cmd.AddCommand(NewCmdEdit())
 	cmd.AddCommand(NewCmdUp(db))
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdService())

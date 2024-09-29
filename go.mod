@@ -10,7 +10,6 @@ require (
 	github.com/charmbracelet/glamour v0.8.0
 	github.com/cli/browser v1.3.0
 	github.com/cli/go-gh/v2 v2.9.0
-	github.com/creack/pty v1.1.23
 	github.com/evanw/esbuild v0.24.0
 	github.com/getkin/kin-openapi v0.127.0
 	github.com/gobwas/glob v0.2.3

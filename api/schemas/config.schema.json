@@ -23,12 +23,6 @@
                 "type": "string"
             }
         },
-        "shell": {
-            "type": "string"
-        },
-        "editor": {
-            "type": "string"
-        },
         "dir": {
             "type": "string"
         },
