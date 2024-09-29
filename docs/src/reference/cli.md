@@ -511,6 +511,21 @@ smallweb open [app] [flags]
   -h, --help   help for open
 ```
 
+## smallweb openapi
+
+Print the OpenAPI spec
+
+```
+smallweb openapi [flags]
+```
+
+### Options
+
+```
+  -h, --help    help for openapi
+      --types   Print typescript types
+```
+
 ## smallweb rename
 
 Rename an app

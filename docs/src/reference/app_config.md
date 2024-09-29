@@ -1,6 +1,6 @@
 # Configuration Reference
 
-The smallweb configuration can be defined in a `smallweb.json[c]` file at the root of the project, or in the `smallweb` field of the `deno.json[c]` file. This config file is optional, and sensible defaults are used when it is not present.
+The smallweb configuration can be defined in a `smallweb.json[c]` file at the root of the project. This config file is optional, and sensible defaults are used when it is not present.
 
 A json schema for the config file is available [here](https://schema.smallweb.run).
 

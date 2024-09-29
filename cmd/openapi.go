@@ -17,7 +17,7 @@ func NewCmdOpenapi() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "openapi",
-		Hidden:  true,
+		Short:   "Print the OpenAPI spec",
 		GroupID: CoreGroupID,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			spec, err := api.GetSwagger()

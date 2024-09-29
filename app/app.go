@@ -99,7 +99,7 @@ func LoadApp(dir string, domain string) (App, error) {
 		}
 
 		if err := json.Unmarshal(configBytes, &app.Config); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err)
+			return App{}, fmt.Errorf("could not unmarshal smallweb.json: %v", err)
 		}
 
 		return app, nil
@@ -108,67 +108,16 @@ func LoadApp(dir string, domain string) (App, error) {
 	if configPath := filepath.Join(dir, "smallweb.jsonc"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
-			return App{}, fmt.Errorf("could not read deno.json: %v", err)
+			return App{}, fmt.Errorf("could not read smallweb.json: %v", err)
 		}
 
 		configBytes, err := hujson.Standardize(rawBytes)
 		if err != nil {
-			return App{}, fmt.Errorf("could not standardize deno.jsonc: %v", err)
+			return App{}, fmt.Errorf("could not standardize smallweb.jsonc: %v", err)
 		}
 
 		if err := json.Unmarshal(configBytes, &app.Config); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err)
-		}
-
-		return app, nil
-	}
-
-	if configPath := filepath.Join(dir, "deno.json"); utils.FileExists(configPath) {
-		denoConfigBytes, err := os.ReadFile(configPath)
-		if err != nil {
-			return App{}, fmt.Errorf("could not read deno.json: %v", err)
-		}
-
-		var denoConfig map[string]json.RawMessage
-		if err := json.Unmarshal(denoConfigBytes, &denoConfig); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err)
-		}
-
-		configBytes, ok := denoConfig["smallweb"]
-		if !ok {
-			return app, nil
-		}
-
-		if err := json.Unmarshal(configBytes, &app.Config); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err)
-		}
-
-		return app, nil
-	}
-
-	if configPath := filepath.Join(dir, "deno.jsonc"); utils.FileExists(configPath) {
-		rawBytes, err := os.ReadFile(configPath)
-		if err != nil {
-			return App{}, fmt.Errorf("could not read deno.json: %v", err)
-		}
-
-		denoConfigBytes, err := hujson.Standardize(rawBytes)
-		if err != nil {
-			return App{}, fmt.Errorf("could not standardize deno.jsonc: %v", err)
-		}
-
-		var denoConfig map[string]json.RawMessage
-		if err := json.Unmarshal(denoConfigBytes, &denoConfig); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err)
-		}
-
-		configBytes, ok := denoConfig["smallweb"]
-		if !ok {
-			return app, nil
-		}
-
-		if err := json.Unmarshal(configBytes, &app.Config); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err)
+			return App{}, fmt.Errorf("could not unmarshal smallweb.json: %v", err)
 		}
 
 		return app, nil
