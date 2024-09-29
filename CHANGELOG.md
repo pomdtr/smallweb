@@ -1,9 +1,14 @@
 # Changelog
 
-## 0.14.0
+## [Unreleased]
 
+- token scopes
+- smallweb logs
 - smallweb terminal
-- only redirect to lastlogin if the user configured an email
+- smallweb rest api
+- smallweb static server
+- smallweb embedded docs
+- new cli commands
 
 ## 0.13.6
 

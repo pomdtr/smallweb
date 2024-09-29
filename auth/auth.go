@@ -12,6 +12,7 @@ import (
 	"time"
 
 	gonanoid "github.com/matoous/go-nanoid/v2"
+	"github.com/mssola/user_agent"
 	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/utils"
 	"golang.org/x/crypto/bcrypt"
@@ -98,6 +99,32 @@ func VerifyToken(db *sql.DB, token string, appname string) error {
 	return nil
 }
 
+func isBrowser(ua *user_agent.UserAgent) bool {
+	if ua.Bot() {
+		return false
+	}
+
+	// Check for common browser engines
+	engine, _ := ua.Engine()
+	engineKeywords := []string{"Gecko", "AppleWebKit", "Blink"}
+	for _, keyword := range engineKeywords {
+		if strings.Contains(strings.ToLower(engine), strings.ToLower(keyword)) {
+			return true
+		}
+	}
+
+	// Additional checks for browser-specific strings
+	browser, _ := ua.Browser()
+	browserKeywords := []string{"Mozilla", "Chrome", "Safari", "Firefox", "Edge", "Opera"}
+	for _, keyword := range browserKeywords {
+		if strings.Contains(strings.ToLower(browser), strings.ToLower(keyword)) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func Middleware(db *sql.DB, email string, appname string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		sessionCookieName := "smallweb-session"
@@ -131,6 +158,12 @@ func Middleware(db *sql.DB, email string, appname string) func(http.Handler) htt
 				}
 
 				next.ServeHTTP(w, r)
+				return
+			}
+
+			if ua := user_agent.New(r.UserAgent()); !isBrowser(ua) {
+				w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 

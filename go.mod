@@ -35,7 +35,10 @@ require (
 	modernc.org/sqlite v1.33.0
 )
 
-require github.com/pressly/goose/v3 v3.22.1
+require (
+	github.com/mssola/user_agent v0.6.0
+	github.com/pressly/goose/v3 v3.22.1
+)
 
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
