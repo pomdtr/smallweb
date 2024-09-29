@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -73,7 +74,7 @@ func ExtendSession(db *sql.DB, sessionID string, expiresAt time.Time) error {
 	return nil
 }
 
-func VerifyToken(db *sql.DB, token string) error {
+func VerifyToken(db *sql.DB, token string, appname string) error {
 	public, secret, err := database.ParseToken(token)
 	if err != nil {
 		return err
@@ -84,6 +85,12 @@ func VerifyToken(db *sql.DB, token string) error {
 		return err
 	}
 
+	if !t.Admin {
+		if !slices.Contains(t.Apps, appname) {
+			return fmt.Errorf("app not authorized")
+		}
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(secret)); err != nil {
 		return err
 	}
@@ -91,7 +98,7 @@ func VerifyToken(db *sql.DB, token string) error {
 	return nil
 }
 
-func Middleware(db *sql.DB, email string) func(http.Handler) http.Handler {
+func Middleware(db *sql.DB, email string, appname string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		sessionCookieName := "smallweb-session"
 		oauthCookieName := "smallweb-oauth-store"
@@ -103,8 +110,9 @@ func Middleware(db *sql.DB, email string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			username, _, ok := r.BasicAuth()
 			if ok {
-				if err := VerifyToken(db, username); err != nil {
+				if err := VerifyToken(db, username, appname); err != nil {
 					w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
+					// here we return unauthorized instead of forbidden to trigger the basic auth prompt
 					http.Error(w, "Unauthorized", http.StatusUnauthorized)
 					return
 				}
@@ -116,9 +124,9 @@ func Middleware(db *sql.DB, email string) func(http.Handler) http.Handler {
 			authorization := r.Header.Get("Authorization")
 			if strings.HasPrefix(authorization, "Bearer ") {
 				token := strings.TrimPrefix(authorization, "Bearer ")
-				if err := VerifyToken(db, token); err != nil {
+				if err := VerifyToken(db, token, appname); err != nil {
 					w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
-					http.Error(w, "Unauthorized", http.StatusUnauthorized)
+					http.Error(w, "Forbidden", http.StatusForbidden)
 					return
 				}
 

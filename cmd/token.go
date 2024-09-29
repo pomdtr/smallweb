@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/adrg/xdg"
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/database"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
@@ -26,13 +26,15 @@ func NewCmdToken(db *sql.DB) *cobra.Command {
 
 	cmd.AddCommand(NewCmdTokenCreate(db))
 	cmd.AddCommand(NewCmdTokenList(db))
-	cmd.AddCommand(NewCmdTokenRemove(db))
+	cmd.AddCommand(NewCmdTokenDelete(db))
 	return cmd
 }
 
 func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 	var flags struct {
 		description string
+		admin       bool
+		app         []string
 	}
 
 	cmd := &cobra.Command{
@@ -40,6 +42,13 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 		Aliases: []string{"add", "new"},
 		Short:   "Create a new token",
 		Args:    cobra.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(flags.app) == 0 && !flags.admin {
+				return fmt.Errorf("either --admin or --app must be specified")
+			}
+
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			value, public, secret, err := database.GenerateToken()
 			if err != nil {
@@ -56,11 +65,8 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 				Description: flags.description,
 				Hash:        hash,
 				CreatedAt:   time.Now(),
-			}
-
-			dataHome := filepath.Join(xdg.DataHome, "smallweb")
-			if err := os.MkdirAll(dataHome, 0755); err != nil {
-				return fmt.Errorf("failed to create data directory: %v", err)
+				Admin:       flags.admin,
+				Apps:        flags.app,
 			}
 
 			if err := database.InsertToken(db, token); err != nil {
@@ -78,6 +84,11 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&flags.description, "description", "d", "", "description of the token")
+	cmd.MarkFlagRequired("description")
+	cmd.Flags().BoolVar(&flags.admin, "admin", false, "admin token")
+	cmd.Flags().StringSliceVarP(&flags.app, "app", "a", nil, "app token")
+	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.ExpandTilde("~/.smallweb/apps")))
+	cmd.MarkFlagsMutuallyExclusive("admin", "app")
 
 	return cmd
 }
@@ -130,7 +141,7 @@ func NewCmdTokenList(db *sql.DB) *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"ID", "Description", "Creation Time"})
+			printer.AddHeader([]string{"ID", "Description", "Admin", "Apps", "Creation Time"})
 			for _, token := range tokens {
 				printer.AddField(token.ID)
 				description := token.Description
@@ -138,7 +149,13 @@ func NewCmdTokenList(db *sql.DB) *cobra.Command {
 					description = "N/A"
 				}
 				printer.AddField(description)
-				printer.AddField(token.CreatedAt.Format("2006-01-02 15:04:05"))
+				printer.AddField(fmt.Sprintf("%t", token.Admin))
+				if token.Admin {
+					printer.AddField("<all>")
+				} else {
+					printer.AddField(strings.Join(token.Apps, ", "))
+				}
+				printer.AddField(token.CreatedAt.Format(time.RFC3339))
 				printer.EndRow()
 			}
 
@@ -150,12 +167,12 @@ func NewCmdTokenList(db *sql.DB) *cobra.Command {
 	return cmd
 }
 
-func NewCmdTokenRemove(db *sql.DB) *cobra.Command {
+func NewCmdTokenDelete(db *sql.DB) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "remove <id>",
+		Use:     "delete <id>",
 		Short:   "Remove a token",
 		Args:    cobra.ArbitraryArgs,
-		Aliases: []string{"rm", "delete"},
+		Aliases: []string{"remove", "rm"},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			tokens, err := database.ListTokens(db)
 			if err != nil {

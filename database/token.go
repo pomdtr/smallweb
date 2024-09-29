@@ -14,6 +14,13 @@ type Token struct {
 	Hash        []byte    `json:"hash"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"createdAt"`
+	Admin       bool      `json:"admin"`
+	Apps        []string  `json:"apps"`
+}
+
+type TokenApp struct {
+	TokenID string `json:"tokenID"`
+	AppName string `json:"appName"`
 }
 
 // Lengths for the public and secret parts
@@ -55,30 +62,100 @@ func ParseToken(token string) (string, string, error) {
 	return parts[2], parts[3], nil
 }
 
-func CreateTokenTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS tokens (
-		id TEXT PRIMARY KEY,
-		hash TEXT NOT NULL,
-		description TEXT,
-		createdAt TIMESTAMP NOT NULL
-	)`)
-
-	return err
-}
-
 func InsertToken(db *sql.DB, token Token) error {
-	_, err := db.Exec("INSERT INTO tokens (id, hash, description, createdAt) VALUES (?, ?, ?, ?)", token.ID, token.Hash, token.Description, token.CreatedAt)
-	return err
+	if token.Admin && len(token.Apps) > 0 {
+		return fmt.Errorf("admin tokens cannot have apps")
+	}
+
+	if !token.Admin && len(token.Apps) == 0 {
+		return fmt.Errorf("non-admin tokens must have apps")
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec("INSERT INTO tokens (id, hash, description, createdAt, admin) VALUES (?, ?, ?, ?, ?)", token.ID, token.Hash, token.Description, token.CreatedAt, token.Admin)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, app := range token.Apps {
+		_, err = tx.Exec("INSERT INTO token_apps (token_id, app_name) VALUES (?, ?)", token.ID, app)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
 }
 
 func GetToken(db *sql.DB, id string) (Token, error) {
-	token := Token{}
-	err := db.QueryRow("SELECT id, hash, description, createdAt FROM tokens WHERE id = ?", id).Scan(&token.ID, &token.Hash, &token.Description, &token.CreatedAt)
+	token := Token{
+		Apps: []string{},
+	}
+	err := db.QueryRow("SELECT id, hash, description, createdAt, admin FROM tokens WHERE id = ?", id).Scan(&token.ID, &token.Hash, &token.Description, &token.CreatedAt, &token.Admin)
+	if err != nil {
+		return token, err
+	}
+
+	rows, err := db.Query("SELECT app_name FROM token_apps WHERE token_id = ?", id)
+	if err != nil {
+		return token, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var app string
+		err := rows.Scan(&app)
+		if err != nil {
+			return token, err
+		}
+
+		token.Apps = append(token.Apps, app)
+	}
+
 	return token, err
 }
 
+func ListTokenApps(db *sql.DB) ([]TokenApp, error) {
+	rows, err := db.Query("SELECT token_id, app_name FROM token_apps")
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	apps := []TokenApp{}
+	for rows.Next() {
+		app := TokenApp{}
+		err := rows.Scan(&app.TokenID, &app.AppName)
+		if err != nil {
+			return nil, err
+		}
+
+		apps = append(apps, app)
+	}
+
+	return apps, nil
+}
+
 func ListTokens(db *sql.DB) ([]Token, error) {
-	rows, err := db.Query("SELECT id, hash, description, createdAt FROM tokens")
+	tokenApps, err := ListTokenApps(db)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := db.Query("SELECT id, hash, description, createdAt, admin FROM tokens")
 	if err != nil {
 		return nil, err
 	}
@@ -86,11 +163,20 @@ func ListTokens(db *sql.DB) ([]Token, error) {
 
 	tokens := []Token{}
 	for rows.Next() {
-		token := Token{}
-		err := rows.Scan(&token.ID, &token.Hash, &token.Description, &token.CreatedAt)
+		token := Token{
+			Apps: []string{},
+		}
+		err := rows.Scan(&token.ID, &token.Hash, &token.Description, &token.CreatedAt, &token.Admin)
 		if err != nil {
 			return nil, err
 		}
+
+		for _, app := range tokenApps {
+			if app.TokenID == token.ID {
+				token.Apps = append(token.Apps, app.AppName)
+			}
+		}
+
 		tokens = append(tokens, token)
 	}
 

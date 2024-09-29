@@ -189,7 +189,7 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				}
 
 				if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
-					authMiddleware := auth.Middleware(db, k.String("email"))
+					authMiddleware := auth.Middleware(db, k.String("email"), appName)
 					handler = authMiddleware(handler)
 				}
 

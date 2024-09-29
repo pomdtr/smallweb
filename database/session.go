@@ -13,18 +13,6 @@ type Session struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
-func CreateSessionTable(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS sessions (
-		id TEXT PRIMARY KEY,
-		email TEXT NOT NULL,
-		domain TEXT NOT NULL,
-		createdAt TIMESTAMP NOT NULL,
-		expiresAt TIMESTAMP NOT NULL
-	)`)
-
-	return err
-}
-
 func InsertSession(db *sql.DB, session *Session) error {
 	_, err := db.Exec("INSERT INTO sessions (id, email, domain, createdAt, expiresAt) VALUES (?, ?, ?, ?, ?)", session.ID, session.Email, session.Domain, session.CreatedAt, session.ExpiresAt)
 	return err
