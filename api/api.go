@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -34,11 +33,6 @@ var (
 
 //go:embed schemas
 var schemas embed.FS
-
-//go:generate npm install
-
-//go:embed node_modules/swagger-ui-dist
-var swaggerUiDist embed.FS
 
 //go:embed index.html
 var swaggerHomepage []byte
@@ -141,13 +135,7 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 			return
 		}
 
-		subfs, err := fs.Sub(swaggerUiDist, "node_modules/swagger-ui-dist")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		http.FileServer(http.FS(subfs)).ServeHTTP(w, r)
+		http.NotFound(w, r)
 	})
 }
 
