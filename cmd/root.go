@@ -114,7 +114,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdAPI())
 	cmd.AddCommand(NewCmdLog())
-	cmd.AddCommand(NewCmdOpenapi())
 
 	cmd.AddCommand(&cobra.Command{
 		Use:     "changelog",
