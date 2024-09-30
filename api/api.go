@@ -2,12 +2,10 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"embed"
 	"encoding/json"
 	"errors"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,8 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	xj "github.com/basgys/goxml2json"
 
 	"github.com/adrg/xdg"
 	"github.com/knadh/koanf/v2"
@@ -55,53 +51,6 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/webdav") {
-			if r.Header.Get("Accept") == "application/json" {
-				// use api unix socket if available
-				client := &http.Client{
-					Transport: &http.Transport{
-						DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-							return net.Dial("unix", SocketPath)
-						},
-					},
-				}
-
-				req, err := http.NewRequest(r.Method, "http://unix"+r.URL.Path, r.Body)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				for k, v := range r.Header {
-					if k == "Accept" {
-						continue
-					}
-
-					req.Header[k] = v
-				}
-
-				resp, err := client.Do(req)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				defer resp.Body.Close()
-
-				contentType := resp.Header.Get("Content-Type")
-				if !strings.HasPrefix(contentType, "text/xml") {
-					http.Error(w, "invalid content type", http.StatusInternalServerError)
-					return
-				}
-
-				w.Header().Set("Content-Type", "application/json")
-				body, err := xj.Convert(resp.Body)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				w.Write(body.Bytes())
-			}
-
 			webdavHandler.ServeHTTP(w, r)
 			return
 		}
@@ -139,23 +88,8 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 	})
 }
 
-// GetV0AppsAppConfig implements ServerInterface.
-func (me *Server) GetV0AppsAppConfig(w http.ResponseWriter, r *http.Request, appname string) {
-	rootDir := utils.ExpandTilde(me.k.String("dir"))
-	a, err := app.LoadApp(filepath.Join(rootDir, appname), me.k.String("domain"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
-	encoder.Encode(a.Config)
-}
-
 // GetV0AppsAppEnv implements ServerInterface.
-func (me *Server) GetV0AppsAppEnv(w http.ResponseWriter, r *http.Request, appname string) {
+func (me *Server) GetV0AppsApp(w http.ResponseWriter, r *http.Request, appname string) {
 	rootDir := utils.ExpandTilde(me.k.String("dir"))
 	a, err := app.LoadApp(filepath.Join(rootDir, appname), me.k.String("domain"))
 	if err != nil {
@@ -166,7 +100,11 @@ func (me *Server) GetV0AppsAppEnv(w http.ResponseWriter, r *http.Request, appnam
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	encoder.Encode(a.Env)
+	encoder.Encode(FullApp{
+		Name: a.Name,
+		Url:  a.Url,
+		Env:  a.Env,
+	})
 }
 
 func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
@@ -195,69 +133,6 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(apps); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-}
-
-func (me *Server) GetV0Config(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
-	var cert *string
-	if value := me.k.String("cert"); value != "" {
-		cert = &value
-	}
-
-	var key *string
-	if value := me.k.String("key"); value != "" {
-		key = &value
-	}
-
-	var port *int
-	if value := me.k.Int("port"); value != 0 {
-		port = &value
-	}
-
-	var email *string
-	if value := me.k.String("email"); value != "" {
-		email = &value
-	}
-
-	var dir *string
-	if value := me.k.String("dir"); value != "" {
-		dir = &value
-	}
-
-	var domain *string
-	if value := me.k.String("domain"); value != "" {
-		domain = &value
-	}
-
-	var customDomains *map[string]string
-	if value := me.k.StringMap("customDomains"); len(value) > 0 {
-		customDomains = &value
-	}
-
-	var env *map[string]string
-	if value := me.k.StringMap("env"); len(value) > 0 {
-		env = &value
-	}
-
-	var host *string
-	if value := me.k.String("host"); value != "" {
-		host = &value
-	}
-
-	encoder.Encode(Config{
-		Dir:           dir,
-		Domain:        domain,
-		CustomDomains: customDomains,
-		Cert:          cert,
-		Key:           key,
-		Email:         email,
-		Env:           env,
-		Host:          host,
-		Port:          port,
-	})
-
 }
 
 var ansiRegexp = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))")

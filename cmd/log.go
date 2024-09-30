@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -234,12 +235,20 @@ func NewCmdLogConsole() *cobra.Command {
 					return fmt.Errorf("failed to parse log: %w", err)
 				}
 
-				if log.Type == "stderr" {
-					fmt.Fprintln(os.Stderr, log.Text)
+				text, err := base64.StdEncoding.DecodeString(log.B64)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "failed to decode log:", err)
 					continue
 				}
 
-				fmt.Fprintln(os.Stdout, log.Text)
+				if log.Type == "stderr" {
+					os.Stderr.Write(text)
+					fmt.Fprintln(os.Stderr)
+					continue
+				}
+
+				os.Stdout.Write(text)
+				fmt.Fprintln(os.Stdout)
 			}
 
 			return nil

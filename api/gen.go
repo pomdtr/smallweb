@@ -67,32 +67,19 @@ type App struct {
 	Url  string `json:"url"`
 }
 
-// Config defines model for Config.
-type Config struct {
-	Cert          *string            `json:"cert,omitempty"`
-	CustomDomains *map[string]string `json:"customDomains,omitempty"`
-	Dir           *string            `json:"dir,omitempty"`
-	Domain        *string            `json:"domain,omitempty"`
-	Email         *string            `json:"email,omitempty"`
-	Env           *map[string]string `json:"env,omitempty"`
-	Host          *string            `json:"host,omitempty"`
-	Key           *string            `json:"key,omitempty"`
-	Port          *int               `json:"port,omitempty"`
-}
-
 // ConsoleLog defines model for ConsoleLog.
 type ConsoleLog struct {
 	// App The name of the application
 	App string `json:"app"`
+
+	// B64 The base64-encoded log message
+	B64 string `json:"b64"`
 
 	// Level The log level
 	Level ConsoleLogLevel `json:"level"`
 
 	// Msg The log message
 	Msg string `json:"msg"`
-
-	// Text The standard error of the command
-	Text string `json:"text"`
 
 	// Time The timestamp of the log entry
 	Time time.Time      `json:"time"`
@@ -143,6 +130,13 @@ type CronLog struct {
 
 // CronLogLevel The log level
 type CronLogLevel string
+
+// FullApp defines model for FullApp.
+type FullApp struct {
+	Env  map[string]string `json:"env"`
+	Name string            `json:"name"`
+	Url  string            `json:"url"`
+}
 
 // HttpLog defines model for HttpLog.
 type HttpLog struct {
@@ -220,14 +214,8 @@ type ServerInterface interface {
 	// (GET /v0/apps)
 	GetV0Apps(w http.ResponseWriter, r *http.Request)
 
-	// (GET /v0/apps/{app}/config)
-	GetV0AppsAppConfig(w http.ResponseWriter, r *http.Request, app string)
-
-	// (GET /v0/apps/{app}/env)
-	GetV0AppsAppEnv(w http.ResponseWriter, r *http.Request, app string)
-
-	// (GET /v0/config)
-	GetV0Config(w http.ResponseWriter, r *http.Request)
+	// (GET /v0/apps/{app})
+	GetV0AppsApp(w http.ResponseWriter, r *http.Request, app string)
 
 	// (GET /v0/logs/console)
 	GetV0LogsConsole(w http.ResponseWriter, r *http.Request, params GetV0LogsConsoleParams)
@@ -265,8 +253,8 @@ func (siw *ServerInterfaceWrapper) GetV0Apps(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
-// GetV0AppsAppConfig operation middleware
-func (siw *ServerInterfaceWrapper) GetV0AppsAppConfig(w http.ResponseWriter, r *http.Request) {
+// GetV0AppsApp operation middleware
+func (siw *ServerInterfaceWrapper) GetV0AppsApp(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -280,46 +268,7 @@ func (siw *ServerInterfaceWrapper) GetV0AppsAppConfig(w http.ResponseWriter, r *
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetV0AppsAppConfig(w, r, app)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// GetV0AppsAppEnv operation middleware
-func (siw *ServerInterfaceWrapper) GetV0AppsAppEnv(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// ------------- Path parameter "app" -------------
-	var app string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "app", r.PathValue("app"), &app, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetV0AppsAppEnv(w, r, app)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// GetV0Config operation middleware
-func (siw *ServerInterfaceWrapper) GetV0Config(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetV0Config(w, r)
+		siw.Handler.GetV0AppsApp(w, r, app)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -556,9 +505,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetV0Apps)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}/config", wrapper.GetV0AppsAppConfig)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}/env", wrapper.GetV0AppsAppEnv)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/config", wrapper.GetV0Config)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}", wrapper.GetV0AppsApp)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/console", wrapper.GetV0LogsConsole)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/cron", wrapper.GetV0LogsCron)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/http", wrapper.GetV0LogsHttp)
@@ -570,33 +517,29 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"QhsAAA==",
+	"H4sIAAAAAAAC/9xYXW/bNhf+KwTfF8gNU3trV6C+c1M3CRAkhuN2A4pioKVjmRlFMiSVxDD83wd+yJYt",
+	"+qtdt2G5kSOSzznnOZ/iAmeyVFKAsAb3FthkMyip/9lXyj2Ulgq0ZeBfClqCe9q5AtzDxmomCrwkuNI8",
+	"8X5JsIbHimnIce9LOB32fiX1Xjl5gMw6jAspjORwIwsHRfOcWSYF5cOGClPKDZAtrWhQNQeTaabcIdzD",
+	"4xkgJxDJKbIzQFQpzjLqV0nbgMnbN2mMCTXw9s05iEzmkCMuC1SCMbSAFAyHJ+BpIHcyLBMMoiodI9e3",
+	"H+8wwb/2R7eY4MFodDfCBH8YvP902aBoDV+aYjf4HrUsC35rH3QrxtJS1Tw5JBBWzzHBU6lLanEP59TC",
+	"uQdJgfsXi5VRxuayspi4H6B1wpCtuIjANTnOncHUeDB4JxkyWoofHy9IV0IwUfj3mZYCPchJigmqC5NG",
+	"prqoSpdlSFFjIEdWbqMxC6VJJld8QbWmc/d/XukQx0lR9WptSC0CwQtklV9hApWMc2YgkyI3jm0mWOnc",
+	"112JY8JCAdoJhBdmf3fxn5bolpFb3haJU2Asb6P0USXYYwWI5SAsmzLQaCr1BhhBdq5YRjmfOwPcUohP",
+	"dEaV6j3IyVnKJ06Ng87e59R/QUpvmp7xKq+jcUV9SnNXzfOK7/BavXoMB39L/UiAz5VXb4VJEOXPdG7Q",
+	"mdP2LMYIMyg0roYb3Dr+eqDSbNQYlq9qT2BhRV9M7GYekFaVa6RlqlJ9rDhPtlQQT7vL1+5isEb+y3oy",
+	"8bqklL+yVp1eZr89ca5vL789d/poohlMUeNtIzYLyBE8gbCpSHTEgLEn2jkDmoM2J3mxTUlEQQaERc/M",
+	"zrzGtUYJp8xk0DQBJY0rCnGwq42PUOjT6CZlewl2JvM04NV4PERhA6pc96pr81q92ouXgzEmeHh37x+f",
+	"xt5/N4PxwP3bH19cYYKvBv0PmOC74fj67vY+6VlF7Syti1s52biYCm20acW5O7SF06xdlWb40AQT0sd7",
+	"ZMVkNIKs4iOVWRqMksLAiSE3mVvYMWmIqpyAdvb4TXWrrAWhicznhxs+p8pAvrvkI0v/AOGmGKVlBsZs",
+	"eIGKHBUgQFMLG9KJU2fv1BHU993LUluZPQEZNmwMHis6CS7pS8D+5d27hqSfugmDt7wZJZNI85qOlAf3",
+	"t0b0PAOx2RfRMzUo00At5Ef2yGO62DpyVyS01XVITEylr0nMutEA35eU82eYoP7wGhP8BNoEG7rOPKlA",
+	"UMVwD79+1X31Oka1d0vnqduhSvnfBfha5GLU98DrHPfwJdjP3b7bsVbK7/6523WPTArrKnEYyetpu/Ng",
+	"wmgbe3pvsR6N/69hinv4f531Z2snfrN2XHdtDcvLVq29YcZXDa/50m+oDeksqFLLw+b0/ZCgqKYlWF/5",
+	"vywwc+Ax40NLjsPE2nNWV0AaZm17+et30rSPnXr+SDByCdax0SCDy8J0svA5vp+OG1mY+N3epmRTzEfG",
+	"LWiXBwZN5iiQ41l7rMCPixu0fQ9NFl5sx3f5c2M10PJ4nhqXEAmq7j2at6FFlw7uOMCV9tcP/wWi4qf3",
+	"aSzNrFWHWXLz5oksxd6boiku/UM81bPz0TzpSqwLkYpD3iZRQ2ns5+6oEj+0Evl+8t6NC6cUoa2rlngj",
+	"cuzlxlan88dTbWx5nMsUp2xLv21TW14ZVcLlHMo4awxvvQW+CODn4/i9uhuT4N/OBy/Mnl/EO5PW1vXo",
+	"Ef/+DAAA//+KiD+4ihUAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -160,7 +160,7 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 				"stdout",
 				slog.String("type", "stdout"),
 				slog.String("app", me.App.Name),
-				slog.String("text", scanner.Text()),
+				slog.String("b64", base64.StdEncoding.EncodeToString(scanner.Bytes())),
 			)
 		}
 	}()
@@ -179,7 +179,7 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 				"stderr",
 				slog.String("type", "stderr"),
 				slog.String("app", me.App.Name),
-				slog.String("text", scanner.Text()),
+				slog.String("b64", base64.StdEncoding.EncodeToString(scanner.Bytes())),
 			)
 		}
 	}()

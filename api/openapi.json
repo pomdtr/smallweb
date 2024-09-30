@@ -24,7 +24,7 @@
         }
       }
     },
-    "/v0/apps/{app}/config": {
+    "/v0/apps/{app}": {
       "get": {
         "parameters": [
           {
@@ -38,56 +38,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Get app config",
+            "description": "Get app",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "./schemas/app.schema.json"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v0/apps/{app}/env": {
-      "get": {
-        "parameters": [
-          {
-            "name": "app",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Get app env",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v0/config": {
-      "get": {
-        "responses": {
-          "200": {
-            "description": "Get config",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Config"
+                  "$ref": "#/components/schemas/FullApp"
                 }
               }
             }
@@ -234,9 +189,6 @@
   },
   "components": {
     "schemas": {
-      "Config": {
-        "$ref": "./schemas/config.schema.json"
-      },
       "App": {
         "type": "object",
         "required": [
@@ -249,6 +201,28 @@
           },
           "url": {
             "type": "string"
+          }
+        }
+      },
+      "FullApp": {
+        "type": "object",
+        "required": [
+          "name",
+          "url",
+          "env"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "env": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },
@@ -443,7 +417,7 @@
           "app",
           "msg",
           "type",
-          "text"
+          "b64"
         ],
         "additionalProperties": false,
         "properties": {
@@ -477,9 +451,9 @@
               "stderr"
             ]
           },
-          "text": {
+          "b64": {
             "type": "string",
-            "description": "The standard error of the command"
+            "description": "The base64-encoded log message"
           }
         }
       }
