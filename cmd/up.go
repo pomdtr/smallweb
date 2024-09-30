@@ -40,13 +40,9 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
-			baseDomain := k.String("domain")
-
 			port := k.Int("port")
 			cert := k.String("cert")
 			key := k.String("key")
-
 			if port == 0 {
 				if cert != "" || key != "" {
 					port = 443
@@ -65,10 +61,10 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			apiHandler := api.NewHandler(k, httpWriter, cronWriter, consoleWriter)
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Host == baseDomain {
+				if r.Host == k.String("domain") {
 					target := r.URL
 					target.Scheme = "https"
-					target.Host = "www." + baseDomain
+					target.Host = "www." + k.String("domain")
 					http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 					return
 				}
@@ -77,14 +73,15 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 				if a, ok := k.StringMap("customDomains")[r.Host]; ok {
 					appName = a
 				} else {
-					if !strings.HasSuffix(r.Host, fmt.Sprintf(".%s", baseDomain)) {
+					if !strings.HasSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))) {
 						w.WriteHeader(http.StatusNotFound)
 						return
 					}
 
-					appName = strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", baseDomain))
+					appName = strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain")))
 				}
 
+				rootDir := utils.ExpandTilde(k.String("dir"))
 				a, err := app.LoadApp(filepath.Join(rootDir, appName), k.String("domain"))
 				if err != nil {
 					w.WriteHeader(http.StatusNotFound)
@@ -202,8 +199,8 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 			c := cron.New(cron.WithParser(parser))
 			cronLogger := slog.New(slog.NewJSONHandler(cronWriter, nil))
 			c.AddFunc("* * * * *", func() {
-				rootDir := utils.ExpandTilde(k.String("dir"))
 				rounded := time.Now().Truncate(time.Minute)
+				rootDir := utils.ExpandTilde(k.String("dir"))
 				apps, err := app.ListApps(rootDir)
 				if err != nil {
 					fmt.Println(err)
