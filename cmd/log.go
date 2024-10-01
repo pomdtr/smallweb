@@ -232,7 +232,8 @@ func NewCmdLogConsole() *cobra.Command {
 
 				var log api.ConsoleLog
 				if err := json.Unmarshal(scanner.Bytes(), &log); err != nil {
-					return fmt.Errorf("failed to parse log: %w", err)
+					fmt.Fprintln(os.Stderr, "failed to parse log:", err)
+					continue
 				}
 
 				text, err := base64.StdEncoding.DecodeString(log.B64)

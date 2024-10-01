@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -208,8 +209,8 @@ func (me *Server) GetV0LogsHttp(w http.ResponseWriter, r *http.Request, params G
 
 			var log HttpLog
 			if err := json.Unmarshal(logMsg, &log); err != nil {
-				w.Write([]byte(err.Error()))
-				return
+				fmt.Fprintln(os.Stderr, "failed to parse log:", err)
+				continue
 			}
 
 			if log.Request.Host != *params.Host {
@@ -260,8 +261,8 @@ func (me *Server) GetV0LogsCron(w http.ResponseWriter, r *http.Request, params G
 
 			var log CronLog
 			if err := json.Unmarshal(logMsg, &log); err != nil {
-				w.Write([]byte(err.Error()))
-				return
+				fmt.Fprintln(os.Stderr, "failed to parse log:", err)
+				continue
 			}
 
 			if log.App != *params.App {
@@ -312,8 +313,8 @@ func (me *Server) GetV0LogsConsole(w http.ResponseWriter, r *http.Request, param
 
 			var log ConsoleLog
 			if err := json.Unmarshal(logMsg, &log); err != nil {
-				w.Write([]byte(err.Error()))
-				return
+				fmt.Fprintln(os.Stderr, "failed to parse log:", err)
+				continue
 			}
 
 			if log.App != *params.App {
