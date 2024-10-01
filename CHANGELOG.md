@@ -1,14 +1,20 @@
 # Changelog
 
-## [Unreleased]
+## 0.14.1
+
+- fixed unmarshaling of json with comments
+- rename `smallweb app fork` to `smallweb app clone`
+- fix some unmarshaling issues with logs
+
+## 0.14.0
 
 - token scopes
-- smallweb logs
-- smallweb terminal
-- smallweb rest api
-- smallweb static server
-- smallweb embedded docs
-- new cli commands
+- new command smallweb logs
+- dropped smallweb terminal
+- added smallweb rest api
+- smallweb static server now supports tsx and jsx files
+- docs can be hosted as a smallweb app
+- new app commands: smallweb app rename, smallweb app clone, smallweb app delete
 
 ## 0.13.6
 
