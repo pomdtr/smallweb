@@ -155,5 +155,5 @@ func (me App) Entrypoint() string {
 		}
 	}
 
-	return "smallweb:file-server"
+	return "smallweb:static"
 }

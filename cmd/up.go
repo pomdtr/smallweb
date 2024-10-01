@@ -136,7 +136,7 @@ func NewCmdUp() *cobra.Command {
 					handler = apiHandler
 				} else if a.Entrypoint() == "smallweb:docs" {
 					handler = docs.Handler
-				} else if a.Entrypoint() == "smallweb:file-server" {
+				} else if a.Entrypoint() == "smallweb:static" {
 					handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 						w.Header().Set("Access-Control-Allow-Origin", "*")
 						w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
