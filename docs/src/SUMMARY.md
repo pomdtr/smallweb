@@ -11,8 +11,8 @@
 - [Cron Tasks](./guides/cron.md)
 - [Plugins](./guides/plugins.md)
 - [Templates](./guides/templates.md)
-- [WebDAV](./guides/webdav.md)
 - [Authentication](./guides/auth.md)
+- [REST Api](./guides/rest.md)
 - [App Sandbox](./guides/sandbox.md)
 - [Hosting Docs](./guides/docs.md)
 

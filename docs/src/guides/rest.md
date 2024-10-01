@@ -3,7 +3,7 @@
 Each smallweb installation comes with a built-in REST API. You can map it to a subdomain by creating a `smallweb.json` manifest:
 
 ```json
-// ~/smallweb/api/smallweb.json
+// ~/smallweb/api/smallweb.jsonc
 {
     "entrypoint": "smallweb:api",
     // make sure to protect your API
@@ -14,7 +14,6 @@ Each smallweb installation comes with a built-in REST API. You can map it to a s
         // json schemas for config files
         "/schemas/*"
     ]
-
 }
 ```
 
