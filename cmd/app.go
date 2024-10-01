@@ -31,7 +31,7 @@ func NewCmdApp() *cobra.Command {
 	cmd.AddCommand(NewCmdAppOpen())
 	cmd.AddCommand(NewCmdAppList())
 	cmd.AddCommand(NewCmdAppRename())
-	cmd.AddCommand(NewCmdAppFork())
+	cmd.AddCommand(NewCmdAppClone())
 	cmd.AddCommand(NewCmdAppDelete())
 
 	return cmd
@@ -256,11 +256,11 @@ func NewCmdAppRename() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppFork() *cobra.Command {
+func NewCmdAppClone() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "fork [app] [new-name]",
-		Short:             "Fork an app",
-		Aliases:           []string{"cp"},
+		Use:               "clone [app] [new-name]",
+		Short:             "Clone an app",
+		Aliases:           []string{"cp", "copy", "fork"},
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
