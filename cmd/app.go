@@ -31,7 +31,7 @@ func NewCmdApp() *cobra.Command {
 	cmd.AddCommand(NewCmdAppOpen())
 	cmd.AddCommand(NewCmdAppList())
 	cmd.AddCommand(NewCmdAppRename())
-	cmd.AddCommand(NewCmdFork())
+	cmd.AddCommand(NewCmdAppFork())
 	cmd.AddCommand(NewCmdAppDelete())
 
 	return cmd
@@ -256,7 +256,7 @@ func NewCmdAppRename() *cobra.Command {
 	return cmd
 }
 
-func NewCmdFork() *cobra.Command {
+func NewCmdAppFork() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "fork [app] [new-name]",
 		Short:             "Fork an app",
