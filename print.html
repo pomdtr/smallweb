@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="guides/webdav.html"><strong aria-hidden="true">8.</strong> WebDAV</a></li><li class="chapter-item expanded "><a href="guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="guides/webdav.html"><strong aria-hidden="true">8.</strong> WebDAV</a></li><li class="chapter-item expanded "><a href="guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded "><a href="guides/docs.html"><strong aria-hidden="true">11.</strong> Hosting Docs</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="hosting/localhost/localhost.html"><strong aria-hidden="true">12.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="hosting/cloudflare/cloudflare.html"><strong aria-hidden="true">13.</strong> Cloudflare Tunnel</a></li><li class="chapter-item expanded "><a href="hosting/vps.html"><strong aria-hidden="true">14.</strong> VPS / Home Server</a></li><li class="chapter-item expanded "><a href="hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -184,7 +184,7 @@
 <p>Smallweb installations steps heavily depends on the experience you want to have with Smallweb. Here are a few options:</p>
 <ul>
 <li><a href="./hosting/localhost/localhost.html">Localhost Setup</a> - Easiest way to get started, no need for a dedicated server or a domain name. Work on MacOS and Linux.</li>
-<li><a href="./hosting/home-server/home-server.html">Home Server Setup</a> - Host you apps on your home server, and expose them to the internet using Cloudflare Tunnel. Requires a domain name.</li>
+<li><a href="./hosting/cloudflare/cloudflare.html">Home Server Setup</a> - Host you apps on your home server, and expose them to the internet using Cloudflare Tunnel. Requires a domain name.</li>
 <li><a href="./hosting/vps.html">VPS Setup</a> - Similar to the Home Server setup, but using a VPS Provider instead. Shows you how to setup a fresh Debian 12 VPS to host your smallweb apps.</li>
 </ul>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
@@ -199,8 +199,34 @@
 }
 </code></pre>
 <p>Here, <code>api.example.com</code> will be mapped to <code>~/smallweb/api</code>, <code>blog.example.com</code> will be mapped to <code>~/smallweb/blog</code>, and so on.</p>
-<p>The apex domain (<code>example.com</code>) will be automatically redirected to <code>www.example.com</code>.</p>
-<p>If you want to register a custom domain to a specific application, you can create a <code>CNAME</code> file in the application directory, with the custom domain name as the content of the file.</p>
+<p>As a special case, the root domain <code>example.com</code> is automatically redirected to <code>www.example.com</code>, so it will be mapped to <code>~/smallweb/www</code>.</p>
+<p>If you want to opt-out of this behavior, you can create a <code>~/smallweb/@</code> directory, which will be mapped to the root domain.</p>
+<h2 id="custom-domains"><a class="header" href="#custom-domains">Custom domains</a></h2>
+<p>In addition to your base domain, you can also map custom domains to apps from your global config.</p>
+<pre><code class="language-json">{
+
+    "domain": "example.com",
+    "dir": "~/smallweb",
+    "customDomains": {
+        "pomdtr.me": "pomdtr"
+    }
+}
+</code></pre>
+<p>In this example, <code>pomdtr.me</code> will be mapped to <code>~/smallweb/pomdtr</code>, meaning that the <code>pomdtr</code> app will be accessible both at:</p>
+<ul>
+<li><code>https://pomdtr.example.com</code></li>
+<li><code>https://pomdtr.me</code></li>
+</ul>
+<p>You can also map wildcards to apps by using the <code>*</code> character.</p>
+<pre><code class="language-json">{
+    "domain": "example.com",
+    "dir": "~/smallweb",
+    "customDomains": {
+        "pomdtr.me": "pomdtr",
+        "sandbox-*.pomdtr.me": "pomdtr"
+    }
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hosting-websites"><a class="header" href="#hosting-websites">Hosting Websites</a></h1>
 <p>Smallweb can also host dynamic websites. To create a dynamic website, you need to create a folder with a <code>main.[js,ts,jsx,tsx]</code> file in it.</p>
 <p>The file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
@@ -254,13 +280,46 @@ export default app;
 <p>To access the server, open <code>https://hono-example.localhost</code> in your browser.</p>
 <h2 id="static-websites"><a class="header" href="#static-websites">Static Websites</a></h2>
 <p>If your smallweb does not contains a <code>main.[js,ts,jsx,tsx]</code> file, Smallweb will serve the folder as a static website.</p>
-<p>If your static website contains a <code>main.js</code> file, either:</p>
+<p>You can create a website by just adding an <code>index.html</code> file in the folder.</p>
+<pre><code class="language-html">&lt;!-- File: ~/smallweb/example-static/index.html --&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Example Static Website&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Hello, world!&lt;/h1&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>To access the website, open <code>https://example-static.localhost</code> in your browser.</p>
+<p>The static server also supports transpiling <code>.ts</code>, <code>.tsx</code>, <code>.jsx</code>, meaning that you can just import them from your static website.</p>
+<pre><code class="language-html">&lt;!-- ~/smallweb/example-static/index.html --&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;Example Static Website&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id="root"&gt;&lt;/div&gt;
+    &lt;script src="script.tsx"&gt;&lt;/script&gt;
+  &lt;/body&gt;
+</code></pre>
+<p>You'll need to add a pragma to the script file to tell smallweb how to transpile it.</p>
+<pre><code class="language-tsx">// ~/smallweb/example-static/script.tsx
+/** @jsxImportSource https://esm.sh/react **/
+import { render } from "react-dom";
+
+render(&lt;h1&gt;Hello, world!&lt;/h1&gt;, document.getElementById("root"));
+</code></pre>
+<p>Only use imports that are usable from the browser. <code>jsr:</code> and <code>npm:</code> specifiers are not supported in the browser.</p>
+<p>If your static website contains a <code>main.js</code> file, but you want to serve it as a static website, you can do the following:</p>
 <ul>
 <li>rename it to something else</li>
 <li>create a smallweb.json with the following content:</li>
 </ul>
 <pre><code class="language-json">{
-  "entrypoint": "jsr:@smallweb/file-server@0.2.2"
+  "entrypoint": "smallweb:static"
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="adding-cli-commands-to-your-app"><a class="header" href="#adding-cli-commands-to-your-app">Adding cli commands to your app</a></h1>
@@ -281,14 +340,13 @@ Hello world
 <p>You can easily wire it to smallweb:</p>
 <pre><code class="language-ts">import { Command } from "jsr:@cliffy/command@1.0.0-rc.5";
 
+const name = basename(Deno.cwd());
+const command = new Command().name().action(() =&gt; {
+    console.log(`Hello ${name}`);
+});
+
 export default {
     run(args: string[]) {
-        const name = basename(Deno.cwd());
-        const command = new Command().name().action(() =&gt; {
-            console.log(`Hello ${name}`);
-        });
-
-
         await command.parse(args);
     }
 }
@@ -312,7 +370,14 @@ export default function (req: Request) {
   });
 }
 </code></pre>
-<p>If you want to set an environment variable for all your apps, you can use the <code>env</code> property from the smallweb global config (<code>~/.config/smallweb/config.json</code>).</p>
+<p>If you want to set an environment variable for all your apps, you can use the <code>env</code> property from the smallweb global config.</p>
+<pre><code class="language-json">// ~/.config/smallweb/config.json
+{
+    "env": {
+        "BEARER_TOKEN": "SECURE_TOKEN"
+    }
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cron-tasks"><a class="header" href="#cron-tasks">Cron Tasks</a></h1>
 <p>You can register configure cron tasks from your <code>smallweb.json[c]</code>.</p>
 <pre><code class="language-json">{
@@ -370,16 +435,66 @@ smallweb list | cut -f1 | fzf | xargs smallweb open --app
 <p>You will then be able to run <code>smallweb simpl-site</code> to create a new static site.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="templates"><a class="header" href="#templates">Templates</a></h1>
 <p>Smallweb comes with a list of templates to help you get started with your project. You can use the <code>smallweb init</code> command to create a new project.</p>
-<pre><code class="language-sh">smallweb create &lt;name&gt;
+<pre><code class="language-sh">smallweb app create &lt;name&gt;
 </code></pre>
 <p>You can also specify custom a template to use:</p>
-<pre><code class="language-sh">smallweb create &lt;name&gt; --template pomdtr/smallweb-template-http
+<pre><code class="language-sh">smallweb app create &lt;name&gt; --template pomdtr/smallweb-template-http
 </code></pre>
 <p>Any github repository can be used as a template. View a list of the available templates <a href="https://github.com/topic/smallweb-template">here</a>.</p>
 <p>To create your own template, just add the <code>smallweb-template</code> topic to your repository, and it will be automatically added to the list of available templates.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="webdav"><a class="header" href="#webdav">WebDAV</a></h1>
-<p>You can access a webdav server at <code>https://api.&lt;your-domain&gt;/webdav</code>.</p>
-<p>You can then easily connect to the webdav server using any webdav client.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rest-api"><a class="header" href="#rest-api">REST API</a></h1>
+<p>Each smallweb installation comes with a built-in REST API. You can map it to a subdomain by creating a <code>smallweb.json</code> manifest:</p>
+<pre><code class="language-json">// ~/smallweb/api/smallweb.json
+{
+    "entrypoint": "smallweb:api",
+    // make sure to protect your API
+    "private": true,
+    "publicRoutes": [
+        // openapi manifest
+        "/openapi.json",
+        // json schemas for config files
+        "/schemas/*"
+    ]
+
+}
+</code></pre>
+<p>A swagger UI is available at the root of the api, allowing you to easily test the available endpoints.</p>
+<h2 id="authentication"><a class="header" href="#authentication">Authentication</a></h2>
+<p>You'll need to generate a bearer token to access the API. You can create one by running the following command:</p>
+<pre><code class="language-sh">smallweb token create --description "api token" --app &lt;api-subdomain&gt;
+</code></pre>
+<p>You'll then be able to use it to authenticate your requests using this token:</p>
+<pre><code class="language-sh">curl https://&lt;api-domain&gt;/v0/apps -H "Authorization: Bearer &lt;token&gt;"
+</code></pre>
+<p>Or you can just use the <code>smallweb api</code> command, which automatically authenticates your requests:</p>
+<pre><code class="language-sh">smallweb api /v0/apps
+</code></pre>
+<h2 id="client-library"><a class="header" href="#client-library">Client Library</a></h2>
+<p>Since the API is based on OpenAPI, you can easily generate client libraries for your favorite language.</p>
+<p>For usage in smallweb apps, I personally recommend using <a href="https://the-guild.dev/openapi/fets/client/quick-start">feTS</a>.</p>
+<p>Here is an example of how you can use it (no code-gen required):</p>
+<pre><code class="language-ts">import { createClient, type NormalizeOAS } from 'fets'
+import type openapi from 'jsr:@smallweb/openapi@&lt;smallweb-version&gt;'
+
+const client = createClient&lt;NormalizeOAS&lt;typeof openapi&gt;&gt;({
+    endpoint: Deno.env.get("SMALLWEB_API_URL"),
+    globalParams: {
+        headers: {
+            Authorization: `Bearer ${Deno.env.get("SMALLWEB_API_TOKEN")}`
+        }
+    }
+})
+
+const res = await client['/v0/apps'].get()
+if (!res.ok) {
+    throw new Error(`Failed to fetch apps: ${res.statusText}`)
+}
+
+const apps = await res.json() // typed!
+</code></pre>
+<h2 id="webdav-server"><a class="header" href="#webdav-server">Webdav Server</a></h2>
+<p>The rest api bundles a webdav server that you can use to manage your files. It is accessible at: <code>https://&lt;api-domain&gt;/webdav</code>.</p>
+<p>You can easily connect it to any webdav client:</p>
 <h2 id="windows"><a class="header" href="#windows">Windows</a></h2>
 <ol>
 <li>Open the File Explorer.</li>
@@ -405,13 +520,25 @@ smallweb list | cut -f1 | fzf | xargs smallweb open --app
 <ol>
 <li>Open Nautilus / Files.</li>
 <li>Click on <code>Other Locations</code>.</li>
-<li>Enter the URL of the webdav server, and prefix with <code>davs://</code> (ex: <code>davs://webdav.example.com</code>).</li>
+<li>Enter the URL of the webdav server, and prefix with <code>davs://</code> (ex: <code>davs://&lt;api-domain&gt;/webdav</code>).</li>
 <li>Click <code>Connect</code>.</li>
 <li>Enter your Smallweb username and password.</li>
 <li>Click <code>Connect</code>.</li>
 </ol>
 <h2 id="android"><a class="header" href="#android">Android</a></h2>
 <p><a href="https://play.google.com/store/apps/details?id=me.zhanghai.android.files">Material Files</a> has built-in support for WebDAV.</p>
+<h2 id="javascript"><a class="header" href="#javascript">Javascript</a></h2>
+<p>I'm still searching for a good webdav client in javascript. The best I found so far is <a href="https://www.npmjs.com/package/webdav-client">webdav-client</a>, but I don't really like it.</p>
+<p>Still, here is an example of how you can use it:</p>
+<pre><code class="language-ts">import * as webdav from 'webdav'
+
+const webdavClient = webdav.createClient(new URL("/webdav", Deno.env.get("SMALLWEB_API_URL")).href, {
+    authType: webdav.AuthType.Password,
+    username: Deno.env.get("SMALLWEB_API_TOKEN")
+})
+
+const apps = await webdavClient.getDirectoryContents("/")
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="private-apps"><a class="header" href="#private-apps">Private Apps</a></h1>
 <p>You can automatically protects private apps behind a login prompt. In order to achieve this, you'll need to:</p>
 <ol>
@@ -465,9 +592,16 @@ curl https://&lt;token&gt;@private-app.smallweb.run
 <li>access to the env files defined in the global config and in the <code>.env</code> file in the app directory.</li>
 </ul>
 <p>This sandbox protects the host system from malicious code, and ensures that apps can only access the resources they need.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="hosting-the-docs"><a class="header" href="#hosting-the-docs">Hosting the Docs</a></h1>
+<p>Each smallweb instance bundle it's own documentation! You can serve it using the following smallweb.json:</p>
+<pre><code class="language-json">// ~/smallweb/docs/smallweb.json
+{
+    "entrypoint": "smallweb:docs"
+}
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><p>This page will guide you through the process of setting up your local environment for smallweb on MacOS.</p>
 <p>This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.</p>
-<p>If you want to expose your apps to the internet instead, you can follow the <a href="hosting/localhost/../home-server/home-server.html">Cloudflare Tunnel setup guide</a>.</p>
+<p>If you want to expose your apps to the internet instead, you can follow the <a href="hosting/localhost/../cloudflare/cloudflare.html">Cloudflare Tunnel setup guide</a>.</p>
 <h2 id="architecture"><a class="header" href="#architecture">Architecture</a></h2>
 <p>The following diagram illustrates the architecture of the local setup:</p>
 <p><img src="hosting/localhost/./architecture.excalidraw.png" alt="Localhost architecture" /></p>
@@ -661,7 +795,7 @@ smallweb config
 </li>
 <li>
 <p>Add a wildcard hostname for your tunnel (ex: <code>*.&lt;your-domain&gt;</code>), and use <code>http://localhost:7777</code> as the origin service.</p>
-<p><img src="hosting/home-server/./tunnel.png" alt="Tunnel Configuration" /></p>
+<p><img src="hosting/cloudflare/./tunnel.png" alt="Tunnel Configuration" /></p>
 </li>
 <li>
 <p>Do the same for your apex domain, if you want to manage it using smallweb.</p>
@@ -673,7 +807,7 @@ smallweb config
 <p>Add a new <code>CNAME</code> record for your wildcard hostname, with a target of <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</p>
 </li>
 </ol>
-<p><img src="hosting/home-server/./dns.png" alt="DNS Configuration" /></p>
+<p><img src="hosting/cloudflare/./dns.png" alt="DNS Configuration" /></p>
 <h2 id="checking-that-your-tunnel-is-running"><a class="header" href="#checking-that-your-tunnel-is-running">Checking that your tunnel is running</a></h2>
 <p>Create a dummy smallweb app in <code>~/smallweb/example</code></p>
 <pre><code class="language-sh">mkdir -p ~/smallweb/example
@@ -694,8 +828,8 @@ EOF
 <ul>
 <li>You can protect your tunnel (or specific apps) with Cloudflare Access.</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="vps-setup"><a class="header" href="#vps-setup">VPS Setup</a></h1>
-<p>If you're using a Debian-based VM, you can follow these steps to setup smallweb, assuming you're logged in as root.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="vps--home-server"><a class="header" href="#vps--home-server">VPS / Home Server</a></h1>
+<p>If you're using a Debian-based Server, you can follow these steps to setup smallweb, assuming you're logged in as root.</p>
 <p>These steps will also work on other distributions, but you may need to adjust the package manager commands.</p>
 <pre><code class="language-bash"># create user with homedir and default shell
 useradd --system --user-group --create-home --shell $(which bash) smallweb
@@ -727,11 +861,18 @@ smallweb service install
 </code></pre>
 <p>To make your service accessible from the internet, you have multiple options:</p>
 <ul>
-<li>setup a reverse proxy on port 443 (ex: caddy)</li>
-<li>using cloudflare tunnel (see <a href="hosting/./home-server/home-server.html">cloudflare setup</a>)</li>
+<li>setup a reverse proxy on port 443 (I use caddy)</li>
+<li>using cloudflare tunnel (see <a href="hosting/./cloudflare/cloudflare.html">cloudflare setup</a>)</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="hosting-on-flyio"><a class="header" href="#hosting-on-flyio">Hosting on fly.io</a></h1>
-<p>A template repository to host your smallweb app on <a href="https://fly.io">fly.io</a> is available at <a href="https://github.com/pomdtr/smallweb-fly">pomdtr/smallweb-fly</a>.</p>
+<h2 id="syncing-files-using-mutagen"><a class="header" href="#syncing-files-using-mutagen">Syncing files using mutagen</a></h2>
+<p>I recommend using <a href="https://mutagen.io">mutagen</a> to sync your files between your development machine and the server.</p>
+<p>First, install mutagen on your development machine, then enable the daemon using <code>mutagen daemon register</code>, and finally, run the following command to sync your files:</p>
+<pre><code class="language-bash">mutagen sync create --name=smallweb --ignore-vcs --ignore=node_modules \
+    ~/smallweb smallweb@&lt;server-ip&gt;:/home/smallweb/smallweb
+</code></pre>
+<p>From now on, each time you make a change to your files, they will be automatically synced to the server, and vice versa.</p>
+<p>Your git repository will only be present on one machine, you can choose if you want to keep it on your development machine or on the server. Syncing git repositories <a href="https://mutagen.io/documentation/synchronization/version-control-systems">is not recommended</a>.</p>
+<p>I also prefer to skip syncing the <code>node_modules</code> folder, as deno automatically fetches them when needed.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="deno-deploy"><a class="header" href="#deno-deploy">Deno Deploy</a></h1>
 <p>If one of your websites is starting to get a lot of traffic, you might want to deploy it to a cloud provider.</p>
 <p>Deno Deploy is a cloud platform that allows you to deploy your Deno apps with ease. It's a great choice for smallweb apps, since it's built on top of Deno, and it's very easy to use.</p>
@@ -777,6 +918,13 @@ smallweb service install
   "dir": "~/smallweb"
 }
 </code></pre>
+<h3 id="email"><a class="header" href="#email"><code>email</code></a></h3>
+<p>The <code>email</code> field is required to enable lastlogin authentication for private apps.</p>
+<p>If it is not set, private will show a basic auth prompt instead.</p>
+<pre><code class="language-json">{
+  "email": "pomdtr@smallweb.run"
+}
+</code></pre>
 <h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
 <p>The <code>env</code> field defines a list of environment variables to set for all apps.</p>
 <pre><code class="language-json">{
@@ -785,19 +933,15 @@ smallweb service install
   }
 }
 </code></pre>
-<h3 id="tokens"><a class="header" href="#tokens"><code>tokens</code></a></h3>
-<p>The <code>tokens</code> field defines a list of tokens used for authentication.</p>
+<h3 id="customdomains"><a class="header" href="#customdomains"><code>customDomains</code></a></h3>
+<p>The <code>customDomains</code> field defines a list of custom domains to map to apps. It supports wildcards.</p>
 <pre><code class="language-json">{
-  "tokens": ["SF7RZt9shD6UnUcl"]
+  "customDomains": {
+    "pomdtr.me": "pomdtr",
+    "sandbox-*.pomdtr.me": "pomdtr"
+  }
 }
 </code></pre>
-<p>You can protect private apps by setting the <code>private</code> field in the app's config.</p>
-<p>You can generate a new token using the <code>smallweb token</code> command (you'll still need to add it to your config).</p>
-<p>Token are also used to protect internal services that smallweb provides, such as:</p>
-<ul>
-<li>webdav.<code>&lt;domain&gt;</code>: A webdav server allowing you to access your files.</li>
-<li>cli.<code>&lt;domain&gt;</code>: A web interface to run cli commands.</li>
-</ul>
 <h2 id="default-config"><a class="header" href="#default-config">Default Config</a></h2>
 <p>By default the config file looks like this:</p>
 <pre><code class="language-json">{
@@ -811,7 +955,7 @@ smallweb service install
   }
 }
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-reference"><a class="header" href="#configuration-reference">Configuration Reference</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="global-configuration-reference"><a class="header" href="#global-configuration-reference">Global Configuration Reference</a></h1>
 <p>The smallweb configuration can be defined in a <code>smallweb.json[c]</code> file at the root of the project. This config file is optional, and sensible defaults are used when it is not present.</p>
 <p>A json schema for the config file is available <a href="https://schema.smallweb.run">here</a>.</p>
 <p>You can set it using a <code>$schema</code> field in your <code>smallweb.json[c]</code> file:</p>
@@ -839,6 +983,24 @@ smallweb service install
 <p>The <code>root</code> field defines the root directory of the app. If this field is not provided, the app will use the app directory as the root directory.</p>
 <h3 id="private"><a class="header" href="#private"><code>private</code></a></h3>
 <p>If the <code>private</code> field is set to <code>true</code>, the app will ask for your admin username and password before serving the app using basic auth.</p>
+<h3 id="privateroutes"><a class="header" href="#privateroutes"><code>privateRoutes</code></a></h3>
+<p>If you only want to protect a subset of routes, you can use the <code>privateRoutes</code> field. This field is an array of routes that require authentication.</p>
+<pre><code class="language-json">{
+  "privateRoutes": [
+    "/private",
+    "/admin/*"
+  ]
+}
+</code></pre>
+<h3 id="publicroutes"><a class="header" href="#publicroutes"><code>publicRoutes</code></a></h3>
+<p>If you want to make a subset of routes public, you can use the <code>publicRoutes</code> field. This field is an array of routes that do not require authentication.</p>
+<pre><code class="language-json">{
+  "private": true,
+  "publicRoutes": [
+    "/public/*",
+  ]
+}
+</code></pre>
 <h3 id="crons"><a class="header" href="#crons"><code>crons</code></a></h3>
 <p>The <code>crons</code> field defines a list of cron jobs to run. See the <a href="reference/../guides/cron.html">Cron Jobs</a> guide for more information.</p>
 <pre><code class="language-json">{

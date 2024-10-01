@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/webdav.html"><strong aria-hidden="true">8.</strong> WebDAV</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html" class="active"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/webdav.html"><strong aria-hidden="true">8.</strong> WebDAV</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded "><a href="../guides/docs.html"><strong aria-hidden="true">11.</strong> Hosting Docs</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">12.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/cloudflare/cloudflare.html"><strong aria-hidden="true">13.</strong> Cloudflare Tunnel</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">14.</strong> VPS / Home Server</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html" class="active"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -209,6 +209,13 @@
   "dir": "~/smallweb"
 }
 </code></pre>
+<h3 id="email"><a class="header" href="#email"><code>email</code></a></h3>
+<p>The <code>email</code> field is required to enable lastlogin authentication for private apps.</p>
+<p>If it is not set, private will show a basic auth prompt instead.</p>
+<pre><code class="language-json">{
+  "email": "pomdtr@smallweb.run"
+}
+</code></pre>
 <h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
 <p>The <code>env</code> field defines a list of environment variables to set for all apps.</p>
 <pre><code class="language-json">{
@@ -217,19 +224,15 @@
   }
 }
 </code></pre>
-<h3 id="tokens"><a class="header" href="#tokens"><code>tokens</code></a></h3>
-<p>The <code>tokens</code> field defines a list of tokens used for authentication.</p>
+<h3 id="customdomains"><a class="header" href="#customdomains"><code>customDomains</code></a></h3>
+<p>The <code>customDomains</code> field defines a list of custom domains to map to apps. It supports wildcards.</p>
 <pre><code class="language-json">{
-  "tokens": ["SF7RZt9shD6UnUcl"]
+  "customDomains": {
+    "pomdtr.me": "pomdtr",
+    "sandbox-*.pomdtr.me": "pomdtr"
+  }
 }
 </code></pre>
-<p>You can protect private apps by setting the <code>private</code> field in the app's config.</p>
-<p>You can generate a new token using the <code>smallweb token</code> command (you'll still need to add it to your config).</p>
-<p>Token are also used to protect internal services that smallweb provides, such as:</p>
-<ul>
-<li>webdav.<code>&lt;domain&gt;</code>: A webdav server allowing you to access your files.</li>
-<li>cli.<code>&lt;domain&gt;</code>: A web interface to run cli commands.</li>
-</ul>
 <h2 id="default-config"><a class="header" href="#default-config">Default Config</a></h2>
 <p>By default the config file looks like this:</p>
 <pre><code class="language-json">{

@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/webdav.html"><strong aria-hidden="true">8.</strong> WebDAV</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html" class="active"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/webdav.html"><strong aria-hidden="true">8.</strong> WebDAV</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded "><a href="../guides/docs.html"><strong aria-hidden="true">11.</strong> Hosting Docs</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">12.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/cloudflare/cloudflare.html"><strong aria-hidden="true">13.</strong> Cloudflare Tunnel</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">14.</strong> VPS / Home Server</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html" class="active"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -179,7 +179,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="configuration-reference"><a class="header" href="#configuration-reference">Configuration Reference</a></h1>
+                        <h1 id="global-configuration-reference"><a class="header" href="#global-configuration-reference">Global Configuration Reference</a></h1>
 <p>The smallweb configuration can be defined in a <code>smallweb.json[c]</code> file at the root of the project. This config file is optional, and sensible defaults are used when it is not present.</p>
 <p>A json schema for the config file is available <a href="https://schema.smallweb.run">here</a>.</p>
 <p>You can set it using a <code>$schema</code> field in your <code>smallweb.json[c]</code> file:</p>
@@ -207,6 +207,24 @@
 <p>The <code>root</code> field defines the root directory of the app. If this field is not provided, the app will use the app directory as the root directory.</p>
 <h3 id="private"><a class="header" href="#private"><code>private</code></a></h3>
 <p>If the <code>private</code> field is set to <code>true</code>, the app will ask for your admin username and password before serving the app using basic auth.</p>
+<h3 id="privateroutes"><a class="header" href="#privateroutes"><code>privateRoutes</code></a></h3>
+<p>If you only want to protect a subset of routes, you can use the <code>privateRoutes</code> field. This field is an array of routes that require authentication.</p>
+<pre><code class="language-json">{
+  "privateRoutes": [
+    "/private",
+    "/admin/*"
+  ]
+}
+</code></pre>
+<h3 id="publicroutes"><a class="header" href="#publicroutes"><code>publicRoutes</code></a></h3>
+<p>If you want to make a subset of routes public, you can use the <code>publicRoutes</code> field. This field is an array of routes that do not require authentication.</p>
+<pre><code class="language-json">{
+  "private": true,
+  "publicRoutes": [
+    "/public/*",
+  ]
+}
+</code></pre>
 <h3 id="crons"><a class="header" href="#crons"><code>crons</code></a></h3>
 <p>The <code>crons</code> field defines a list of cron jobs to run. See the <a href="../guides/cron.html">Cron Jobs</a> guide for more information.</p>
 <pre><code class="language-json">{

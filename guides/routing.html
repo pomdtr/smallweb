@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html" class="active"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/webdav.html"><strong aria-hidden="true">8.</strong> WebDAV</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">11.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/home-server/home-server.html"><strong aria-hidden="true">12.</strong> Cloudflare</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">13.</strong> VPS</a></li><li class="chapter-item expanded "><a href="../hosting/fly.html"><strong aria-hidden="true">14.</strong> Fly.io</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../getting-started.html">Getting Started</a></li><li class="chapter-item expanded affix "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/routing.html" class="active"><strong aria-hidden="true">1.</strong> Routing</a></li><li class="chapter-item expanded "><a href="../guides/server.html"><strong aria-hidden="true">2.</strong> HTTP Servers</a></li><li class="chapter-item expanded "><a href="../guides/commands.html"><strong aria-hidden="true">3.</strong> Cli Commands</a></li><li class="chapter-item expanded "><a href="../guides/env.html"><strong aria-hidden="true">4.</strong> Environment Variables</a></li><li class="chapter-item expanded "><a href="../guides/cron.html"><strong aria-hidden="true">5.</strong> Cron Tasks</a></li><li class="chapter-item expanded "><a href="../guides/plugins.html"><strong aria-hidden="true">6.</strong> Plugins</a></li><li class="chapter-item expanded "><a href="../guides/templates.html"><strong aria-hidden="true">7.</strong> Templates</a></li><li class="chapter-item expanded "><a href="../guides/webdav.html"><strong aria-hidden="true">8.</strong> WebDAV</a></li><li class="chapter-item expanded "><a href="../guides/auth.html"><strong aria-hidden="true">9.</strong> Authentication</a></li><li class="chapter-item expanded "><a href="../guides/sandbox.html"><strong aria-hidden="true">10.</strong> App Sandbox</a></li><li class="chapter-item expanded "><a href="../guides/docs.html"><strong aria-hidden="true">11.</strong> Hosting Docs</a></li><li class="chapter-item expanded affix "><li class="part-title">Hosting</li><li class="chapter-item expanded "><a href="../hosting/localhost/localhost.html"><strong aria-hidden="true">12.</strong> Localhost</a></li><li class="chapter-item expanded "><a href="../hosting/cloudflare/cloudflare.html"><strong aria-hidden="true">13.</strong> Cloudflare Tunnel</a></li><li class="chapter-item expanded "><a href="../hosting/vps.html"><strong aria-hidden="true">14.</strong> VPS / Home Server</a></li><li class="chapter-item expanded "><a href="../hosting/deno-deploy.html"><strong aria-hidden="true">15.</strong> Deno Deploy</a></li><li class="chapter-item expanded affix "><li class="part-title">Reference</li><li class="chapter-item expanded "><a href="../reference/global_config.html"><strong aria-hidden="true">16.</strong> Global Config</a></li><li class="chapter-item expanded "><a href="../reference/app_config.html"><strong aria-hidden="true">17.</strong> App Config</a></li><li class="chapter-item expanded "><a href="../reference/cli.html"><strong aria-hidden="true">18.</strong> CLI</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -189,8 +189,34 @@
 }
 </code></pre>
 <p>Here, <code>api.example.com</code> will be mapped to <code>~/smallweb/api</code>, <code>blog.example.com</code> will be mapped to <code>~/smallweb/blog</code>, and so on.</p>
-<p>The apex domain (<code>example.com</code>) will be automatically redirected to <code>www.example.com</code>.</p>
-<p>If you want to register a custom domain to a specific application, you can create a <code>CNAME</code> file in the application directory, with the custom domain name as the content of the file.</p>
+<p>As a special case, the root domain <code>example.com</code> is automatically redirected to <code>www.example.com</code>, so it will be mapped to <code>~/smallweb/www</code>.</p>
+<p>If you want to opt-out of this behavior, you can create a <code>~/smallweb/@</code> directory, which will be mapped to the root domain.</p>
+<h2 id="custom-domains"><a class="header" href="#custom-domains">Custom domains</a></h2>
+<p>In addition to your base domain, you can also map custom domains to apps from your global config.</p>
+<pre><code class="language-json">{
+
+    "domain": "example.com",
+    "dir": "~/smallweb",
+    "customDomains": {
+        "pomdtr.me": "pomdtr"
+    }
+}
+</code></pre>
+<p>In this example, <code>pomdtr.me</code> will be mapped to <code>~/smallweb/pomdtr</code>, meaning that the <code>pomdtr</code> app will be accessible both at:</p>
+<ul>
+<li><code>https://pomdtr.example.com</code></li>
+<li><code>https://pomdtr.me</code></li>
+</ul>
+<p>You can also map wildcards to apps by using the <code>*</code> character.</p>
+<pre><code class="language-json">{
+    "domain": "example.com",
+    "dir": "~/smallweb",
+    "customDomains": {
+        "pomdtr.me": "pomdtr",
+        "sandbox-*.pomdtr.me": "pomdtr"
+    }
+}
+</code></pre>
 
                     </main>
 
