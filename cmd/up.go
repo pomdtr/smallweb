@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
@@ -18,10 +17,12 @@ import (
 
 	_ "embed"
 
+	"github.com/adrg/xdg"
 	"github.com/gobwas/glob"
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/auth"
+	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/docs"
 
 	"github.com/pomdtr/smallweb/utils"
@@ -32,7 +33,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
-func NewCmdUp(db *sql.DB) *cobra.Command {
+func NewCmdUp() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "up",
 		Short:   "Start the smallweb evaluation server",
@@ -40,6 +41,11 @@ func NewCmdUp(db *sql.DB) *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			if err != nil {
+				return fmt.Errorf("failed to open database: %v", err)
+			}
+
 			port := k.Int("port")
 			cert := k.String("cert")
 			key := k.String("key")

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
@@ -13,6 +15,10 @@ import (
 var fs embed.FS
 
 func OpenDB(dbPath string) (*sql.DB, error) {
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
+		return nil, fmt.Errorf("failed to create directory: %v", err)
+	}
+
 	db, err := sql.Open("sqlite", fmt.Sprintf("file:%s", dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %v", err)

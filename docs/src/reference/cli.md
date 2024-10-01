@@ -27,6 +27,121 @@ smallweb api [flags]
   -X, --method string        HTTP method to use (default "GET")
 ```
 
+## smallweb app
+
+Manage apps
+
+### Options
+
+```
+  -h, --help   help for app
+```
+
+## smallweb app create
+
+Create a new smallweb app
+
+```
+smallweb app create <app> [flags]
+```
+
+### Options
+
+```
+  -h, --help              help for create
+  -t, --template string   The template to use
+```
+
+## smallweb app delete
+
+Delete an app
+
+```
+smallweb app delete [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for delete
+```
+
+## smallweb app fork
+
+Fork an app
+
+```
+smallweb app fork [app] [new-name] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for fork
+```
+
+## smallweb app help
+
+Help about any command
+
+### Synopsis
+
+Help provides help for any command in the application.
+Simply type app help [path to command] for full details.
+
+```
+smallweb app help [command] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for help
+```
+
+## smallweb app list
+
+List all smallweb apps
+
+```
+smallweb app list [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for list
+      --json   output as json
+```
+
+## smallweb app open
+
+Open an app in the browser
+
+```
+smallweb app open [app] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for open
+```
+
+## smallweb app rename
+
+Rename an app
+
+```
+smallweb app rename [app] [new-name] [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for rename
+```
+
 ## smallweb capture
 
 Extension capture
@@ -242,21 +357,6 @@ smallweb config [flags]
   -j, --json   Output as JSON
 ```
 
-## smallweb create
-
-Create a new smallweb app
-
-```
-smallweb create <app> [flags]
-```
-
-### Options
-
-```
-  -h, --help              help for create
-  -t, --template string   The template to use
-```
-
 ## smallweb cron
 
 Manage cron jobs
@@ -316,20 +416,6 @@ smallweb cron trigger <id> [flags]
   -h, --help   help for trigger
 ```
 
-## smallweb delete
-
-Delete an app
-
-```
-smallweb delete [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for delete
-```
-
 ## smallweb docs
 
 Generate smallweb cli documentation
@@ -342,20 +428,6 @@ smallweb docs [flags]
 
 ```
   -h, --help   help for docs
-```
-
-## smallweb edit
-
-Open an app in your editor
-
-```
-smallweb edit <app> [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for edit
 ```
 
 ## smallweb fork
@@ -403,21 +475,6 @@ smallweb help [command] [flags]
 
 ```
   -h, --help   help for help
-```
-
-## smallweb list
-
-List all smallweb apps
-
-```
-smallweb list [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for list
-      --json   output as json
 ```
 
 ## smallweb log
@@ -495,49 +552,6 @@ smallweb log http [flags]
   -h, --help          help for http
       --host string   filter logs by host
       --json          output logs in JSON format
-```
-
-## smallweb open
-
-Open an app in the browser
-
-```
-smallweb open [app] [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for open
-```
-
-## smallweb openapi
-
-Print the OpenAPI spec
-
-```
-smallweb openapi [flags]
-```
-
-### Options
-
-```
-  -h, --help    help for openapi
-      --types   Print typescript types
-```
-
-## smallweb rename
-
-Rename an app
-
-```
-smallweb rename [app] [new-name] [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for rename
 ```
 
 ## smallweb run
@@ -703,8 +717,24 @@ smallweb token create [flags]
 ### Options
 
 ```
+      --admin                admin token
+  -a, --app strings          app token
   -d, --description string   description of the token
   -h, --help                 help for create
+```
+
+## smallweb token delete
+
+Remove a token
+
+```
+smallweb token delete <id> [flags]
+```
+
+### Options
+
+```
+  -h, --help   help for delete
 ```
 
 ## smallweb token help
@@ -739,20 +769,6 @@ smallweb token list [flags]
 ```
   -h, --help   help for list
   -j, --json   output as JSON
-```
-
-## smallweb token remove
-
-Remove a token
-
-```
-smallweb token remove <id> [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for remove
 ```
 
 ## smallweb up

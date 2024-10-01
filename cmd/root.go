@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/adrg/xdg"
 	"github.com/charmbracelet/glamour"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
@@ -15,7 +14,6 @@ import (
 	"github.com/knadh/koanf/v2"
 	"github.com/mattn/go-isatty"
 
-	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
@@ -49,17 +47,6 @@ func findConfigPath() string {
 }
 
 func NewCmdRoot(version string, changelog string) *cobra.Command {
-	dataHome := filepath.Join(xdg.DataHome, "smallweb")
-	if err := os.MkdirAll(dataHome, 0755); err != nil {
-		fmt.Println("failed to create data directory:", err)
-	}
-
-	db, err := database.OpenDB(filepath.Join(dataHome, "smallweb.db"))
-	if err != nil {
-		fmt.Println("failed to open database:", err)
-		return nil
-	}
-
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"host":   "127.0.0.1",
 		"dir":    "~/smallweb",
@@ -99,17 +86,13 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	})
 
 	cmd.AddCommand(NewCmdRun())
-	cmd.AddCommand(NewCmdList())
+	cmd.AddCommand(NewCmdApp())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdUpgrade())
-	cmd.AddCommand(NewCmdCreate())
-	cmd.AddCommand(NewCmdDelete())
 	cmd.AddCommand(NewCmdFork())
-	cmd.AddCommand(NewCmdRename())
-	cmd.AddCommand(NewCmdToken(db))
-	cmd.AddCommand(NewCmdUp(db))
-	cmd.AddCommand(NewCmdOpen())
+	cmd.AddCommand(NewCmdToken())
+	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdAPI())

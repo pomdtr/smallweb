@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/database"
@@ -17,20 +18,20 @@ import (
 	"golang.org/x/term"
 )
 
-func NewCmdToken(db *sql.DB) *cobra.Command {
+func NewCmdToken() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "token",
 		Short:   "Manage api tokens",
 		GroupID: CoreGroupID,
 	}
 
-	cmd.AddCommand(NewCmdTokenCreate(db))
-	cmd.AddCommand(NewCmdTokenList(db))
-	cmd.AddCommand(NewCmdTokenDelete(db))
+	cmd.AddCommand(NewCmdTokenCreate())
+	cmd.AddCommand(NewCmdTokenList())
+	cmd.AddCommand(NewCmdTokenDelete())
 	return cmd
 }
 
-func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
+func NewCmdTokenCreate() *cobra.Command {
 	var flags struct {
 		description string
 		admin       bool
@@ -50,6 +51,12 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			if err != nil {
+				fmt.Println("failed to open database:", err)
+				return nil
+			}
+
 			value, public, secret, err := database.GenerateToken()
 			if err != nil {
 				return fmt.Errorf("failed to generate token: %v", err)
@@ -93,7 +100,7 @@ func NewCmdTokenCreate(db *sql.DB) *cobra.Command {
 	return cmd
 }
 
-func NewCmdTokenList(db *sql.DB) *cobra.Command {
+func NewCmdTokenList() *cobra.Command {
 	var flags struct {
 		json bool
 	}
@@ -104,6 +111,12 @@ func NewCmdTokenList(db *sql.DB) *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			if err != nil {
+				fmt.Println("failed to open database:", err)
+				return nil
+			}
+
 			tokens, err := database.ListTokens(db)
 			if err != nil {
 				return fmt.Errorf("failed to list tokens: %v", err)
@@ -167,13 +180,19 @@ func NewCmdTokenList(db *sql.DB) *cobra.Command {
 	return cmd
 }
 
-func NewCmdTokenDelete(db *sql.DB) *cobra.Command {
+func NewCmdTokenDelete() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "delete <id>",
 		Short:   "Remove a token",
 		Args:    cobra.ArbitraryArgs,
 		Aliases: []string{"remove", "rm"},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			if err != nil {
+				fmt.Println("failed to open database:", err)
+				return nil, cobra.ShellCompDirectiveError
+			}
+
 			tokens, err := database.ListTokens(db)
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
@@ -187,6 +206,10 @@ func NewCmdTokenDelete(db *sql.DB) *cobra.Command {
 			return completions, cobra.ShellCompDirectiveNoFileComp
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			if err != nil {
+				return fmt.Errorf("failed to open database: %v", err)
+			}
 			for _, arg := range args {
 				if err := database.DeleteToken(db, arg); err != nil {
 					return fmt.Errorf("failed to delete token: %v", err)
