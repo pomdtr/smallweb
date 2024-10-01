@@ -93,9 +93,14 @@ func LoadApp(dir string, domain string) (App, error) {
 	}
 
 	if configPath := filepath.Join(dir, "smallweb.json"); utils.FileExists(configPath) {
-		configBytes, err := os.ReadFile(configPath)
+		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read smallweb.json: %v", err)
+		}
+
+		configBytes, err := hujson.Standardize(rawBytes)
+		if err != nil {
+			return App{}, fmt.Errorf("could not standardize smallweb.jsonc: %v", err)
 		}
 
 		if err := json.Unmarshal(configBytes, &app.Config); err != nil {
