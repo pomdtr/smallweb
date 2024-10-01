@@ -209,7 +209,7 @@
 <p>Since the API is based on OpenAPI, you can easily generate client libraries for your favorite language.</p>
 <p>For usage in smallweb apps, I personally recommend using <a href="https://the-guild.dev/openapi/fets/client/quick-start">feTS</a>.</p>
 <p>Here is an example of how you can use it (no code-gen required):</p>
-<pre><code class="language-ts">import { createClient, type NormalizeOAS } from 'fets'
+<pre><code class="language-ts">import { createClient, type NormalizeOAS } from 'npm:fets'
 import type openapi from 'jsr:@smallweb/openapi@&lt;smallweb-version&gt;'
 
 const client = createClient&lt;NormalizeOAS&lt;typeof openapi&gt;&gt;({

@@ -199,7 +199,8 @@
 }
 </code></pre>
 <p>Here, <code>api.example.com</code> will be mapped to <code>~/smallweb/api</code>, <code>blog.example.com</code> will be mapped to <code>~/smallweb/blog</code>, and so on.</p>
-<p>As a special case, the root domain <code>example.com</code> is automatically redirected to <code>www.example.com</code>, so it will be mapped to <code>~/smallweb/www</code>.</p>
+<p>The apex domain (example.com) will be mapped to <code>~/smallweb/@</code>.</p>
+<p>If <code>~/smallweb/@</code> does not exist and <code>~/smallweb/www</code> does, every request to the apex domain (<code>example.com</code>) will be redirected to <code>www.example.com</code>. Inversely, if <code>~/smallweb/www</code> does not exist and <code>~/smallweb/@</code> does, every request to <code>www.example.com</code> will be redirected to the <code>example.com</code>.</p>
 <p>If you want to opt-out of this behavior, you can create a <code>~/smallweb/@</code> directory, which will be mapped to the root domain.</p>
 <h2 id="custom-domains"><a class="header" href="#custom-domains">Custom domains</a></h2>
 <p>In addition to your base domain, you can also map custom domains to apps from your global config.</p>
@@ -517,7 +518,7 @@ curl https://&lt;token&gt;@private-app.smallweb.run
 <p>Since the API is based on OpenAPI, you can easily generate client libraries for your favorite language.</p>
 <p>For usage in smallweb apps, I personally recommend using <a href="https://the-guild.dev/openapi/fets/client/quick-start">feTS</a>.</p>
 <p>Here is an example of how you can use it (no code-gen required):</p>
-<pre><code class="language-ts">import { createClient, type NormalizeOAS } from 'fets'
+<pre><code class="language-ts">import { createClient, type NormalizeOAS } from 'npm:fets'
 import type openapi from 'jsr:@smallweb/openapi@&lt;smallweb-version&gt;'
 
 const client = createClient&lt;NormalizeOAS&lt;typeof openapi&gt;&gt;({
