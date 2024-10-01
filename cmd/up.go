@@ -67,15 +67,17 @@ func NewCmdUp() *cobra.Command {
 			apiHandler := api.NewHandler(k, httpWriter, cronWriter, consoleWriter)
 			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Host == k.String("domain") {
-					target := r.URL
-					target.Scheme = "https"
-					target.Host = "www." + k.String("domain")
-					http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
-					return
-				}
+				rootDir := utils.ExpandTilde(k.String("dir"))
 
 				appname := func() string {
+					if r.Host == k.String("domain") {
+						if stat, err := os.Stat(filepath.Join(rootDir, "@")); err == nil && stat.IsDir() {
+							return "@"
+						}
+
+						return ""
+					}
+
 					for domainGlob, app := range k.StringMap("customDomains") {
 						g := glob.MustCompile(domainGlob)
 						if g.Match(r.Host) {
@@ -83,19 +85,46 @@ func NewCmdUp() *cobra.Command {
 						}
 					}
 
-					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))) {
-						return strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain")))
+					if appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))); utils.FileExists(filepath.Join(rootDir, appname)) {
+						return appname
 					}
 
 					return ""
 				}()
 
 				if appname == "" {
+					if r.Host == k.String("domain") {
+						// if we are on the apex domain and www exists, redirect to www
+						if stat, err := os.Stat(filepath.Join(rootDir, "www")); err == nil && stat.IsDir() {
+							target := r.URL
+							target.Scheme = "https"
+							target.Host = "www." + k.String("domain")
+							http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+							return
+						}
+
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
+					if r.Host == fmt.Sprintf("www.%s", k.String("domain")) {
+						// if we are on the www domain and apex exists, redirect to apex
+						if stat, err := os.Stat(filepath.Join(rootDir, "@")); err == nil && stat.IsDir() {
+							target := r.URL
+							target.Scheme = "https"
+							target.Host = k.String("domain")
+							http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+							return
+						}
+
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+
 					w.WriteHeader(http.StatusNotFound)
 					return
 				}
 
-				rootDir := utils.ExpandTilde(k.String("dir"))
 				a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
 				if err != nil {
 					w.WriteHeader(http.StatusNotFound)
