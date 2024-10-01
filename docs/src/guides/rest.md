@@ -48,7 +48,7 @@ For usage in smallweb apps, I personally recommend using [feTS](https://the-guil
 Here is an example of how you can use it (no code-gen required):
 
 ```ts
-import { createClient, type NormalizeOAS } from 'fets'
+import { createClient, type NormalizeOAS } from 'npm:fets'
 import type openapi from 'jsr:@smallweb/openapi@<smallweb-version>'
 
 const client = createClient<NormalizeOAS<typeof openapi>>({
