@@ -75,20 +75,28 @@ func NewCmdUp() *cobra.Command {
 					return
 				}
 
-				var appName string
-				if a, ok := k.StringMap("customDomains")[r.Host]; ok {
-					appName = a
-				} else {
-					if !strings.HasSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))) {
-						w.WriteHeader(http.StatusNotFound)
-						return
+				appname := func() string {
+					for domainGlob, app := range k.StringMap("customDomains") {
+						g := glob.MustCompile(domainGlob)
+						if g.Match(r.Host) {
+							return app
+						}
 					}
 
-					appName = strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain")))
+					if strings.HasSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))) {
+						return strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain")))
+					}
+
+					return ""
+				}()
+
+				if appname == "" {
+					w.WriteHeader(http.StatusNotFound)
+					return
 				}
 
 				rootDir := utils.ExpandTilde(k.String("dir"))
-				a, err := app.LoadApp(filepath.Join(rootDir, appName), k.String("domain"))
+				a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
 				if err != nil {
 					w.WriteHeader(http.StatusNotFound)
 					return
@@ -189,7 +197,7 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
-					authMiddleware := auth.Middleware(db, k.String("email"), appName)
+					authMiddleware := auth.Middleware(db, k.String("email"), appname)
 					handler = authMiddleware(handler)
 				}
 

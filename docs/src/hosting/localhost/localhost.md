@@ -2,7 +2,7 @@ This page will guide you through the process of setting up your local environmen
 
 This setup is useful for developing and testing smallweb apps locally, without having to deploy them to the internet.
 
-If you want to expose your apps to the internet instead, you can follow the [Cloudflare Tunnel setup guide](../home-server/home-server.md).
+If you want to expose your apps to the internet instead, you can follow the [Cloudflare Tunnel setup guide](../cloudflare/cloudflare.md).
 
 ## Architecture
 
@@ -42,7 +42,7 @@ smallweb service install
 
 ### Setup Caddy {#setup-caddy-macos}
 
-Caddy’s configuration path depends on whether you're using an Intel-based Mac or an Apple Silicon (M1/M2) Mac. 
+Caddy’s configuration path depends on whether you're using an Intel-based Mac or an Apple Silicon (M1/M2) Mac.
 
 - **For Apple Silicon (M1/M2) Macs**:
   The default installation path is `/opt/homebrew/etc/Caddyfile`.

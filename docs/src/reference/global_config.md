@@ -50,6 +50,18 @@ The `dir` field defines the root directory for all apps.
 }
 ```
 
+### `email`
+
+The `email` field is required to enable lastlogin authentication for private apps.
+
+If it is not set, private will show a basic auth prompt instead.
+
+```json
+{
+  "email": "pomdtr@smallweb.run"
+}
+```
+
 ### `env`
 
 The `env` field defines a list of environment variables to set for all apps.
@@ -62,24 +74,18 @@ The `env` field defines a list of environment variables to set for all apps.
 }
 ```
 
-### `tokens`
+### `customDomains`
 
-The `tokens` field defines a list of tokens used for authentication.
+The `customDomains` field defines a list of custom domains to map to apps. It supports wildcards.
 
 ```json
 {
-  "tokens": ["SF7RZt9shD6UnUcl"]
+  "customDomains": {
+    "pomdtr.me": "pomdtr",
+    "sandbox-*.pomdtr.me": "pomdtr"
+  }
 }
 ```
-
-You can protect private apps by setting the `private` field in the app's config.
-
-You can generate a new token using the `smallweb token` command (you'll still need to add it to your config).
-
-Token are also used to protect internal services that smallweb provides, such as:
-
-- webdav.`<domain>`: A webdav server allowing you to access your files.
-- cli.`<domain>`: A web interface to run cli commands.
 
 ## Default Config
 

@@ -70,13 +70,57 @@ To access the server, open `https://hono-example.localhost` in your browser.
 
 If your smallweb does not contains a `main.[js,ts,jsx,tsx]` file, Smallweb will serve the folder as a static website.
 
-If your static website contains a `main.js` file, either:
+You can create a website by just adding an `index.html` file in the folder.
+
+```html
+<!-- File: ~/smallweb/example-static/index.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Example Static Website</title>
+  </head>
+  <body>
+    <h1>Hello, world!</h1>
+  </body>
+</html>
+```
+
+To access the website, open `https://example-static.localhost` in your browser.
+
+The static server also supports transpiling `.ts`, `.tsx`, `.jsx`, meaning that you can just import them from your static website.
+
+```html
+<!-- ~/smallweb/example-static/index.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Example Static Website</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="script.tsx"></script>
+  </body>
+```
+
+You'll need to add a pragma to the script file to tell smallweb how to transpile it.
+
+```tsx
+// ~/smallweb/example-static/script.tsx
+/** @jsxImportSource https://esm.sh/react **/
+import { render } from "react-dom";
+
+render(<h1>Hello, world!</h1>, document.getElementById("root"));
+```
+
+Only use imports that are usable from the browser. `jsr:` and `npm:` specifiers are not supported in the browser.
+
+If your static website contains a `main.js` file, but you want to serve it as a static website, you can do the following:
 
 - rename it to something else
 - create a smallweb.json with the following content:
 
 ```json
 {
-  "entrypoint": "jsr:@smallweb/file-server@0.2.2"
+  "entrypoint": "smallweb:static"
 }
 ```

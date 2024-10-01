@@ -14,13 +14,13 @@
 - [WebDAV](./guides/webdav.md)
 - [Authentication](./guides/auth.md)
 - [App Sandbox](./guides/sandbox.md)
+- [Hosting Docs](./guides/docs.md)
 
 # Hosting
 
 - [Localhost](./hosting/localhost/localhost.md)
-- [Cloudflare](./hosting/home-server/home-server.md)
-- [VPS](./hosting/vps.md)
-- [Fly.io](./hosting/fly.md)
+- [Cloudflare Tunnel](./hosting/cloudflare/cloudflare.md)
+- [VPS / Home Server](./hosting/vps.md)
 - [Deno Deploy](./hosting/deno-deploy.md)
 
 # Reference

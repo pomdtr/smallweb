@@ -27,14 +27,13 @@ You can easily wire it to smallweb:
 ```ts
 import { Command } from "jsr:@cliffy/command@1.0.0-rc.5";
 
+const name = basename(Deno.cwd());
+const command = new Command().name().action(() => {
+    console.log(`Hello ${name}`);
+});
+
 export default {
     run(args: string[]) {
-        const name = basename(Deno.cwd());
-        const command = new Command().name().action(() => {
-            console.log(`Hello ${name}`);
-        });
-
-
         await command.parse(args);
     }
 }

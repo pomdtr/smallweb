@@ -14,6 +14,39 @@ For example with, the following configuration:
 
 Here, `api.example.com` will be mapped to `~/smallweb/api`, `blog.example.com` will be mapped to `~/smallweb/blog`, and so on.
 
-The apex domain (`example.com`) will be automatically redirected to `www.example.com`.
+As a special case, the root domain `example.com` is automatically redirected to `www.example.com`, so it will be mapped to `~/smallweb/www`.
 
-If you want to register a custom domain to a specific application, you can create a `CNAME` file in the application directory, with the custom domain name as the content of the file.
+If you want to opt-out of this behavior, you can create a `~/smallweb/@` directory, which will be mapped to the root domain.
+
+## Custom domains
+
+In addition to your base domain, you can also map custom domains to apps from your global config.
+
+```json
+{
+
+    "domain": "example.com",
+    "dir": "~/smallweb",
+    "customDomains": {
+        "pomdtr.me": "pomdtr"
+    }
+}
+```
+
+In this example, `pomdtr.me` will be mapped to `~/smallweb/pomdtr`, meaning that the `pomdtr` app will be accessible both at:
+
+- `https://pomdtr.example.com`
+- `https://pomdtr.me`
+
+You can also map wildcards to apps by using the `*` character.
+
+```json
+{
+    "domain": "example.com",
+    "dir": "~/smallweb",
+    "customDomains": {
+        "pomdtr.me": "pomdtr",
+        "sandbox-*.pomdtr.me": "pomdtr"
+    }
+}
+```
