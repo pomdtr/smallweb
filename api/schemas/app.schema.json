@@ -24,14 +24,8 @@
             }
         },
         "manifest": {
-            "oneOf": [
-                {
-                    "type": "string"
-                },
-                {
-                    "$ref": "./manifest.schema.json"
-                }
-            ]
+            "type": "string",
+            "default": "manifest.json"
         },
         "crons": {
             "type": "array",
