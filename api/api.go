@@ -98,12 +98,43 @@ func (me *Server) GetV0AppsApp(w http.ResponseWriter, r *http.Request, appname s
 		return
 	}
 
+	manifestPath := a.Manifest()
+	if !utils.FileExists(manifestPath) {
+		w.Header().Set("Content-Type", "application/json")
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "  ")
+		encoder.Encode(App{
+			Name: a.Name,
+			Url:  a.Url,
+		})
+		return
+	}
+
+	manifestBytes, err := os.ReadFile(manifestPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var manifest Manifest
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "  ")
+		encoder.Encode(App{
+			Name: a.Name,
+			Url:  a.Url,
+		})
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 	encoder.Encode(App{
-		Name: a.Name,
-		Url:  a.Url,
+		Name:     a.Name,
+		Url:      a.Url,
+		Manifest: &manifest,
 	})
 }
 
