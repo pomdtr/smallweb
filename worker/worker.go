@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net"
@@ -140,14 +141,16 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("could not start server: %w", err)
 	}
 
+	// Wait for the "READY" signal from stdout
 	scanner := bufio.NewScanner(stdoutPipe)
 	scanner.Scan()
-	line := scanner.Text()
-	if !(line == "READY") {
+	if scanner.Text() != "READY" {
 		return nil, fmt.Errorf("server did not start correctly")
 	}
 
-	go func() {
+	// Function to handle logging for both stdout and stderr
+	logPipe := func(pipe io.ReadCloser, logType string) {
+		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
 			if me.Logger == nil {
 				os.Stdout.WriteString(scanner.Text() + "\n")
@@ -157,32 +160,20 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 			me.Logger.LogAttrs(
 				context.Background(),
 				slog.LevelInfo,
-				"stdout",
-				slog.String("type", "stdout"),
+				logType,
+				slog.String("type", logType),
 				slog.String("app", me.App.Name),
-				slog.String("b64", base64.StdEncoding.EncodeToString(scanner.Bytes())),
+				slog.String("text", scanner.Text()),
 			)
-		}
-	}()
 
-	go func() {
-		scanner := bufio.NewScanner(stderrPipe)
-		for scanner.Scan() {
-			if me.Logger == nil {
-				os.Stdout.WriteString(scanner.Text() + "\n")
-				continue
-			}
-
-			me.Logger.LogAttrs(
-				context.Background(),
-				slog.LevelInfo,
-				"stderr",
-				slog.String("type", "stderr"),
-				slog.String("app", me.App.Name),
-				slog.String("b64", base64.StdEncoding.EncodeToString(scanner.Bytes())),
-			)
 		}
-	}()
+	}
+
+	// Start goroutine for stdout
+	go logPipe(stdoutPipe, "stdout")
+
+	// Start goroutine for stderr
+	go logPipe(stderrPipe, "stderr")
 
 	return command, nil
 }

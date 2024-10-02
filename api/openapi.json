@@ -417,7 +417,7 @@
           "app",
           "msg",
           "type",
-          "b64"
+          "text"
         ],
         "additionalProperties": false,
         "properties": {
@@ -451,7 +451,7 @@
               "stderr"
             ]
           },
-          "b64": {
+          "text": {
             "type": "string",
             "description": "The base64-encoded log message"
           }

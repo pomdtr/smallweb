@@ -1,34 +1,48 @@
 package utils
 
 import (
+	"fmt"
+	"os"
 	"sync"
+	"time"
 )
 
 // MultiWriter replicates log writes to multiple clients.
 type MultiWriter struct {
 	mu      sync.Mutex
 	clients map[chan []byte]struct{}
+	timeout time.Duration
 }
 
-// NewMultiWriter creates a new MultiWriter.
+// NewMultiWriter creates a new MultiWriter with a specified timeout.
 func NewMultiWriter() *MultiWriter {
 	return &MultiWriter{
 		clients: make(map[chan []byte]struct{}),
+		timeout: 5 * time.Second,
 	}
 }
 
-// Write sends log data to all connected clients.
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	mw.mu.Lock()
 	defer mw.mu.Unlock()
 
+	var wg sync.WaitGroup
 	for client := range mw.clients {
-		select {
-		case client <- p:
-		default:
-			// Drop the message if the client is not ready (avoiding blocking)
-		}
+		wg.Add(1)
+		data := make([]byte, len(p))
+		copy(data, p)
+
+		go func(ch chan []byte, data []byte) {
+			defer wg.Done()
+			select {
+			case ch <- data:
+			case <-time.After(mw.timeout):
+				fmt.Fprintln(os.Stderr, "client timed out")
+			}
+		}(client, data)
 	}
+	wg.Wait()
+
 	return len(p), nil
 }
 
