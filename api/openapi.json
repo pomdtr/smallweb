@@ -42,7 +42,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FullApp"
+                  "$ref": "#/components/schemas/App"
                 }
               }
             }
@@ -201,28 +201,9 @@
           },
           "url": {
             "type": "string"
-          }
-        }
-      },
-      "FullApp": {
-        "type": "object",
-        "required": [
-          "name",
-          "url",
-          "env"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
           },
-          "url": {
-            "type": "string"
-          },
-          "env": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
+          "manifest": {
+            "$ref": "#/components/schemas/Manifest"
           }
         }
       },
@@ -456,6 +437,9 @@
             "description": "The base64-encoded log message"
           }
         }
+      },
+      "Manifest": {
+        "$ref": "./schemas/manifest.schema.json"
       }
     }
   }

@@ -23,6 +23,16 @@
                 "type": "string"
             }
         },
+        "manifest": {
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "$ref": "./manifest.schema.json"
+                }
+            ]
+        },
         "crons": {
             "type": "array",
             "description": "Set of cron jobs",

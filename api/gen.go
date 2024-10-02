@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -52,19 +53,93 @@ const (
 
 // Defines values for HttpLogRequestMethod.
 const (
-	DELETE  HttpLogRequestMethod = "DELETE"
-	GET     HttpLogRequestMethod = "GET"
-	HEAD    HttpLogRequestMethod = "HEAD"
-	OPTIONS HttpLogRequestMethod = "OPTIONS"
-	PATCH   HttpLogRequestMethod = "PATCH"
-	POST    HttpLogRequestMethod = "POST"
-	PUT     HttpLogRequestMethod = "PUT"
+	HttpLogRequestMethodDELETE  HttpLogRequestMethod = "DELETE"
+	HttpLogRequestMethodGET     HttpLogRequestMethod = "GET"
+	HttpLogRequestMethodHEAD    HttpLogRequestMethod = "HEAD"
+	HttpLogRequestMethodOPTIONS HttpLogRequestMethod = "OPTIONS"
+	HttpLogRequestMethodPATCH   HttpLogRequestMethod = "PATCH"
+	HttpLogRequestMethodPOST    HttpLogRequestMethod = "POST"
+	HttpLogRequestMethodPUT     HttpLogRequestMethod = "PUT"
+)
+
+// Defines values for ManifestIconsPurpose.
+const (
+	ManifestIconsPurposeAny                   ManifestIconsPurpose = "any"
+	ManifestIconsPurposeAnyMaskable           ManifestIconsPurpose = "any maskable"
+	ManifestIconsPurposeAnyMaskableMonochrome ManifestIconsPurpose = "any maskable monochrome"
+	ManifestIconsPurposeAnyMonochrome         ManifestIconsPurpose = "any monochrome"
+	ManifestIconsPurposeAnyMonochromeMaskable ManifestIconsPurpose = "any monochrome maskable"
+	ManifestIconsPurposeMaskable              ManifestIconsPurpose = "maskable"
+	ManifestIconsPurposeMaskableAny           ManifestIconsPurpose = "maskable any"
+	ManifestIconsPurposeMaskableAnyMonochrome ManifestIconsPurpose = "maskable any monochrome"
+	ManifestIconsPurposeMaskableMonochrome    ManifestIconsPurpose = "maskable monochrome"
+	ManifestIconsPurposeMaskableMonochromeAny ManifestIconsPurpose = "maskable monochrome any"
+	ManifestIconsPurposeMonochrome            ManifestIconsPurpose = "monochrome"
+	ManifestIconsPurposeMonochromeAny         ManifestIconsPurpose = "monochrome any"
+	ManifestIconsPurposeMonochromeAnyMaskable ManifestIconsPurpose = "monochrome any maskable"
+	ManifestIconsPurposeMonochromeMaskable    ManifestIconsPurpose = "monochrome maskable"
+	ManifestIconsPurposeMonochromeMaskableAny ManifestIconsPurpose = "monochrome maskable any"
+)
+
+// Defines values for ManifestScreenshotsPurpose.
+const (
+	ManifestScreenshotsPurposeAny                   ManifestScreenshotsPurpose = "any"
+	ManifestScreenshotsPurposeAnyMaskable           ManifestScreenshotsPurpose = "any maskable"
+	ManifestScreenshotsPurposeAnyMaskableMonochrome ManifestScreenshotsPurpose = "any maskable monochrome"
+	ManifestScreenshotsPurposeAnyMonochrome         ManifestScreenshotsPurpose = "any monochrome"
+	ManifestScreenshotsPurposeAnyMonochromeMaskable ManifestScreenshotsPurpose = "any monochrome maskable"
+	ManifestScreenshotsPurposeMaskable              ManifestScreenshotsPurpose = "maskable"
+	ManifestScreenshotsPurposeMaskableAny           ManifestScreenshotsPurpose = "maskable any"
+	ManifestScreenshotsPurposeMaskableAnyMonochrome ManifestScreenshotsPurpose = "maskable any monochrome"
+	ManifestScreenshotsPurposeMaskableMonochrome    ManifestScreenshotsPurpose = "maskable monochrome"
+	ManifestScreenshotsPurposeMaskableMonochromeAny ManifestScreenshotsPurpose = "maskable monochrome any"
+	ManifestScreenshotsPurposeMonochrome            ManifestScreenshotsPurpose = "monochrome"
+	ManifestScreenshotsPurposeMonochromeAny         ManifestScreenshotsPurpose = "monochrome any"
+	ManifestScreenshotsPurposeMonochromeAnyMaskable ManifestScreenshotsPurpose = "monochrome any maskable"
+	ManifestScreenshotsPurposeMonochromeMaskable    ManifestScreenshotsPurpose = "monochrome maskable"
+	ManifestScreenshotsPurposeMonochromeMaskableAny ManifestScreenshotsPurpose = "monochrome maskable any"
+)
+
+// Defines values for ManifestShareTargetEnctype.
+const (
+	APPLICATIONXWWWFORMURLENCODED ManifestShareTargetEnctype = "APPLICATION/X-WWW-FORM-URLENCODED"
+	ApplicationxWwwFormUrlencoded ManifestShareTargetEnctype = "application/x-www-form-urlencoded"
+	MULTIPARTFORMDATA             ManifestShareTargetEnctype = "MULTIPART/FORM-DATA"
+	MultipartformData             ManifestShareTargetEnctype = "multipart/form-data"
+)
+
+// Defines values for ManifestShareTargetMethod.
+const (
+	ManifestShareTargetMethodGET  ManifestShareTargetMethod = "GET"
+	ManifestShareTargetMethodGet  ManifestShareTargetMethod = "get"
+	ManifestShareTargetMethodPOST ManifestShareTargetMethod = "POST"
+	ManifestShareTargetMethodPost ManifestShareTargetMethod = "post"
+)
+
+// Defines values for ManifestShortcutsIconsPurpose.
+const (
+	Any                   ManifestShortcutsIconsPurpose = "any"
+	AnyMaskable           ManifestShortcutsIconsPurpose = "any maskable"
+	AnyMaskableMonochrome ManifestShortcutsIconsPurpose = "any maskable monochrome"
+	AnyMonochrome         ManifestShortcutsIconsPurpose = "any monochrome"
+	AnyMonochromeMaskable ManifestShortcutsIconsPurpose = "any monochrome maskable"
+	Maskable              ManifestShortcutsIconsPurpose = "maskable"
+	MaskableAny           ManifestShortcutsIconsPurpose = "maskable any"
+	MaskableAnyMonochrome ManifestShortcutsIconsPurpose = "maskable any monochrome"
+	MaskableMonochrome    ManifestShortcutsIconsPurpose = "maskable monochrome"
+	MaskableMonochromeAny ManifestShortcutsIconsPurpose = "maskable monochrome any"
+	Monochrome            ManifestShortcutsIconsPurpose = "monochrome"
+	MonochromeAny         ManifestShortcutsIconsPurpose = "monochrome any"
+	MonochromeAnyMaskable ManifestShortcutsIconsPurpose = "monochrome any maskable"
+	MonochromeMaskable    ManifestShortcutsIconsPurpose = "monochrome maskable"
+	MonochromeMaskableAny ManifestShortcutsIconsPurpose = "monochrome maskable any"
 )
 
 // App defines model for App.
 type App struct {
-	Name string `json:"name"`
-	Url  string `json:"url"`
+	Manifest *Manifest `json:"manifest,omitempty"`
+	Name     string    `json:"name"`
+	Url      string    `json:"url"`
 }
 
 // ConsoleLog defines model for ConsoleLog.
@@ -131,13 +206,6 @@ type CronLog struct {
 // CronLogLevel The log level
 type CronLogLevel string
 
-// FullApp defines model for FullApp.
-type FullApp struct {
-	Env  map[string]string `json:"env"`
-	Name string            `json:"name"`
-	Url  string            `json:"url"`
-}
-
 // HttpLog defines model for HttpLog.
 type HttpLog struct {
 	// Level The log level
@@ -182,6 +250,252 @@ type HttpLogLevel string
 // HttpLogRequestMethod The HTTP method used for the request
 type HttpLogRequestMethod string
 
+// Manifest defines model for Manifest.
+type Manifest struct {
+	// BackgroundColor The background_color member describes the expected background color of the web application.
+	BackgroundColor *string `json:"background_color,omitempty"`
+
+	// Categories Describes the expected application categories to which the web application belongs.
+	Categories *[]string `json:"categories,omitempty"`
+
+	// Description Description of the purpose of the web application
+	Description *string `json:"description,omitempty"`
+
+	// Dir The base direction of the manifest.
+	Dir *interface{} `json:"dir,omitempty"`
+
+	// Display The item represents the developer's preferred display mode for the web application.
+	Display *interface{} `json:"display,omitempty"`
+
+	// IarcRatingId Represents an ID value of the IARC rating of the web application. It is intended to be used to determine which ages the web application is appropriate for.
+	IarcRatingId *string `json:"iarc_rating_id,omitempty"`
+
+	// Icons The icons member is an array of icon objects that can serve as iconic representations of the web application in various contexts.
+	Icons *[]struct {
+		Purpose *ManifestIconsPurpose `json:"purpose,omitempty"`
+
+		// Sizes The sizes member is a string consisting of an unordered set of unique space-separated tokens which are ASCII case-insensitive that represents the dimensions of an image for visual media.
+		Sizes *Manifest_Icons_Sizes `json:"sizes,omitempty"`
+
+		// Src The src member of an image is a URL from which a user agent can fetch the icon's data.
+		Src string `json:"src"`
+
+		// Type The type member of an image is a hint as to the media type of the image.
+		Type *string `json:"type,omitempty"`
+	} `json:"icons,omitempty"`
+
+	// Id A string that represents the id of the web application.
+	Id *string `json:"id,omitempty"`
+
+	// Lang The primary language for the values of the manifest.
+	Lang *string `json:"lang,omitempty"`
+
+	// Name The name of the web application.
+	Name *string `json:"name,omitempty"`
+
+	// Orientation The orientation member is a string that serves as the default orientation for all  top-level browsing contexts of the web application.
+	Orientation *interface{} `json:"orientation,omitempty"`
+
+	// PreferRelatedApplications Boolean value that is used as a hint for the user agent to say that related applications should be preferred over the web application.
+	PreferRelatedApplications *bool `json:"prefer_related_applications,omitempty"`
+
+	// RelatedApplications Array of application accessible to the underlying application platform that has a relationship with the web application.
+	RelatedApplications *[]struct {
+		// Fingerprints An array of fingerprint objects used for verifying the application.
+		Fingerprints *[]struct {
+			Type  *string `json:"type,omitempty"`
+			Value *string `json:"value,omitempty"`
+		} `json:"fingerprints,omitempty"`
+
+		// Id Information additional to the URL or instead of the URL, depending on the platform.
+		Id *string `json:"id,omitempty"`
+
+		// MinVersion Information about the minimum version of an application related to this web app.
+		MinVersion *string `json:"min_version,omitempty"`
+
+		// Platform The platform it is associated to.
+		Platform interface{} `json:"platform"`
+
+		// Url The URL where the application can be found.
+		Url *string `json:"url,omitempty"`
+	} `json:"related_applications,omitempty"`
+
+	// Scope A string that represents the navigation scope of this web application's application context.
+	Scope *string `json:"scope,omitempty"`
+
+	// Screenshots The screenshots member is an array of image objects represent the web application in common usage scenarios.
+	Screenshots *[]struct {
+		Purpose *ManifestScreenshotsPurpose `json:"purpose,omitempty"`
+
+		// Sizes The sizes member is a string consisting of an unordered set of unique space-separated tokens which are ASCII case-insensitive that represents the dimensions of an image for visual media.
+		Sizes *Manifest_Screenshots_Sizes `json:"sizes,omitempty"`
+
+		// Src The src member of an image is a URL from which a user agent can fetch the icon's data.
+		Src string `json:"src"`
+
+		// Type The type member of an image is a hint as to the media type of the image.
+		Type *string `json:"type,omitempty"`
+	} `json:"screenshots,omitempty"`
+
+	// ShareTarget Declares the application to be a web share target, and describes how it receives share data.
+	ShareTarget *struct {
+		// Action The URL for the web share target.
+		Action string `json:"action"`
+
+		// Enctype This member specifies the encoding in the share request.
+		Enctype *ManifestShareTargetEnctype `json:"enctype,omitempty"`
+
+		// Method The HTTP request method for the web share target.
+		Method *ManifestShareTargetMethod `json:"method,omitempty"`
+
+		// Params Specifies what data gets shared in the request.
+		Params struct {
+			// Files Description of how the application receives files from share requests.
+			Files *Manifest_ShareTarget_Params_Files `json:"files,omitempty"`
+
+			// Text The name of the query parameter used for the message body, made of arbitrary text.
+			Text *string `json:"text,omitempty"`
+
+			// Title The name of the query parameter used for the title of the document being shared.
+			Title *string `json:"title,omitempty"`
+
+			// Url The name of the query parameter used for the URL string referring to a resource being shared.
+			Url *string `json:"url,omitempty"`
+		} `json:"params"`
+	} `json:"share_target,omitempty"`
+
+	// ShortName A string that represents a short version of the name of the web application.
+	ShortName *string `json:"short_name,omitempty"`
+
+	// Shortcuts Array of shortcut items that provide access to key tasks within a web application.
+	Shortcuts *[]struct {
+		// Description The description member of a shortcut item is a string that allows the developer to describe the purpose of the shortcut.
+		Description *string `json:"description,omitempty"`
+
+		// Icons The icons member of a shortcut item serves as iconic representations of the shortcut in various contexts.
+		Icons *[]struct {
+			Purpose *ManifestShortcutsIconsPurpose `json:"purpose,omitempty"`
+
+			// Sizes The sizes member is a string consisting of an unordered set of unique space-separated tokens which are ASCII case-insensitive that represents the dimensions of an image for visual media.
+			Sizes *Manifest_Shortcuts_Icons_Sizes `json:"sizes,omitempty"`
+
+			// Src The src member of an image is a URL from which a user agent can fetch the icon's data.
+			Src string `json:"src"`
+
+			// Type The type member of an image is a hint as to the media type of the image.
+			Type *string `json:"type,omitempty"`
+		} `json:"icons,omitempty"`
+
+		// Name The name member of a shortcut item is a string that represents the name of the shortcut as it is usually displayed to the user in a context menu.
+		Name string `json:"name"`
+
+		// ShortName The short_name member of a shortcut item is a string that represents a short version of the name of the shortcut. It is intended to be used where there is insufficient space to display the full name of the shortcut.
+		ShortName *string `json:"short_name,omitempty"`
+
+		// Url The url member of a shortcut item is a URL within scope of a processed manifest that opens when the associated shortcut is activated.
+		Url string `json:"url"`
+	} `json:"shortcuts,omitempty"`
+
+	// StartUrl Represents the URL that the developer would prefer the user agent load when the user launches the web application.
+	StartUrl *string `json:"start_url,omitempty"`
+
+	// ThemeColor The theme_color member serves as the default theme color for an application context.
+	ThemeColor *string `json:"theme_color,omitempty"`
+}
+
+// ManifestIconsPurpose defines model for Manifest.Icons.Purpose.
+type ManifestIconsPurpose string
+
+// ManifestIconsSizes0 defines model for .
+type ManifestIconsSizes0 = string
+
+// ManifestIconsSizes1 defines model for .
+type ManifestIconsSizes1 = interface{}
+
+// Manifest_Icons_Sizes The sizes member is a string consisting of an unordered set of unique space-separated tokens which are ASCII case-insensitive that represents the dimensions of an image for visual media.
+type Manifest_Icons_Sizes struct {
+	union json.RawMessage
+}
+
+// ManifestScreenshotsPurpose defines model for Manifest.Screenshots.Purpose.
+type ManifestScreenshotsPurpose string
+
+// ManifestScreenshotsSizes0 defines model for .
+type ManifestScreenshotsSizes0 = string
+
+// ManifestScreenshotsSizes1 defines model for .
+type ManifestScreenshotsSizes1 = interface{}
+
+// Manifest_Screenshots_Sizes The sizes member is a string consisting of an unordered set of unique space-separated tokens which are ASCII case-insensitive that represents the dimensions of an image for visual media.
+type Manifest_Screenshots_Sizes struct {
+	union json.RawMessage
+}
+
+// ManifestShareTargetEnctype This member specifies the encoding in the share request.
+type ManifestShareTargetEnctype string
+
+// ManifestShareTargetMethod The HTTP request method for the web share target.
+type ManifestShareTargetMethod string
+
+// ManifestShareTargetParamsFiles0 Description of how the application receives files from share requests.
+type ManifestShareTargetParamsFiles0 struct {
+	// Accept Sequence of accepted MIME types or file extensions can be shared to the application.
+	Accept Manifest_ShareTarget_Params_Files_0_Accept `json:"accept"`
+
+	// Name The name of the form field used to share the files.
+	Name string `json:"name"`
+}
+
+// ManifestShareTargetParamsFiles0Accept0 defines model for .
+type ManifestShareTargetParamsFiles0Accept0 = string
+
+// ManifestShareTargetParamsFiles0Accept1 defines model for .
+type ManifestShareTargetParamsFiles0Accept1 = []string
+
+// Manifest_ShareTarget_Params_Files_0_Accept Sequence of accepted MIME types or file extensions can be shared to the application.
+type Manifest_ShareTarget_Params_Files_0_Accept struct {
+	union json.RawMessage
+}
+
+// ManifestShareTargetParamsFiles1 defines model for .
+type ManifestShareTargetParamsFiles1 = []struct {
+	// Accept Sequence of accepted MIME types or file extensions can be shared to the application.
+	Accept Manifest_ShareTarget_Params_Files_1_Accept `json:"accept"`
+
+	// Name The name of the form field used to share the files.
+	Name string `json:"name"`
+}
+
+// ManifestShareTargetParamsFiles1Accept0 defines model for .
+type ManifestShareTargetParamsFiles1Accept0 = string
+
+// ManifestShareTargetParamsFiles1Accept1 defines model for .
+type ManifestShareTargetParamsFiles1Accept1 = []string
+
+// Manifest_ShareTarget_Params_Files_1_Accept Sequence of accepted MIME types or file extensions can be shared to the application.
+type Manifest_ShareTarget_Params_Files_1_Accept struct {
+	union json.RawMessage
+}
+
+// Manifest_ShareTarget_Params_Files Description of how the application receives files from share requests.
+type Manifest_ShareTarget_Params_Files struct {
+	union json.RawMessage
+}
+
+// ManifestShortcutsIconsPurpose defines model for Manifest.Shortcuts.Icons.Purpose.
+type ManifestShortcutsIconsPurpose string
+
+// ManifestShortcutsIconsSizes0 defines model for .
+type ManifestShortcutsIconsSizes0 = string
+
+// ManifestShortcutsIconsSizes1 defines model for .
+type ManifestShortcutsIconsSizes1 = interface{}
+
+// Manifest_Shortcuts_Icons_Sizes The sizes member is a string consisting of an unordered set of unique space-separated tokens which are ASCII case-insensitive that represents the dimensions of an image for visual media.
+type Manifest_Shortcuts_Icons_Sizes struct {
+	union json.RawMessage
+}
+
 // GetV0LogsConsoleParams defines parameters for GetV0LogsConsole.
 type GetV0LogsConsoleParams struct {
 	// App Filter logs by app
@@ -207,6 +521,378 @@ type PostV0RunAppJSONBody struct {
 
 // PostV0RunAppJSONRequestBody defines body for PostV0RunApp for application/json ContentType.
 type PostV0RunAppJSONRequestBody PostV0RunAppJSONBody
+
+// AsManifestIconsSizes0 returns the union data inside the Manifest_Icons_Sizes as a ManifestIconsSizes0
+func (t Manifest_Icons_Sizes) AsManifestIconsSizes0() (ManifestIconsSizes0, error) {
+	var body ManifestIconsSizes0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestIconsSizes0 overwrites any union data inside the Manifest_Icons_Sizes as the provided ManifestIconsSizes0
+func (t *Manifest_Icons_Sizes) FromManifestIconsSizes0(v ManifestIconsSizes0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestIconsSizes0 performs a merge with any union data inside the Manifest_Icons_Sizes, using the provided ManifestIconsSizes0
+func (t *Manifest_Icons_Sizes) MergeManifestIconsSizes0(v ManifestIconsSizes0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsManifestIconsSizes1 returns the union data inside the Manifest_Icons_Sizes as a ManifestIconsSizes1
+func (t Manifest_Icons_Sizes) AsManifestIconsSizes1() (ManifestIconsSizes1, error) {
+	var body ManifestIconsSizes1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestIconsSizes1 overwrites any union data inside the Manifest_Icons_Sizes as the provided ManifestIconsSizes1
+func (t *Manifest_Icons_Sizes) FromManifestIconsSizes1(v ManifestIconsSizes1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestIconsSizes1 performs a merge with any union data inside the Manifest_Icons_Sizes, using the provided ManifestIconsSizes1
+func (t *Manifest_Icons_Sizes) MergeManifestIconsSizes1(v ManifestIconsSizes1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Manifest_Icons_Sizes) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Manifest_Icons_Sizes) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsManifestScreenshotsSizes0 returns the union data inside the Manifest_Screenshots_Sizes as a ManifestScreenshotsSizes0
+func (t Manifest_Screenshots_Sizes) AsManifestScreenshotsSizes0() (ManifestScreenshotsSizes0, error) {
+	var body ManifestScreenshotsSizes0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestScreenshotsSizes0 overwrites any union data inside the Manifest_Screenshots_Sizes as the provided ManifestScreenshotsSizes0
+func (t *Manifest_Screenshots_Sizes) FromManifestScreenshotsSizes0(v ManifestScreenshotsSizes0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestScreenshotsSizes0 performs a merge with any union data inside the Manifest_Screenshots_Sizes, using the provided ManifestScreenshotsSizes0
+func (t *Manifest_Screenshots_Sizes) MergeManifestScreenshotsSizes0(v ManifestScreenshotsSizes0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsManifestScreenshotsSizes1 returns the union data inside the Manifest_Screenshots_Sizes as a ManifestScreenshotsSizes1
+func (t Manifest_Screenshots_Sizes) AsManifestScreenshotsSizes1() (ManifestScreenshotsSizes1, error) {
+	var body ManifestScreenshotsSizes1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestScreenshotsSizes1 overwrites any union data inside the Manifest_Screenshots_Sizes as the provided ManifestScreenshotsSizes1
+func (t *Manifest_Screenshots_Sizes) FromManifestScreenshotsSizes1(v ManifestScreenshotsSizes1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestScreenshotsSizes1 performs a merge with any union data inside the Manifest_Screenshots_Sizes, using the provided ManifestScreenshotsSizes1
+func (t *Manifest_Screenshots_Sizes) MergeManifestScreenshotsSizes1(v ManifestScreenshotsSizes1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Manifest_Screenshots_Sizes) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Manifest_Screenshots_Sizes) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsManifestShareTargetParamsFiles0Accept0 returns the union data inside the Manifest_ShareTarget_Params_Files_0_Accept as a ManifestShareTargetParamsFiles0Accept0
+func (t Manifest_ShareTarget_Params_Files_0_Accept) AsManifestShareTargetParamsFiles0Accept0() (ManifestShareTargetParamsFiles0Accept0, error) {
+	var body ManifestShareTargetParamsFiles0Accept0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestShareTargetParamsFiles0Accept0 overwrites any union data inside the Manifest_ShareTarget_Params_Files_0_Accept as the provided ManifestShareTargetParamsFiles0Accept0
+func (t *Manifest_ShareTarget_Params_Files_0_Accept) FromManifestShareTargetParamsFiles0Accept0(v ManifestShareTargetParamsFiles0Accept0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestShareTargetParamsFiles0Accept0 performs a merge with any union data inside the Manifest_ShareTarget_Params_Files_0_Accept, using the provided ManifestShareTargetParamsFiles0Accept0
+func (t *Manifest_ShareTarget_Params_Files_0_Accept) MergeManifestShareTargetParamsFiles0Accept0(v ManifestShareTargetParamsFiles0Accept0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsManifestShareTargetParamsFiles0Accept1 returns the union data inside the Manifest_ShareTarget_Params_Files_0_Accept as a ManifestShareTargetParamsFiles0Accept1
+func (t Manifest_ShareTarget_Params_Files_0_Accept) AsManifestShareTargetParamsFiles0Accept1() (ManifestShareTargetParamsFiles0Accept1, error) {
+	var body ManifestShareTargetParamsFiles0Accept1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestShareTargetParamsFiles0Accept1 overwrites any union data inside the Manifest_ShareTarget_Params_Files_0_Accept as the provided ManifestShareTargetParamsFiles0Accept1
+func (t *Manifest_ShareTarget_Params_Files_0_Accept) FromManifestShareTargetParamsFiles0Accept1(v ManifestShareTargetParamsFiles0Accept1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestShareTargetParamsFiles0Accept1 performs a merge with any union data inside the Manifest_ShareTarget_Params_Files_0_Accept, using the provided ManifestShareTargetParamsFiles0Accept1
+func (t *Manifest_ShareTarget_Params_Files_0_Accept) MergeManifestShareTargetParamsFiles0Accept1(v ManifestShareTargetParamsFiles0Accept1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Manifest_ShareTarget_Params_Files_0_Accept) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Manifest_ShareTarget_Params_Files_0_Accept) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsManifestShareTargetParamsFiles1Accept0 returns the union data inside the Manifest_ShareTarget_Params_Files_1_Accept as a ManifestShareTargetParamsFiles1Accept0
+func (t Manifest_ShareTarget_Params_Files_1_Accept) AsManifestShareTargetParamsFiles1Accept0() (ManifestShareTargetParamsFiles1Accept0, error) {
+	var body ManifestShareTargetParamsFiles1Accept0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestShareTargetParamsFiles1Accept0 overwrites any union data inside the Manifest_ShareTarget_Params_Files_1_Accept as the provided ManifestShareTargetParamsFiles1Accept0
+func (t *Manifest_ShareTarget_Params_Files_1_Accept) FromManifestShareTargetParamsFiles1Accept0(v ManifestShareTargetParamsFiles1Accept0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestShareTargetParamsFiles1Accept0 performs a merge with any union data inside the Manifest_ShareTarget_Params_Files_1_Accept, using the provided ManifestShareTargetParamsFiles1Accept0
+func (t *Manifest_ShareTarget_Params_Files_1_Accept) MergeManifestShareTargetParamsFiles1Accept0(v ManifestShareTargetParamsFiles1Accept0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsManifestShareTargetParamsFiles1Accept1 returns the union data inside the Manifest_ShareTarget_Params_Files_1_Accept as a ManifestShareTargetParamsFiles1Accept1
+func (t Manifest_ShareTarget_Params_Files_1_Accept) AsManifestShareTargetParamsFiles1Accept1() (ManifestShareTargetParamsFiles1Accept1, error) {
+	var body ManifestShareTargetParamsFiles1Accept1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestShareTargetParamsFiles1Accept1 overwrites any union data inside the Manifest_ShareTarget_Params_Files_1_Accept as the provided ManifestShareTargetParamsFiles1Accept1
+func (t *Manifest_ShareTarget_Params_Files_1_Accept) FromManifestShareTargetParamsFiles1Accept1(v ManifestShareTargetParamsFiles1Accept1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestShareTargetParamsFiles1Accept1 performs a merge with any union data inside the Manifest_ShareTarget_Params_Files_1_Accept, using the provided ManifestShareTargetParamsFiles1Accept1
+func (t *Manifest_ShareTarget_Params_Files_1_Accept) MergeManifestShareTargetParamsFiles1Accept1(v ManifestShareTargetParamsFiles1Accept1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Manifest_ShareTarget_Params_Files_1_Accept) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Manifest_ShareTarget_Params_Files_1_Accept) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsManifestShareTargetParamsFiles0 returns the union data inside the Manifest_ShareTarget_Params_Files as a ManifestShareTargetParamsFiles0
+func (t Manifest_ShareTarget_Params_Files) AsManifestShareTargetParamsFiles0() (ManifestShareTargetParamsFiles0, error) {
+	var body ManifestShareTargetParamsFiles0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestShareTargetParamsFiles0 overwrites any union data inside the Manifest_ShareTarget_Params_Files as the provided ManifestShareTargetParamsFiles0
+func (t *Manifest_ShareTarget_Params_Files) FromManifestShareTargetParamsFiles0(v ManifestShareTargetParamsFiles0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestShareTargetParamsFiles0 performs a merge with any union data inside the Manifest_ShareTarget_Params_Files, using the provided ManifestShareTargetParamsFiles0
+func (t *Manifest_ShareTarget_Params_Files) MergeManifestShareTargetParamsFiles0(v ManifestShareTargetParamsFiles0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsManifestShareTargetParamsFiles1 returns the union data inside the Manifest_ShareTarget_Params_Files as a ManifestShareTargetParamsFiles1
+func (t Manifest_ShareTarget_Params_Files) AsManifestShareTargetParamsFiles1() (ManifestShareTargetParamsFiles1, error) {
+	var body ManifestShareTargetParamsFiles1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestShareTargetParamsFiles1 overwrites any union data inside the Manifest_ShareTarget_Params_Files as the provided ManifestShareTargetParamsFiles1
+func (t *Manifest_ShareTarget_Params_Files) FromManifestShareTargetParamsFiles1(v ManifestShareTargetParamsFiles1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestShareTargetParamsFiles1 performs a merge with any union data inside the Manifest_ShareTarget_Params_Files, using the provided ManifestShareTargetParamsFiles1
+func (t *Manifest_ShareTarget_Params_Files) MergeManifestShareTargetParamsFiles1(v ManifestShareTargetParamsFiles1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Manifest_ShareTarget_Params_Files) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Manifest_ShareTarget_Params_Files) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsManifestShortcutsIconsSizes0 returns the union data inside the Manifest_Shortcuts_Icons_Sizes as a ManifestShortcutsIconsSizes0
+func (t Manifest_Shortcuts_Icons_Sizes) AsManifestShortcutsIconsSizes0() (ManifestShortcutsIconsSizes0, error) {
+	var body ManifestShortcutsIconsSizes0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestShortcutsIconsSizes0 overwrites any union data inside the Manifest_Shortcuts_Icons_Sizes as the provided ManifestShortcutsIconsSizes0
+func (t *Manifest_Shortcuts_Icons_Sizes) FromManifestShortcutsIconsSizes0(v ManifestShortcutsIconsSizes0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestShortcutsIconsSizes0 performs a merge with any union data inside the Manifest_Shortcuts_Icons_Sizes, using the provided ManifestShortcutsIconsSizes0
+func (t *Manifest_Shortcuts_Icons_Sizes) MergeManifestShortcutsIconsSizes0(v ManifestShortcutsIconsSizes0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsManifestShortcutsIconsSizes1 returns the union data inside the Manifest_Shortcuts_Icons_Sizes as a ManifestShortcutsIconsSizes1
+func (t Manifest_Shortcuts_Icons_Sizes) AsManifestShortcutsIconsSizes1() (ManifestShortcutsIconsSizes1, error) {
+	var body ManifestShortcutsIconsSizes1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromManifestShortcutsIconsSizes1 overwrites any union data inside the Manifest_Shortcuts_Icons_Sizes as the provided ManifestShortcutsIconsSizes1
+func (t *Manifest_Shortcuts_Icons_Sizes) FromManifestShortcutsIconsSizes1(v ManifestShortcutsIconsSizes1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeManifestShortcutsIconsSizes1 performs a merge with any union data inside the Manifest_Shortcuts_Icons_Sizes, using the provided ManifestShortcutsIconsSizes1
+func (t *Manifest_Shortcuts_Icons_Sizes) MergeManifestShortcutsIconsSizes1(v ManifestShortcutsIconsSizes1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Manifest_Shortcuts_Icons_Sizes) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Manifest_Shortcuts_Icons_Sizes) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -517,29 +1203,68 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xYb2/bNhP/KgSfB8gbpvbWbUD9zk3dJECQBI7bDSiKgZbOMjOKZEkqiWHkuw9HUbZs",
-	"0bHdrtuwvJGjo368+91fckkzXRqtQHlHB0vqsjmUPPwcGoMPY7UB6wWEl4qXgE+/MEAH1HkrVEGfGa2s",
-	"TLx/ZtTCl0pYyOngU/11vfYza9bq6T1kHjHOtHJawpUuEIrnufBCKy5vWyrMuHTAtrTitao5uMwKgx/R",
-	"AZ3MgeCGRM+InwPhxkiR8SBlXQMkPIBMo0hdkFrMKKiqRFMur9/fUEZ/HY6vKaOj8fhmTBl9N3r74bxl",
-	"2xq+dMVu8BKc4wWk1PLw5NMfTrmDX346BZXpHPK9OKJ2XBcHJc7z0jREIRIobxeU0Zm2Jfd0QHPu4TSA",
-	"pMDDi+WKHOdzXXnK8AdYmyBkKzAicEMy+rOmLH4YeUgGjdXq+0cMsZVSQhXhfWa1Ivd6mqKC28Klkbkt",
-	"qhLzjBjuHOTE62004aF0yfSKL7i1fIH/55WtIzm5VSNtDGm2IPAEWRUkQpFSSCkcZFrlDukWSpTov/5q",
-	"O6E8FGBxQ3gS/neMtPSOKCYo3t6SpsBE3kUZkkqJLxUQkYPyYibAkpm2G2CM+IURGZdygQagqA5QcsKN",
-	"Gdzr6UnKJ6jGXme/5NR/QW3YND2TVd5E44r6lOZYz/NK7vBaIz2Eg7+lgCTAFyaot8JkhMtHvnDkBLU9",
-	"iTEiHKlbV8sNKKef95SajSIj8lXxqVlY0RcTu50HrFPmWmmZqlTvKymTTRXUw+7ytbsYrJH/sq7Mgi4p",
-	"5S+8N8eX2a9PnMvr86/PnSGZWgEz0nrbis0CcgIPoHwqEpEYcP5IO+fAc7DuKC92KYkoxIHy5FH4edC4",
-	"0SjhlLl2O4YDlJDVaNcYH6HIh/FVyvYS/FznacCLyeSW1AtIhd2rqc1r9Rovno8mlNHbm7vw+DAJ/rsa",
-	"TUb473BydkEZvRgN31FGb24nlzfXd0nPGu7naV1QcrRxMRW6aLNKSvxoC6dduyor6L4Rpk6f4JEVk9EI",
-	"toqPVGZZcEYrB0eG3HThYcekoapyChbtCYuaVtlsRKY6X+xv+JIbB/nukk88/wMUTjHG6gyc2/ACVzkp",
-	"QIHlHjZ2Z6jOi1NHrX7oXp77yr0QkPWCjcFjRSejJX+qsX9+86a10w/9hMFb3ow7s0jzmo6UB19ujeRx",
-	"DmqzL5JH7khmgXvID+yRh3SxdeSuSOiqi0hCzXSoScLjaEDvSi7lI0zJ8PaSMvoA1tU29NE8bUBxI+iA",
-	"vn7Vf/U6RnVwS++h3+PGhN8FhFqEMRp64GVOB/Qc/Mf+EFeslQqrf+z38ZFp5bES1yN5M2337l092sae",
-	"PliuR+P/W5jRAf1fb31w7cVTaw+7a2dYfu7U2ivhQtUImj+HBY0hvSU35nm/OcMwJBhueQk+VP5PSyoQ",
-	"PGZ83ZLjMLH2nLcVsJZZ217+/I00vcROM38kGDkHj2y0yJC6cL2sPpC/TMeVLlw8uXcp2dzmvZAeLOaB",
-	"I9MFqckJrH2pIIyLG7R9C014XuyFLn/qvAVeHs5T6xoiQdVdQAs2dOiytTv2cGXDBcR/gah49D6Opbn3",
-	"Zj9LOG8eyVLsvSmaougf4qmZnQ/myVZqXYhMHPI2ibrVzn/sjyv1XStR6CdvcVw4pghtXbXEG5FDLze2",
-	"Ol34PNXGng9zmZFcbOm3bWrHK+NKYc6RTIrW8DZY0rMa/HQSz6u7MRn97XT0JPzpWbwz6Sxdjx7x788A",
-	"AAD//5Q4iMWMFQAA",
+	"H4sIAAAAAAAC/+xcbXPbOJL+KyjuVmVmlpJ8u3tXNb66D5rYk/jKiV22s9mqsU8FkS0JExLgAKBlbc7/",
+	"/aobIEVS0Jtz2ZuZY75EJsAG+gXdTzcIfI4SlRdKgrQmOv0cmWQBOaef46LA/wqtCtBWAD3MuRQzMBZ/",
+	"/1HDLDqN/jBakxj590fvqn7PcSR5DtjfrgqITiNjtZBzbCh1Fnj+HEcafimFhjQ6/cm97fo+xFVfNf0Z",
+	"EiL+WkmjMrhUcyTF01RYoSTPrhvTnvHMQNzhhDv2UjCJFgW+FJ1GdwtgOCBTM2YXwHhRZCLh1BpvMpDB",
+	"I2RhKpmaM9ccRyDLHFm5eP/jVRRHH8c376M4Or+5ubqJ4ujs/IcPbxq8rcnnZr6deA7G8DmEpmXhyYZf",
+	"nHID//bXAchEpZDupSOc4jbpYIuxPC8qQSElkFavojiaKZ1zG51GKbcwICIh4vTgcy0cY1NV2ijGH6B1",
+	"QCAdw/CEKyGjPp3I/IteDkGj0Up+fYthupRSyDk9T7SS7Gc1DYmC67kJU+Z6Xua4sFjBjYGUWdWlJizk",
+	"Jri8/AOuNV/h32mpnSUHh6paK0aqIRg8QVJSi5AsF1kmDCRKpgbFLaTIUX8n9XBCWpiDxgHhSdgJWlp4",
+	"RGxm2NwdMgoRE+kmlTErpfilBCZSkFbMBGg2U7pFLGZ2VYiEZ9kKGcAmZ6DsFS+K05/V9FVIJziNvcre",
+	"pdRfgW9os55kZVpZYy360MzRh6dltkVrVeshMvinOJAA8VVB06tpxoxnS74y7BXO9pW3EWGYC1cNNWB7",
+	"9LDH1bScjEhr5+OkUIvPL+zmOog33FxjWYY81Vtri+M91ctt7+L9m5eb35hNtYAZazxtqHcOKYNHkDak",
+	"TJS2hxVH8LkAnoI2298KeMVNkXgqzIC0bCnsgmZczSiglIUyW+IrtrAaDlXMe1Lsw81liPcc7EKlYYJv",
+	"7+6umevASgwAlXtbT6/S4pvzuyiOrq9u6b8Pd6S/y/O7c/xzfPf6bRRHb8/HZ1EcXV3fXVy9vw1qtuB2",
+	"EZ4LthzNnMd4m9RmZZbhSx06zeVfahHtQwFI32uklqRnIq7tI7SyNJhCSQNHmtx0ZWFLsJZlPgWN/FCn",
+	"KtpUA7GpSlf7Y2bGCwPpdq/JLP8EEoFAoVUCxrS0wGXK5iBBcwut0WOczs7A7aZPAcByW5odBuk6tGJ3",
+	"Lc44yvmTo/2v33/fGOlfTgIMd7TpR469mNfiCGlwd3RhywXIdmhhS25YooFbSA8MM4cEgrXl1kIITfdd",
+	"M3Xygec0WlhbnI5GPxslB+7hUOn5KNV8Zgcnf/UJ1R8wmGTZ1Sw6/ellb6cwE5KMnBQLTxa05NmkgVcn",
+	"GowqdQKbad9MyDnoQgufJnb8vmQEMtEWGj2Z492sHdcjaDFbVSCkMfSwCWSLgAMPOPJHnpUQzh83TaUD",
+	"hUNg8kI6g8CotXYIFeImT6WZkMYCTyur/3BzGbMUCpAErZQzuCLjFmkNg95eyMkjaBME4q05TFVpiZ5f",
+	"Qsy/hoNz2c40IEOjdpMVhi1hiu3BCVSz2+LkfSsTlgnDuDEqEZ72sAmUFlrlMFnCdGKs0rgqioyvSI+l",
+	"pLW7FDJVSxM97AoDKNflAjRsZE8Jl2yKYL2U6fDYsFAzGVqJVRFjInI+hx1mX5S6UMY7mRkvMxyey1VD",
+	"DrmSysmCPJ/5xKcO+lGvdStrtDWe+m6+jQWp+U5crtrt9CBItfNme7zWO5sDd6cUHjbIV5N4850QzDDi",
+	"H9viKDWxHCiaog0y9xpLlDTCWFpptARKqXQKGlJmgACJTwdNwRMYGCi49qb7CaRhy4VIFoxrYOPb1xcX",
+	"LOEGBkIakEZY8YgmyC3TUGgwlHSjSaYix3YljR+UjMa5M2FKnrEcUsHRQpUE76ELbtG/RqfRf/10Mvie",
+	"PT386Y+BtbiufqDQH55xpRidbBGLTiqhNCdCAsJVNNMqr1hEl6sZnyNOw3U0A5s4WCsSJV8ZlnLLhy/I",
+	"qrZNYIH+npvKW5JI6jyMxsW+QwfNatHc3xs++MfJ4Pv7+8Gf/v3+fvgf9/ejoKi6OEEnwZVtFkrbpLQT",
+	"DCahBKXqwLBDU9WcZUJ+wvlz9glWzHLzCR1+gSxiUiAk47VfZeOuhEtDHswAo7hEkuDGQE5rCE3XwpNl",
+	"OcgSm6ZoWAY9JqRsuiIRoefhZN1mZXB6hGC8LkHO+RzMOj/xU3llSKUk2ZbvanEeLPg0srSGWjsiaq4/",
+	"Wh48y9TSLw2EQTgmcuTITZ0f946zUn5FMmhxOP0tnoCadkzOgH4EDFLUUyRrhVIIMd3xEQM/ci0UgVfS",
+	"iNkBPXr337v/3v3/htx/F+ZXO09bqrhHeL2OVTSLwPWb6IYINJdoF9mq4eG9XEgtFEia8SCoCKI62c7A",
+	"uv2FbPi+zaRiG2dDdkF8YdYuU8fOFFxaV2N3Da6LKWczkQg0PVqHFBucIFzxvcyy8ChHlY9Kne1jnFIL",
+	"F7lNopwt8qpqAimr0gAnGlU4H+GLBo3EZ03aMJ5Y8YhPh3uNdOfGpc9BKYE3PoMf+s1TTKcojV/CdFBN",
+	"cog9NoL8lCef5hozpEmiMqW37fq1e1WCq0K28XsCBSTI77o7c929ojziaObsm9VVoTvhsrQqirdsRbJU",
+	"aEiadeKa3UaMzayO4khb2uVDcg80EJlUe7CpVksDOjheF/C1AMwrwwoNM9AYTCprzVUKdb01wHw1P7Ro",
+	"k2gASWV9LlOeKQlVlY1ngxIT1mpyD0dgHrS4RnEF2+qqClktendCQftBUIeDHgv1WKjHQv9/sFB4/3wH",
+	"xhHpMY4/43LLhnShRc71imGPsrIXJOsT5YDn36C+B8gdMU+lReUZwwQbHUILjyS1zjtdFCF/2HoTeeRZ",
+	"xphVxYC2Cxj5f792ydvumHZzLSD3ttQcw1/GZWoSThvPhdJWc2EbPwde1s1Hbs/HPaxfb3RcP1v3xMXn",
+	"4uHEV5ab+wQBX/WDUhlw6VTqZCR83Z/Xa6LSe2NBWsUM4UIyP1fDbo6E2KvMUkSb6/isHkHv0ffUzcft",
+	"8x3CwLgKsc0IyRNEigJdeAXgZQo6ox2MZse6aE6MLIhlGhcHW4hio2pzwL5Hv+XSb7n8frZcutZACdmR",
+	"AUnyRzF3E63zuaboKzZemTZTzt0enWWPvyBzPiQSVWnlLm/Uymo95C+0ehQpeO+E9lfVq81GoTq42Pua",
+	"eF8T72vifR7Y54F9Tbyvifc18V9LTTyAEi3XdhLk96ZtfMgXTbkdg5eUPbrUsZt7Zoqna96oIeOlTBa+",
+	"Hn4IhrMLyGFX6b3RoVJNuHhAHX29nYoH8kAQSx9C2gwf/eft1Xv/STvR+AhTNm4QqZU7ExmlC10FvOzT",
+	"wuM2Mga8KAZCzlR4RyPhFuZKhwBbdBber2hnMNXruMac6w8Vv6eQKTlvA539B2h2wcezzY/eO4ivM4cg",
+	"7uM6mTjAOwklzA2r55JdnPmCix/gYnzzmnm4vCUR2eG1CK9a0LmQUAXNeXgt0KovUHEa3QEaW9hh066I",
+	"WSi7DdesO2zb8qCAWpU1al+9bUcjUXmuMPPAt0wCEpFtj2d7PNvj2d8lnn1x9HNFA14UTDQKgPBkvSX8",
+	"r0XHzof3ZsE1TCzXc7C7ItxCLTfPk0ICArEDEakV3Dmlmmwvb5ANNTa0HR03maCpgEzW1lJ7x/WURk+D",
+	"5XI5QAEOSp35c8WB/XdRr3ZTQCJmogri+Aaudn9Yxs3In6ho7YQcMGheZlYUXNsRtaF8ojgaX19fXrwe",
+	"311cvR/9ffDx48fBj1c37wYfbi7P37++Ojs/i+Lo3YfLu4vr8c3diNrOxnfj8LG3xlGtShzu3NWWkzLV",
+	"uRx/hGuX8IPnuNBK4qhQxm45rKV5qKh3Wwt5if4OJcHmYL3lpOujSbWcu5sP2XYAVmOcnTbqVhl5rJZS",
+	"TduNfqUBumsigSKw3G7xDZm4LIj6QMreXbw7J79mGGJxkUHDLVQlci9H7ws7aUIwSHzzzf39cPjdt//9",
+	"zfC70fC7b78NR4s1TDny1Y5jfDh415S2HmYCsrTGgd40sRGFfHBe5+X8EPKdW8rPvcZ/pxoPzG77vRTN",
+	"2f1Sgl4x8myYjrSPvfqT7XSWMmY5dwcQuZ4Kq7lesa07PR4lfNHgRKPqmaqErmZgU6DtCTKP4+o1Bw+M",
+	"cdsDZLcLTsUrRbvM7uzSvlk8h75AbOrTw4Y6pIRPV6yxy+Rrh4h+Pf/K1nNL+z3w6M22Bx69xnvg0QOP",
+	"44HHkTsGRHzgM+XgrsG+qkqSce0rDs0F7qrffCMdj+kejbRVjBG2r7/09Ze+/tIHxR4G9RrvYVAPg/7J",
+	"9Zcv3OrCPrdkZXcU8gjibDy8pKMqf965EfZwNIBLVD4VEtIKvL3wg5Vnwo5ypuhrDU/jNudZhvF8fH0R",
+	"xVH9nX90Qsd9CpC8ENFp9JfhyfAv/mo4Wu6jx5MRLwr67WGj/9pYyQvk7w3Yv52Mscf6Zi/q/eeTE/pU",
+	"RUkL0vqrYWt0RDzWVynjr9rD7LoxeVwUge3NjQsLL4Wx/pwKCeQ5rhkZfeZF8byfnTFdVlmbuiG/KZC4",
+	"vzbPeTF/qeXaSK0uIW6w1TXxhy8U017pbErjDdqxa/KCyNTcjBJ3KfRuUVyqufG3R2+Koz3MjyJDn4C0",
+	"2XTFnGBIYuQ2uiL7EhGhAx3RNZkDYzXw/HAZNa7CDojqlqgRDxvi0k4Ve2Sl1/7pNy4of/3zcVJCd7df",
+	"Sm+x13FS8pdXhsTkm/6P5FRdPnuwnHQp106o8LektgV1rYz928lNKb+qFyJY+oNKV0c5oA6E9bdyH/p9",
+	"YDeg4+uBKP78fJjKioyLzvy6rG5o5aakr0ZZkonG7aenn6PXjvjgzhcTttOMo78Pzp+EHbz293ZvdF3f",
+	"3en//U8AAAD//6/IGohEYAAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

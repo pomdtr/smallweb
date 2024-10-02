@@ -101,10 +101,9 @@ func (me *Server) GetV0AppsApp(w http.ResponseWriter, r *http.Request, appname s
 	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	encoder.Encode(FullApp{
+	encoder.Encode(App{
 		Name: a.Name,
 		Url:  a.Url,
-		Env:  a.Env,
 	})
 }
 
@@ -124,9 +123,30 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		manifestPath := a.Manifest()
+		if !utils.FileExists(manifestPath) {
+			apps = append(apps, App{
+				Name: a.Name,
+				Url:  a.Url,
+			})
+			continue
+		}
+
+		manifestBytes, err := os.ReadFile(manifestPath)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var manifest Manifest
+		if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+			continue
+		}
+
 		apps = append(apps, App{
-			Name: a.Name,
-			Url:  a.Url,
+			Name:     a.Name,
+			Url:      a.Url,
+			Manifest: &manifest,
 		})
 	}
 
