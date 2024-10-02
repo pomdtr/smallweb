@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.3
+
+- fix `smallweb log` parsing errors
+
+## 0.14.2
+
+- fix usage of `smallweb:file-server` in the code (instead of `smallweb:static`)
+
 ## 0.14.1
 
 - fixed unmarshaling of json with comments
