@@ -148,7 +148,7 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 
 	var apps []App
 	for _, name := range names {
-		a, err := app.LoadApp(name, me.k.String("domain"))
+		a, err := app.LoadApp(filepath.Join(rootDir, name), me.k.String("domain"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
