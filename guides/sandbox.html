@@ -187,6 +187,12 @@
 <li>access to the env files defined in the global config and in the <code>.env</code> file in the app directory.</li>
 </ul>
 <p>This sandbox protects the host system from malicious code, and ensures that apps can only access the resources they need.</p>
+<h2 id="sharing-files-between-apps"><a class="header" href="#sharing-files-between-apps">Sharing files between apps</a></h2>
+<p>To share files between your apps, just use symbolic links!</p>
+<p>For example, if you have two apps <code>app1</code> and <code>app2</code>, and you want <code>app2</code> to have access to the files in the <code>data</code> directory of <code>app1</code>, you can create a symbolic link in the <code>app2</code> directory:</p>
+<pre><code class="language-sh">ln -s $HOME/smallweb/app1/data $HOME/smallweb/app2/data
+</code></pre>
+<p>Linking files outside the smallweb directory also work, but it causes issues when syncing the files between different machines, so you should only use it if you only want to edit your files on one machine.</p>
 
                     </main>
 
