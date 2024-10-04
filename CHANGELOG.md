@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.5
+
+- fix `manifest` not showing up in `/v0/apps`
+
+## 0.14.4
+
+- add support for manifest in `/v0/apps` and `/v0/apps/{app}`
+
 ## 0.14.3
 
 - fix `smallweb log` parsing errors
