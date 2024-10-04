@@ -18,6 +18,14 @@ import (
 	"golang.org/x/term"
 )
 
+func DataDir() string {
+	if dataDir, ok := os.LookupEnv("SMALLWEB_DATA_DIR"); ok {
+		return dataDir
+	}
+
+	return filepath.Join(xdg.DataHome, "smallweb")
+}
+
 func NewCmdToken() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "token",
@@ -51,7 +59,7 @@ func NewCmdTokenCreate() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
 			if err != nil {
 				fmt.Println("failed to open database:", err)
 				return nil
@@ -111,7 +119,7 @@ func NewCmdTokenList() *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
 			if err != nil {
 				fmt.Println("failed to open database:", err)
 				return nil
@@ -187,7 +195,7 @@ func NewCmdTokenDelete() *cobra.Command {
 		Args:    cobra.ArbitraryArgs,
 		Aliases: []string{"remove", "rm"},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
 			if err != nil {
 				fmt.Println("failed to open database:", err)
 				return nil, cobra.ShellCompDirectiveError
@@ -206,7 +214,7 @@ func NewCmdTokenDelete() *cobra.Command {
 			return completions, cobra.ShellCompDirectiveNoFileComp
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
 			if err != nil {
 				return fmt.Errorf("failed to open database: %v", err)
 			}

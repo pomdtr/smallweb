@@ -33,7 +33,7 @@ func init() {
 	sha := crypto.SHA256.New()
 	sha.Write(sandboxBytes)
 	sandboxHash := base64.URLEncoding.EncodeToString(sha.Sum(nil))
-	sandboxPath = filepath.Join(xdg.DataHome, "smallweb", string(sandboxHash), "sandbox.ts")
+	sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "deno", "sandbox", string(sandboxHash), "main.ts")
 	if !utils.FileExists(sandboxPath) {
 		if err := os.MkdirAll(filepath.Dir(sandboxPath), 0755); err != nil {
 			log.Fatalf("could not create directory: %v", err)
@@ -63,7 +63,7 @@ func NewWorker(app app.App, env map[string]string, logger *slog.Logger) *Worker 
 	}
 
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
-	worker.Env["DENO_DIR"] = filepath.Join(os.Getenv("HOME"), ".cache", "smallweb", "deno")
+	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
 	for k, v := range env {
 		worker.Env[k] = v
 	}

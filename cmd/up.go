@@ -17,7 +17,6 @@ import (
 
 	_ "embed"
 
-	"github.com/adrg/xdg"
 	"github.com/gobwas/glob"
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
@@ -41,7 +40,7 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.OpenDB(filepath.Join(xdg.DataHome, "smallweb", "smallweb.db"))
+			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
 			if err != nil {
 				return fmt.Errorf("failed to open database: %v", err)
 			}
