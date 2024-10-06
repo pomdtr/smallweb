@@ -57,7 +57,16 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	}, "")
 
 	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
-		return strings.Replace(strings.ToLower(strings.TrimPrefix(s, "SMALLWEB_")), "_", ".", -1)
+		if s == "SMALLWEB_CONFIG" {
+			return ""
+		}
+
+		if s == "SMALLWEB_DATA_DIR" {
+			return ""
+		}
+
+		key := strings.TrimPrefix(s, "SMALLWEB_")
+		return strings.Replace(strings.ToLower(key), "_", ".", -1)
 	})
 
 	configPath := findConfigPath()
