@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.6
+
+- add `SMALLWEB_DATA_DIR` environment variable to specify the data directory
+
 ## 0.14.5
 
 - fix `manifest` not showing up in `/v0/apps`
