@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"embed"
 	"encoding/json"
 	"errors"
@@ -209,19 +208,29 @@ func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app strin
 
 	cmd := exec.Command(executable, "run", app)
 	cmd.Args = append(cmd.Args, body.Args...)
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
 	cmd.Env = os.Environ()
-	res := CommandOutput{
-		Success: true,
+
+	if strings.Contains(r.Header.Get("Accept"), "text/plain") {
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			http.Error(w, string(output), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write(output)
+		return
 	}
+
+	var res CommandOutput
+	stdout := &strings.Builder{}
+	stderr := &strings.Builder{}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 
 	if err := cmd.Run(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			res.Success = false
 			res.Code = exitErr.ExitCode()
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -229,18 +238,7 @@ func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app strin
 		}
 	}
 
-	if strings.Contains(r.Header.Get("Accept"), "text/plain") {
-		if !res.Success {
-			w.Header().Set("Content-Type", "text/plain")
-			w.Write(stderr.Bytes())
-			return
-		}
-
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write(stdout.Bytes())
-		return
-	}
-
+	res.Success = res.Code == 0
 	res.Stdout = stdout.String()
 	res.Stderr = stderr.String()
 
