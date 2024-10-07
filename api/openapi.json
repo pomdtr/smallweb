@@ -163,19 +163,12 @@
         "responses": {
           "200": {
             "description": "Run app cli",
-            "headers": {
-              "Content-Type": {
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/CommandOutput"
                 }
               },
-              "X-Exit-Code": {
-                "schema": {
-                  "type": "integer"
-                }
-              }
-            },
-            "content": {
               "text/plain": {
                 "schema": {
                   "type": "string"
@@ -440,6 +433,29 @@
       },
       "Manifest": {
         "$ref": "./schemas/manifest.schema.json"
+      },
+      "CommandOutput": {
+        "type": "object",
+        "required": [
+          "success",
+          "code",
+          "stdout",
+          "stderr"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "integer"
+          },
+          "stdout": {
+            "type": "string"
+          },
+          "stderr": {
+            "type": "string"
+          }
+        }
       }
     }
   }

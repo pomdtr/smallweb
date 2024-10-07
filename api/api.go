@@ -11,8 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/adrg/xdg"
@@ -33,6 +31,9 @@ var schemas embed.FS
 
 //go:embed index.html
 var swaggerHomepage []byte
+
+//go:embed dist
+var swaggerDist embed.FS
 
 type Server struct {
 	k             *koanf.Koanf
@@ -82,6 +83,12 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 		if r.URL.Path == "/" {
 			w.Header().Set("Content-Type", "text/html")
 			w.Write(swaggerHomepage)
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/dist") {
+			server := http.FileServer(http.FS(swaggerDist))
+			server.ServeHTTP(w, r)
 			return
 		}
 
@@ -187,8 +194,6 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var ansiRegexp = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))")
-
 func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app string) {
 	executable, err := os.Executable()
 	if err != nil {
@@ -202,32 +207,48 @@ func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app strin
 		return
 	}
 
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
 	cmd := exec.Command(executable, "run", app)
 	cmd.Args = append(cmd.Args, body.Args...)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "NO_COLOR=1")
-	cmd.Env = append(cmd.Env, "CI=1")
+	res := CommandOutput{
+		Success: true,
+	}
 
 	if err := cmd.Run(); err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			w.Header().Set("X-Exit-Code", strconv.Itoa(exitError.ExitCode()))
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			res.Success = false
+			res.Code = exitErr.ExitCode()
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if strings.Contains(r.Header.Get("Accept"), "text/plain") {
+		if !res.Success {
 			w.Header().Set("Content-Type", "text/plain")
-			w.Write(ansiRegexp.ReplaceAll(stderr.Bytes(), nil))
+			w.Write(stderr.Bytes())
 			return
 		}
 
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write(stdout.Bytes())
 		return
 	}
 
-	w.Header().Set("X-Exit-Code", "0")
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write(ansiRegexp.ReplaceAll(stdout.Bytes(), nil))
+	res.Stdout = stdout.String()
+	res.Stderr = stderr.String()
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (me *Server) GetV0LogsHttp(w http.ResponseWriter, r *http.Request, params GetV0LogsHttpParams) {
