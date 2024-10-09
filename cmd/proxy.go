@@ -29,13 +29,10 @@ func NewCmdProxy() *cobra.Command {
 			httpServer := &http.Server{
 				Addr: httpAddr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					parts := strings.SplitN(r.Host, ".", 2)
-					if len(parts) != 2 {
-						http.Error(w, "invalid host", http.StatusBadRequest)
-						return
-					}
+					id := strings.Split(r.Host, ".")[0]
+					parts := strings.Split(id, "-")
+					username := parts[len(parts)-1]
 
-					username := parts[0]
 					ln, ok := forwardHandler.Forwards[username]
 					if !ok {
 						http.Error(w, "user not connected", http.StatusNotFound)
