@@ -98,6 +98,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdApp())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCron())
+	cmd.AddCommand(NewCmdProxy())
 	cmd.AddCommand(NewCmdUpgrade())
 	cmd.AddCommand(NewCmdToken())
 	cmd.AddCommand(NewCmdUp())
