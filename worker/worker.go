@@ -76,6 +76,7 @@ var upgrader = websocket.Upgrader{} // use default options
 func (me *Worker) Flags() []string {
 	flags := []string{
 		"--allow-net",
+		"--allow-import",
 		"--allow-env",
 		"--allow-sys=osRelease,homedir,cpus,hostname",
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath),
