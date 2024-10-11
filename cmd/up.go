@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"log/slog"
@@ -18,6 +19,7 @@ import (
 	_ "embed"
 
 	"github.com/gobwas/glob"
+	"github.com/ntnj/tunwg"
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/auth"
@@ -304,21 +306,37 @@ func NewCmdUp() *cobra.Command {
 
 			go c.Start()
 
+			var ln net.Listener
 			if cert != "" || key != "" {
-				if cert == "" {
-					return fmt.Errorf("TLS certificate file is required")
+				kp, err := tls.LoadX509KeyPair(cert, key)
+				if err != nil {
+					return err
 				}
 
-				if key == "" {
-					return fmt.Errorf("TLS key file is required")
+				l, err := tls.Listen("tcp", addr, &tls.Config{Certificates: []tls.Certificate{kp}})
+				if err != nil {
+					return err
 				}
 
-				cmd.Printf("Serving %s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
-				return server.ListenAndServeTLS(utils.ExpandTilde(cert), utils.ExpandTilde(key))
+				ln = l
+			} else if tunnel := k.String("tunnel"); tunnel != "" {
+				l, err := tunwg.NewListener(tunnel)
+				if err != nil {
+					return err
+				}
+
+				ln = l
+			} else {
+				l, err := net.Listen("tcp", addr)
+				if err != nil {
+					return err
+				}
+
+				ln = l
 			}
 
-			cmd.Printf("Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
-			go server.ListenAndServe()
+			cmd.Printf("Serving *.%s", k.String("domain"))
+			go server.Serve(ln)
 
 			// start api server on unix socket
 			apiServer := http.Server{

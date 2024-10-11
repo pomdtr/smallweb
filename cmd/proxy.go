@@ -27,13 +27,8 @@ func NewCmdProxy() *cobra.Command {
 			forwardHandler := &ForwardedTCPHandler{}
 
 			httpServer := &http.Server{
-				Addr: httpAddr,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					id := strings.Split(r.Host, ".")[0]
-					parts := strings.Split(id, "-")
-					username := parts[len(parts)-1]
-
-					ln, ok := forwardHandler.Forwards[username]
+					ln, ok := forwardHandler.GetListener(r.Host)
 					if !ok {
 						http.Error(w, "user not connected", http.StatusNotFound)
 						return
@@ -92,13 +87,12 @@ func NewCmdProxy() *cobra.Command {
 					return true
 				}),
 				RequestHandlers: map[string]ssh.RequestHandler{
-					"tcpip-forward":        forwardHandler.HandleSSHRequest,
-					"cancel-tcpip-forward": forwardHandler.HandleSSHRequest,
+					tcpipforwardRequestType: forwardHandler.HandleSSHRequest,
+					"cancel-tcpip-forward":  forwardHandler.HandleSSHRequest,
 				},
 			}
 
 			fmt.Fprintln(os.Stderr, "Starting http server on", httpAddr)
-			go httpServer.ListenAndServe()
 			fmt.Fprintln(os.Stderr, "Starting ssh server on", sshAddr)
 			go sshServer.ListenAndServe()
 
@@ -115,6 +109,7 @@ func NewCmdProxy() *cobra.Command {
 }
 
 const (
+	tcpipforwardRequestType = "smallweb-forward"
 	forwardedTCPChannelType = "forwarded-tcpip"
 )
 
@@ -147,17 +142,28 @@ type ForwardedTCPHandler struct {
 	sync.Mutex
 }
 
+func (h *ForwardedTCPHandler) GetListener(host string) (net.Listener, bool) {
+	h.Lock()
+	defer h.Unlock()
+	if ln, ok := h.Forwards[host]; ok {
+		return ln, true
+	}
+
+	parts := strings.SplitN(host, ".", 2)
+	if len(parts) != 2 {
+		return nil, false
+	}
+
+	ln, ok := h.Forwards[parts[1]]
+	return ln, ok
+}
+
 func (h *ForwardedTCPHandler) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
 	h.Lock()
 	if h.Forwards == nil {
 		h.Forwards = make(map[string]net.Listener)
 	}
 	h.Unlock()
-
-	username := ctx.User()
-	if username == "" {
-		return false, []byte("no username")
-	}
 
 	conn := ctx.Value(ssh.ContextKeyConn).(*gossh.ServerConn)
 	switch req.Type {
@@ -183,12 +189,12 @@ func (h *ForwardedTCPHandler) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server,
 		_, destPortStr, _ := net.SplitHostPort(ln.Addr().String())
 		destPort, _ := strconv.Atoi(destPortStr)
 		h.Lock()
-		h.Forwards[username] = ln
+		h.Forwards[reqPayload.BindAddr] = ln
 		h.Unlock()
 		go func() {
 			<-ctx.Done()
 			h.Lock()
-			ln, ok := h.Forwards[username]
+			ln, ok := h.Forwards[reqPayload.BindAddr]
 			h.Unlock()
 			if ok {
 				ln.Close()
@@ -231,7 +237,7 @@ func (h *ForwardedTCPHandler) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server,
 				}()
 			}
 			h.Lock()
-			delete(h.Forwards, username)
+			delete(h.Forwards, reqPayload.BindAddr)
 			h.Unlock()
 		}()
 		return true, gossh.Marshal(&remoteForwardSuccess{uint32(destPort)})
@@ -243,7 +249,7 @@ func (h *ForwardedTCPHandler) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server,
 			return false, []byte{}
 		}
 		h.Lock()
-		ln, ok := h.Forwards[username]
+		ln, ok := h.Forwards[reqPayload.BindAddr]
 		h.Unlock()
 		if ok {
 			ln.Close()

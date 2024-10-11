@@ -28,7 +28,6 @@ func NewCmdLog() *cobra.Command {
 	cmd.AddCommand(NewCmdLogConsole())
 
 	return cmd
-
 }
 
 func NewCmdLogHttp() *cobra.Command {
