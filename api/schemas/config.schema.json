@@ -5,7 +5,10 @@
         "host": {
             "type": "string"
         },
-        "port": {
+        "httpPort": {
+            "type": "integer"
+        },
+        "sshPort": {
             "type": "integer"
         },
         "cert": {

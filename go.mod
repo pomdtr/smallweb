@@ -33,12 +33,14 @@ require (
 )
 
 require (
+	github.com/gliderlabs/ssh v0.3.7
 	github.com/mssola/user_agent v0.6.0
 	github.com/pressly/goose/v3 v3.22.1
 )
 
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
+	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
