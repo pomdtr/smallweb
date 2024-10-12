@@ -54,6 +54,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",
 		},
+		"sshPort": 2222,
 	}, "")
 
 	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
@@ -98,7 +99,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdApp())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCron())
-	cmd.AddCommand(NewCmdProxy())
 	cmd.AddCommand(NewCmdUpgrade())
 	cmd.AddCommand(NewCmdToken())
 	cmd.AddCommand(NewCmdUp())
