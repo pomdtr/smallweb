@@ -319,8 +319,9 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				ln = l
-			} else if tunnel := k.String("tunnel"); tunnel != "" {
-				l, err := tunwg.NewListener(tunnel)
+			} else if k.Bool("tunnel") {
+				os.Setenv("TUNWG_API", k.String("proxy"))
+				l, err := tunwg.NewListener(k.String("domain"))
 				if err != nil {
 					return err
 				}
