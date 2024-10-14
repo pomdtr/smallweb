@@ -4,43 +4,31 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/adrg/xdg"
 	"github.com/cli/browser"
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 )
 
-func NewCmdApp() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "app",
-		Short:   "Manage apps",
-		GroupID: CoreGroupID,
-	}
-
-	cmd.AddCommand(NewCmdAppCreate())
-	cmd.AddCommand(NewCmdAppOpen())
-	cmd.AddCommand(NewCmdAppList())
-	cmd.AddCommand(NewCmdAppRename())
-	cmd.AddCommand(NewCmdAppClone())
-	cmd.AddCommand(NewCmdAppDelete())
-
-	return cmd
-}
-
-//go:embed embed/template/*
 var initTemplate embed.FS
 
-func NewCmdAppCreate() *cobra.Command {
+func NewCmdCreate() *cobra.Command {
 	var flags struct {
 		template string
 	}
@@ -48,6 +36,7 @@ func NewCmdAppCreate() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "create <app>",
+		GroupID: CoreGroupID,
 		Aliases: []string{"new"},
 		Short:   "Create a new smallweb app",
 		Args:    cobra.ExactArgs(1),
@@ -101,10 +90,11 @@ func NewCmdAppCreate() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppOpen() *cobra.Command {
+func NewCmdOpen() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "open [app]",
 		Short:             "Open an app in the browser",
+		GroupID:           CoreGroupID,
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -149,7 +139,7 @@ func NewCmdAppOpen() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppList() *cobra.Command {
+func NewCmdList() *cobra.Command {
 	var flags struct {
 		json bool
 	}
@@ -157,6 +147,7 @@ func NewCmdAppList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List all smallweb apps",
+		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
@@ -224,11 +215,12 @@ func NewCmdAppList() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppRename() *cobra.Command {
+func NewCmdRename() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "rename [app] [new-name]",
 		Short:             "Rename an app",
 		Aliases:           []string{"move", "mv"},
+		GroupID:           CoreGroupID,
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -256,11 +248,12 @@ func NewCmdAppRename() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppClone() *cobra.Command {
+func NewCmdClone() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "clone [app] [new-name]",
 		Short:             "Clone an app",
 		Aliases:           []string{"cp", "copy", "fork"},
+		GroupID:           CoreGroupID,
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -289,7 +282,7 @@ func NewCmdAppClone() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppDelete() *cobra.Command {
+func NewCmdDelete() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "delete",
 		Short:             "Delete an app",
@@ -309,6 +302,82 @@ func NewCmdAppDelete() *cobra.Command {
 
 			cmd.Printf("App %s deleted\n", args[0])
 			return nil
+		},
+	}
+
+	return cmd
+}
+
+func NewCmdTunnel() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "tunnel <app>",
+		Short:   "Create a tunnel to an app",
+		GroupID: CoreGroupID,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			appname := args[0]
+			unixSocket := filepath.Join(xdg.CacheHome, "smallweb", "tunnels", fmt.Sprintf("%s.sock", appname))
+			if err := os.MkdirAll(filepath.Dir(unixSocket), 0755); err != nil {
+				return err
+			}
+
+			ln, err := net.Listen("unix", unixSocket)
+			if err != nil {
+				return err
+			}
+
+			client, err := ssh.Dial("tcp", k.String("proxy"), &ssh.ClientConfig{})
+			if err != nil {
+				return err
+			}
+
+			go func() {
+				channels := client.HandleChannelOpen("forwarded-tcpip")
+				for channel := range channels {
+					ch, reqs, err := channel.Accept()
+					if err != nil {
+						continue
+					}
+
+					ssh.DiscardRequests(reqs)
+
+					c, err := net.Dial("unix", unixSocket)
+					if err != nil {
+						continue
+					}
+
+					go func() {
+						defer c.Close()
+						defer ch.Close()
+						io.Copy(c, ch)
+					}()
+
+					go func() {
+						defer c.Close()
+						defer ch.Close()
+						io.Copy(ch, c)
+					}()
+				}
+			}()
+
+			if ok, _, _ := client.SendRequest("tcpip-forward", true, ssh.Marshal(&remoteForwardRequest{
+				BindAddr: "localhost",
+				BindPort: 80,
+			})); !ok {
+				return fmt.Errorf("failed to request remote forward")
+			}
+
+			return http.Serve(ln, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				rootDir := utils.ExpandTilde(k.String("root"))
+				app, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				wk := worker.NewWorker(app, k.StringMap("env"), nil)
+				wk.ServeHTTP(w, r)
+			}))
 		},
 	}
 

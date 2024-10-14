@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"log/slog"
 	"net"
@@ -18,7 +17,6 @@ import (
 
 	_ "embed"
 
-	"github.com/gliderlabs/ssh"
 	"github.com/gobwas/glob"
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
@@ -42,20 +40,25 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
-			if err != nil {
-				return fmt.Errorf("failed to open database: %v", err)
+
+			cert := k.String("cert")
+			key := k.String("key")
+			if (cert != "" && key == "") || (cert == "" && key != "") {
+				return fmt.Errorf("both cert and key must be provided")
 			}
 
 			httpPort := k.Int("httpPort")
-			cert := k.String("cert")
-			key := k.String("key")
 			if httpPort == 0 {
 				if cert != "" || key != "" {
 					httpPort = 443
 				} else {
 					httpPort = 7777
 				}
+			}
+
+			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
+			if err != nil {
+				return fmt.Errorf("failed to open database: %v", err)
 			}
 
 			httpWriter := utils.NewMultiWriter()
@@ -239,90 +242,6 @@ func NewCmdUp() *cobra.Command {
 				Handler: httpLogger.Middleware(handler),
 			}
 
-			sshServer := ssh.Server{
-				Addr: fmt.Sprintf("%s:%d", k.String("host"), k.Int("sshPort")),
-				PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
-					// disable ssh for localhost
-					if k.String("host") == "localhost" || k.String("host") == "127.0.0.1" {
-						return true
-					}
-
-					authorizedKeyPath := filepath.Join(os.Getenv("HOME"), ".ssh", "authorized_keys")
-					b, err := os.ReadFile(authorizedKeyPath)
-					if err != nil {
-						return false
-					}
-
-					for len(b) > 0 {
-						pubKey, _, _, rest, err := ssh.ParseAuthorizedKey(b)
-						if err != nil {
-							return false
-						}
-
-						if ssh.KeysEqual(key, pubKey) {
-							return true
-						}
-
-						b = rest
-					}
-
-					return false
-
-				},
-				Handler: func(s ssh.Session) {
-					appname := s.User()
-					app, err := app.LoadApp(filepath.Join(utils.ExpandTilde(k.String("dir")), appname), k.String("domain"))
-					if err != nil {
-						fmt.Fprintln(s, err)
-						return
-					}
-
-					wk := worker.NewWorker(app, k.StringMap("env"), consoleLogger)
-					args := s.Command()
-					command, err := wk.Command(args...)
-					if err != nil {
-						fmt.Fprintln(s, err)
-						return
-					}
-
-					// Set up stdin, stdout, and stderr
-					command.Stdout = s
-					command.Stderr = s.Stderr()
-
-					// Use a pipe for stdin
-					stdin, err := command.StdinPipe()
-					if err != nil {
-						fmt.Fprintln(s, err)
-						return
-					}
-
-					// Start the command
-					if err := command.Start(); err != nil {
-						fmt.Fprintln(s, err)
-						return
-					}
-
-					// Copy SSH session's stdin to command's stdin
-					go func() {
-						io.Copy(stdin, s)
-						stdin.Close()
-					}()
-
-					// Wait for the command to finish
-					if err := command.Wait(); err != nil {
-						if exitErr, ok := err.(*exec.ExitError); ok {
-							s.Exit(exitErr.ExitCode())
-						} else {
-							s.Exit(1)
-						}
-					}
-
-					s.Exit(0)
-				},
-			}
-
-			go sshServer.ListenAndServe()
-
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 			c := cron.New(cron.WithParser(parser))
 			cronLogger := slog.New(slog.NewJSONHandler(cronWriter, nil))
@@ -390,21 +309,14 @@ func NewCmdUp() *cobra.Command {
 
 			go c.Start()
 
-			if cert != "" || key != "" {
-				if cert == "" {
-					return fmt.Errorf("TLS certificate file is required")
+			go func() {
+				cmd.Printf("Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
+				if cert != "" || key != "" {
+					server.ListenAndServeTLS(cert, key)
+				} else {
+					server.ListenAndServe()
 				}
-
-				if key == "" {
-					return fmt.Errorf("TLS key file is required")
-				}
-
-				cmd.Printf("Serving %s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
-				return server.ListenAndServeTLS(utils.ExpandTilde(cert), utils.ExpandTilde(key))
-			}
-
-			cmd.Printf("Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
-			go server.ListenAndServe()
+			}()
 
 			// start api server on unix socket
 			apiServer := http.Server{
