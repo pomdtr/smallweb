@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -207,8 +209,15 @@ func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app strin
 	}
 
 	cmd := exec.Command(executable, "run", app)
+	if body.Stdin != nil {
+		b, err := base64.StdEncoding.DecodeString(*body.Stdin)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+
+		cmd.Stdin = bytes.NewReader(b)
+	}
 	cmd.Args = append(cmd.Args, body.Args...)
-	cmd.Env = os.Environ()
 
 	if strings.Contains(r.Header.Get("Accept"), "text/plain") {
 		output, err := cmd.CombinedOutput()
@@ -223,10 +232,10 @@ func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app strin
 	}
 
 	var res CommandOutput
-	stdout := &strings.Builder{}
-	stderr := &strings.Builder{}
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	stdout := bytes.Buffer{}
+	stderr := bytes.Buffer{}
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
 		var exitErr *exec.ExitError
@@ -239,8 +248,8 @@ func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app strin
 	}
 
 	res.Success = res.Code == 0
-	res.Stdout = stdout.String()
-	res.Stderr = stderr.String()
+	res.Stdout = base64.RawStdEncoding.EncodeToString(stdout.Bytes())
+	res.Stderr = base64.RawStdEncoding.EncodeToString(stderr.Bytes())
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(res); err != nil {

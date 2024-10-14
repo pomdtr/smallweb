@@ -149,6 +149,9 @@
                   "args"
                 ],
                 "properties": {
+                  "stdin": {
+                    "type": "string"
+                  },
                   "args": {
                     "type": "array",
                     "items": {
