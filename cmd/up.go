@@ -37,7 +37,7 @@ import (
 
 const (
 	initialBackoff    = 5 * time.Second  // Starting wait time between retries
-	maxBackoff        = 2 * time.Minute  // Maximum wait time between retries
+	maxBackoff        = 30 * time.Second // Maximum wait time between retries
 	keepAliveInterval = 30 * time.Second // Interval for keepalive requests
 )
 
@@ -158,15 +158,16 @@ func NewCmdUp() *cobra.Command {
 			}()
 
 			if proxy := k.String("proxy"); proxy != "" {
-				fmt.Fprintln(os.Stderr, "Tunneling enabled, starting SSH client...")
 				go func() {
 					backoff := initialBackoff
 					for {
+						fmt.Fprintln(os.Stderr, "Connecting to proxy...")
 						client, err := ssh.Dial("tcp", proxy, &ssh.ClientConfig{
+							Timeout:         5 * time.Second,
 							HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 						})
 						if err != nil {
-							log.Printf("failed to dial SSH: %v, retrying in %v...", err, backoff)
+							fmt.Fprintf(os.Stderr, "failed to dial SSH: %v, retrying in %v...\n", err, backoff)
 							time.Sleep(backoff)
 							backoff = backoff * 2 // Exponential backoff
 							if backoff > maxBackoff {
@@ -175,7 +176,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						log.Println("connected to SSH server")
+						fmt.Fprintln(os.Stderr, "Connected to proxy")
 
 						// Reset backoff on successful connection
 						backoff = initialBackoff
@@ -189,7 +190,7 @@ func NewCmdUp() *cobra.Command {
 							go func() {
 								err := client.Wait() // Wait for the client to disconnect (e.g., by the server)
 								if err != nil {
-									log.Printf("SSH client disconnected: %v", err)
+									fmt.Fprintf(os.Stderr, "SSH client disconnected: %v\n", err)
 								}
 								close(done) // Notify the keepalive goroutine to stop
 							}()
@@ -199,7 +200,7 @@ func NewCmdUp() *cobra.Command {
 								case <-ticker.C:
 									_, _, err := client.SendRequest("keepalive", true, nil)
 									if err != nil {
-										log.Printf("failed to send keepalive: %v, closing client and retrying...", err)
+										fmt.Fprintf(os.Stderr, "failed to send keepalive: %v, closing client and retrying...\n", err)
 										client.Close() // Close the client to trigger reconnection
 										return         // Exit the keepalive goroutine
 									}
@@ -214,7 +215,7 @@ func NewCmdUp() *cobra.Command {
 							BindAddr: k.String("domain"),
 							BindPort: 80,
 						})); err != nil {
-							log.Printf("failed to request remote forward: %v, retrying...", err)
+							fmt.Fprintf(os.Stderr, "failed to request remote forward: %v, retrying...\n", err)
 							client.Close() // Close and retry connection
 							continue
 						}
@@ -225,6 +226,7 @@ func NewCmdUp() *cobra.Command {
 								continue
 							}
 							go ssh.DiscardRequests(reqs)
+
 							c, err := net.Dial("tcp", fmt.Sprintf(":%d", k.Int("port")))
 							if err != nil {
 								ch.Close()
@@ -235,9 +237,10 @@ func NewCmdUp() *cobra.Command {
 								defer ch.Close()
 								io.Copy(c, ch)
 							}()
+
 							go func() {
-								defer c.Close()
 								defer ch.Close()
+								defer c.Close()
 								io.Copy(ch, c)
 							}()
 						}
