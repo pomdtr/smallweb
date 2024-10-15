@@ -80,6 +80,7 @@ func (me *Worker) Flags() []string {
 		"--allow-sys=osRelease,homedir,cpus,hostname",
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath),
 		fmt.Sprintf("--allow-write=%s", me.App.Root()),
+		"--allow-import",
 		"--unstable-kv",
 		"--no-prompt",
 		"--quiet",
@@ -290,7 +291,6 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(k, vv)
 		}
 	}
-
 	w.WriteHeader(resp.StatusCode)
 
 	flusher := w.(http.Flusher)

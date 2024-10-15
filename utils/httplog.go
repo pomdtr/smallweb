@@ -40,7 +40,7 @@ type (
 		HTTPResponse responseData `json:"httpResponse"`
 	}
 
-	Logger struct {
+	HTTPLogger struct {
 		*slog.Logger
 	}
 )
@@ -79,13 +79,13 @@ func (r *loggingResponseWriter) Push(target string, opts *http.PushOptions) erro
 	return http.ErrNotSupported
 }
 
-func NewLogger(writer io.Writer) *Logger {
-	return &Logger{
+func NewHTTPLogger(writer io.Writer) *HTTPLogger {
+	return &HTTPLogger{
 		Logger: slog.New(slog.NewJSONHandler(writer, nil)),
 	}
 }
 
-func (l *Logger) Middleware(h http.Handler) http.Handler {
+func (l *HTTPLogger) Middleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 

@@ -20,27 +20,9 @@ import (
 	"golang.org/x/term"
 )
 
-func NewCmdApp() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:     "app",
-		Short:   "Manage apps",
-		GroupID: CoreGroupID,
-	}
-
-	cmd.AddCommand(NewCmdAppCreate())
-	cmd.AddCommand(NewCmdAppOpen())
-	cmd.AddCommand(NewCmdAppList())
-	cmd.AddCommand(NewCmdAppRename())
-	cmd.AddCommand(NewCmdAppClone())
-	cmd.AddCommand(NewCmdAppDelete())
-
-	return cmd
-}
-
-//go:embed embed/template/*
 var initTemplate embed.FS
 
-func NewCmdAppCreate() *cobra.Command {
+func NewCmdCreate() *cobra.Command {
 	var flags struct {
 		template string
 	}
@@ -48,6 +30,7 @@ func NewCmdAppCreate() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "create <app>",
+		GroupID: CoreGroupID,
 		Aliases: []string{"new"},
 		Short:   "Create a new smallweb app",
 		Args:    cobra.ExactArgs(1),
@@ -101,10 +84,11 @@ func NewCmdAppCreate() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppOpen() *cobra.Command {
+func NewCmdOpen() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "open [app]",
 		Short:             "Open an app in the browser",
+		GroupID:           CoreGroupID,
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -149,7 +133,7 @@ func NewCmdAppOpen() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppList() *cobra.Command {
+func NewCmdList() *cobra.Command {
 	var flags struct {
 		json bool
 	}
@@ -157,6 +141,7 @@ func NewCmdAppList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List all smallweb apps",
+		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.ExpandTilde(k.String("dir"))
@@ -224,11 +209,12 @@ func NewCmdAppList() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppRename() *cobra.Command {
+func NewCmdRename() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "rename [app] [new-name]",
 		Short:             "Rename an app",
 		Aliases:           []string{"move", "mv"},
+		GroupID:           CoreGroupID,
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -256,11 +242,12 @@ func NewCmdAppRename() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppClone() *cobra.Command {
+func NewCmdClone() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "clone [app] [new-name]",
 		Short:             "Clone an app",
 		Aliases:           []string{"cp", "copy", "fork"},
+		GroupID:           CoreGroupID,
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -289,9 +276,10 @@ func NewCmdAppClone() *cobra.Command {
 	return cmd
 }
 
-func NewCmdAppDelete() *cobra.Command {
+func NewCmdDelete() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "delete",
+		GroupID:           CoreGroupID,
 		Short:             "Delete an app",
 		Aliases:           []string{"remove", "rm"},
 		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),

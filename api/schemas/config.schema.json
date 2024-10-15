@@ -8,20 +8,8 @@
         "port": {
             "type": "integer"
         },
-        "cert": {
-            "type": "string"
-        },
-        "key": {
-            "type": "string"
-        },
         "domain": {
             "type": "string"
-        },
-        "customDomains": {
-            "type": "object",
-            "additionalProperties": {
-                "type": "string"
-            }
         },
         "dir": {
             "type": "string"

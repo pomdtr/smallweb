@@ -48,7 +48,7 @@ func findConfigPath() string {
 
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
-		"host":   "127.0.0.1",
+		"port":   7777,
 		"dir":    "~/smallweb",
 		"domain": "localhost",
 		"env": map[string]string{
@@ -95,7 +95,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	})
 
 	cmd.AddCommand(NewCmdRun())
-	cmd.AddCommand(NewCmdApp())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdUpgrade())
@@ -105,6 +104,13 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdAPI())
 	cmd.AddCommand(NewCmdLog())
+	cmd.AddCommand(NewCmdProxy())
+	cmd.AddCommand(NewCmdCreate())
+	cmd.AddCommand(NewCmdOpen())
+	cmd.AddCommand(NewCmdList())
+	cmd.AddCommand(NewCmdRename())
+	cmd.AddCommand(NewCmdClone())
+	cmd.AddCommand(NewCmdDelete())
 
 	cmd.AddCommand(&cobra.Command{
 		Use:     "changelog",

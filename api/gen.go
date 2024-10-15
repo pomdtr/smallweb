@@ -524,7 +524,8 @@ type GetV0LogsHttpParams struct {
 
 // PostV0RunAppJSONBody defines parameters for PostV0RunApp.
 type PostV0RunAppJSONBody struct {
-	Args []string `json:"args"`
+	Args  []string `json:"args"`
+	Stdin *string  `json:"stdin,omitempty"`
 }
 
 // PostV0RunAppJSONRequestBody defines body for PostV0RunApp for application/json ContentType.
@@ -1271,8 +1272,8 @@ var swaggerSpec = []string{
 	"/zwuisD25saFhRfCWH9OhQTyFNeMjL7wonjaz86YLqusTd2Q3xRI3F+b57yYv9RybaRWlxA32Oqa+P1X",
 	"immvdDal8Qbt2DV5QWRqbkaJuxR6tygu1Nz426M3xdEe5ieRoU9A2my6Yk4wJDFyG12RfY2I0IGO6JrM",
 	"gbEaeP58GTWuwg6I6oaoEQ8b4tJOFXtkpdf+6TcuKH/982FSQne3X0pvsddhUvKXV4bE5Jv+n+RUXT77",
-	"bDnpUq6dUOFvSW0L6koZ+7fj61J+Uy9EsPRHla4OckAdCOtv5X7u94HdgI6vB6L409M3dJPtu/0Dersu",
-	"6btSlmSC5vL09L8BAAD//4rEsbbQYAAA",
+	"bDnpUq6dUOFvSW0L6koZ+7fj61J+Uy9EsPRHla4OckAdCOtv5X7+94HGpkLuv5+fCAfi+9PTN3Sg7Vv/",
+	"nzwaHBUZFx0q3clv6P66pG9TWZIJmvXT0/8GAAD//wLsnaMUYQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
