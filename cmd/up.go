@@ -36,9 +36,10 @@ import (
 )
 
 const (
-	initialBackoff    = 5 * time.Second  // Starting wait time between retries
-	maxBackoff        = 1 * time.Minute  // Maximum wait time between retries
-	keepAliveInterval = 30 * time.Second // Interval for keepalive requests
+	initialBackoff       = 5 * time.Second // Starting wait time between retries
+	maxBackoff           = 1 * time.Minute // Maximum wait time between retries
+	sshKeepAliveInterval = 10 * time.Second
+	tcpKeepAliveInterval = 10 * time.Second
 )
 
 func NewCmdUp() *cobra.Command {
@@ -162,10 +163,7 @@ func NewCmdUp() *cobra.Command {
 					backoff := initialBackoff
 					for {
 						fmt.Fprintln(os.Stderr, "Connecting to proxy...")
-						client, err := ssh.Dial("tcp", proxy, &ssh.ClientConfig{
-							Timeout:         5 * time.Second,
-							HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-						})
+						conn, err := net.DialTimeout("tcp", proxy, 5*time.Second)
 						if err != nil {
 							fmt.Fprintf(os.Stderr, "failed to dial SSH: %v, retrying in %v...\n", err, backoff)
 							time.Sleep(backoff)
@@ -176,13 +174,44 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						fmt.Fprintln(os.Stderr, "Connected to proxy")
-
 						// Reset backoff on successful connection
 						backoff = initialBackoff
 
+						// Enable TCP keep-alive on the connection
+						tcpConn, ok := conn.(*net.TCPConn)
+						if !ok {
+							fmt.Fprintf(os.Stderr, "failed to cast to TCPConn, retrying...\n")
+							conn.Close()
+							continue
+						}
+
+						if err := tcpConn.SetKeepAlive(true); err != nil {
+							fmt.Fprintf(os.Stderr, "failed to enable keep-alive: %v, retrying...\n", err)
+							conn.Close()
+							continue
+						}
+
+						if err := tcpConn.SetKeepAlivePeriod(tcpKeepAliveInterval); err != nil {
+							fmt.Fprintf(os.Stderr, "failed to set keep-alive period: %v, retrying...\n", err)
+							conn.Close()
+							continue
+						}
+
+						c, chans, reqs, err := ssh.NewClientConn(conn, proxy, &ssh.ClientConfig{
+							Timeout:         5 * time.Second,
+							HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+						})
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "failed to create SSH client: %v, retrying...\n", err)
+							conn.Close()
+							continue
+						}
+
+						client := ssh.NewClient(c, chans, reqs)
+						fmt.Fprintln(os.Stderr, "Connected to proxy")
+
 						go func() {
-							ticker := time.NewTicker(keepAliveInterval)
+							ticker := time.NewTicker(sshKeepAliveInterval)
 							defer ticker.Stop() // Ensure the ticker is stopped when the goroutine exits
 
 							done := make(chan struct{}) // Channel to signal when connection is closed
