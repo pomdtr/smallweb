@@ -22,33 +22,13 @@ If you want to opt-out of this behavior, you can create a `~/smallweb/@` directo
 
 ## Custom domains
 
-In addition to your base domain, you can also map custom domains to apps from your global config.
+You can use the `X-Smallweb-App` header to route requests to a specific directory.
 
-```json
-{
+For example, if you are using caddy, you can use the following configuration:
 
-    "domain": "example.com",
-    "dir": "~/smallweb",
-    "customDomains": {
-        "pomdtr.me": "pomdtr"
-    }
-}
-```
-
-In this example, `pomdtr.me` will be mapped to `~/smallweb/pomdtr`, meaning that the `pomdtr` app will be accessible both at:
-
-- `https://pomdtr.example.com`
-- `https://pomdtr.me`
-
-You can also map wildcards to apps by using the `*` character.
-
-```json
-{
-    "domain": "example.com",
-    "dir": "~/smallweb",
-    "customDomains": {
-        "pomdtr.me": "pomdtr",
-        "sandbox-*.pomdtr.me": "pomdtr"
-    }
+```txt
+example.com {
+    header X-Smallweb-App "api"
+    reverse_proxy localhost:7777
 }
 ```

@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net"
@@ -23,6 +25,7 @@ import (
 	"github.com/pomdtr/smallweb/auth"
 	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/docs"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -30,6 +33,12 @@ import (
 	"github.com/spf13/cobra"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
+)
+
+const (
+	initialBackoff    = 5 * time.Second  // Starting wait time between retries
+	maxBackoff        = 2 * time.Minute  // Maximum wait time between retries
+	keepAliveInterval = 30 * time.Second // Interval for keepalive requests
 )
 
 func NewCmdUp() *cobra.Command {
@@ -40,22 +49,6 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
-			cert := k.String("cert")
-			key := k.String("key")
-			if (cert != "" && key == "") || (cert == "" && key != "") {
-				return fmt.Errorf("both cert and key must be provided")
-			}
-
-			httpPort := k.Int("httpPort")
-			if httpPort == 0 {
-				if cert != "" || key != "" {
-					httpPort = 443
-				} else {
-					httpPort = 7777
-				}
-			}
-
 			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
 			if err != nil {
 				return fmt.Errorf("failed to open database: %v", err)
@@ -65,181 +58,14 @@ func NewCmdUp() *cobra.Command {
 			cronWriter := utils.NewMultiWriter()
 			consoleWriter := utils.NewMultiWriter()
 
-			httpLogger := utils.NewLogger(httpWriter)
+			httpLogger := utils.NewHTTPLogger(httpWriter)
 			consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
 
 			apiHandler := api.NewHandler(k, httpWriter, cronWriter, consoleWriter)
-			addr := fmt.Sprintf("%s:%d", k.String("host"), httpPort)
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				rootDir := utils.ExpandTilde(k.String("dir"))
-
-				appname := func() string {
-					if r.Host == k.String("domain") {
-						if stat, err := os.Stat(filepath.Join(rootDir, "@")); err == nil && stat.IsDir() {
-							return "@"
-						}
-
-						return ""
-					}
-
-					for domainGlob, app := range k.StringMap("customDomains") {
-						g := glob.MustCompile(domainGlob)
-						if g.Match(r.Host) {
-							return app
-						}
-					}
-
-					if appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))); utils.FileExists(filepath.Join(rootDir, appname)) {
-						return appname
-					}
-
-					return ""
-				}()
-
-				if appname == "" {
-					if r.Host == k.String("domain") {
-						// if we are on the apex domain and www exists, redirect to www
-						if stat, err := os.Stat(filepath.Join(rootDir, "www")); err == nil && stat.IsDir() {
-							target := r.URL
-							target.Scheme = "https"
-							target.Host = "www." + k.String("domain")
-							http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
-							return
-						}
-
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					if r.Host == fmt.Sprintf("www.%s", k.String("domain")) {
-						// if we are on the www domain and apex exists, redirect to apex
-						if stat, err := os.Stat(filepath.Join(rootDir, "@")); err == nil && stat.IsDir() {
-							target := r.URL
-							target.Scheme = "https"
-							target.Host = k.String("domain")
-							http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
-							return
-						}
-
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-
-				a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
-				if err != nil {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-
-				var handler http.Handler
-				if a.Entrypoint() == "smallweb:api" {
-					handler = apiHandler
-				} else if a.Entrypoint() == "smallweb:docs" {
-					handler = docs.Handler
-				} else if a.Entrypoint() == "smallweb:static" {
-					handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						w.Header().Set("Access-Control-Allow-Origin", "*")
-						w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-						w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-						if strings.HasPrefix(filepath.Base(r.URL.Path), ".") {
-							http.Error(w, "file not found", http.StatusNotFound)
-							return
-						}
-
-						p := filepath.Join(a.Root(), r.URL.Path)
-						transformOptions := esbuild.TransformOptions{
-							Target:       esbuild.ESNext,
-							Format:       esbuild.FormatESModule,
-							MinifySyntax: false,
-							Sourcemap:    esbuild.SourceMapNone,
-						}
-
-						switch path.Ext(r.URL.Path) {
-						case ".ts":
-							transformOptions.Loader = esbuild.LoaderTS
-							code, err := transpile(p, transformOptions)
-							if err != nil {
-								http.Error(w, err.Error(), http.StatusInternalServerError)
-							}
-
-							w.Header().Set("Content-Type", "application/javascript")
-							w.Write(code)
-							return
-						case ".jsx":
-							transformOptions.Loader = esbuild.LoaderJSX
-							transformOptions.JSX = esbuild.JSXAutomatic
-							code, err := transpile(p, transformOptions)
-							if err != nil {
-								http.Error(w, err.Error(), http.StatusInternalServerError)
-							}
-
-							w.Header().Set("Content-Type", "application/javascript")
-							w.Write(code)
-							return
-						case ".tsx":
-							transformOptions.Loader = esbuild.LoaderTSX
-							transformOptions.JSX = esbuild.JSXAutomatic
-							code, err := transpile(p, transformOptions)
-							if err != nil {
-								http.Error(w, err.Error(), http.StatusInternalServerError)
-							}
-
-							w.Header().Set("Content-Type", "application/javascript")
-							w.Write(code)
-							return
-						default:
-							if utils.FileExists(p) {
-								http.ServeFile(w, r, p)
-								return
-							}
-
-							if utils.FileExists(p + ".html") {
-								http.ServeFile(w, r, p+".html")
-								return
-							}
-
-							http.Error(w, "file not found", http.StatusNotFound)
-							return
-						}
-					})
-				} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
-					handler = worker.NewWorker(a, k.StringMap("env"), consoleLogger)
-				} else {
-					http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
-					return
-				}
-
-				isPrivateRoute := a.Config.Private
-				for _, publicRoute := range a.Config.PublicRoutes {
-					glob := glob.MustCompile(publicRoute)
-					if glob.Match(r.URL.Path) {
-						isPrivateRoute = false
-					}
-				}
-
-				for _, privateRoute := range a.Config.PrivateRoutes {
-					glob := glob.MustCompile(privateRoute)
-					if glob.Match(r.URL.Path) {
-						isPrivateRoute = true
-					}
-				}
-
-				if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
-					authMiddleware := auth.Middleware(db, k.String("email"), appname)
-					handler = authMiddleware(handler)
-				}
-
-				handler.ServeHTTP(w, r)
-			})
-
-			server := http.Server{
-				Addr:    addr,
-				Handler: httpLogger.Middleware(handler),
+			handler := &HttpHandler{
+				db:         db,
+				apiHandler: apiHandler,
+				logger:     consoleLogger,
 			}
 
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
@@ -310,38 +136,123 @@ func NewCmdUp() *cobra.Command {
 			go c.Start()
 
 			go func() {
-				cmd.Printf("Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
-				if cert != "" || key != "" {
-					server.ListenAndServeTLS(cert, key)
-				} else {
-					server.ListenAndServe()
-				}
-			}()
-
-			// start api server on unix socket
-			apiServer := http.Server{
-				Handler: apiHandler,
-			}
-
-			go func() {
-				if err := os.MkdirAll(filepath.Dir(api.SocketPath), 0755); err != nil {
+				socketPath := api.SocketPath(k.String("domain"))
+				if err := os.MkdirAll(filepath.Dir(socketPath), 0755); err != nil {
 					log.Fatal(err)
 				}
 
-				if err := os.Remove(api.SocketPath); err != nil && !os.IsNotExist(err) {
+				if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
 					log.Fatal(err)
 				}
-				defer os.Remove(api.SocketPath)
+				defer os.Remove(socketPath)
 
-				listener, err := net.Listen("unix", api.SocketPath)
+				listener, err := net.Listen("unix", socketPath)
 				if err != nil {
 					log.Fatal(err)
 				}
 
+				apiServer := http.Server{Handler: apiHandler}
 				if err := apiServer.Serve(listener); err != nil && err != http.ErrServerClosed {
 					log.Fatal(err)
 				}
 			}()
+
+			if k.Bool("tunnel") {
+				fmt.Fprintln(os.Stderr, "Tunneling enabled, starting SSH client...")
+				go func() {
+					backoff := initialBackoff
+					for {
+						client, err := ssh.Dial("tcp", k.String("proxy"), &ssh.ClientConfig{
+							HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+						})
+						if err != nil {
+							log.Printf("failed to dial SSH: %v, retrying in %v...", err, backoff)
+							time.Sleep(backoff)
+							backoff = backoff * 2 // Exponential backoff
+							if backoff > maxBackoff {
+								backoff = maxBackoff
+							}
+							continue
+						}
+
+						log.Println("connected to SSH server")
+
+						// Reset backoff on successful connection
+						backoff = initialBackoff
+
+						go func() {
+							ticker := time.NewTicker(keepAliveInterval)
+							defer ticker.Stop() // Ensure the ticker is stopped when the goroutine exits
+
+							done := make(chan struct{}) // Channel to signal when connection is closed
+
+							go func() {
+								err := client.Wait() // Wait for the client to disconnect (e.g., by the server)
+								if err != nil {
+									log.Printf("SSH client disconnected: %v", err)
+								}
+								close(done) // Notify the keepalive goroutine to stop
+							}()
+
+							for {
+								select {
+								case <-ticker.C:
+									_, _, err := client.SendRequest("keepalive", true, nil)
+									if err != nil {
+										log.Printf("failed to send keepalive: %v, closing client and retrying...", err)
+										client.Close() // Close the client to trigger reconnection
+										return         // Exit the keepalive goroutine
+									}
+								case <-done: // Connection closed (by server or client)
+									return // Exit the keepalive goroutine
+								}
+							}
+						}()
+
+						channels := client.HandleChannelOpen("forwarded-tcpip")
+						if _, _, err := client.SendRequest("tcpip-forward", true, ssh.Marshal(&remoteForwardRequest{
+							BindAddr: k.String("domain"),
+							BindPort: 80,
+						})); err != nil {
+							log.Printf("failed to request remote forward: %v, retrying...", err)
+							client.Close() // Close and retry connection
+							continue
+						}
+
+						for channel := range channels {
+							ch, reqs, err := channel.Accept()
+							if err != nil {
+								continue
+							}
+							go ssh.DiscardRequests(reqs)
+							c, err := net.Dial("tcp", fmt.Sprintf(":%d", k.Int("port")))
+							if err != nil {
+								ch.Close()
+								continue
+							}
+							go func() {
+								defer c.Close()
+								defer ch.Close()
+								io.Copy(c, ch)
+							}()
+							go func() {
+								defer c.Close()
+								defer ch.Close()
+								io.Copy(ch, c)
+							}()
+						}
+					}
+				}()
+
+			}
+
+			server := http.Server{
+				Addr:    fmt.Sprintf(":%d", k.Int("port")),
+				Handler: httpLogger.Middleware(handler),
+			}
+
+			fmt.Fprintf(os.Stderr, "Serving *.%s domains on port %d...\n", k.String("domain"), k.Int("port"))
+			go server.ListenAndServe()
 
 			// sigint handling
 			sigint := make(chan os.Signal, 1)
@@ -350,13 +261,187 @@ func NewCmdUp() *cobra.Command {
 
 			log.Println("Shutting down server...")
 			server.Shutdown(context.Background())
-			apiServer.Shutdown(context.Background())
 			c.Stop()
 			return nil
 		},
 	}
 
 	return cmd
+}
+
+type HttpHandler struct {
+	db         *sql.DB
+	apiHandler http.Handler
+	logger     *slog.Logger
+}
+
+func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rootDir := utils.ExpandTilde(k.String("dir"))
+
+	appname := func() string {
+		if r.Host == k.String("domain") {
+			if stat, err := os.Stat(filepath.Join(rootDir, "@")); err == nil && stat.IsDir() {
+				return "@"
+			}
+
+			return ""
+		}
+
+		if appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))); utils.FileExists(filepath.Join(rootDir, appname)) {
+			return appname
+		}
+
+		if appname := r.Header.Get("X-Smallweb-App"); appname != "" {
+			r.Header.Del("X-Smallweb-App")
+			if stat, err := os.Stat(filepath.Join(rootDir, appname)); err == nil && stat.IsDir() {
+				return appname
+			}
+
+			return ""
+		}
+
+		return ""
+	}()
+
+	if appname == "" {
+		if r.Host == k.String("domain") {
+			// if we are on the apex domain and www exists, redirect to www
+			if stat, err := os.Stat(filepath.Join(rootDir, "www")); err == nil && stat.IsDir() {
+				target := r.URL
+				target.Scheme = "https"
+				target.Host = "www." + k.String("domain")
+				http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+				return
+			}
+
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		if r.Host == fmt.Sprintf("www.%s", k.String("domain")) {
+			// if we are on the www domain and apex exists, redirect to apex
+			if stat, err := os.Stat(filepath.Join(rootDir, "@")); err == nil && stat.IsDir() {
+				target := r.URL
+				target.Scheme = "https"
+				target.Host = k.String("domain")
+				http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+				return
+			}
+
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	var handler http.Handler
+	if a.Entrypoint() == "smallweb:api" {
+		handler = h.apiHandler
+	} else if a.Entrypoint() == "smallweb:docs" {
+		handler = docs.Handler
+	} else if a.Entrypoint() == "smallweb:static" {
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+			if strings.HasPrefix(filepath.Base(r.URL.Path), ".") {
+				http.Error(w, "file not found", http.StatusNotFound)
+				return
+			}
+
+			p := filepath.Join(a.Root(), r.URL.Path)
+			transformOptions := esbuild.TransformOptions{
+				Target:       esbuild.ESNext,
+				Format:       esbuild.FormatESModule,
+				MinifySyntax: false,
+				Sourcemap:    esbuild.SourceMapNone,
+			}
+
+			switch path.Ext(r.URL.Path) {
+			case ".ts":
+				transformOptions.Loader = esbuild.LoaderTS
+				code, err := transpile(p, transformOptions)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+
+				w.Header().Set("Content-Type", "application/javascript")
+				w.Write(code)
+				return
+			case ".jsx":
+				transformOptions.Loader = esbuild.LoaderJSX
+				transformOptions.JSX = esbuild.JSXAutomatic
+				code, err := transpile(p, transformOptions)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+
+				w.Header().Set("Content-Type", "application/javascript")
+				w.Write(code)
+				return
+			case ".tsx":
+				transformOptions.Loader = esbuild.LoaderTSX
+				transformOptions.JSX = esbuild.JSXAutomatic
+				code, err := transpile(p, transformOptions)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+
+				w.Header().Set("Content-Type", "application/javascript")
+				w.Write(code)
+				return
+			default:
+				if utils.FileExists(p) {
+					http.ServeFile(w, r, p)
+					return
+				}
+
+				if utils.FileExists(p + ".html") {
+					http.ServeFile(w, r, p+".html")
+					return
+				}
+
+				http.Error(w, "file not found", http.StatusNotFound)
+				return
+			}
+		})
+	} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
+		handler = worker.NewWorker(a, k.StringMap("env"), h.logger)
+	} else {
+		http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
+		return
+	}
+
+	isPrivateRoute := a.Config.Private
+	for _, publicRoute := range a.Config.PublicRoutes {
+		glob := glob.MustCompile(publicRoute)
+		if glob.Match(r.URL.Path) {
+			isPrivateRoute = false
+		}
+	}
+
+	for _, privateRoute := range a.Config.PrivateRoutes {
+		glob := glob.MustCompile(privateRoute)
+		if glob.Match(r.URL.Path) {
+			isPrivateRoute = true
+		}
+	}
+
+	if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
+		authMiddleware := auth.Middleware(h.db, k.String("email"), appname)
+		handler = authMiddleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
 }
 
 func transpile(p string, options esbuild.TransformOptions) ([]byte, error) {

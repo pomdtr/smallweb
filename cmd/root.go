@@ -48,11 +48,10 @@ func findConfigPath() string {
 
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
-		"host":    "127.0.0.1",
-		"sshPort": 2222,
-		"dir":     "~/smallweb",
-		"domain":  "localhost",
-		"proxy":   "smallweb.live:2222",
+		"port":   7777,
+		"dir":    "~/smallweb",
+		"domain": "localhost",
+		"proxy":  "smallweb.live:2222",
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",
 		},
@@ -109,7 +108,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdProxy())
 	cmd.AddCommand(NewCmdCreate())
 	cmd.AddCommand(NewCmdOpen())
-	cmd.AddCommand(NewCmdTunnel())
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdRename())
 	cmd.AddCommand(NewCmdClone())

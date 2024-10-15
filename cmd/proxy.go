@@ -10,15 +10,19 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gliderlabs/ssh"
+	"github.com/charmbracelet/ssh"
 	"github.com/spf13/cobra"
 	gossh "golang.org/x/crypto/ssh"
 )
+
+const KeyCtrlC = 3 // ASCII ETX -> Ctrl+C
+const KeyCtrlD = 4 // ASCII EOT -> Ctrl+D
 
 func NewCmdProxy() *cobra.Command {
 	var flags struct {
 		httpPort int
 		sshPort  int
+		apiPort  int
 	}
 
 	cmd := &cobra.Command{
@@ -26,67 +30,88 @@ func NewCmdProxy() *cobra.Command {
 		Args:   cobra.NoArgs,
 		Hidden: true,
 		Short:  "Start a proxy server",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			forwardHandler := &ForwardedTCPHandler{}
 
-			httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				ln, ok := forwardHandler.GetListener(r.Host)
-				if !ok {
-					http.Error(w, "user not connected", http.StatusNotFound)
-					return
-				}
+			httpServer := http.Server{
+				Addr: fmt.Sprintf(":%d", flags.httpPort),
+				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					ln, ok := forwardHandler.GetListener(r.Host)
+					if !ok {
+						http.NotFound(w, r)
+						return
+					}
 
-				client := &http.Client{
-					Transport: &http.Transport{
-						Dial: func(network, addr string) (net.Conn, error) {
-							return net.Dial("tcp", ln.Addr().String())
+					client := &http.Client{
+						Transport: &http.Transport{
+							Dial: func(network, addr string) (net.Conn, error) {
+								return net.Dial("tcp", ln.Addr().String())
+							},
 						},
-					},
-				}
-
-				url := fmt.Sprintf("http://%s%s", r.Host, r.URL.String())
-				req, err := http.NewRequest(r.Method, url, r.Body)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				for k, v := range r.Header {
-					for _, vv := range v {
-						req.Header.Add(k, vv)
 					}
-				}
 
-				resp, err := client.Do(req)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				w.WriteHeader(resp.StatusCode)
-				for k, v := range resp.Header {
-					for _, vv := range v {
-						w.Header().Add(k, vv)
+					url := fmt.Sprintf("http://%s%s", r.Host, r.URL.String())
+					req, err := http.NewRequest(r.Method, url, r.Body)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
 					}
-				}
-				io.Copy(w, resp.Body)
 
-			})
+					for k, v := range r.Header {
+						for _, vv := range v {
+							req.Header.Add(k, vv)
+						}
+					}
+
+					resp, err := client.Do(req)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+
+					w.WriteHeader(resp.StatusCode)
+					for k, v := range resp.Header {
+						for _, vv := range v {
+							w.Header().Add(k, vv)
+						}
+					}
+					io.Copy(w, resp.Body)
+				}),
+			}
+
+			apiServer := http.Server{
+				Addr: fmt.Sprintf(":%d", flags.apiPort),
+				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					mux := http.NewServeMux()
+
+					mux.HandleFunc("GET /check", func(w http.ResponseWriter, r *http.Request) {
+						domain := r.URL.Query().Get("domain")
+						if domain == "" {
+							http.Error(w, "missing domain", http.StatusBadRequest)
+							return
+						}
+
+						if _, ok := forwardHandler.GetListener(domain); !ok {
+							http.Error(w, "no forward found", http.StatusNotFound)
+							return
+						}
+
+						w.WriteHeader(http.StatusOK)
+						w.Write([]byte("OK"))
+					})
+
+					mux.ServeHTTP(w, r)
+				}),
+			}
 
 			sshServer := ssh.Server{
 				Addr: fmt.Sprintf(":%d", flags.sshPort),
-				LocalPortForwardingCallback: ssh.LocalPortForwardingCallback(func(ctx ssh.Context, dhost string, dport uint32) bool {
-					log.Println("Accepted forward", dhost, dport)
-					return true
-				}),
 				Handler: ssh.Handler(func(s ssh.Session) {
-					fmt.Fprintln(s, s.Context().SessionID())
 					select {}
 				}),
-				ReversePortForwardingCallback: ssh.ReversePortForwardingCallback(func(ctx ssh.Context, host string, port uint32) bool {
-					log.Println("attempt to bind", host, port, "granted")
+				ReversePortForwardingCallback: func(ctx ssh.Context, bindAddr string, bindPort uint32) bool {
 					return true
-				}),
+				},
 				RequestHandlers: map[string]ssh.RequestHandler{
 					"tcpip-forward":        forwardHandler.HandleSSHRequest,
 					"cancel-tcpip-forward": forwardHandler.HandleSSHRequest,
@@ -94,13 +119,15 @@ func NewCmdProxy() *cobra.Command {
 			}
 
 			go sshServer.ListenAndServe()
+			go apiServer.ListenAndServe()
 
-			fmt.Fprintln(cmd.OutOrStdout(), "Forwarding requests from HTTP port", flags.httpPort, "to SSH port", flags.sshPort, "...")
-			return http.ListenAndServe(fmt.Sprintf(":%d", flags.httpPort), http.HandlerFunc(httpHandler))
+			fmt.Fprintln(cmd.OutOrStdout(), "Forwarding requests from HTTP Port", flags.httpPort, "to SSH port", flags.sshPort, "...")
+			return httpServer.ListenAndServe()
 		},
 	}
 
 	cmd.Flags().IntVar(&flags.httpPort, "http-port", 8080, "HTTP port to listen on")
+	cmd.Flags().IntVar(&flags.apiPort, "api-port", 8081, "API port to listen on")
 	cmd.Flags().IntVar(&flags.sshPort, "ssh-port", 2222, "SSH port to listen on")
 
 	return cmd
@@ -135,24 +162,24 @@ type ForwardedTCPHandler struct {
 	sync.Mutex
 }
 
-func (h *ForwardedTCPHandler) GetListener(host string) (net.Listener, bool) {
-	h.Lock()
-	defer h.Unlock()
-	if ln, ok := h.Forwards[host]; ok {
-		return ln, true
-	}
-
-	parts := strings.SplitN(host, ".", 2)
-	if len(parts) != 2 {
+func (me *ForwardedTCPHandler) GetListener(host string) (net.Listener, bool) {
+	if me.Forwards == nil {
 		return nil, false
 	}
 
-	ln, ok := h.Forwards[parts[1]]
-	return ln, ok
-}
+	me.Lock()
+	defer me.Unlock()
 
-func SessionKey(ctx ssh.Context) string {
-	return ctx.SessionID()[0:8]
+	if ln, ok := me.Forwards[host]; ok {
+		return ln, true
+	}
+
+	domain := strings.SplitN(host, ".", 2)[1]
+	if ln, ok := me.Forwards[domain]; ok {
+		return ln, true
+	}
+
+	return nil, false
 }
 
 func (h *ForwardedTCPHandler) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server, req *gossh.Request) (bool, []byte) {
@@ -188,18 +215,18 @@ func (h *ForwardedTCPHandler) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server,
 		_, destPortStr, _ := net.SplitHostPort(ln.Addr().String())
 		destPort, _ := strconv.Atoi(destPortStr)
 		h.Lock()
-		if _, ok := h.Forwards[SessionKey(ctx)]; ok {
+		if _, ok := h.Forwards[reqPayload.BindAddr]; ok {
 			h.Unlock()
 			ln.Close()
 			return false, []byte("forward already exists")
 		}
 
-		h.Forwards[SessionKey(ctx)] = ln
+		h.Forwards[reqPayload.BindAddr] = ln
 		h.Unlock()
 		go func() {
 			<-ctx.Done()
 			h.Lock()
-			ln, ok := h.Forwards[SessionKey(ctx)]
+			ln, ok := h.Forwards[reqPayload.BindAddr]
 			h.Unlock()
 			if ok {
 				ln.Close()
@@ -242,11 +269,10 @@ func (h *ForwardedTCPHandler) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server,
 				}()
 			}
 			h.Lock()
-			delete(h.Forwards, SessionKey(ctx))
+			delete(h.Forwards, reqPayload.BindAddr)
 			h.Unlock()
 		}()
 		return true, gossh.Marshal(&remoteForwardSuccess{uint32(destPort)})
-
 	case "cancel-tcpip-forward":
 		var reqPayload remoteForwardCancelRequest
 		if err := gossh.Unmarshal(req.Payload, &reqPayload); err != nil {
@@ -254,7 +280,7 @@ func (h *ForwardedTCPHandler) HandleSSHRequest(ctx ssh.Context, srv *ssh.Server,
 			return false, []byte{}
 		}
 		h.Lock()
-		ln, ok := h.Forwards[SessionKey(ctx)]
+		ln, ok := h.Forwards[reqPayload.BindAddr]
 		h.Unlock()
 		if ok {
 			ln.Close()

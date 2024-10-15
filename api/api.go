@@ -23,9 +23,9 @@ import (
 
 //go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml ./openapi.json
 
-var (
-	SocketPath = filepath.Join(xdg.CacheHome, "smallweb", "api.sock")
-)
+func SocketPath(domain string) string {
+	return filepath.Join(xdg.CacheHome, "smallweb", "domains", domain, "api.sock")
+}
 
 //go:embed schemas
 var schemas embed.FS
