@@ -294,15 +294,6 @@ func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return appname
 		}
 
-		if appname := r.Header.Get("X-Smallweb-App"); appname != "" {
-			r.Header.Del("X-Smallweb-App")
-			if stat, err := os.Stat(filepath.Join(rootDir, appname)); err == nil && stat.IsDir() {
-				return appname
-			}
-
-			return ""
-		}
-
 		return ""
 	}()
 
@@ -313,7 +304,7 @@ func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				target := r.URL
 				target.Scheme = "https"
 				target.Host = "www." + k.String("domain")
-				http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, target.String(), http.StatusFound)
 				return
 			}
 
@@ -327,7 +318,7 @@ func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				target := r.URL
 				target.Scheme = "https"
 				target.Host = k.String("domain")
-				http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, target.String(), http.StatusFound)
 				return
 			}
 
