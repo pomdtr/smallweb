@@ -157,12 +157,12 @@ func NewCmdUp() *cobra.Command {
 				}
 			}()
 
-			if k.Bool("tunnel") {
+			if proxy := k.String("proxy"); proxy != "" {
 				fmt.Fprintln(os.Stderr, "Tunneling enabled, starting SSH client...")
 				go func() {
 					backoff := initialBackoff
 					for {
-						client, err := ssh.Dial("tcp", k.String("proxy"), &ssh.ClientConfig{
+						client, err := ssh.Dial("tcp", proxy, &ssh.ClientConfig{
 							HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 						})
 						if err != nil {

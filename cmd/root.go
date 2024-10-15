@@ -51,7 +51,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		"port":   7777,
 		"dir":    "~/smallweb",
 		"domain": "localhost",
-		"proxy":  "smallweb.live:2222",
 		"env": map[string]string{
 			"DENO_TLS_CA_STORE": "system",
 		},
