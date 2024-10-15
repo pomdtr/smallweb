@@ -37,7 +37,7 @@ import (
 
 const (
 	initialBackoff    = 5 * time.Second  // Starting wait time between retries
-	maxBackoff        = 30 * time.Second // Maximum wait time between retries
+	maxBackoff        = 1 * time.Minute  // Maximum wait time between retries
 	keepAliveInterval = 30 * time.Second // Interval for keepalive requests
 )
 
