@@ -71,6 +71,7 @@ func NewCmdProxy() *cobra.Command {
 						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
 					}
+					defer resp.Body.Close()
 
 					for k, v := range resp.Header {
 						for _, vv := range v {
