@@ -48,6 +48,9 @@ func NewCmdProxy() *cobra.Command {
 								return net.Dial("tcp", ln.Addr().String())
 							},
 						},
+						CheckRedirect: func(req *http.Request, via []*http.Request) error {
+							return http.ErrUseLastResponse
+						},
 					}
 
 					url := fmt.Sprintf("http://%s%s", r.Host, r.URL.String())
@@ -69,12 +72,13 @@ func NewCmdProxy() *cobra.Command {
 						return
 					}
 
-					w.WriteHeader(resp.StatusCode)
 					for k, v := range resp.Header {
 						for _, vv := range v {
 							w.Header().Add(k, vv)
 						}
 					}
+
+					w.WriteHeader(resp.StatusCode)
 					io.Copy(w, resp.Body)
 				}),
 			}
