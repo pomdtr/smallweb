@@ -201,7 +201,12 @@ func (me *Worker) Stop(command *exec.Cmd) error {
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	url := fmt.Sprintf("https://%s%s", r.Host, r.URL.String())
+	scheme := r.Header.Get("X-Forwarded-Proto")
+	if scheme == "" {
+		scheme = "http"
+	}
+
+	url := fmt.Sprintf("%s://%s%s", scheme, r.Host, r.URL.String())
 	port, err := GetFreePort()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
