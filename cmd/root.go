@@ -91,7 +91,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	})
 
 	cmd.AddCommand(NewCmdRun())
-	cmd.AddCommand(NewCmdApp())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdUpgrade())
@@ -101,6 +100,12 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdAPI())
 	cmd.AddCommand(NewCmdLog())
+	cmd.AddCommand(NewCmdCreate())
+	cmd.AddCommand(NewCmdOpen())
+	cmd.AddCommand(NewCmdList())
+	cmd.AddCommand(NewCmdRename())
+	cmd.AddCommand(NewCmdClone())
+	cmd.AddCommand(NewCmdDelete())
 
 	cmd.AddCommand(&cobra.Command{
 		Use:     "changelog",
