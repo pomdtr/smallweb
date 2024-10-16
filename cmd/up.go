@@ -40,20 +40,13 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if k.String("domain") == "" {
+				return fmt.Errorf("domain cannot be empty")
+			}
+
 			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
 			if err != nil {
 				return fmt.Errorf("failed to open database: %v", err)
-			}
-
-			port := k.Int("port")
-			cert := k.String("cert")
-			key := k.String("key")
-			if port == 0 {
-				if cert != "" || key != "" {
-					port = 443
-				} else {
-					port = 7777
-				}
 			}
 
 			httpWriter := utils.NewMultiWriter()
@@ -64,7 +57,6 @@ func NewCmdUp() *cobra.Command {
 			consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
 
 			apiHandler := api.NewHandler(k, httpWriter, cronWriter, consoleWriter)
-			addr := fmt.Sprintf("%s:%d", k.String("host"), port)
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				rootDir := utils.ExpandTilde(k.String("dir"))
 
@@ -233,7 +225,7 @@ func NewCmdUp() *cobra.Command {
 			})
 
 			server := http.Server{
-				Addr:    addr,
+				Addr:    fmt.Sprintf(":%d", k.Int("port")),
 				Handler: httpLogger.Middleware(handler),
 			}
 
@@ -304,20 +296,7 @@ func NewCmdUp() *cobra.Command {
 
 			go c.Start()
 
-			if cert != "" || key != "" {
-				if cert == "" {
-					return fmt.Errorf("TLS certificate file is required")
-				}
-
-				if key == "" {
-					return fmt.Errorf("TLS key file is required")
-				}
-
-				cmd.Printf("Serving %s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
-				return server.ListenAndServeTLS(utils.ExpandTilde(cert), utils.ExpandTilde(key))
-			}
-
-			cmd.Printf("Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
+			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on :%d\n", k.String("domain"), k.String("dir"), k.Int("port"))
 			go server.ListenAndServe()
 
 			// start api server on unix socket
