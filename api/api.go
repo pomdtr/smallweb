@@ -95,6 +95,36 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 	})
 }
 
+func (me *Server) GetV0CaddyCheck(w http.ResponseWriter, r *http.Request, params GetV0CaddyCheckParams) {
+	domain := me.k.String("domain")
+	if params.Domain == domain {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	customDomains := me.k.Strings("customDomains")
+	for _, customDomain := range customDomains {
+		if params.Domain == customDomain {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
+
+	if !strings.HasSuffix(params.Domain, domain) {
+		http.NotFound(w, r)
+		return
+	}
+
+	appname := strings.TrimSuffix(params.Domain, "."+me.k.String("domain"))
+	rootDir := utils.ExpandTilde(me.k.String("dir"))
+	if _, err := app.LoadApp(filepath.Join(rootDir, appname), me.k.String("domain")); err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // GetV0AppsAppEnv implements ServerInterface.
 func (me *Server) GetV0AppsApp(w http.ResponseWriter, r *http.Request, appname string) {
 	rootDir := utils.ExpandTilde(me.k.String("dir"))
