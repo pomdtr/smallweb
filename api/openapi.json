@@ -178,42 +178,6 @@
           }
         }
       }
-    },
-    "/v0/caddy/check": {
-      "get": {
-        "parameters": [
-          {
-            "in": "query",
-            "name": "domain",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Domain is available",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Domain is not available",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {

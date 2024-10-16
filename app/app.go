@@ -68,6 +68,10 @@ func ListApps(rootDir string) ([]string, error) {
 }
 
 func LoadApp(dir string, domain string) (App, error) {
+	if !utils.FileExists(dir) {
+		return App{}, fmt.Errorf("directory does not exist: %s", dir)
+	}
+
 	name := filepath.Base(dir)
 
 	app := App{

@@ -50,6 +50,36 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 		Prefix:     "/webdav",
 	}
 
+	caddyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		domain := r.URL.Query().Get("domain")
+		if domain == k.String("domain") {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		customDomains := k.Strings("customDomains")
+		for _, customDomain := range customDomains {
+			if domain == customDomain {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+		}
+
+		if !strings.HasSuffix(domain, "."+k.String("domain")) {
+			http.NotFound(w, r)
+			return
+		}
+
+		appname := strings.TrimSuffix(domain, "."+k.String("domain"))
+		rootDir := utils.ExpandTilde(k.String("dir"))
+		if _, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain")); err != nil {
+			http.NotFound(w, r)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/webdav") {
 			webdavHandler.ServeHTTP(w, r)
@@ -91,38 +121,13 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 			return
 		}
 
-		http.NotFound(w, r)
-	})
-}
-
-func (me *Server) GetV0CaddyCheck(w http.ResponseWriter, r *http.Request, params GetV0CaddyCheckParams) {
-	domain := me.k.String("domain")
-	if params.Domain == domain {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	customDomains := me.k.Strings("customDomains")
-	for _, customDomain := range customDomains {
-		if params.Domain == customDomain {
-			w.WriteHeader(http.StatusOK)
+		if strings.HasPrefix(r.URL.Path, "/caddy/check") {
+			http.StripPrefix("/caddy/check", caddyHandler).ServeHTTP(w, r)
 			return
 		}
-	}
 
-	if !strings.HasSuffix(params.Domain, domain) {
 		http.NotFound(w, r)
-		return
-	}
-
-	appname := strings.TrimSuffix(params.Domain, "."+me.k.String("domain"))
-	rootDir := utils.ExpandTilde(me.k.String("dir"))
-	if _, err := app.LoadApp(filepath.Join(rootDir, appname), me.k.String("domain")); err != nil {
-		http.NotFound(w, r)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	})
 }
 
 // GetV0AppsAppEnv implements ServerInterface.
