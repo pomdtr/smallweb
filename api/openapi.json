@@ -232,7 +232,7 @@
             "type": "string"
           },
           "manifest": {
-            "$ref": "#/components/schemas/Manifest"
+            "type": "object"
           }
         }
       },
@@ -466,9 +466,6 @@
             "description": "The base64-encoded log message"
           }
         }
-      },
-      "Manifest": {
-        "$ref": "./schemas/manifest.schema.json"
       },
       "CommandOutput": {
         "type": "object",

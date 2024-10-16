@@ -152,7 +152,7 @@ func (me *Server) GetV0AppsApp(w http.ResponseWriter, r *http.Request, appname s
 		return
 	}
 
-	var manifest Manifest
+	var manifest map[string]interface{}
 	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		encoder := json.NewEncoder(w)
@@ -205,7 +205,7 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var manifest Manifest
+		var manifest map[string]interface{}
 		if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
 			continue
 		}
