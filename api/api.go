@@ -54,6 +54,7 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 		domain := r.URL.Query().Get("domain")
 		if domain == k.String("domain") {
 			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
 			return
 		}
 
@@ -61,23 +62,25 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 		for _, customDomain := range customDomains {
 			if domain == customDomain {
 				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("OK"))
 				return
 			}
 		}
 
 		if !strings.HasSuffix(domain, "."+k.String("domain")) {
-			http.NotFound(w, r)
+			http.Error(w, "invalid domain", http.StatusBadRequest)
 			return
 		}
 
 		appname := strings.TrimSuffix(domain, "."+k.String("domain"))
 		rootDir := utils.ExpandTilde(k.String("dir"))
 		if _, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain")); err != nil {
-			http.NotFound(w, r)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
 	})
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
