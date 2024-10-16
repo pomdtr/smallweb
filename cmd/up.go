@@ -86,7 +86,7 @@ func NewCmdUp() *cobra.Command {
 				if appname == "" {
 					if r.Host == k.String("domain") {
 						// if we are on the apex domain and www exists, redirect to www
-						if stat, err := os.Stat(filepath.Join(rootDir, "www")); err != nil || stat.IsDir() {
+						if stat, err := os.Stat(filepath.Join(rootDir, "www")); err != nil || !stat.IsDir() {
 							w.WriteHeader(http.StatusNotFound)
 							return
 						}
@@ -104,7 +104,7 @@ func NewCmdUp() *cobra.Command {
 
 					if r.Host == fmt.Sprintf("www.%s", k.String("domain")) {
 						// if we are on the www domain and apex exists, redirect to apex
-						if stat, err := os.Stat(filepath.Join(rootDir, "@")); err != nil || stat.IsDir() {
+						if stat, err := os.Stat(filepath.Join(rootDir, "@")); err != nil || !stat.IsDir() {
 							w.WriteHeader(http.StatusNotFound)
 							return
 						}
