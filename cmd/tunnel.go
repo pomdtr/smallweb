@@ -60,7 +60,10 @@ func NewCmdTunnel() *cobra.Command {
 				}),
 			}
 
-			socketPath := filepath.Join(os.TempDir(), "smallweb.sock")
+			ln, err := net.Listen("tcp", "localhost:0")
+			if err != nil {
+				return fmt.Errorf("failed to listen: %v", err)
+			}
 
 			go func() {
 				_, _, err := client.SendRequest("tcpip-forward", true, ssh.Marshal(remoteForwardRequest{
@@ -82,7 +85,7 @@ func NewCmdTunnel() *cobra.Command {
 
 					go ssh.DiscardRequests(reqs)
 
-					c, err := net.Dial("unix", socketPath)
+					c, err := net.Dial("tcp", ln.Addr().String())
 					if err != nil {
 						ch.Close()
 						log.Printf("failed to dial: %v", err)
@@ -118,23 +121,9 @@ func NewCmdTunnel() *cobra.Command {
 				return fmt.Errorf("failed to start shell: %v", err)
 			}
 
-			ln, err := net.Listen("unix", socketPath)
-			if err != nil {
-				return fmt.Errorf("failed to listen: %v", err)
-			}
-
 			go server.Serve(ln)
 
-			if err := session.Wait(); err != nil {
-				return fmt.Errorf("failed to wait: %v", err)
-			}
-
-			server.Close()
-			if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("failed to remove socket: %v", err)
-			}
-
-			return nil
+			return session.Wait()
 		},
 	}
 

@@ -17,7 +17,7 @@
             "console": "integratedTerminal",
             "args": [
                 "tunnel",
-                "demo"
+                "www"
             ]
         }
     ]
