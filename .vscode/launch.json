@@ -16,7 +16,7 @@
             "program": "${workspaceFolder}/main.go",
             "console": "integratedTerminal",
             "args": [
-                "edit",
+                "tunnel",
                 "demo"
             ]
         }
