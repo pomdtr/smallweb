@@ -195,29 +195,18 @@
 <h2 id="custom-domains"><a class="header" href="#custom-domains">Custom domains</a></h2>
 <p>In addition to your base domain, you can also map custom domains to apps from your global config.</p>
 <pre><code class="language-json">{
-
     "domain": "example.com",
     "dir": "~/smallweb",
     "customDomains": {
-        "pomdtr.me": "pomdtr"
+        "pomdtr.me": "my-app"
     }
 }
 </code></pre>
-<p>In this example, <code>pomdtr.me</code> will be mapped to <code>~/smallweb/pomdtr</code>, meaning that the <code>pomdtr</code> app will be accessible both at:</p>
+<p>In this example, <code>pomdtr.me</code> will be mapped to <code>~/smallweb/my-app</code>, meaning that the <code>my-app</code> app will be accessible both at:</p>
 <ul>
-<li><code>https://pomdtr.example.com</code></li>
+<li><code>https://my-app.example.com</code></li>
 <li><code>https://pomdtr.me</code></li>
 </ul>
-<p>You can also map wildcards to apps by using the <code>*</code> character.</p>
-<pre><code class="language-json">{
-    "domain": "example.com",
-    "dir": "~/smallweb",
-    "customDomains": {
-        "pomdtr.me": "pomdtr",
-        "sandbox-*.pomdtr.me": "pomdtr"
-    }
-}
-</code></pre>
 
                     </main>
 
