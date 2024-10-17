@@ -26,29 +26,15 @@ In addition to your base domain, you can also map custom domains to apps from yo
 
 ```json
 {
-
     "domain": "example.com",
     "dir": "~/smallweb",
     "customDomains": {
-        "pomdtr.me": "pomdtr"
+        "pomdtr.me": "my-app"
     }
 }
 ```
 
-In this example, `pomdtr.me` will be mapped to `~/smallweb/pomdtr`, meaning that the `pomdtr` app will be accessible both at:
+In this example, `pomdtr.me` will be mapped to `~/smallweb/my-app`, meaning that the `my-app` app will be accessible both at:
 
-- `https://pomdtr.example.com`
+- `https://my-app.example.com`
 - `https://pomdtr.me`
-
-You can also map wildcards to apps by using the `*` character.
-
-```json
-{
-    "domain": "example.com",
-    "dir": "~/smallweb",
-    "customDomains": {
-        "pomdtr.me": "pomdtr",
-        "sandbox-*.pomdtr.me": "pomdtr"
-    }
-}
-```

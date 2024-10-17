@@ -76,13 +76,12 @@ The `env` field defines a list of environment variables to set for all apps.
 
 ### `customDomains`
 
-The `customDomains` field defines a list of custom domains to map to apps. It supports wildcards.
+The `customDomains` field defines a list of custom domains to map to apps.
 
 ```json
 {
   "customDomains": {
     "pomdtr.me": "pomdtr",
-    "sandbox-*.pomdtr.me": "pomdtr"
   }
 }
 ```
