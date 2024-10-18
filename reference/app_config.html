@@ -179,27 +179,8 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="global-configuration-reference"><a class="header" href="#global-configuration-reference">Global Configuration Reference</a></h1>
+                        <h1 id="app-configuration-reference"><a class="header" href="#app-configuration-reference">App Configuration Reference</a></h1>
 <p>The smallweb configuration can be defined in a <code>smallweb.json[c]</code> file at the root of the project. This config file is optional, and sensible defaults are used when it is not present.</p>
-<p>A json schema for the config file is available <a href="https://schema.smallweb.run">here</a>.</p>
-<p>You can set it using a <code>$schema</code> field in your <code>smallweb.json[c]</code> file:</p>
-<pre><code class="language-json">{
-  "$schema": "https://schema.smallweb.run",
-}
-</code></pre>
-<p>VS Code users can also set it globally in their <code>settings.json</code>:</p>
-<pre><code class="language-json">{
-  "json.schemas": [
-    {
-      "url": "https://schema.smallweb.run",
-      "fileMatch": [
-        "smallweb.json",
-        "smallweb.jsonc"
-      ]
-    }
-  ]
-}
-</code></pre>
 <h2 id="available-fields"><a class="header" href="#available-fields">Available Fields</a></h2>
 <h3 id="entrypoint"><a class="header" href="#entrypoint"><code>entrypoint</code></a></h3>
 <p>The <code>entrypoint</code> field defines the file to serve. If this field is not provided, the app will look for a <code>main.[js,ts,jsx,tsx]</code> file in the root directory.</p>
