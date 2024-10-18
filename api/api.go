@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/knadh/koanf/v2"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
@@ -105,7 +106,14 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 
-			spec.Servers[0].Variables["domain"].Default = r.Host
+			scheme := "http"
+			if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+				scheme = "https"
+			}
+
+			spec.Servers = openapi3.Servers{
+				{URL: scheme + "://" + r.Host},
+			}
 
 			encoder := json.NewEncoder(w)
 			encoder.SetIndent("", "  ")
