@@ -48,6 +48,7 @@ func findConfigPath() string {
 
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
+		"host": "127.0.0.1",
 		"port": 7777,
 		"dir":  "~/smallweb",
 	}, "")

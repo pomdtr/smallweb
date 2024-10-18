@@ -133,8 +133,9 @@ func NewCmdUp() *cobra.Command {
 				appHandler.ServeApp(w, r, a)
 			})
 
+			addr := fmt.Sprintf("%s:%d", k.String("host"), k.Int("port"))
 			server := http.Server{
-				Addr:    fmt.Sprintf(":%d", k.Int("port")),
+				Addr:    addr,
 				Handler: httpLogger.Middleware(handler),
 			}
 
@@ -205,7 +206,7 @@ func NewCmdUp() *cobra.Command {
 
 			go c.Start()
 
-			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on :%d\n", k.String("domain"), k.String("dir"), k.Int("port"))
+			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
 			go server.ListenAndServe()
 
 			// start api server on unix socket
