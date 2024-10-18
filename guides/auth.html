@@ -186,6 +186,8 @@
 <p>Add an <code>email</code> field to your global config</p>
 <pre><code class="language-json">// ~/.config/smallweb/config.json
 {
+    "domain": "example.com",
+    "dir": "~/smallweb",
     "email": "pomdtr@example.com"
 }
 </code></pre>
@@ -204,13 +206,13 @@
 <pre><code class="language-sh">smallweb token create --description "CI/CD pipeline"
 </code></pre>
 <p>Then, you can pass this token in the <code>Authorization</code> header of your requests.</p>
-<pre><code class="language-sh">curl https://private-app.smallweb.run -H "Authorization: Bearer &lt;token&gt;"
+<pre><code class="language-sh">curl https://private-app.example.com -H "Authorization: Bearer &lt;token&gt;"
 </code></pre>
 <p>or alternatively, use the basic auth username.</p>
-<pre><code class="language-sh">curl https://private-app.smallweb.run -u "&lt;token&gt;"
+<pre><code class="language-sh">curl https://private-app.example.com -u "&lt;token&gt;"
 
 # or
-curl https://&lt;token&gt;@private-app.smallweb.run
+curl https://&lt;token&gt;@private-app.example.com
 </code></pre>
 <p>If your app is public, but you still want to protect some routes, you can use the <code>privateRoutes</code> field in your app's config.</p>
 <pre><code class="language-json">// ~/smallweb/private-app/smallweb.json

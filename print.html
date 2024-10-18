@@ -430,6 +430,8 @@ smallweb list | cut -f1 | fzf | xargs smallweb open --app
 <p>Add an <code>email</code> field to your global config</p>
 <pre><code class="language-json">// ~/.config/smallweb/config.json
 {
+    "domain": "example.com",
+    "dir": "~/smallweb",
     "email": "pomdtr@example.com"
 }
 </code></pre>
@@ -448,13 +450,13 @@ smallweb list | cut -f1 | fzf | xargs smallweb open --app
 <pre><code class="language-sh">smallweb token create --description "CI/CD pipeline"
 </code></pre>
 <p>Then, you can pass this token in the <code>Authorization</code> header of your requests.</p>
-<pre><code class="language-sh">curl https://private-app.smallweb.run -H "Authorization: Bearer &lt;token&gt;"
+<pre><code class="language-sh">curl https://private-app.example.com -H "Authorization: Bearer &lt;token&gt;"
 </code></pre>
 <p>or alternatively, use the basic auth username.</p>
-<pre><code class="language-sh">curl https://private-app.smallweb.run -u "&lt;token&gt;"
+<pre><code class="language-sh">curl https://private-app.example.com -u "&lt;token&gt;"
 
 # or
-curl https://&lt;token&gt;@private-app.smallweb.run
+curl https://&lt;token&gt;@private-app.example.com
 </code></pre>
 <p>If your app is public, but you still want to protect some routes, you can use the <code>privateRoutes</code> field in your app's config.</p>
 <pre><code class="language-json">// ~/smallweb/private-app/smallweb.json
@@ -894,7 +896,7 @@ smallweb service install
 <h3 id="domain"><a class="header" href="#domain"><code>domain</code></a></h3>
 <p>The <code>domain</code> field defines the apex domain used for routing.</p>
 <pre><code class="language-json">{
-  "domain": "smallweb.run"
+  "domain": "example.com"
 }
 </code></pre>
 <p>See the <a href="reference/../guides/routing.html">Routing</a> guide for more information.</p>
@@ -908,7 +910,7 @@ smallweb service install
 <p>The <code>email</code> field is required to enable lastlogin authentication for private apps.</p>
 <p>If it is not set, private will show a basic auth prompt instead.</p>
 <pre><code class="language-json">{
-  "email": "pomdtr@smallweb.run"
+  "email": "pomdtr@example.com"
 }
 </code></pre>
 <h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
