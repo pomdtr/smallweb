@@ -216,14 +216,6 @@
   "email": "pomdtr@example.com"
 }
 </code></pre>
-<h3 id="env"><a class="header" href="#env"><code>env</code></a></h3>
-<p>The <code>env</code> field defines a list of environment variables to set for all apps.</p>
-<pre><code class="language-json">{
-  "env": {
-    "NODE_ENV": "production"
-  }
-}
-</code></pre>
 <h3 id="customdomains"><a class="header" href="#customdomains"><code>customDomains</code></a></h3>
 <p>The <code>customDomains</code> field defines a list of custom domains to map to apps.</p>
 <pre><code class="language-json">{
@@ -237,12 +229,20 @@
 <pre><code class="language-json">{
   "host": "127.0.0.1",
   "port": 7777,
-  "domain": "localhost",
   "dir": "~/smallweb",
-  "env": {
-    // allow smallweb apps to communicate with each other when using self-signed certificates
-    "DENO_TLS_CA_STORE": "system"
-  }
+}
+</code></pre>
+<p>Since smallweb requires a domain to be set, the minimal config is:</p>
+<pre><code class="language-json">{
+  "domain": "example.com"
+}
+</code></pre>
+<p>which is equivalent to:</p>
+<pre><code class="language-json">{
+  "domain": "example.com",
+  "host": "127.0.0.1",
+  "port": 7777,
+  "dir": "~/smallweb",
 }
 </code></pre>
 
