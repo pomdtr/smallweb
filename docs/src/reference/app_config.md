@@ -1,32 +1,6 @@
-# Global Configuration Reference
+# App Configuration Reference
 
 The smallweb configuration can be defined in a `smallweb.json[c]` file at the root of the project. This config file is optional, and sensible defaults are used when it is not present.
-
-A json schema for the config file is available [here](https://schema.smallweb.run).
-
-You can set it using a `$schema` field in your `smallweb.json[c]` file:
-
-```json
-{
-  "$schema": "https://schema.smallweb.run",
-}
-```
-
-VS Code users can also set it globally in their `settings.json`:
-
-```json
-{
-  "json.schemas": [
-    {
-      "url": "https://schema.smallweb.run",
-      "fileMatch": [
-        "smallweb.json",
-        "smallweb.jsonc"
-      ]
-    }
-  ]
-}
-```
 
 ## Available Fields
 
