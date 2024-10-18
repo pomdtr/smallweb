@@ -8,8 +8,11 @@ package api
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -59,6 +62,823 @@ type RunAppJSONBody struct {
 
 // RunAppJSONRequestBody defines body for RunApp for application/json ContentType.
 type RunAppJSONRequestBody RunAppJSONBody
+
+// RequestEditorFn  is the function signature for the RequestEditor callback function
+type RequestEditorFn func(ctx context.Context, req *http.Request) error
+
+// Doer performs HTTP requests.
+//
+// The standard http.Client implements this interface.
+type HttpRequestDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+// Client which conforms to the OpenAPI3 specification for this service.
+type Client struct {
+	// The endpoint of the server conforming to this interface, with scheme,
+	// https://api.deepmap.com for example. This can contain a path relative
+	// to the server, such as https://api.deepmap.com/dev-test, and all the
+	// paths in the swagger spec will be appended to the server.
+	Server string
+
+	// Doer for performing requests, typically a *http.Client with any
+	// customized settings, such as certificate chains.
+	Client HttpRequestDoer
+
+	// A list of callbacks for modifying requests which are generated before sending over
+	// the network.
+	RequestEditors []RequestEditorFn
+}
+
+// ClientOption allows setting custom parameters during construction
+type ClientOption func(*Client) error
+
+// Creates a new Client, with reasonable defaults
+func NewClient(server string, opts ...ClientOption) (*Client, error) {
+	// create a client with sane default values
+	client := Client{
+		Server: server,
+	}
+	// mutate client and add all optional params
+	for _, o := range opts {
+		if err := o(&client); err != nil {
+			return nil, err
+		}
+	}
+	// ensure the server URL always has a trailing slash
+	if !strings.HasSuffix(client.Server, "/") {
+		client.Server += "/"
+	}
+	// create httpClient, if not already present
+	if client.Client == nil {
+		client.Client = &http.Client{}
+	}
+	return &client, nil
+}
+
+// WithHTTPClient allows overriding the default Doer, which is
+// automatically created using http.Client. This is useful for tests.
+func WithHTTPClient(doer HttpRequestDoer) ClientOption {
+	return func(c *Client) error {
+		c.Client = doer
+		return nil
+	}
+}
+
+// WithRequestEditorFn allows setting up a callback function, which will be
+// called right before sending the request. This can be used to mutate the request.
+func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
+	return func(c *Client) error {
+		c.RequestEditors = append(c.RequestEditors, fn)
+		return nil
+	}
+}
+
+// The interface specification for the client above.
+type ClientInterface interface {
+	// GetApps request
+	GetApps(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetApp request
+	GetApp(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetConsoleLogs request
+	GetConsoleLogs(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCronLogs request
+	GetCronLogs(ctx context.Context, params *GetCronLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetHttpLogs request
+	GetHttpLogs(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RunAppWithBody request with any body
+	RunAppWithBody(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RunApp(ctx context.Context, app string, body RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) GetApps(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAppsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetApp(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAppRequest(c.Server, app)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetConsoleLogs(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetConsoleLogsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCronLogs(ctx context.Context, params *GetCronLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCronLogsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetHttpLogs(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetHttpLogsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RunAppWithBody(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRunAppRequestWithBody(c.Server, app, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RunApp(ctx context.Context, app string, body RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRunAppRequest(c.Server, app, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewGetAppsRequest generates requests for GetApps
+func NewGetAppsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v0/apps")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetAppRequest generates requests for GetApp
+func NewGetAppRequest(server string, app string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "app", runtime.ParamLocationPath, app)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v0/apps/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetConsoleLogsRequest generates requests for GetConsoleLogs
+func NewGetConsoleLogsRequest(server string, params *GetConsoleLogsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v0/logs/console")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.App != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "app", runtime.ParamLocationQuery, *params.App); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCronLogsRequest generates requests for GetCronLogs
+func NewGetCronLogsRequest(server string, params *GetCronLogsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v0/logs/cron")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.App != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "app", runtime.ParamLocationQuery, *params.App); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetHttpLogsRequest generates requests for GetHttpLogs
+func NewGetHttpLogsRequest(server string, params *GetHttpLogsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v0/logs/http")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Host != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "host", runtime.ParamLocationQuery, *params.Host); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRunAppRequest calls the generic RunApp builder with application/json body
+func NewRunAppRequest(server string, app string, body RunAppJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRunAppRequestWithBody(server, app, "application/json", bodyReader)
+}
+
+// NewRunAppRequestWithBody generates requests for RunApp with any type of body
+func NewRunAppRequestWithBody(server string, app string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "app", runtime.ParamLocationPath, app)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v0/run/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
+	for _, r := range c.RequestEditors {
+		if err := r(ctx, req); err != nil {
+			return err
+		}
+	}
+	for _, r := range additionalEditors {
+		if err := r(ctx, req); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ClientWithResponses builds on ClientInterface to offer response payloads
+type ClientWithResponses struct {
+	ClientInterface
+}
+
+// NewClientWithResponses creates a new ClientWithResponses, which wraps
+// Client with return type handling
+func NewClientWithResponses(server string, opts ...ClientOption) (*ClientWithResponses, error) {
+	client, err := NewClient(server, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &ClientWithResponses{client}, nil
+}
+
+// WithBaseURL overrides the baseURL.
+func WithBaseURL(baseURL string) ClientOption {
+	return func(c *Client) error {
+		newBaseURL, err := url.Parse(baseURL)
+		if err != nil {
+			return err
+		}
+		c.Server = newBaseURL.String()
+		return nil
+	}
+}
+
+// ClientWithResponsesInterface is the interface specification for the client with responses above.
+type ClientWithResponsesInterface interface {
+	// GetAppsWithResponse request
+	GetAppsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppsResponse, error)
+
+	// GetAppWithResponse request
+	GetAppWithResponse(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*GetAppResponse, error)
+
+	// GetConsoleLogsWithResponse request
+	GetConsoleLogsWithResponse(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*GetConsoleLogsResponse, error)
+
+	// GetCronLogsWithResponse request
+	GetCronLogsWithResponse(ctx context.Context, params *GetCronLogsParams, reqEditors ...RequestEditorFn) (*GetCronLogsResponse, error)
+
+	// GetHttpLogsWithResponse request
+	GetHttpLogsWithResponse(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*GetHttpLogsResponse, error)
+
+	// RunAppWithBodyWithResponse request with any body
+	RunAppWithBodyWithResponse(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RunAppResponse, error)
+
+	RunAppWithResponse(ctx context.Context, app string, body RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*RunAppResponse, error)
+}
+
+type GetAppsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]App
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAppsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAppsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetAppResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *App
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAppResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAppResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetConsoleLogsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r GetConsoleLogsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetConsoleLogsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCronLogsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCronLogsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCronLogsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetHttpLogsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r GetHttpLogsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetHttpLogsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RunAppResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CommandOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r RunAppResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RunAppResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// GetAppsWithResponse request returning *GetAppsResponse
+func (c *ClientWithResponses) GetAppsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppsResponse, error) {
+	rsp, err := c.GetApps(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAppsResponse(rsp)
+}
+
+// GetAppWithResponse request returning *GetAppResponse
+func (c *ClientWithResponses) GetAppWithResponse(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*GetAppResponse, error) {
+	rsp, err := c.GetApp(ctx, app, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAppResponse(rsp)
+}
+
+// GetConsoleLogsWithResponse request returning *GetConsoleLogsResponse
+func (c *ClientWithResponses) GetConsoleLogsWithResponse(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*GetConsoleLogsResponse, error) {
+	rsp, err := c.GetConsoleLogs(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetConsoleLogsResponse(rsp)
+}
+
+// GetCronLogsWithResponse request returning *GetCronLogsResponse
+func (c *ClientWithResponses) GetCronLogsWithResponse(ctx context.Context, params *GetCronLogsParams, reqEditors ...RequestEditorFn) (*GetCronLogsResponse, error) {
+	rsp, err := c.GetCronLogs(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCronLogsResponse(rsp)
+}
+
+// GetHttpLogsWithResponse request returning *GetHttpLogsResponse
+func (c *ClientWithResponses) GetHttpLogsWithResponse(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*GetHttpLogsResponse, error) {
+	rsp, err := c.GetHttpLogs(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetHttpLogsResponse(rsp)
+}
+
+// RunAppWithBodyWithResponse request with arbitrary body returning *RunAppResponse
+func (c *ClientWithResponses) RunAppWithBodyWithResponse(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RunAppResponse, error) {
+	rsp, err := c.RunAppWithBody(ctx, app, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRunAppResponse(rsp)
+}
+
+func (c *ClientWithResponses) RunAppWithResponse(ctx context.Context, app string, body RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*RunAppResponse, error) {
+	rsp, err := c.RunApp(ctx, app, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRunAppResponse(rsp)
+}
+
+// ParseGetAppsResponse parses an HTTP response from a GetAppsWithResponse call
+func ParseGetAppsResponse(rsp *http.Response) (*GetAppsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAppsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []App
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetAppResponse parses an HTTP response from a GetAppWithResponse call
+func ParseGetAppResponse(rsp *http.Response) (*GetAppResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAppResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest App
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetConsoleLogsResponse parses an HTTP response from a GetConsoleLogsWithResponse call
+func ParseGetConsoleLogsResponse(rsp *http.Response) (*GetConsoleLogsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetConsoleLogsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetCronLogsResponse parses an HTTP response from a GetCronLogsWithResponse call
+func ParseGetCronLogsResponse(rsp *http.Response) (*GetCronLogsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCronLogsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetHttpLogsResponse parses an HTTP response from a GetHttpLogsWithResponse call
+func ParseGetHttpLogsResponse(rsp *http.Response) (*GetHttpLogsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetHttpLogsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseRunAppResponse parses an HTTP response from a RunAppWithResponse call
+func ParseRunAppResponse(rsp *http.Response) (*RunAppResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RunAppResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CommandOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/plain) unsupported
+
+	}
+
+	return response, nil
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -369,17 +1189,16 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+SWzW7bMAyAX8XQdsziYL35lhVYV6DAivY45KDYtKNCElWK7hoEfveBctPGsdvur4dh",
-	"Jwuk+feJJr1TJbqAHjxHVexULDfgdDouQ5BHIAxAbCAJnfamhshy5m0AVShc30DJqpsprx0cKCKT8Y0o",
-	"WrIT8m6mCG5bQ1Cp4ltv3b+7mo2dn6Jz2ldfWw4tjxMrsTqMbTxDAySGkSsgmswrcoUtT6vasoQYD3Rr",
-	"RAvaj/Levznrc3j0+hh5XI24ML7G5N2wFd2109Z+h3W2vDxXM3UHFA16VaiFpIMBvA5GFepkvpifqJkK",
-	"mjcpvfxukesQ0rmBVI2A0WzQn1eqUGfAS9FL2jGgjz2xj4tFD84z+GSmQ7CmTIb5TZTg+4aQk2FwyfA9",
-	"Qa0K9S5/ap38oW9yaZrusV5NpLd9uRXEkkzgvqYLEznDOkt5i5p1EwVmEqxEsi8r3+kQuleKSzxIO2Ag",
-	"8bNTRsIII7XvS/GtDq+OqYXZQYHH7bn6Q2CvchpzOQMWJi8gsdjEvEQf0cJLUE77Vy6wiWM4w6CfjWWg",
-	"TDxn623WY0r8blug7THAvwUMSwb+EJlAuyG4Gslplk/OeJ0SOI40Aned3KQaBvCS4Age9Rf1LDlC/59h",
-	"wzoTKj+Fb8McXsL3hTn8Br4NRn6G34PqH+47av3TGAsYJ8hdtf5N59htC5E/YbX9pRE23LGamjjYBKOt",
-	"eTT3h4symU8tw+4NB+3wtyFdEdxzHqw2R15eveur1stXnpXWTA5o+WsAuptu9+XleXadtA//OIWSLykW",
-	"eb6r0GnjO9n6moxe2x5DL04nqHVrOd29mcO9dsHCvEQnaa66HwEAAP//sgt99cUJAAA=",
+	"H4sIAAAAAAAC/+SWzW7bMAyAX8XgdvTqYL351hVYV6DAhvY49KDYjKPCFlWK6hYEfveBctPGsdvur4dh",
+	"pwik+PeJJrOFijpPDp0EKLcQqjV2Jh1PvNcfz+SRxWISdsbZFQbRs2w8Qgm0vMFKoM/BmQ73FEHYukYV",
+	"kdsZeZ8D4220jDWUXwfr4e51PnV+Sl1nXP05io8yTayiej+2dYINshoGqZF5Nq8gNUWZV8WqwhD2dEui",
+	"Fo2b5L27mQ85PHh9iDytRl1Yt6Lk3UqruqvOtO03XGYnX84hhzvkYMlBCQtNhzw64y2UcHy0ODqGHLyR",
+	"dUqvuFsUxvt0bjBVo2CMWHLnNZRwhnKiek07eHJhIPZ+sRjAOUGXzIz3ra2SYXETNPiuIfRkBbtk+JZx",
+	"BSW8KR5bp7jvm0Kbpn+o1zCbzVBujaFi62Wo6cIGyWiVpbxVLaYJCjMJrlWyK6vYGu/7F4pLPNh0KMjq",
+	"ZwtWwygj2PWl+ob9pxOOmO8VeNie138I7EVOUy5nKMrkGSQtNaGoyAVq8Tkop8OVC2rCFM446EfbCnKm",
+	"nrPlJhswJX63EXlzCPBvAaNKUN4FYTTdGNyKuDOin5x1JiVwGGkC7iq5STWM4CXBATweHupJckzuP8NG",
+	"q0yp/BS+tYh/Dt8nEf8b+NYU5Al+96p/uO84uscx5inMkLuM7lXn2G3EIB+o3vzSCBvvWMNNGG2CydY8",
+	"mPvjRZnM55Zh/4qDdvy3IT0RfpfCt8YeeHnxrS+j0688q1o7O6D7/kcAAAD//yG73PJOCQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
