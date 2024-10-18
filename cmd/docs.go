@@ -15,7 +15,6 @@ func NewCmdDocs() *cobra.Command {
 		GroupID: CoreGroupID,
 		Hidden:  true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			doc, err := buildDoc(cmd.Root())
 			if err != nil {
 				return fmt.Errorf("failed to generate docs: %w", err)
@@ -49,6 +48,10 @@ func buildDoc(command *cobra.Command) (string, error) {
 	}
 
 	for _, child := range command.Commands() {
+		if child.Name() == "help" {
+			continue
+		}
+
 		childPage, err := buildDoc(child)
 		if err != nil {
 			return "", err

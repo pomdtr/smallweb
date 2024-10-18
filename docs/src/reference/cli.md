@@ -154,25 +154,6 @@ smallweb completion fish [flags]
       --no-descriptions   disable completion descriptions
 ```
 
-## smallweb completion help
-
-Help about any command
-
-### Synopsis
-
-Help provides help for any command in the application.
-Simply type completion help [path to command] for full details.
-
-```
-smallweb completion help [command] [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for help
-```
-
 ## smallweb completion powershell
 
 Generate the autocompletion script for powershell
@@ -267,8 +248,7 @@ smallweb create <app> [flags]
 ### Options
 
 ```
-  -h, --help              help for create
-  -t, --template string   The template to use
+  -h, --help   help for create
 ```
 
 ## smallweb cron
@@ -279,25 +259,6 @@ Manage cron jobs
 
 ```
   -h, --help   help for cron
-```
-
-## smallweb cron help
-
-Help about any command
-
-### Synopsis
-
-Help provides help for any command in the application.
-Simply type cron help [path to command] for full details.
-
-```
-smallweb cron help [command] [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for help
 ```
 
 ## smallweb cron list
@@ -400,25 +361,6 @@ smallweb hello [flags]
   -h, --help   help for hello
 ```
 
-## smallweb help
-
-Help about any command
-
-### Synopsis
-
-Help provides help for any command in the application.
-Simply type smallweb help [path to command] for full details.
-
-```
-smallweb help [command] [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for help
-```
-
 ## smallweb list
 
 List all smallweb apps
@@ -474,25 +416,6 @@ smallweb log cron [flags]
   -h, --help          help for cron
       --host string   filter logs by host
       --json          output logs in JSON format
-```
-
-## smallweb log help
-
-Help about any command
-
-### Synopsis
-
-Help provides help for any command in the application.
-Simply type log help [path to command] for full details.
-
-```
-smallweb log help [command] [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for help
 ```
 
 ## smallweb log http
@@ -561,25 +484,6 @@ Manage smallweb service
 
 ```
   -h, --help   help for service
-```
-
-## smallweb service help
-
-Help about any command
-
-### Synopsis
-
-Help provides help for any command in the application.
-Simply type service help [path to command] for full details.
-
-```
-smallweb service help [command] [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for help
 ```
 
 ## smallweb service install
@@ -720,25 +624,6 @@ smallweb token delete <id> [flags]
 
 ```
   -h, --help   help for delete
-```
-
-## smallweb token help
-
-Help about any command
-
-### Synopsis
-
-Help provides help for any command in the application.
-Simply type token help [path to command] for full details.
-
-```
-smallweb token help [command] [flags]
-```
-
-### Options
-
-```
-  -h, --help   help for help
 ```
 
 ## smallweb token list
