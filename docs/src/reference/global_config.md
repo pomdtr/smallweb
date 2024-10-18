@@ -62,18 +62,6 @@ If it is not set, private will show a basic auth prompt instead.
 }
 ```
 
-### `env`
-
-The `env` field defines a list of environment variables to set for all apps.
-
-```json
-{
-  "env": {
-    "NODE_ENV": "production"
-  }
-}
-```
-
 ### `customDomains`
 
 The `customDomains` field defines a list of custom domains to map to apps.
@@ -94,11 +82,24 @@ By default the config file looks like this:
 {
   "host": "127.0.0.1",
   "port": 7777,
-  "domain": "localhost",
   "dir": "~/smallweb",
-  "env": {
-    // allow smallweb apps to communicate with each other when using self-signed certificates
-    "DENO_TLS_CA_STORE": "system"
-  }
 }
 ```
+
+Since smallweb requires a domain to be set, the minimal config is:
+
+```json
+{
+  "domain": "example.com"
+}
+```
+
+which is equivalent to:
+
+```json
+{
+  "domain": "example.com",
+  "host": "127.0.0.1",
+  "port": 7777,
+  "dir": "~/smallweb",
+}

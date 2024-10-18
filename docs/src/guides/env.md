@@ -25,12 +25,9 @@ export default function (req: Request) {
 }
 ```
 
-If you want to set an environment variable for all your apps, you can use the `env` property from the smallweb global config.
+If you want to set an environment variable for all your apps, you can create a `.env` file in the at the root of your smallweb dir.
 
 ```json
-// ~/.config/smallweb/config.json
-{
-    "env": {
-        "BEARER_TOKEN": "SECURE_TOKEN"
-    }
-}
+// ~/smallweb/.env
+GLOBAL_VAR=GLOBAL_VALUE
+```

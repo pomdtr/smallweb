@@ -168,7 +168,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						wk := worker.NewWorker(a, k.StringMap("env"), consoleLogger)
+						wk := worker.NewWorker(a, consoleLogger)
 
 						command, err := wk.Command(job.Args...)
 						if err != nil {
@@ -331,7 +331,7 @@ func (me *AppHandler) ServeApp(w http.ResponseWriter, r *http.Request, a app.App
 			}
 		})
 	} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
-		handler = worker.NewWorker(a, k.StringMap("env"), me.logger)
+		handler = worker.NewWorker(a, me.logger)
 	} else {
 		http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
 		return

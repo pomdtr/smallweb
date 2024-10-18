@@ -179,10 +179,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 			RunE: func(cmd *cobra.Command, args []string) error {
 				command := exec.Command(entrypoint, args...)
 				command.Env = os.Environ()
-				for key, value := range k.StringMap("env") {
-					command.Env = append(command.Env, fmt.Sprintf("%s=%s", key, value))
-				}
-
 				command.Stdin = os.Stdin
 				command.Stdout = os.Stdout
 				command.Stderr = os.Stderr

@@ -86,6 +86,17 @@ func LoadApp(dir string, domain string) (App, error) {
 		},
 	}
 
+	if dotenvPath := filepath.Join(dir, "..", ".env"); utils.FileExists(dotenvPath) {
+		dotenv, err := godotenv.Read(dotenvPath)
+		if err != nil {
+			return App{}, fmt.Errorf("could not read .env: %v", err)
+		}
+
+		for key, value := range dotenv {
+			app.Env[key] = value
+		}
+	}
+
 	if dotenvPath := filepath.Join(dir, ".env"); utils.FileExists(dotenvPath) {
 		dotenv, err := godotenv.Read(dotenvPath)
 		if err != nil {

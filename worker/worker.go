@@ -51,22 +51,14 @@ type Worker struct {
 	*slog.Logger
 }
 
-func NewWorker(app app.App, env map[string]string, logger *slog.Logger) *Worker {
-	if env == nil {
-		env = make(map[string]string)
-	}
-
+func NewWorker(app app.App, logger *slog.Logger) *Worker {
 	worker := &Worker{
 		App:    app,
-		Env:    env,
 		Logger: logger,
 	}
 
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
-	for k, v := range env {
-		worker.Env[k] = v
-	}
 
 	return worker
 }

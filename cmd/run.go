@@ -39,7 +39,7 @@ func NewCmdRun() *cobra.Command {
 				return fmt.Errorf("smallweb built-in apps cannot be run")
 			}
 
-			worker := worker.NewWorker(app, k.StringMap("env"), nil)
+			worker := worker.NewWorker(app, nil)
 			command, err := worker.Command(args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

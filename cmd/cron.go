@@ -211,7 +211,7 @@ func NewCmdCronTrigger() *cobra.Command {
 					continue
 				}
 
-				w := worker.NewWorker(app, k.StringMap("env"), nil)
+				w := worker.NewWorker(app, nil)
 				command, err := w.Command(cron.Args...)
 				if err != nil {
 					return fmt.Errorf("failed to create command: %w", err)
