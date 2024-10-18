@@ -76,8 +76,3 @@ func NewCmdTunnel() *cobra.Command {
 
 	return cmd
 }
-
-type remoteForwardRequest struct {
-	BindAddr string
-	BindPort uint32
-}

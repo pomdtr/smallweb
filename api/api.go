@@ -21,9 +21,9 @@ import (
 
 //go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml ./openapi.json
 
-var (
-	SocketPath = filepath.Join(xdg.CacheHome, "smallweb", "api.sock")
-)
+func SocketPath(domain string) string {
+	return filepath.Join(xdg.CacheHome, "smallweb", "api", domain, "api.sock")
+}
 
 //go:embed schemas
 var schemas embed.FS
@@ -106,6 +106,8 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 
+			spec.Servers[0].Variables["domain"].Default = r.Host
+
 			encoder := json.NewEncoder(w)
 			encoder.SetIndent("", "  ")
 			encoder.Encode(spec)
@@ -134,7 +136,7 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 }
 
 // GetV0AppsAppEnv implements ServerInterface.
-func (me *Server) GetV0AppsApp(w http.ResponseWriter, r *http.Request, appname string) {
+func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string) {
 	rootDir := utils.ExpandTilde(me.k.String("dir"))
 	a, err := app.LoadApp(filepath.Join(rootDir, appname), me.k.String("domain"))
 	if err != nil {
@@ -182,7 +184,7 @@ func (me *Server) GetV0AppsApp(w http.ResponseWriter, r *http.Request, appname s
 	})
 }
 
-func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
+func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
 	rootDir := utils.ExpandTilde(me.k.String("dir"))
 	names, err := app.ListApps(rootDir)
 	if err != nil {
@@ -231,14 +233,14 @@ func (me *Server) GetV0Apps(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app string) {
+func (me *Server) RunApp(w http.ResponseWriter, r *http.Request, app string) {
 	executable, err := os.Executable()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	var body PostV0RunAppJSONRequestBody
+	var body RunAppJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -287,7 +289,7 @@ func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, app strin
 	}
 }
 
-func (me *Server) GetV0LogsHttp(w http.ResponseWriter, r *http.Request, params GetV0LogsHttpParams) {
+func (me *Server) GetHttpLogs(w http.ResponseWriter, r *http.Request, params GetHttpLogsParams) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
@@ -295,7 +297,7 @@ func (me *Server) GetV0LogsHttp(w http.ResponseWriter, r *http.Request, params G
 	}
 
 	// Set the necessary headers for SSE
-	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
@@ -315,13 +317,23 @@ func (me *Server) GetV0LogsHttp(w http.ResponseWriter, r *http.Request, params G
 				continue
 			}
 
-			var log HttpLog
+			var log map[string]any
 			if err := json.Unmarshal(logMsg, &log); err != nil {
 				fmt.Fprintln(os.Stderr, "failed to parse log:", err)
 				continue
 			}
 
-			if log.Request.Host != *params.Host {
+			request, ok := log["request"].(map[string]any)
+			if !ok {
+				continue
+			}
+
+			host, ok := request["host"].(string)
+			if !ok {
+				continue
+			}
+
+			if host != *params.Host {
 				continue
 			}
 
@@ -334,7 +346,7 @@ func (me *Server) GetV0LogsHttp(w http.ResponseWriter, r *http.Request, params G
 	}
 }
 
-func (me *Server) GetV0LogsCron(w http.ResponseWriter, r *http.Request, params GetV0LogsCronParams) {
+func (me *Server) GetCronLogs(w http.ResponseWriter, r *http.Request, params GetCronLogsParams) {
 	if me.cronWriter == nil {
 		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
 		return
@@ -347,7 +359,7 @@ func (me *Server) GetV0LogsCron(w http.ResponseWriter, r *http.Request, params G
 	}
 
 	// Set the necessary headers for SSE
-	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
@@ -367,13 +379,18 @@ func (me *Server) GetV0LogsCron(w http.ResponseWriter, r *http.Request, params G
 				continue
 			}
 
-			var log CronLog
+			var log map[string]any
 			if err := json.Unmarshal(logMsg, &log); err != nil {
 				fmt.Fprintln(os.Stderr, "failed to parse log:", err)
 				continue
 			}
 
-			if log.App != *params.App {
+			app, ok := log["app"].(string)
+			if !ok {
+				continue
+			}
+
+			if app != *params.App {
 				continue
 			}
 
@@ -386,7 +403,7 @@ func (me *Server) GetV0LogsCron(w http.ResponseWriter, r *http.Request, params G
 	}
 }
 
-func (me *Server) GetV0LogsConsole(w http.ResponseWriter, r *http.Request, params GetV0LogsConsoleParams) {
+func (me *Server) GetConsoleLogs(w http.ResponseWriter, r *http.Request, params GetConsoleLogsParams) {
 	if me.consoleWriter == nil {
 		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
 		return
@@ -399,7 +416,7 @@ func (me *Server) GetV0LogsConsole(w http.ResponseWriter, r *http.Request, param
 	}
 
 	// Set the necessary headers for SSE
-	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
@@ -419,13 +436,18 @@ func (me *Server) GetV0LogsConsole(w http.ResponseWriter, r *http.Request, param
 				continue
 			}
 
-			var log ConsoleLog
+			var log map[string]any
 			if err := json.Unmarshal(logMsg, &log); err != nil {
 				fmt.Fprintln(os.Stderr, "failed to parse log:", err)
 				continue
 			}
 
-			if log.App != *params.App {
+			app, ok := log["app"].(string)
+			if !ok {
+				continue
+			}
+
+			if app != *params.App {
 				continue
 			}
 

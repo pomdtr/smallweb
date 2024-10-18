@@ -14,51 +14,9 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
-)
-
-// Defines values for ConsoleLogLevel.
-const (
-	ConsoleLogLevelDEBUG ConsoleLogLevel = "DEBUG"
-	ConsoleLogLevelERROR ConsoleLogLevel = "ERROR"
-	ConsoleLogLevelINFO  ConsoleLogLevel = "INFO"
-	ConsoleLogLevelWARN  ConsoleLogLevel = "WARN"
-)
-
-// Defines values for ConsoleLogType.
-const (
-	Stderr ConsoleLogType = "stderr"
-	Stdout ConsoleLogType = "stdout"
-)
-
-// Defines values for CronLogLevel.
-const (
-	CronLogLevelDEBUG CronLogLevel = "DEBUG"
-	CronLogLevelERROR CronLogLevel = "ERROR"
-	CronLogLevelINFO  CronLogLevel = "INFO"
-	CronLogLevelWARN  CronLogLevel = "WARN"
-)
-
-// Defines values for HttpLogLevel.
-const (
-	DEBUG   HttpLogLevel = "DEBUG"
-	ERROR   HttpLogLevel = "ERROR"
-	INFO    HttpLogLevel = "INFO"
-	WARNING HttpLogLevel = "WARNING"
-)
-
-// Defines values for HttpLogRequestMethod.
-const (
-	DELETE  HttpLogRequestMethod = "DELETE"
-	GET     HttpLogRequestMethod = "GET"
-	HEAD    HttpLogRequestMethod = "HEAD"
-	OPTIONS HttpLogRequestMethod = "OPTIONS"
-	PATCH   HttpLogRequestMethod = "PATCH"
-	POST    HttpLogRequestMethod = "POST"
-	PUT     HttpLogRequestMethod = "PUT"
 )
 
 // App defines model for App.
@@ -76,160 +34,52 @@ type CommandOutput struct {
 	Success bool   `json:"success"`
 }
 
-// ConsoleLog defines model for ConsoleLog.
-type ConsoleLog struct {
-	// App The name of the application
-	App string `json:"app"`
-
-	// Level The log level
-	Level ConsoleLogLevel `json:"level"`
-
-	// Msg The log message
-	Msg string `json:"msg"`
-
-	// Text The base64-encoded log message
-	Text string `json:"text"`
-
-	// Time The timestamp of the log entry
-	Time time.Time      `json:"time"`
-	Type ConsoleLogType `json:"type"`
-}
-
-// ConsoleLogLevel The log level
-type ConsoleLogLevel string
-
-// ConsoleLogType defines model for ConsoleLog.Type.
-type ConsoleLogType string
-
-// CronLog defines model for CronLog.
-type CronLog struct {
-	// App The name of the application running the cron job
-	App string `json:"app"`
-
-	// Args The arguments passed to the cron job
-	Args []string `json:"args"`
-
-	// Duration The duration of the cron job execution in milliseconds
-	Duration int `json:"duration"`
-
-	// ExitCode The exit code of the cron job
-	ExitCode int `json:"exit_code"`
-
-	// Id A unique identifier for the cron job, typically in the format 'app:job'
-	Id string `json:"id"`
-
-	// Job The name of the cron job
-	Job string `json:"job"`
-
-	// Level The log level
-	Level CronLogLevel `json:"level"`
-
-	// Msg The log message, typically including the exit code
-	Msg string `json:"msg"`
-
-	// Schedule The schedule of the cron job
-	Schedule string `json:"schedule"`
-
-	// Time The timestamp of the log entry
-	Time time.Time `json:"time"`
-
-	// Type The type of log entry, always 'cron' for this schema
-	Type interface{} `json:"type"`
-}
-
-// CronLogLevel The log level
-type CronLogLevel string
-
-// HttpLog defines model for HttpLog.
-type HttpLog struct {
-	// Level The log level
-	Level HttpLogLevel `json:"level"`
-
-	// Msg A brief description of the logged event
-	Msg     string `json:"msg"`
-	Request struct {
-		// Headers The headers sent with the request
-		Headers map[string]string `json:"headers"`
-
-		// Host The host component of the request URL
-		Host string `json:"host"`
-
-		// Method The HTTP method used for the request
-		Method HttpLogRequestMethod `json:"method"`
-
-		// Path The path component of the request URL
-		Path string `json:"path"`
-
-		// Url The full URL of the request
-		Url string `json:"url"`
-	} `json:"request"`
-	Response struct {
-		// Bytes The number of bytes in the response body
-		Bytes int `json:"bytes"`
-
-		// Elapsed The time taken to process the request and generate the response, in seconds
-		Elapsed float32 `json:"elapsed"`
-
-		// Status The HTTP status code of the response
-		Status int `json:"status"`
-	} `json:"response"`
-
-	// Time The time when the log entry was created
-	Time time.Time `json:"time"`
-}
-
-// HttpLogLevel The log level
-type HttpLogLevel string
-
-// HttpLogRequestMethod The HTTP method used for the request
-type HttpLogRequestMethod string
-
-// GetV0LogsConsoleParams defines parameters for GetV0LogsConsole.
-type GetV0LogsConsoleParams struct {
+// GetConsoleLogsParams defines parameters for GetConsoleLogs.
+type GetConsoleLogsParams struct {
 	// App Filter logs by app
 	App *string `form:"app,omitempty" json:"app,omitempty"`
 }
 
-// GetV0LogsCronParams defines parameters for GetV0LogsCron.
-type GetV0LogsCronParams struct {
+// GetCronLogsParams defines parameters for GetCronLogs.
+type GetCronLogsParams struct {
 	// App Filter logs by app
 	App *string `form:"app,omitempty" json:"app,omitempty"`
 }
 
-// GetV0LogsHttpParams defines parameters for GetV0LogsHttp.
-type GetV0LogsHttpParams struct {
+// GetHttpLogsParams defines parameters for GetHttpLogs.
+type GetHttpLogsParams struct {
 	// Host Filter logs by host
 	Host *string `form:"host,omitempty" json:"host,omitempty"`
 }
 
-// PostV0RunAppJSONBody defines parameters for PostV0RunApp.
-type PostV0RunAppJSONBody struct {
+// RunAppJSONBody defines parameters for RunApp.
+type RunAppJSONBody struct {
 	Args []string `json:"args"`
 }
 
-// PostV0RunAppJSONRequestBody defines body for PostV0RunApp for application/json ContentType.
-type PostV0RunAppJSONRequestBody PostV0RunAppJSONBody
+// RunAppJSONRequestBody defines body for RunApp for application/json ContentType.
+type RunAppJSONRequestBody RunAppJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
 	// (GET /v0/apps)
-	GetV0Apps(w http.ResponseWriter, r *http.Request)
+	GetApps(w http.ResponseWriter, r *http.Request)
 
 	// (GET /v0/apps/{app})
-	GetV0AppsApp(w http.ResponseWriter, r *http.Request, app string)
+	GetApp(w http.ResponseWriter, r *http.Request, app string)
 
 	// (GET /v0/logs/console)
-	GetV0LogsConsole(w http.ResponseWriter, r *http.Request, params GetV0LogsConsoleParams)
+	GetConsoleLogs(w http.ResponseWriter, r *http.Request, params GetConsoleLogsParams)
 
 	// (GET /v0/logs/cron)
-	GetV0LogsCron(w http.ResponseWriter, r *http.Request, params GetV0LogsCronParams)
+	GetCronLogs(w http.ResponseWriter, r *http.Request, params GetCronLogsParams)
 
 	// (GET /v0/logs/http)
-	GetV0LogsHttp(w http.ResponseWriter, r *http.Request, params GetV0LogsHttpParams)
+	GetHttpLogs(w http.ResponseWriter, r *http.Request, params GetHttpLogsParams)
 
 	// (POST /v0/run/{app})
-	PostV0RunApp(w http.ResponseWriter, r *http.Request, app string)
+	RunApp(w http.ResponseWriter, r *http.Request, app string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -241,11 +91,11 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// GetV0Apps operation middleware
-func (siw *ServerInterfaceWrapper) GetV0Apps(w http.ResponseWriter, r *http.Request) {
+// GetApps operation middleware
+func (siw *ServerInterfaceWrapper) GetApps(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetV0Apps(w, r)
+		siw.Handler.GetApps(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -255,8 +105,8 @@ func (siw *ServerInterfaceWrapper) GetV0Apps(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
-// GetV0AppsApp operation middleware
-func (siw *ServerInterfaceWrapper) GetV0AppsApp(w http.ResponseWriter, r *http.Request) {
+// GetApp operation middleware
+func (siw *ServerInterfaceWrapper) GetApp(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -270,7 +120,7 @@ func (siw *ServerInterfaceWrapper) GetV0AppsApp(w http.ResponseWriter, r *http.R
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetV0AppsApp(w, r, app)
+		siw.Handler.GetApp(w, r, app)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -280,13 +130,13 @@ func (siw *ServerInterfaceWrapper) GetV0AppsApp(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
-// GetV0LogsConsole operation middleware
-func (siw *ServerInterfaceWrapper) GetV0LogsConsole(w http.ResponseWriter, r *http.Request) {
+// GetConsoleLogs operation middleware
+func (siw *ServerInterfaceWrapper) GetConsoleLogs(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetV0LogsConsoleParams
+	var params GetConsoleLogsParams
 
 	// ------------- Optional query parameter "app" -------------
 
@@ -297,7 +147,7 @@ func (siw *ServerInterfaceWrapper) GetV0LogsConsole(w http.ResponseWriter, r *ht
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetV0LogsConsole(w, r, params)
+		siw.Handler.GetConsoleLogs(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -307,13 +157,13 @@ func (siw *ServerInterfaceWrapper) GetV0LogsConsole(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
-// GetV0LogsCron operation middleware
-func (siw *ServerInterfaceWrapper) GetV0LogsCron(w http.ResponseWriter, r *http.Request) {
+// GetCronLogs operation middleware
+func (siw *ServerInterfaceWrapper) GetCronLogs(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetV0LogsCronParams
+	var params GetCronLogsParams
 
 	// ------------- Optional query parameter "app" -------------
 
@@ -324,7 +174,7 @@ func (siw *ServerInterfaceWrapper) GetV0LogsCron(w http.ResponseWriter, r *http.
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetV0LogsCron(w, r, params)
+		siw.Handler.GetCronLogs(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -334,13 +184,13 @@ func (siw *ServerInterfaceWrapper) GetV0LogsCron(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
-// GetV0LogsHttp operation middleware
-func (siw *ServerInterfaceWrapper) GetV0LogsHttp(w http.ResponseWriter, r *http.Request) {
+// GetHttpLogs operation middleware
+func (siw *ServerInterfaceWrapper) GetHttpLogs(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetV0LogsHttpParams
+	var params GetHttpLogsParams
 
 	// ------------- Optional query parameter "host" -------------
 
@@ -351,7 +201,7 @@ func (siw *ServerInterfaceWrapper) GetV0LogsHttp(w http.ResponseWriter, r *http.
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetV0LogsHttp(w, r, params)
+		siw.Handler.GetHttpLogs(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -361,8 +211,8 @@ func (siw *ServerInterfaceWrapper) GetV0LogsHttp(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
-// PostV0RunApp operation middleware
-func (siw *ServerInterfaceWrapper) PostV0RunApp(w http.ResponseWriter, r *http.Request) {
+// RunApp operation middleware
+func (siw *ServerInterfaceWrapper) RunApp(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -376,7 +226,7 @@ func (siw *ServerInterfaceWrapper) PostV0RunApp(w http.ResponseWriter, r *http.R
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostV0RunApp(w, r, app)
+		siw.Handler.RunApp(w, r, app)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -506,12 +356,12 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
-	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetV0Apps)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}", wrapper.GetV0AppsApp)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/console", wrapper.GetV0LogsConsole)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/cron", wrapper.GetV0LogsCron)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/http", wrapper.GetV0LogsHttp)
-	m.HandleFunc("POST "+options.BaseURL+"/v0/run/{app}", wrapper.PostV0RunApp)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetApps)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}", wrapper.GetApp)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/console", wrapper.GetConsoleLogs)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/cron", wrapper.GetCronLogs)
+	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/http", wrapper.GetHttpLogs)
+	m.HandleFunc("POST "+options.BaseURL+"/v0/run/{app}", wrapper.RunApp)
 
 	return m
 }
@@ -519,29 +369,17 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9xY224bNxN+FYL/D/hmE6lNWyC6UxLHNmDYhqykF0FQUMvRii6XZHiwLRh694KHXa20",
-	"lCUlcFv0Sqsd8uPMN8M57BMuZa2kAGENHj1hUy6gJuFxrJT/UVoq0JZBeFkTweZgrH+2SwV4hOXsDkqL",
-	"VwUWpIaOwFjNROUFTvPM+1WBNXxzTAPFoy9xd1z7teiDv5d1TQS9dlY521eslLR7NhMWKtB+o7EUtM7q",
-	"ZSyVzuZFrizBmI5sJiUHInp6NyuLqEOL2p6ct0YYyeFSVv4EQimzTArCbzpGzQk3UGzZSaJXKJhSM+U3",
-	"4RGeLgB5+pCcI7sARJTirCRBWvRt43APPI/CZYWiuMAgXO0NvLj6eI0L/Pt4coULfDqZXE9wgT+cvvt0",
-	"1rFtDV+bajd4DcaQCnJqWXi0+Y0zYuC3X16B8AzTvTgshmEfx0uMJbVqiPJIIKxe4gLPpa6JxSNMiYVX",
-	"ASQHHl48teTsdvaOME/ADcnen5GytDHxkA0aLcXLRwzSTggmqvC+1FKgOznLUUF0ZfLIRFeu9ikFKWIM",
-	"UGTlNhqzUJvszUsviNZk6f9Tp2MkZ49qpI0hzREIHqF0QcIEqhnnzEApBfUXtWaC1d5/wyKTMOCR2T+a",
-	"fNI/0YuRF28fiXNgjPZRxsgJ9s0BYhSEZXMGGs2l3gArkF0qVhLOl94AL4oBik6IUqM7OTvJ+cSrsdfZ",
-	"zzn1X5AbNk0vuaNNNLbU5zT3pYs6vsNrjfQQDv6WBJIBX6qgXotZIMIfyNKgE6/tSYoRZlCs0h03eDn+",
-	"uifVbCQZRtvkE1lo6UsXu3sP+jWtcy1zmercWnV8pvr+2Lu4Ovv+8BujmWYwR523HfdWQBHcg7A5Z3q2",
-	"Uzd0hJ0LIBS02b0rkxX7lCQUZEBY9MDsImjcaJRxykKaHfXVS1DbCDbGJyj0aXKZs70Gu5A0D3g+nd6g",
-	"uAA5XwCa9LZWr/Hi2ekUF/jm+jb8fJoG/12eTk/93/H0/Tku8Pnp+AMu8PXN9OL66jbrWUXsIq+Llxxt",
-	"XOpY+2hzx7nftIXTvf5OM7yvC/D4ySMtk8mIoo2P3M3SYJQUBo4MudnSwo5iLVw9A+3tCYuaatMchGaS",
-	"LvfXTE6UAbo7ayJL/gThGwGlpe+XN7xABEUVCNDEwsbphVfn2cId1Y/dPLHOPBOQccFG7W7pLHBNHiP2",
-	"r2/fdk76aZgxeHsEiCcXieY1HTkPPl9d0MMCxGZpQQ/EoFIDsUAPLDOHFIJ15LYk9NX1SEzMZchJzPrq",
-	"im9rwvkDzND45gIX+B60iTYMvXlSgSCK4RF+83r4+k2K6uCWwf1wQJQKzxWEXORjNJSRC4pH+Azs5+HY",
-	"r1grFVb/PBzGIU9Yn4ljV9s0rIM7E7vDVBZHT+vu8v8a5niE/zdYj7mDNOMO/IDb6zdXvVx7yUzIGkHz",
-	"VVjQGDJ4Ikqt9pszDnVWEU1qsCHzf3nCzIOnGx8n51SP156z2kHRMWvby19/kKa97PTZOAPrmegQwWVl",
-	"BmWcZ5+n4lJWJg2+fTo2j/nIuAXt74BBsyWKxATGvjkI3dYGZT9CkR+3BqHCvzJWA6kP56gzxWeoug1o",
-	"wYYeXTq6Yg9XOszv/wWi0uR6HEsLa9V+lnyveSRLqe7maEqif4inpm8+mCftxDoJqdTgbRJ1I439PJw4",
-	"8aJZKNSSd75VOCYBbX2pSB8UDv02sFXlwvZcCVu9YJrc/Cy5Sp+xBooTtoWyTVvPwxMn/P1FJWdB69Xq",
-	"rwAAAP//bMIzKJ4VAAA=",
+	"H4sIAAAAAAAC/9yWwW7bPAyAX8XQ/x+9OFhvvmUF1hUosKI9DjkoNuOokEWVoroGgd99oNy0cey267Ye",
+	"tlMEUqTIjwzpnaqw9ejAcVDlToVqA61Ox4X38uMJPRAbSMJWO7OGwHLmrQdVKlzdQMWqy5XTLRwoApNx",
+	"jSgi2Ql5lyuC22gIalV+6637u8t87PwU21a7+mtkH3kcWIX14dvGMTRAYhi4BqLJuALXGHlaFasKQjjQ",
+	"rRAtaDeKe38z72N49Pr48jgbcWHcGpN3w1Z016229jusssXlucrVHVAw6FSp5hIOenDaG1Wqk9l8dqJy",
+	"5TVvUnjF3bzQ3qdzAykbAaPZoDuvVanOgBeil7CDRxd6Yh/n8x6cY3DJTHtvTZUMi5sgj+8bQk6GoU2G",
+	"/xOsVan+K55ap3jom0KapnvMVxPpbZ9uDaEi47nP6cIEznCdpbhFzboJAjMJliLZp1XstPfdK8klHqRb",
+	"YCDxs1NGnhFGat+X4lsdlo4pQn6Q4HF7Ln8T2KucxlzOgIXJC0gsNqGo0AW08BKU0/7KBTZhDGf46Gdj",
+	"GSgTz9lqm/WYEr/bCLQ9BvingGHFwB8CE+h2CO7Y7wjTdTJKEQ9QJcERKurL8iwnQvdPQ8J1Jgx+CtaG",
+	"2b8E6wuz/wVYGwz8DK0H1V/TUxTd00DyGCY4XUX3rhPpNkLgT1hv3zSMhttSUxMGM320/44m+HDlJfOp",
+	"tda948gcfgCkEsE9F95q495Y66vo5B+cVdZMjlrZ/0B30829uDzPrpP24WulVPK/CWVR7GpstXGd7G9N",
+	"Rq9sj6EXpxOsdbScam9mcK9bb2FWYSthLrsfAQAA//8yVpsbjwkAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

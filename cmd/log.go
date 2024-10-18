@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/utils"
@@ -45,7 +44,7 @@ func NewCmdLogHttp() *cobra.Command {
 			client := &http.Client{
 				Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-						return net.Dial("unix", api.SocketPath)
+						return net.Dial("unix", api.SocketPath(k.String("domain")))
 					},
 				},
 			}
@@ -86,12 +85,47 @@ func NewCmdLogHttp() *cobra.Command {
 					continue
 				}
 
-				var log api.HttpLog
+				var log map[string]any
 				if err := json.Unmarshal(scanner.Bytes(), &log); err != nil {
 					return fmt.Errorf("failed to parse log: %w", err)
 				}
 
-				fmt.Printf("%s %s %s %s %d\n", log.Time.Format(time.RFC3339), log.Request.Host, log.Request.Method, log.Request.Path, log.Response.Status)
+				request, ok := log["request"].(map[string]any)
+				if !ok {
+					return fmt.Errorf("failed to parse request")
+				}
+
+				response, ok := log["response"].(map[string]any)
+				if !ok {
+					return fmt.Errorf("failed to parse response")
+				}
+
+				time, ok := log["time"].(string)
+				if !ok {
+					return fmt.Errorf("failed to parse time")
+				}
+
+				host, ok := request["host"].(string)
+				if !ok {
+					return fmt.Errorf("failed to parse host")
+				}
+
+				method, ok := request["method"].(string)
+				if !ok {
+					return fmt.Errorf("failed to parse method")
+				}
+
+				path, ok := request["path"].(string)
+				if !ok {
+					return fmt.Errorf("failed to parse path")
+				}
+
+				status, ok := response["status"].(float64)
+				if !ok {
+					return fmt.Errorf("failed to parse status")
+				}
+
+				fmt.Printf("%s %s %s %s %d\n", time, host, method, path, int(status))
 			}
 
 			return nil
@@ -117,7 +151,7 @@ func NewCmdLogCron() *cobra.Command {
 			client := &http.Client{
 				Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-						return net.Dial("unix", api.SocketPath)
+						return net.Dial("unix", api.SocketPath(k.String("domain")))
 					},
 				},
 			}
@@ -158,12 +192,32 @@ func NewCmdLogCron() *cobra.Command {
 					continue
 				}
 
-				var log api.CronLog
+				var log map[string]any
 				if err := json.Unmarshal(scanner.Bytes(), &log); err != nil {
 					return fmt.Errorf("failed to parse log: %w", err)
 				}
 
-				fmt.Printf("%s %s %s %d\n", log.Time.Format(time.RFC3339), log.Id, log.Schedule, log.ExitCode)
+				time, ok := log["time"].(string)
+				if !ok {
+					return fmt.Errorf("failed to parse time")
+				}
+
+				id, ok := log["id"].(string)
+				if !ok {
+					return fmt.Errorf("failed to parse id")
+				}
+
+				schedule, ok := log["schedule"].(string)
+				if !ok {
+					return fmt.Errorf("failed to parse schedule")
+				}
+
+				exitCode, ok := log["exit_code"].(int)
+				if !ok {
+					return fmt.Errorf("failed to parse exit_code")
+				}
+
+				fmt.Printf("%s %s %s %d\n", time, id, schedule, exitCode)
 			}
 
 			return nil
@@ -190,7 +244,7 @@ func NewCmdLogConsole() *cobra.Command {
 			client := &http.Client{
 				Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-						return net.Dial("unix", api.SocketPath)
+						return net.Dial("unix", api.SocketPath(k.String("domain")))
 					},
 				},
 			}
@@ -229,18 +283,28 @@ func NewCmdLogConsole() *cobra.Command {
 					continue
 				}
 
-				var log api.ConsoleLog
+				var log map[string]any
 				if err := json.Unmarshal(scanner.Bytes(), &log); err != nil {
 					fmt.Fprintln(os.Stderr, "failed to parse log:", err)
 					continue
 				}
 
-				if log.Type == "stderr" {
-					fmt.Fprintln(os.Stderr, log.Text)
+				logType, ok := log["type"].(string)
+				if !ok {
+					fmt.Fprintln(os.Stderr, "failed to parse type")
+				}
+
+				text, ok := log["text"].(string)
+				if !ok {
+					fmt.Fprintln(os.Stderr, "failed to parse text")
+				}
+
+				if logType == "stderr" {
+					fmt.Fprintln(os.Stderr, text)
 					continue
 				}
 
-				fmt.Println(log.Text)
+				fmt.Println(text)
 			}
 
 			return nil

@@ -214,16 +214,17 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			go func() {
-				if err := os.MkdirAll(filepath.Dir(api.SocketPath), 0755); err != nil {
+				socketPath := api.SocketPath(k.String("domain"))
+				if err := os.MkdirAll(filepath.Dir(socketPath), 0755); err != nil {
 					log.Fatal(err)
 				}
 
-				if err := os.Remove(api.SocketPath); err != nil && !os.IsNotExist(err) {
+				if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
 					log.Fatal(err)
 				}
-				defer os.Remove(api.SocketPath)
+				defer os.Remove(socketPath)
 
-				listener, err := net.Listen("unix", api.SocketPath)
+				listener, err := net.Listen("unix", socketPath)
 				if err != nil {
 					log.Fatal(err)
 				}

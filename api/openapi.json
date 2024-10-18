@@ -4,9 +4,24 @@
     "title": "Smallweb API",
     "version": "0"
   },
+  "servers": [
+    {
+      "description": "API Server",
+      "url": "https://{domain}",
+      "variables": {
+        "domain": {
+          "default": "api.example.com"
+        }
+      }
+    }
+  ],
   "paths": {
     "/v0/apps": {
       "get": {
+        "operationId": "getApps",
+        "tags": [
+          "apps"
+        ],
         "responses": {
           "200": {
             "description": "List of apps",
@@ -26,6 +41,10 @@
     },
     "/v0/apps/{app}": {
       "get": {
+        "tags": [
+          "apps"
+        ],
+        "operationId": "getApp",
         "parameters": [
           {
             "name": "app",
@@ -50,86 +69,12 @@
         }
       }
     },
-    "/v0/logs/cron": {
-      "get": {
-        "parameters": [
-          {
-            "name": "app",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter logs by app"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Stream logs",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/CronLog"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v0/logs/http": {
-      "get": {
-        "parameters": [
-          {
-            "name": "host",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter logs by host"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Stream logs",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpLog"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v0/logs/console": {
-      "get": {
-        "parameters": [
-          {
-            "name": "app",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter logs by app"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Stream logs",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConsoleLog"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v0/run/{app}": {
       "post": {
+        "operationId": "runApp",
+        "tags": [
+          "apps"
+        ],
         "parameters": [
           {
             "name": "app",
@@ -178,6 +123,99 @@
           }
         }
       }
+    },
+    "/v0/logs/cron": {
+      "get": {
+        "tags": [
+          "logs"
+        ],
+        "operationId": "getCronLogs",
+        "parameters": [
+          {
+            "name": "app",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter logs by app"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream of cron logs",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/logs/http": {
+      "get": {
+        "operationId": "getHttpLogs",
+        "tags": [
+          "logs"
+        ],
+        "parameters": [
+          {
+            "name": "host",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter logs by host"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream logs",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v0/logs/console": {
+      "get": {
+        "operationId": "getConsoleLogs",
+        "tags": [
+          "logs"
+        ],
+        "parameters": [
+          {
+            "name": "app",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter logs by app"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream logs",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -197,237 +235,6 @@
           },
           "manifest": {
             "type": "object"
-          }
-        }
-      },
-      "HttpLog": {
-        "type": "object",
-        "properties": {
-          "time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The time when the log entry was created"
-          },
-          "level": {
-            "type": "string",
-            "enum": [
-              "INFO",
-              "WARNING",
-              "ERROR",
-              "DEBUG"
-            ],
-            "description": "The log level"
-          },
-          "msg": {
-            "type": "string",
-            "description": "A brief description of the logged event"
-          },
-          "request": {
-            "type": "object",
-            "properties": {
-              "url": {
-                "type": "string",
-                "format": "uri",
-                "description": "The full URL of the request"
-              },
-              "host": {
-                "type": "string",
-                "description": "The host component of the request URL"
-              },
-              "method": {
-                "type": "string",
-                "enum": [
-                  "GET",
-                  "POST",
-                  "PUT",
-                  "DELETE",
-                  "PATCH",
-                  "HEAD",
-                  "OPTIONS"
-                ],
-                "description": "The HTTP method used for the request"
-              },
-              "path": {
-                "type": "string",
-                "description": "The path component of the request URL"
-              },
-              "headers": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "description": "The headers sent with the request"
-              }
-            },
-            "required": [
-              "url",
-              "host",
-              "method",
-              "path",
-              "headers"
-            ],
-            "additionalProperties": false
-          },
-          "response": {
-            "type": "object",
-            "properties": {
-              "status": {
-                "type": "integer",
-                "minimum": 100,
-                "maximum": 599,
-                "description": "The HTTP status code of the response"
-              },
-              "bytes": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "The number of bytes in the response body"
-              },
-              "elapsed": {
-                "type": "number",
-                "minimum": 0,
-                "description": "The time taken to process the request and generate the response, in seconds"
-              }
-            },
-            "required": [
-              "status",
-              "bytes",
-              "elapsed"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "time",
-          "level",
-          "msg",
-          "request",
-          "response"
-        ],
-        "additionalProperties": false
-      },
-      "CronLog": {
-        "type": "object",
-        "properties": {
-          "time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The timestamp of the log entry"
-          },
-          "level": {
-            "type": "string",
-            "enum": [
-              "INFO",
-              "WARN",
-              "ERROR",
-              "DEBUG"
-            ],
-            "description": "The log level"
-          },
-          "msg": {
-            "type": "string",
-            "description": "The log message, typically including the exit code"
-          },
-          "type": {
-            "enum": [
-              "cron"
-            ],
-            "description": "The type of log entry, always 'cron' for this schema"
-          },
-          "id": {
-            "type": "string",
-            "description": "A unique identifier for the cron job, typically in the format 'app:job'"
-          },
-          "app": {
-            "type": "string",
-            "description": "The name of the application running the cron job"
-          },
-          "job": {
-            "type": "string",
-            "description": "The name of the cron job"
-          },
-          "schedule": {
-            "type": "string",
-            "description": "The schedule of the cron job"
-          },
-          "args": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "The arguments passed to the cron job"
-          },
-          "exit_code": {
-            "type": "integer",
-            "description": "The exit code of the cron job"
-          },
-          "duration": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "The duration of the cron job execution in milliseconds"
-          }
-        },
-        "required": [
-          "time",
-          "level",
-          "msg",
-          "type",
-          "id",
-          "app",
-          "job",
-          "schedule",
-          "args",
-          "exit_code",
-          "stdout",
-          "stderr",
-          "duration"
-        ],
-        "additionalProperties": false
-      },
-      "ConsoleLog": {
-        "type": "object",
-        "required": [
-          "time",
-          "level",
-          "app",
-          "msg",
-          "type",
-          "text"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The timestamp of the log entry"
-          },
-          "app": {
-            "type": "string",
-            "description": "The name of the application"
-          },
-          "level": {
-            "type": "string",
-            "enum": [
-              "INFO",
-              "WARN",
-              "ERROR",
-              "DEBUG"
-            ],
-            "description": "The log level"
-          },
-          "msg": {
-            "type": "string",
-            "description": "The log message"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "stdout",
-              "stderr"
-            ]
-          },
-          "text": {
-            "type": "string",
-            "description": "The base64-encoded log message"
           }
         }
       },

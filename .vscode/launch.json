@@ -16,8 +16,8 @@
             "program": "${workspaceFolder}/main.go",
             "console": "integratedTerminal",
             "args": [
-                "tunnel",
-                "www"
+                "log",
+                "http"
             ]
         }
     ]

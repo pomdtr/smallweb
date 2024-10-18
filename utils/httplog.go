@@ -12,32 +12,11 @@ import (
 )
 
 type (
-	// struct for holding response details
-	responseData struct {
-		Status  int     `json:"status"`
-		Bytes   int     `json:"bytes"`
-		Elapsed float64 `json:"elapsed"`
-	}
-
 	// our http.ResponseWriter implementation
 	loggingResponseWriter struct {
 		http.ResponseWriter // compose original http.ResponseWriter
-		responseData        *responseData
-	}
-
-	// Request information
-	requestInfo struct {
-		URL     string            `json:"url"`
-		Host    string            `json:"host"`
-		Method  string            `json:"method"`
-		Path    string            `json:"path"`
-		Headers map[string]string `json:"header"`
-	}
-
-	// Log entry structure
-	logEntry struct {
-		HTTPRequest  requestInfo  `json:"httpRequest"`
-		HTTPResponse responseData `json:"httpResponse"`
+		Status              int
+		Size                int
 	}
 
 	Logger struct {
@@ -47,13 +26,13 @@ type (
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
-	r.responseData.Bytes += size
+	r.Size += size
 	return size, err
 }
 
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseData.Status = statusCode
+	r.Status = statusCode
 }
 
 // Implement http.Flusher interface
@@ -89,53 +68,37 @@ func (l *Logger) Middleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		responseData := &responseData{
-			Status: 200,
-			Bytes:  0,
-		}
 		lrw := loggingResponseWriter{
 			ResponseWriter: w,
-			responseData:   responseData,
 		}
 
 		h.ServeHTTP(&lrw, r)
 
+		if lrw.Status == 0 {
+			lrw.Status = http.StatusOK
+		}
+
 		duration := time.Since(start)
-		responseData.Elapsed = duration.Seconds()
-
-		// Prepare request information
-		reqInfo := requestInfo{
-			URL:     fmt.Sprintf("https://%s%s", r.Host, r.URL.Path),
-			Host:    r.Host,
-			Method:  r.Method,
-			Path:    r.URL.Path,
-			Headers: make(map[string]string),
-		}
-
-		// Capture request headers
-		for k, v := range r.Header {
-			reqInfo.Headers[k] = v[0]
-		}
 
 		// Mask sensitive data in headers
-		if _, ok := reqInfo.Headers["Cookie"]; ok {
-			reqInfo.Headers["Cookie"] = "***"
+		if _, ok := r.Header["Cookie"]; ok {
+			r.Header["Cookie"] = []string{"***"}
 		}
 
-		if _, ok := reqInfo.Headers["Authorization"]; ok {
-			reqInfo.Headers["Authorization"] = "***"
+		if _, ok := r.Header["Authorization"]; ok {
+			r.Header["Authorization"] = []string{"***"}
 		}
 
-		logEntry := logEntry{
-			HTTPRequest:  reqInfo,
-			HTTPResponse: *responseData,
+		var headers []any
+		for k, v := range r.Header {
+			headers = append(headers, slog.String(k, v[0]))
 		}
 
 		// Use slog to log the entry
-		l.LogAttrs(r.Context(), slog.LevelInfo, fmt.Sprintf("Response: %d %s", responseData.Status, http.StatusText(responseData.Status)),
+		l.LogAttrs(r.Context(), slog.LevelInfo, fmt.Sprintf("Response: %d %s", lrw.Status, http.StatusText(lrw.Status)),
 			slog.String("type", "http"),
-			slog.Any("request", logEntry.HTTPRequest),
-			slog.Any("response", logEntry.HTTPResponse),
+			slog.Group("request", slog.String("url", fmt.Sprintf("https://%s%s", r.Host, r.URL.String())), slog.String("host", r.Host), slog.String("method", r.Method), slog.String("path", r.URL.Path), slog.Group("headers", headers...)),
+			slog.Group("response", slog.Int("status", lrw.Status), slog.Int("bytes", lrw.Size), slog.Float64("elapsed", duration.Seconds())),
 		)
 	})
 }
