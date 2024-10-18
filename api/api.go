@@ -100,7 +100,6 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 		}
 
 		if r.URL.Path == "/openapi.json" {
-			w.Header().Set("Content-Type", "text/yaml")
 			spec, err := GetSwagger()
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -115,6 +114,7 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 				{URL: scheme + "://" + r.Host},
 			}
 
+			w.Header().Set("Content-Type", "text/json")
 			encoder := json.NewEncoder(w)
 			encoder.SetIndent("", "  ")
 			encoder.Encode(spec)

@@ -4,17 +4,7 @@
     "title": "Smallweb API",
     "version": "0"
   },
-  "servers": [
-    {
-      "description": "API Server",
-      "url": "https://{domain}",
-      "variables": {
-        "domain": {
-          "default": "api.example.com"
-        }
-      }
-    }
-  ],
+  "servers": [],
   "paths": {
     "/v0/apps": {
       "get": {
