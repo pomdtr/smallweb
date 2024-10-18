@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/cli/browser"
@@ -24,11 +22,6 @@ import (
 var initTemplate embed.FS
 
 func NewCmdCreate() *cobra.Command {
-	var flags struct {
-		template string
-	}
-	repoRegexp := regexp.MustCompile(`^[a-zA-Z0-9-]+/[a-zA-Z0-9_.-]+$`)
-
 	cmd := &cobra.Command{
 		Use:     "create <app>",
 		Aliases: []string{"new"},
@@ -42,45 +35,19 @@ func NewCmdCreate() *cobra.Command {
 				return fmt.Errorf("directory already exists: %s", appDir)
 			}
 
-			if flags.template == "" {
-				subFs, err := fs.Sub(initTemplate, "embed/template")
-				if err != nil {
-					return fmt.Errorf("failed to get template sub fs: %w", err)
-				}
-
-				if err := os.CopyFS(appDir, subFs); err != nil {
-					return fmt.Errorf("failed to copy template: %w", err)
-				}
-
-				cmd.Printf("App initialized, you can now access it at https://%s.%s\n", args[0], k.String("domain"))
-				return nil
+			subFs, err := fs.Sub(initTemplate, "embed/template")
+			if err != nil {
+				return fmt.Errorf("failed to get template sub fs: %w", err)
 			}
 
-			var repoUrl string
-			if !repoRegexp.MatchString(flags.template) {
-				return fmt.Errorf("invalid template: %s", flags.template)
+			if err := os.CopyFS(appDir, subFs); err != nil {
+				return fmt.Errorf("failed to copy template: %w", err)
 			}
 
-			repoUrl = fmt.Sprintf("https://github.com/%s.git", flags.template)
-			if _, err := exec.LookPath("git"); err != nil {
-				return fmt.Errorf("git not found: %w", err)
-			}
-
-			cloneCmd := exec.Command("git", "clone", "--depth=1", "--single-branch", repoUrl, appDir)
-			if err := cloneCmd.Run(); err != nil {
-				return fmt.Errorf("failed to clone repository: %w", err)
-			}
-
-			if err := os.RemoveAll(filepath.Join(appDir, ".git")); err != nil {
-				return fmt.Errorf("failed to remove .git directory: %w", err)
-			}
-
-			cmd.Printf("App initialized, you can now access it at %s.%s\n", args[0], k.String("domain"))
+			cmd.Printf("App initialized, you can now access it at https://%s.%s\n", args[0], k.String("domain"))
 			return nil
 		},
 	}
-
-	cmd.Flags().StringVarP(&flags.template, "template", "t", "", "The template to use")
 
 	return cmd
 }
