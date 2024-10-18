@@ -4,7 +4,6 @@
     "title": "Smallweb API",
     "version": "0"
   },
-  "servers": [],
   "paths": {
     "/v0/apps": {
       "get": {
