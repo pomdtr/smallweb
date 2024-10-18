@@ -90,7 +90,8 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 		}
 
 		if strings.HasPrefix(r.URL.Path, "/schemas") {
-			http.ServeFileFS(w, r, schemas, r.URL.Path)
+			server := http.FileServer(http.FS(schemas))
+			server.ServeHTTP(w, r)
 			return
 		}
 
