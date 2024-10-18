@@ -15,4 +15,3 @@ Smallweb installations steps heavily depends on the experience you want to have 
 ## Usage
 
 Follow the [Routing](./guides/routing.md) guide to learn more about the smallweb folder structure, and create your first app.
-

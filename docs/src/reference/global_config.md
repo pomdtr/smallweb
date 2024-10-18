@@ -34,7 +34,7 @@ The `domain` field defines the apex domain used for routing.
 
 ```json
 {
-  "domain": "smallweb.run"
+  "domain": "example.com"
 }
 ```
 
@@ -58,7 +58,7 @@ If it is not set, private will show a basic auth prompt instead.
 
 ```json
 {
-  "email": "pomdtr@smallweb.run"
+  "email": "pomdtr@example.com"
 }
 ```
 

@@ -7,6 +7,8 @@ You can automatically protects private apps behind a login prompt. In order to a
     ```json
     // ~/.config/smallweb/config.json
     {
+        "domain": "example.com",
+        "dir": "~/smallweb",
         "email": "pomdtr@example.com"
     }
     ```
@@ -31,16 +33,16 @@ smallweb token create --description "CI/CD pipeline"
 Then, you can pass this token in the `Authorization` header of your requests.
 
 ```sh
-curl https://private-app.smallweb.run -H "Authorization: Bearer <token>"
+curl https://private-app.example.com -H "Authorization: Bearer <token>"
 ```
 
 or alternatively, use the basic auth username.
 
 ```sh
-curl https://private-app.smallweb.run -u "<token>"
+curl https://private-app.example.com -u "<token>"
 
 # or
-curl https://<token>@private-app.smallweb.run
+curl https://<token>@private-app.example.com
 ```
 
 If your app is public, but you still want to protect some routes, you can use the `privateRoutes` field in your app's config.

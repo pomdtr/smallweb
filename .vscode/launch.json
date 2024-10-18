@@ -15,10 +15,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "console": "integratedTerminal",
-            "args": [
-                "log",
-                "http"
-            ]
+            "args": []
         }
     ]
 }

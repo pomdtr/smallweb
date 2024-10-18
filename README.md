@@ -2,10 +2,10 @@
 
 Smallweb is a lightweight web server based on [Deno](https://deno.com). It draws inspiration from both legacy specifications like [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and modern serverless platforms such as [Val Town](https://val.town) and [Deno Deploy](https://deno.com/deploy).
 
-Smallweb maps domains to folders in your filesystem. For example, if you own the `smallweb.run` domain:
+Smallweb maps domains to folders in your filesystem. For example, if you own the `pomdtr.me` domain:
 
-- `https://smallweb.run` maps to `~/smallweb/www`
-- `https://example.smallweb.run` maps to `~/smallweb/example`
+- `https://www.pomdtr.me` maps to `~/smallweb/www`
+- `https://example.pomdtr.me` maps to `~/smallweb/example`
 
 Creating a new website is as simple as creating a folder and opening the corresponding URL in your browser. There's no need to configure a build step (unless you want to) or start a development server. Since servers are mapped to folders, you can manage them using standard Unix tools like `cp`, `mv`, or `rm`.
 
