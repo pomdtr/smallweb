@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -28,11 +29,8 @@ func SocketPath(domain string) string {
 //go:embed schemas
 var schemas embed.FS
 
-//go:embed index.html
-var swaggerHomepage []byte
-
-//go:embed dist
-var swaggerDist embed.FS
+//go:embed swagger
+var swagger embed.FS
 
 type Server struct {
 	k             *koanf.Koanf
@@ -115,24 +113,18 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 			return
 		}
 
-		if r.URL.Path == "/" {
-			w.Header().Set("Content-Type", "text/html")
-			w.Write(swaggerHomepage)
-			return
-		}
-
-		if strings.HasPrefix(r.URL.Path, "/dist") {
-			server := http.FileServer(http.FS(swaggerDist))
-			server.ServeHTTP(w, r)
-			return
-		}
-
 		if strings.HasPrefix(r.URL.Path, "/caddy/check") {
 			http.StripPrefix("/caddy/check", caddyHandler).ServeHTTP(w, r)
 			return
 		}
 
-		http.NotFound(w, r)
+		subfs, err := fs.Sub(swagger, "swagger")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		server := http.FileServer(http.FS(subfs))
+		server.ServeHTTP(w, r)
 	})
 }
 
