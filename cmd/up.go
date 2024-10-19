@@ -62,15 +62,24 @@ func NewCmdUp() *cobra.Command {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				rootDir := utils.ExpandTilde(k.String("dir"))
 
-				appname := func() string {
-					if r.Host == k.String("domain") {
-						if stat, err := os.Stat(filepath.Join(rootDir, "@")); err == nil && stat.IsDir() {
-							return "@"
+				if r.Host == k.String("domain") {
+					// if we are on the apex domain and www exists, redirect to www
+					if _, err := os.Stat(filepath.Join(rootDir, "www")); err == nil {
+						target := r.URL
+						target.Scheme = r.Header.Get("X-Forwarded-Proto")
+						if target.Scheme == "" {
+							target.Scheme = "http"
 						}
 
-						return ""
+						target.Host = "www." + k.String("domain")
+						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 					}
 
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
+
+				appname := func() string {
 					if appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))); utils.FileExists(filepath.Join(rootDir, appname)) {
 						return appname
 					}
@@ -89,42 +98,6 @@ func NewCmdUp() *cobra.Command {
 				}()
 
 				if appname == "" {
-					if r.Host == k.String("domain") {
-						// if we are on the apex domain and www exists, redirect to www
-						if stat, err := os.Stat(filepath.Join(rootDir, "www")); err != nil || !stat.IsDir() {
-							w.WriteHeader(http.StatusNotFound)
-							return
-						}
-
-						target := r.URL
-						target.Scheme = r.Header.Get("X-Forwarded-Proto")
-						if target.Scheme == "" {
-							target.Scheme = "http"
-						}
-
-						target.Host = "www." + k.String("domain")
-						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
-						return
-					}
-
-					if r.Host == fmt.Sprintf("www.%s", k.String("domain")) {
-						// if we are on the www domain and apex exists, redirect to apex
-						if stat, err := os.Stat(filepath.Join(rootDir, "@")); err != nil || !stat.IsDir() {
-							w.WriteHeader(http.StatusNotFound)
-							return
-						}
-
-						target := r.URL
-						target.Scheme = r.Header.Get("X-Forwarded-Proto")
-						if target.Scheme == "" {
-							target.Scheme = "http"
-						}
-
-						target.Host = k.String("domain")
-						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
-						return
-					}
-
 					w.WriteHeader(http.StatusNotFound)
 					return
 				}

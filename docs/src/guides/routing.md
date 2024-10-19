@@ -12,14 +12,16 @@ For example with, the following configuration:
 }
 ```
 
-In this setup:
+The routing system maps domains to directories as follows:
 
-- `api.example.com` is mapped to the directory `~/smallweb/api`
-- `blog.example.com` is mapped to `~/smallweb/blog`
-- Any subdomains following the pattern `*.<app>.example.com` (e.g., `sub.api.example.com`) will be handled by `~/smallweb/<app>` (e.g., `~/smallweb/api`).
+- Direct subdomain mapping:
+  - `api.example.com` → `~/smallweb/api`
+  - `blog.example.com` → `~/smallweb/blog`
 
-For the apex domain (`example.com`), it will map to the directory `~/smallweb/@`.
+- Nested subdomains:
+  - Any subdomain like `*.api.example.com` is handled by its parent directory
+  - For example: `test.api.example.com` → `~/smallweb/api`
 
-If the directory `~/smallweb/@` does not exist but `~/smallweb/www` does, all requests to the apex domain (example.com) will be redirected to `www.example.com`.
-
-Conversely, if `~/smallweb/www` does not exist but `~/smallweb/@` does, requests to `www.example.com will` be redirected to example.com.
+- Root domain behavior:
+  - Requests to `example.com` automatically redirect to `www.example.com` if the `www` directory exists
+  - If the `www` directory does not exist, a 404 error is returned
