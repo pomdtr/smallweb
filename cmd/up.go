@@ -80,6 +80,20 @@ func NewCmdUp() *cobra.Command {
 						return appname
 					}
 
+					parts := strings.Split(r.Host, ".")
+					base := strings.Join(parts[1:], ".")
+					if base == k.String("domain") {
+						return ""
+					}
+
+					if appname, ok := customDomains[base]; ok {
+						return appname
+					}
+
+					if appname := strings.TrimSuffix(base, fmt.Sprintf(".%s", k.String("domain"))); utils.FileExists(filepath.Join(rootDir, appname)) {
+						return appname
+					}
+
 					return ""
 				}()
 

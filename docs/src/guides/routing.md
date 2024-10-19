@@ -12,13 +12,18 @@ For example with, the following configuration:
 }
 ```
 
-Here, `api.example.com` will be mapped to `~/smallweb/api`, `blog.example.com` will be mapped to `~/smallweb/blog`, and so on.
+In this setup:
 
-The apex domain (example.com) will be mapped to `~/smallweb/@`.
+- api.example.com is mapped to the directory ~/smallweb/api
+- blog.example.com is mapped to ~/smallweb/blog
+- Any subdomains following the pattern `*.<app>.example.com` (e.g., sub.api.example.com) will be handled by `~/smallweb/<app>` (e.g., ~/smallweb/api).
 
-If `~/smallweb/@` does not exist and `~/smallweb/www` does, every request to the apex domain (`example.com`) will be redirected to `www.example.com`. Inversely, if `~/smallweb/www` does not exist and `~/smallweb/@` does, every request to `www.example.com` will be redirected to the `example.com`.
+For the apex domain (example.com), it will map to the directory ~/smallweb/@.
 
-If you want to opt-out of this behavior, you can create a `~/smallweb/@` directory, which will be mapped to the root domain.
+If the directory `~/smallweb/@` does not exist but `~/smallweb/www` does, all requests to the apex domain (example.com) will be redirected to `www.example.com`.
+
+Conversely, if `~/smallweb/www` does not exist but `~/smallweb/@` does, requests to `www.example.com will` be redirected to example.com.
+
 
 ## Custom domains
 
@@ -38,3 +43,5 @@ In this example, `pomdtr.me` will be mapped to `~/smallweb/my-app`, meaning that
 
 - `https://my-app.example.com`
 - `https://pomdtr.me`
+
+Subdomains of custom domains will also be mapped to the same directory. For example, `sub.pomdtr.me` will be handled by `~/smallweb/my-app`.

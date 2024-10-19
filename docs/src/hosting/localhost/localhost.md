@@ -56,7 +56,7 @@ brew install caddy
 
 # Write caddy configuration
 cat <<EOF > /opt/homebrew/etc/Caddyfile
-*.localhost {
+localhost, *.localhost, *.*.localhost {
   tls internal {
     on_demand
   }
@@ -73,7 +73,7 @@ brew install caddy
 
 # Write caddy configuration
 cat <<EOF > /usr/local/etc/Caddyfile
-*.localhost {
+localhost, *.localhost, *.*.localhost {
   tls internal {
     on_demand
   }
