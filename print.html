@@ -198,15 +198,30 @@
     "dir": "~/smallweb"
 }
 </code></pre>
-<p>In this setup:</p>
+<p>The routing system maps domains to directories as follows:</p>
 <ul>
-<li><code>api.example.com</code> is mapped to the directory <code>~/smallweb/api</code></li>
-<li><code>blog.example.com</code> is mapped to <code>~/smallweb/blog</code></li>
-<li>Any subdomains following the pattern <code>*.&lt;app&gt;.example.com</code> (e.g., <code>sub.api.example.com</code>) will be handled by <code>~/smallweb/&lt;app&gt;</code> (e.g., <code>~/smallweb/api</code>).</li>
+<li>
+<p>Direct subdomain mapping:</p>
+<ul>
+<li><code>api.example.com</code> → <code>~/smallweb/api</code></li>
+<li><code>blog.example.com</code> → <code>~/smallweb/blog</code></li>
 </ul>
-<p>For the apex domain (<code>example.com</code>), it will map to the directory <code>~/smallweb/@</code>.</p>
-<p>If the directory <code>~/smallweb/@</code> does not exist but <code>~/smallweb/www</code> does, all requests to the apex domain (example.com) will be redirected to <code>www.example.com</code>.</p>
-<p>Conversely, if <code>~/smallweb/www</code> does not exist but <code>~/smallweb/@</code> does, requests to <code>www.example.com will</code> be redirected to example.com.</p>
+</li>
+<li>
+<p>Nested subdomains:</p>
+<ul>
+<li>Any subdomain like <code>*.api.example.com</code> is handled by its parent directory</li>
+<li>For example: <code>test.api.example.com</code> → <code>~/smallweb/api</code></li>
+</ul>
+</li>
+<li>
+<p>Root domain behavior:</p>
+<ul>
+<li>Requests to <code>example.com</code> automatically redirect to <code>www.example.com</code></li>
+<li>If the <code>www</code> directory does not exist, a 404 error is returned</li>
+</ul>
+</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="hosting-websites"><a class="header" href="#hosting-websites">Hosting Websites</a></h1>
 <p>Smallweb can also host dynamic websites. To create a dynamic website, you need to create a folder with a <code>main.[js,ts,jsx,tsx]</code> file in it.</p>
 <p>The file should export a default object with a <code>fetch</code> method that takes a <code>Request</code> object as argument, and returns a <code>Response</code> object.</p>
