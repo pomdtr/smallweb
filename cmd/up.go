@@ -71,11 +71,6 @@ func NewCmdUp() *cobra.Command {
 						return ""
 					}
 
-					customDomains := k.StringMap("customDomains")
-					if appname, ok := customDomains[r.Host]; ok {
-						return appname
-					}
-
 					if appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))); utils.FileExists(filepath.Join(rootDir, appname)) {
 						return appname
 					}
@@ -84,10 +79,6 @@ func NewCmdUp() *cobra.Command {
 					base := strings.Join(parts[1:], ".")
 					if base == k.String("domain") {
 						return ""
-					}
-
-					if appname, ok := customDomains[base]; ok {
-						return appname
 					}
 
 					if appname := strings.TrimSuffix(base, fmt.Sprintf(".%s", k.String("domain"))); utils.FileExists(filepath.Join(rootDir, appname)) {

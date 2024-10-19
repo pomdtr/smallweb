@@ -17,12 +17,6 @@
         "domain": {
             "type": "string"
         },
-        "customDomains": {
-            "type": "object",
-            "additionalProperties": {
-                "type": "string"
-            }
-        },
         "dir": {
             "type": "string"
         },

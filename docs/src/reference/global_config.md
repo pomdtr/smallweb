@@ -62,18 +62,6 @@ If it is not set, private will show a basic auth prompt instead.
 }
 ```
 
-### `customDomains`
-
-The `customDomains` field defines a list of custom domains to map to apps.
-
-```json
-{
-  "customDomains": {
-    "pomdtr.me": "pomdtr",
-  }
-}
-```
-
 ## Default Config
 
 By default the config file looks like this:

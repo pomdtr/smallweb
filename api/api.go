@@ -57,15 +57,6 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 			return
 		}
 
-		customDomains := k.Strings("customDomains")
-		for _, customDomain := range customDomains {
-			if domain == customDomain {
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
-				return
-			}
-		}
-
 		if !strings.HasSuffix(domain, "."+k.String("domain")) {
 			http.Error(w, "invalid domain", http.StatusBadRequest)
 			return
