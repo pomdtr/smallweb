@@ -58,6 +58,7 @@ func NewWorker(app app.App, logger *slog.Logger) *Worker {
 	}
 
 	worker.Env = make(map[string]string)
+	worker.Env["SMALLWEB"] = "1"
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
 
