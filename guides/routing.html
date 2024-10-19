@@ -190,29 +190,13 @@
 </code></pre>
 <p>In this setup:</p>
 <ul>
-<li>api.example.com is mapped to the directory ~/smallweb/api</li>
-<li>blog.example.com is mapped to ~/smallweb/blog</li>
-<li>Any subdomains following the pattern <code>*.&lt;app&gt;.example.com</code> (e.g., sub.api.example.com) will be handled by <code>~/smallweb/&lt;app&gt;</code> (e.g., ~/smallweb/api).</li>
+<li><code>api.example.com</code> is mapped to the directory <code>~/smallweb/api</code></li>
+<li><code>blog.example.com</code> is mapped to <code>~/smallweb/blog</code></li>
+<li>Any subdomains following the pattern <code>*.&lt;app&gt;.example.com</code> (e.g., <code>sub.api.example.com</code>) will be handled by <code>~/smallweb/&lt;app&gt;</code> (e.g., <code>~/smallweb/api</code>).</li>
 </ul>
-<p>For the apex domain (example.com), it will map to the directory ~/smallweb/@.</p>
+<p>For the apex domain (<code>example.com</code>), it will map to the directory <code>~/smallweb/@</code>.</p>
 <p>If the directory <code>~/smallweb/@</code> does not exist but <code>~/smallweb/www</code> does, all requests to the apex domain (example.com) will be redirected to <code>www.example.com</code>.</p>
 <p>Conversely, if <code>~/smallweb/www</code> does not exist but <code>~/smallweb/@</code> does, requests to <code>www.example.com will</code> be redirected to example.com.</p>
-<h2 id="custom-domains"><a class="header" href="#custom-domains">Custom domains</a></h2>
-<p>In addition to your base domain, you can also map custom domains to apps from your global config.</p>
-<pre><code class="language-json">{
-    "domain": "example.com",
-    "dir": "~/smallweb",
-    "customDomains": {
-        "pomdtr.me": "my-app"
-    }
-}
-</code></pre>
-<p>In this example, <code>pomdtr.me</code> will be mapped to <code>~/smallweb/my-app</code>, meaning that the <code>my-app</code> app will be accessible both at:</p>
-<ul>
-<li><code>https://my-app.example.com</code></li>
-<li><code>https://pomdtr.me</code></li>
-</ul>
-<p>Subdomains of custom domains will also be mapped to the same directory. For example, <code>sub.pomdtr.me</code> will be handled by <code>~/smallweb/my-app</code>.</p>
 
                     </main>
 
