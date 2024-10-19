@@ -73,35 +73,19 @@ func NewCmdUp() *cobra.Command {
 
 						target.Host = "www." + k.String("domain")
 						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+						return
 					}
 
 					w.WriteHeader(http.StatusNotFound)
 					return
 				}
 
-				appname := func() string {
-					if appname := strings.TrimSuffix(r.Host, fmt.Sprintf(".%s", k.String("domain"))); utils.FileExists(filepath.Join(rootDir, appname)) {
-						return appname
-					}
-
-					parts := strings.Split(r.Host, ".")
-					base := strings.Join(parts[1:], ".")
-					if base == k.String("domain") {
-						return ""
-					}
-
-					if appname := strings.TrimSuffix(base, fmt.Sprintf(".%s", k.String("domain"))); utils.FileExists(filepath.Join(rootDir, appname)) {
-						return appname
-					}
-
-					return ""
-				}()
-
-				if appname == "" {
+				if !strings.HasSuffix(r.Host, "."+k.String("domain")) {
 					w.WriteHeader(http.StatusNotFound)
 					return
 				}
 
+				appname := strings.TrimSuffix(r.Host, "."+k.String("domain"))
 				a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
 				if err != nil {
 					w.WriteHeader(http.StatusNotFound)
