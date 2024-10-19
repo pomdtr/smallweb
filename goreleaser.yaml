@@ -37,6 +37,9 @@ snapshot:
   version_template: "{{ incpatch .Version }}-next"
 release:
   prerelease: auto
+  extra_files:
+    - glob: api/openapi.json
+    - glob: api/schemas/*
   github:
     owner: pomdtr
     name: smallweb
