@@ -212,5 +212,5 @@ func findEditor() string {
 		return env
 	}
 
-	return "vim -Z"
+	return "vi"
 }
