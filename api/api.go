@@ -62,9 +62,10 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 			return
 		}
 
-		appname := strings.TrimSuffix(domain, "."+k.String("domain"))
-		rootDir := utils.ExpandTilde(k.String("dir"))
-		if _, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain")); err != nil {
+		subdomains := strings.Split(strings.TrimSuffix(domain, "."+k.String("domain")), ".")
+		appname := subdomains[len(subdomains)-1]
+		appDir := filepath.Join(utils.ExpandTilde(k.String("dir")), appname)
+		if _, err := app.LoadApp(appDir, k.String("domain")); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
