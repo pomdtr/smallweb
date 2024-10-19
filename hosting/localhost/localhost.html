@@ -217,7 +217,7 @@ The default installation path is <code>/usr/local/etc/Caddyfile</code>.</li>
 
 # Write caddy configuration
 cat &lt;&lt;EOF &gt; /opt/homebrew/etc/Caddyfile
-*.localhost {
+localhost, *.localhost, *.*.localhost {
   tls internal {
     on_demand
   }
@@ -231,7 +231,7 @@ EOF
 
 # Write caddy configuration
 cat &lt;&lt;EOF &gt; /usr/local/etc/Caddyfile
-*.localhost {
+localhost, *.localhost, *.*.localhost {
   tls internal {
     on_demand
   }
