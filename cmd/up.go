@@ -23,7 +23,6 @@ import (
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/auth"
 	"github.com/pomdtr/smallweb/database"
-	"github.com/pomdtr/smallweb/docs"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -223,8 +222,6 @@ func (me *AppHandler) ServeApp(w http.ResponseWriter, r *http.Request, a app.App
 	var handler http.Handler
 	if a.Entrypoint() == "smallweb:api" {
 		handler = me.apiServer
-	} else if a.Entrypoint() == "smallweb:docs" {
-		handler = docs.Handler
 	} else if a.Entrypoint() == "smallweb:static" {
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
