@@ -16,7 +16,7 @@ then
     exit 1
 fi
 
-smallweb list | cut -f1 | fzf | xargs smallweb open --app
+smallweb list | cut -f1 | fzf | xargs smallweb open
 ```
 
 And make it executable with `chmod +x smallweb-choose`, you will be able to run `smallweb choose` and get an interactive list of your apps to choose from, which will then be opened in your default browser.
