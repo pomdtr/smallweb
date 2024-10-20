@@ -409,7 +409,7 @@ then
     exit 1
 fi
 
-smallweb list | cut -f1 | fzf | xargs smallweb open --app
+smallweb list | cut -f1 | fzf | xargs smallweb open
 </code></pre>
 <p>And make it executable with <code>chmod +x smallweb-choose</code>, you will be able to run <code>smallweb choose</code> and get an interactive list of your apps to choose from, which will then be opened in your default browser.</p>
 <h2 id="example-plugins"><a class="header" href="#example-plugins">Example Plugins</a></h2>
