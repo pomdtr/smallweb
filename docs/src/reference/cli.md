@@ -227,14 +227,13 @@ smallweb completion zsh [flags]
 Open the smallweb config in your editor
 
 ```
-smallweb config [flags]
+smallweb config [key] [flags]
 ```
 
 ### Options
 
 ```
   -h, --help   help for config
-  -j, --json   Output as JSON
 ```
 
 ## smallweb create
