@@ -23,10 +23,6 @@
                 "type": "string"
             }
         },
-        "manifest": {
-            "type": "string",
-            "default": "manifest.json"
-        },
         "crons": {
             "type": "array",
             "description": "Set of cron jobs",

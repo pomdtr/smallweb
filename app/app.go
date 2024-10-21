@@ -21,7 +21,6 @@ type CronJob struct {
 
 type AppConfig struct {
 	Entrypoint    string    `json:"entrypoint,omitempty"`
-	Manifest      string    `json:"manifest,omitempty"`
 	Root          string    `json:"root,omitempty"`
 	Private       bool      `json:"private,omitempty"`
 	PublicRoutes  []string  `json:"publicRoutes,omitempty"`
@@ -145,14 +144,6 @@ func LoadApp(dir string, domain string) (App, error) {
 	}
 
 	return app, nil
-}
-
-func (me App) Manifest() string {
-	if me.Config.Manifest != "" {
-		return filepath.Join(me.Root(), me.Config.Manifest)
-	} else {
-		return filepath.Join(me.Root(), "manifest.json")
-	}
 }
 
 func (me App) Entrypoint() string {

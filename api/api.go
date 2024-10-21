@@ -135,7 +135,7 @@ func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string)
 		return
 	}
 
-	manifestPath := a.Manifest()
+	manifestPath := filepath.Join(a.Root(), "manifest.json")
 	if !utils.FileExists(manifestPath) {
 		w.Header().Set("Content-Type", "application/json")
 		encoder := json.NewEncoder(w)
@@ -191,7 +191,7 @@ func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		manifestPath := a.Manifest()
+		manifestPath := filepath.Join(a.Root(), "manifest.json")
 		if !utils.FileExists(manifestPath) {
 			apps = append(apps, App{
 				Name: a.Name,
