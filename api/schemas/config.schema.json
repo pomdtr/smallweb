@@ -2,16 +2,7 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
-        "host": {
-            "type": "string"
-        },
-        "port": {
-            "type": "integer"
-        },
-        "cert": {
-            "type": "string"
-        },
-        "key": {
+        "addr": {
             "type": "string"
         },
         "domain": {
@@ -22,6 +13,16 @@
         },
         "email": {
             "type": "string"
+        },
+        "auth": {
+            "enum": [
+                "lastlogin",
+                "email",
+                "google",
+                "github",
+                "gitlab",
+                "facebook"
+            ]
         },
         "env": {
             "type": "object",
