@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +18,7 @@ func NewCmdRun() *cobra.Command {
 		GroupID:            CoreGroupID,
 		DisableFlagParsing: true,
 		SilenceErrors:      true,
-		ValidArgsFunction:  completeApp(utils.ExpandTilde(k.String("dir"))),
+		ValidArgsFunction:  completeApp(k.String("dir")),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -29,7 +28,7 @@ func NewCmdRun() *cobra.Command {
 				return cmd.Help()
 			}
 
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 			app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to get app: %w", err)

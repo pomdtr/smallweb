@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/pomdtr/smallweb/api"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -313,7 +312,7 @@ func NewCmdLogConsole() *cobra.Command {
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter logs by app")
-	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.ExpandTilde(k.String("dir"))))
+	cmd.RegisterFlagCompletionFunc("app", completeApp(k.String("dir")))
 
 	return cmd
 }

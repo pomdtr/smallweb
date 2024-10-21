@@ -8,23 +8,21 @@ Smallweb also respects the `XDG_CONFIG_HOME` environment variable.
 
 ## Available Fields
 
-### `host`
+### `addr`
 
-The `host` field defines the host to bind to. By default, it is `127.0.0.1`.
+The `addr` field defines the addr to bind to. By default, it is `:7777`.
 
 ```json
 {
-  "host": "0.0.0.0"
+  "addr": "127.0.0.1:8000"
 }
 ```
 
-### `port`
-
-The `port` field defines the port to bind to. By default, it is `7777`.
+If you want to use an unix socket, you can use the `unix/` prefix.
 
 ```json
 {
-  "port": 8000
+  "addr": "unix/~/smallweb.sock"
 }
 ```
 
@@ -68,8 +66,7 @@ By default the config file looks like this:
 
 ```json
 {
-  "host": "127.0.0.1",
-  "port": 7777,
+  "addr": ":7777",
   "dir": "~/smallweb",
 }
 ```
@@ -87,7 +84,7 @@ which is equivalent to:
 ```json
 {
   "domain": "example.com",
-  "host": "127.0.0.1",
-  "port": 7777,
+  "addr": ":7777",
   "dir": "~/smallweb",
 }
+```

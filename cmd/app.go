@@ -13,7 +13,6 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -29,7 +28,7 @@ func NewCmdCreate() *cobra.Command {
 		GroupID: CoreGroupID,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 			appDir := filepath.Join(rootDir, args[0])
 			if _, err := os.Stat(appDir); !os.IsNotExist(err) {
 				return fmt.Errorf("directory already exists: %s", appDir)
@@ -58,9 +57,9 @@ func NewCmdOpen() *cobra.Command {
 		Short:             "Open an app in the browser",
 		GroupID:           CoreGroupID,
 		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
+		ValidArgsFunction: completeApp(k.String("dir")),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 
 			if len(args) == 0 {
 				cwd, err := os.Getwd()
@@ -112,7 +111,7 @@ func NewCmdList() *cobra.Command {
 		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 			names, err := app.ListApps(rootDir)
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
@@ -183,10 +182,10 @@ func NewCmdRename() *cobra.Command {
 		Short:             "Rename an app",
 		GroupID:           CoreGroupID,
 		Aliases:           []string{"move", "mv"},
-		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
+		ValidArgsFunction: completeApp(k.String("dir")),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 			src := filepath.Join(rootDir, args[0])
 			dst := filepath.Join(rootDir, args[1])
 
@@ -216,10 +215,10 @@ func NewCmdClone() *cobra.Command {
 		Short:             "Clone an app",
 		GroupID:           CoreGroupID,
 		Aliases:           []string{"cp", "copy", "fork"},
-		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
+		ValidArgsFunction: completeApp(k.String("dir")),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 			src := filepath.Join(rootDir, args[0])
 			dst := filepath.Join(rootDir, args[1])
 
@@ -250,10 +249,10 @@ func NewCmdDelete() *cobra.Command {
 		Short:             "Delete an app",
 		GroupID:           CoreGroupID,
 		Aliases:           []string{"remove", "rm"},
-		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
+		ValidArgsFunction: completeApp(k.String("dir")),
 		Args:              cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 			p := filepath.Join(rootDir, args[0])
 			if _, err := os.Stat(p); os.IsNotExist(err) {
 				return fmt.Errorf("app not found: %s", args[0])

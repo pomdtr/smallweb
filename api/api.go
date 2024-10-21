@@ -44,7 +44,7 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 	server := &Server{k: k, httpWriter: httpWriter, cronWriter: cronWriter, consoleWriter: consoleWriter}
 	handler := Handler(server)
 	webdavHandler := webdav.Handler{
-		FileSystem: webdav.Dir(utils.ExpandTilde(k.String("dir"))),
+		FileSystem: webdav.Dir(k.String("dir")),
 		LockSystem: webdav.NewMemLS(),
 		Prefix:     "/webdav",
 	}
@@ -63,7 +63,7 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 		}
 
 		appname := strings.TrimSuffix(domain, "."+k.String("domain"))
-		appDir := filepath.Join(utils.ExpandTilde(k.String("dir")), appname)
+		appDir := filepath.Join(k.String("dir"), appname)
 		if _, err := app.LoadApp(appDir, k.String("domain")); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -129,8 +129,7 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 
 // GetV0AppsAppEnv implements ServerInterface.
 func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string) {
-	rootDir := utils.ExpandTilde(me.k.String("dir"))
-	a, err := app.LoadApp(filepath.Join(rootDir, appname), me.k.String("domain"))
+	a, err := app.LoadApp(filepath.Join(me.k.String("dir"), appname), me.k.String("domain"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -177,8 +176,8 @@ func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string)
 }
 
 func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
-	rootDir := utils.ExpandTilde(me.k.String("dir"))
-	names, err := app.ListApps(rootDir)
+	rootDir := me.k.String("dir")
+	names, err := app.ListApps(me.k.String("dir"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

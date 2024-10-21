@@ -12,7 +12,6 @@ import (
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/database"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +21,7 @@ func NewCmdTunnel() *cobra.Command {
 		Short:             "Start a tunnel to a remote server (powered by localhost.run)",
 		GroupID:           CoreGroupID,
 		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: completeApp(utils.ExpandTilde(k.String("dir"))),
+		ValidArgsFunction: completeApp(k.String("dir")),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
 			if err != nil {
@@ -37,7 +36,7 @@ func NewCmdTunnel() *cobra.Command {
 
 			server := http.Server{
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					rootDir := utils.ExpandTilde(k.String("dir"))
+					rootDir := k.String("dir")
 					app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
 					if err != nil {
 						w.WriteHeader(http.StatusNotFound)

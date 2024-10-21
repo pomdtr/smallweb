@@ -10,7 +10,6 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -70,7 +69,7 @@ func NewCmdCronList() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Short:   "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 
 			apps, err := app.ListApps(rootDir)
 			if err != nil {
@@ -151,7 +150,7 @@ func NewCmdCronList() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.ExpandTilde(k.String("dir"))))
+	cmd.RegisterFlagCompletionFunc("app", completeApp(k.String("dir")))
 
 	return cmd
 }
@@ -162,7 +161,7 @@ func NewCmdCronTrigger() *cobra.Command {
 		Short: "Trigger a cron job",
 		Args:  cobra.ExactArgs(1),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 
 			var completions []string
 			apps, err := app.ListApps(rootDir)
@@ -189,7 +188,7 @@ func NewCmdCronTrigger() *cobra.Command {
 			return completions, cobra.ShellCompDirectiveDefault
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.ExpandTilde(k.String("dir"))
+			rootDir := k.String("dir")
 			parts := strings.Split(args[0], ":")
 			if len(parts) != 2 {
 				return fmt.Errorf("invalid job name")

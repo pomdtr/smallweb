@@ -53,13 +53,12 @@ func NewCmdUp() *cobra.Command {
 			cronWriter := utils.NewMultiWriter()
 			consoleWriter := utils.NewMultiWriter()
 
-			httpLogger := utils.NewLogger(httpWriter)
 			consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
 
 			apiHandler := api.NewHandler(k, httpWriter, cronWriter, consoleWriter)
 			appHandler := &AppHandler{apiServer: apiHandler, db: db, logger: consoleLogger}
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				rootDir := utils.ExpandTilde(k.String("dir"))
+				rootDir := k.String("dir")
 
 				if r.Host == k.String("domain") {
 					// if we are on the apex domain and www exists, redirect to www
@@ -94,18 +93,12 @@ func NewCmdUp() *cobra.Command {
 				appHandler.ServeApp(w, r, a)
 			})
 
-			addr := fmt.Sprintf("%s:%d", k.String("host"), k.Int("port"))
-			server := http.Server{
-				Addr:    addr,
-				Handler: httpLogger.Middleware(handler),
-			}
-
 			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 			c := cron.New(cron.WithParser(parser))
 			cronLogger := slog.New(slog.NewJSONHandler(cronWriter, nil))
 			c.AddFunc("* * * * *", func() {
 				rounded := time.Now().Truncate(time.Minute)
-				rootDir := utils.ExpandTilde(k.String("dir"))
+				rootDir := k.String("dir")
 				apps, err := app.ListApps(rootDir)
 				if err != nil {
 					fmt.Println(err)
@@ -167,8 +160,22 @@ func NewCmdUp() *cobra.Command {
 
 			go c.Start()
 
-			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), addr)
-			go server.ListenAndServe()
+			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), k.String("addr"))
+			httpLogger := utils.NewLogger(httpWriter)
+			server := http.Server{
+				Handler: httpLogger.Middleware(handler),
+			}
+
+			addr := k.String("addr")
+			var ln net.Listener
+			if strings.HasPrefix(addr, "unix/") {
+				socketPath := strings.TrimPrefix(addr, "unix/")
+				net.Listen("unix", utils.ExpandTilde(socketPath))
+			} else {
+				net.Listen("tcp", addr)
+			}
+
+			go server.Serve(ln)
 
 			// start api server on unix socket
 			apiServer := http.Server{
@@ -202,7 +209,6 @@ func NewCmdUp() *cobra.Command {
 			<-sigint
 
 			log.Println("Shutting down server...")
-			server.Shutdown(context.Background())
 			apiServer.Shutdown(context.Background())
 			c.Stop()
 			return nil

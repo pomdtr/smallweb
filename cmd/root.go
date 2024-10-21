@@ -48,8 +48,7 @@ func findConfigPath() string {
 
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
-		"host": "127.0.0.1",
-		"port": 7777,
+		"addr": ":7777",
 		"dir":  "~/smallweb",
 	}, "")
 
@@ -73,11 +72,13 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		k.Load(defaultProvider, nil)
 		k.Load(fileProvider, utils.ConfigParser())
 		k.Load(envProvider, nil)
+		k.Set("dir", utils.ExpandTilde(k.String("dir")))
 	})
 
 	k.Load(defaultProvider, nil)
 	k.Load(fileProvider, utils.ConfigParser())
 	k.Load(envProvider, nil)
+	k.Set("dir", utils.ExpandTilde(k.String("dir")))
 
 	cmd := &cobra.Command{
 		Use:          "smallweb",
