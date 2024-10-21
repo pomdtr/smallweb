@@ -184,16 +184,15 @@
 <p>You can also specify a custom config file by setting the <code>SMALLWEB_CONFIG</code> environment variable.</p>
 <p>Smallweb also respects the <code>XDG_CONFIG_HOME</code> environment variable.</p>
 <h2 id="available-fields"><a class="header" href="#available-fields">Available Fields</a></h2>
-<h3 id="host"><a class="header" href="#host"><code>host</code></a></h3>
-<p>The <code>host</code> field defines the host to bind to. By default, it is <code>127.0.0.1</code>.</p>
+<h3 id="addr"><a class="header" href="#addr"><code>addr</code></a></h3>
+<p>The <code>host</code> field defines the host to bind to. By default, it is <code>:7777</code>.</p>
 <pre><code class="language-json">{
-  "host": "0.0.0.0"
+  "addr": "127.0.0.1:8000"
 }
 </code></pre>
-<h3 id="port"><a class="header" href="#port"><code>port</code></a></h3>
-<p>The <code>port</code> field defines the port to bind to. By default, it is <code>7777</code>.</p>
+<p>If you want to use an unix socket, you can use the <code>unix/</code> prefix.</p>
 <pre><code class="language-json">{
-  "port": 8000
+  "addr": "unix/~/smallweb.sock"
 }
 </code></pre>
 <h3 id="domain"><a class="header" href="#domain"><code>domain</code></a></h3>
@@ -219,8 +218,7 @@
 <h2 id="default-config"><a class="header" href="#default-config">Default Config</a></h2>
 <p>By default the config file looks like this:</p>
 <pre><code class="language-json">{
-  "host": "127.0.0.1",
-  "port": 7777,
+  "addr": ":7777",
   "dir": "~/smallweb",
 }
 </code></pre>
@@ -232,8 +230,7 @@
 <p>which is equivalent to:</p>
 <pre><code class="language-json">{
   "domain": "example.com",
-  "host": "127.0.0.1",
-  "port": 7777,
+  "addr": ":7777",
   "dir": "~/smallweb",
 }
 </code></pre>
