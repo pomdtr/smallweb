@@ -1,6 +1,6 @@
 # Smallweb - Host websites from your internet folder
 
-Smallweb is a lightweight web server based on [Deno](https://deno.com). It draws inspiration from both legacy specifications like [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface) and modern serverless platforms such as [Val Town](https://val.town) and [Deno Deploy](https://deno.com/deploy).
+Smallweb is a lightweight web server based on [Deno](https://deno.com). It draws inspiration from both legacy specifications like [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface), modern serverless platforms such as [Val Town](https://val.town) and static sites generators like [Blot.im](https://blot.im).
 
 Smallweb maps domains to folders in your filesystem. For example, if you own the `pomdtr.me` domain:
 
