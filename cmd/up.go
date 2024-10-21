@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"log"
@@ -172,23 +173,9 @@ func NewCmdUp() *cobra.Command {
 				Handler: httpLogger.Middleware(handler),
 			}
 
-			addr := k.String("addr")
-			var ln net.Listener
-			if strings.HasPrefix(addr, "unix/") {
-				socketPath := strings.TrimPrefix(addr, "unix/")
-				l, err := net.Listen("unix", utils.ExpandTilde(socketPath))
-				if err != nil {
-					return fmt.Errorf("failed to listen: %v", err)
-				}
-				ln = l
-			} else {
-				addr := strings.TrimPrefix(addr, "tcp/")
-				l, err := net.Listen("tcp", addr)
-				if err != nil {
-					return fmt.Errorf("failed to listen: %v", err)
-				}
-
-				ln = l
+			ln, err := getListener(k.String("addr"), utils.ExpandTilde(k.String("cert")), utils.ExpandTilde(k.String("key")))
+			if err != nil {
+				return fmt.Errorf("failed to listen: %v", err)
 			}
 
 			go server.Serve(ln)
@@ -232,6 +219,34 @@ func NewCmdUp() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func getListener(addr, cert, key string) (net.Listener, error) {
+	var config *tls.Config
+	if cert != "" && key != "" {
+		cert, err := tls.LoadX509KeyPair(cert, key)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load cert: %v", err)
+		}
+
+		config = &tls.Config{Certificates: []tls.Certificate{cert}}
+	}
+
+	if strings.HasPrefix(addr, "unix/") {
+		socketPath := strings.TrimPrefix(addr, "unix/")
+		if config != nil {
+			return tls.Listen("unix", utils.ExpandTilde(socketPath), config)
+		}
+
+		return net.Listen("unix", utils.ExpandTilde(socketPath))
+	}
+
+	addr = strings.TrimPrefix(addr, "tcp/")
+	if config != nil {
+		return tls.Listen("tcp", addr, config)
+	}
+
+	return net.Listen("tcp", addr)
 }
 
 type AppHandler struct {

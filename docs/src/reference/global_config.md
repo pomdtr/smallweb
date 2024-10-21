@@ -26,6 +26,17 @@ If you want to use an unix socket, you can use the `unix/` prefix.
 }
 ```
 
+### `cert` and `key`
+
+The `cert` and `key` fields define the path to the SSL certificate and key.
+
+```json
+{
+  "cert": "~/cert.pem",
+  "key": "~/key.pem"
+}
+```
+
 ### `domain`
 
 The `domain` field defines the apex domain used for routing.
