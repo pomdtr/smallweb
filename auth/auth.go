@@ -125,7 +125,7 @@ func isBrowser(ua *user_agent.UserAgent) bool {
 	return false
 }
 
-func Middleware(db *sql.DB, email string, appname string) func(http.Handler) http.Handler {
+func Middleware(db *sql.DB, provider string, email string, appname string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		sessionCookieName := "smallweb-session"
 		oauthCookieName := "smallweb-oauth-store"
@@ -173,10 +173,15 @@ func Middleware(db *sql.DB, email string, appname string) func(http.Handler) htt
 				return
 			}
 
+			authUrl := "https://lastlogin.net/auth"
+			if provider != "" {
+				authUrl += "?provider=" + provider
+			}
+
 			oauth2Config := oauth2.Config{
 				ClientID: fmt.Sprintf("https://%s/", r.Host),
 				Endpoint: oauth2.Endpoint{
-					AuthURL:   "https://lastlogin.net/auth",
+					AuthURL:   authUrl,
 					TokenURL:  "https://lastlogin.net/token",
 					AuthStyle: oauth2.AuthStyleInParams,
 				},

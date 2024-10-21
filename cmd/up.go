@@ -170,9 +170,19 @@ func NewCmdUp() *cobra.Command {
 			var ln net.Listener
 			if strings.HasPrefix(addr, "unix/") {
 				socketPath := strings.TrimPrefix(addr, "unix/")
-				net.Listen("unix", utils.ExpandTilde(socketPath))
+				l, err := net.Listen("unix", utils.ExpandTilde(socketPath))
+				if err != nil {
+					return fmt.Errorf("failed to listen: %v", err)
+				}
+				ln = l
 			} else {
-				net.Listen("tcp", addr)
+				addr := strings.TrimPrefix(addr, "tcp/")
+				l, err := net.Listen("tcp", addr)
+				if err != nil {
+					return fmt.Errorf("failed to listen: %v", err)
+				}
+
+				ln = l
 			}
 
 			go server.Serve(ln)
@@ -318,7 +328,7 @@ func (me *AppHandler) ServeApp(w http.ResponseWriter, r *http.Request, a app.App
 	}
 
 	if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
-		authMiddleware := auth.Middleware(me.db, k.String("email"), a.Name)
+		authMiddleware := auth.Middleware(me.db, k.String("auth"), k.String("email"), a.Name)
 		handler = authMiddleware(handler)
 	}
 

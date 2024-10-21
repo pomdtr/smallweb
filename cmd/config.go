@@ -8,33 +8,18 @@ import (
 	"path/filepath"
 
 	"github.com/google/shlex"
-	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
 func NewCmdConfig() *cobra.Command {
-	var flags struct {
-		json bool
-	}
-
 	cmd := &cobra.Command{
-		Use:     "config",
+		Use:     "config [key]",
 		Short:   "Open the smallweb config in your editor",
 		GroupID: CoreGroupID,
-		Args:    cobra.NoArgs,
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			configPath := findConfigPath()
-
-			if flags.json || !isatty.IsTerminal(os.Stdout.Fd()) {
-				b, err := k.Marshal(utils.ConfigParser())
-				if err != nil {
-					return err
-				}
-
-				os.Stdout.Write(b)
-				return nil
-			}
 
 			if !utils.FileExists(configPath) {
 				var config map[string]any
@@ -61,6 +46,16 @@ func NewCmdConfig() *cobra.Command {
 				}
 			}
 
+			if len(args) > 0 {
+				v := k.Get(args[0])
+				if v == nil {
+					return fmt.Errorf("key %q not found", args[0])
+				}
+
+				fmt.Println(v)
+				return nil
+			}
+
 			editorArgs, err := shlex.Split(findEditor())
 			if err != nil {
 				return err
@@ -81,6 +76,5 @@ func NewCmdConfig() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&flags.json, "json", "j", false, "Output as JSON")
 	return cmd
 }
