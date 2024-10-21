@@ -83,7 +83,13 @@ func NewCmdUp() *cobra.Command {
 					return
 				}
 
-				appname := strings.TrimSuffix(r.Host, "."+k.String("domain"))
+				var appname string
+				if name, ok := k.StringMap("customDomains")[r.Host]; ok {
+					appname = name
+				} else {
+					appname = strings.TrimSuffix(r.Host, "."+k.String("domain"))
+				}
+
 				a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
 				if err != nil {
 					w.WriteHeader(http.StatusNotFound)

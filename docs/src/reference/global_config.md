@@ -60,6 +60,18 @@ If it is not set, private will show a basic auth prompt instead.
 }
 ```
 
+### `customDomains`
+
+The `customDomains` field is an object that maps custom domains to apps.
+
+```json
+{
+  "customDomains": {
+    "example.com": "example",
+  }
+}
+```
+
 ## Default Config
 
 By default the config file looks like this:
