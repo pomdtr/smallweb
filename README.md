@@ -21,10 +21,6 @@ Smallweb does not use Docker, but it still sandboxes your code using Deno. A sma
 
 And if you website suddenly go viral, you can move your site to Deno Deploy in one command.
 
-## Open-Source, GPL Licensed
-
-You can find the smallweb source on [github](https://github.com/pomdtr/smallweb).
-
 ## Installation
 
 All the instructions are available in the [docs](https://docs.smallweb.run).

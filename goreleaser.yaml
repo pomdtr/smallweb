@@ -21,7 +21,7 @@ builds:
 archives:
   - files:
       - README.md
-      - LICENSE-GPL
+      - LICENSE.md
       - completions/*
     name_template: >-
       {{ .ProjectName }}_
