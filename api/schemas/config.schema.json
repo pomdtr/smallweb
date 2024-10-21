@@ -3,18 +3,23 @@
     "type": "object",
     "properties": {
         "addr": {
+            "description": "Server address",
             "type": "string"
         },
         "domain": {
+            "description": "Domain name",
             "type": "string"
         },
         "dir": {
+            "description": "App directory",
             "type": "string"
         },
         "email": {
+            "description": "Email address",
             "type": "string"
         },
         "auth": {
+            "description": "Authentication method",
             "enum": [
                 "lastlogin",
                 "email",
@@ -23,12 +28,6 @@
                 "gitlab",
                 "facebook"
             ]
-        },
-        "env": {
-            "type": "object",
-            "additionalProperties": {
-                "type": "string"
-            }
         }
     }
 }
