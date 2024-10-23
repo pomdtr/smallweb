@@ -234,6 +234,13 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 
 	if strings.HasPrefix(addr, "unix/") {
 		socketPath := strings.TrimPrefix(addr, "unix/")
+
+		if utils.FileExists(socketPath) {
+			if err := os.Remove(socketPath); err != nil {
+				return nil, fmt.Errorf("failed to remove existing socket: %v", err)
+			}
+		}
+
 		if config != nil {
 			return tls.Listen("unix", utils.ExpandTilde(socketPath), config)
 		}
