@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/api"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +30,7 @@ func NewCmdAPI() *cobra.Command {
 			var body io.Reader
 			if flags.data != "" {
 				body = strings.NewReader(flags.data)
-			} else if !isatty.IsTerminal(os.Stdin.Fd()) {
+			} else if flags.data == "@-" {
 				body = os.Stdin
 			}
 
