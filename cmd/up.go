@@ -44,7 +44,7 @@ func NewCmdUp() *cobra.Command {
 
 			consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
 
-			apiHandler := api.NewHandler(utils.RootDir(), k.String("domain"), httpWriter, consoleWriter)
+			apiHandler := api.NewHandler(k.String("domain"), httpWriter, consoleWriter)
 			appHandler := &AppHandler{apiServer: apiHandler, logger: consoleLogger}
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				rootDir := utils.RootDir()

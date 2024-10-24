@@ -76,6 +76,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdCreate())
+	cmd.AddCommand(NewCmdAPI())
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdRename())

@@ -24,7 +24,7 @@ func NewCmdTunnel() *cobra.Command {
 		ValidArgsFunction: completeApp(utils.RootDir()),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			appHandler := AppHandler{
-				apiServer: api.NewHandler(utils.RootDir(), k.String("domain"), nil, nil),
+				apiServer: api.NewHandler(k.String("domain"), nil, nil),
 				logger:    slog.New(slog.NewJSONHandler(os.Stderr, nil)),
 			}
 

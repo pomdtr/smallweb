@@ -2,6 +2,7 @@ package api
 
 import (
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,16 +35,15 @@ var swagger embed.FS
 
 type Server struct {
 	domain        string
-	dir           string
 	httpWriter    *utils.MultiWriter
 	consoleWriter *utils.MultiWriter
 }
 
-func NewHandler(dir string, domain string, httpWriter *utils.MultiWriter, consoleWriter *utils.MultiWriter) http.Handler {
-	server := &Server{domain: domain, dir: dir, httpWriter: httpWriter, consoleWriter: consoleWriter}
+func NewHandler(domain string, httpWriter *utils.MultiWriter, consoleWriter *utils.MultiWriter) http.Handler {
+	server := &Server{domain: domain, httpWriter: httpWriter, consoleWriter: consoleWriter}
 	handler := Handler(server)
 	webdavHandler := webdav.Handler{
-		FileSystem: webdav.Dir(dir),
+		FileSystem: webdav.Dir(utils.RootDir()),
 		LockSystem: webdav.NewMemLS(),
 		Prefix:     "/webdav",
 	}
@@ -62,7 +62,7 @@ func NewHandler(dir string, domain string, httpWriter *utils.MultiWriter, consol
 		}
 
 		appname := strings.TrimSuffix(d, "."+domain)
-		appDir := filepath.Join(dir, appname)
+		appDir := filepath.Join(utils.RootDir(), appname)
 		if _, err := app.LoadApp(appDir, domain); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -128,7 +128,7 @@ func NewHandler(dir string, domain string, httpWriter *utils.MultiWriter, consol
 
 // GetV0AppsAppEnv implements ServerInterface.
 func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string) {
-	a, err := app.LoadApp(filepath.Join(me.dir, appname), me.domain)
+	a, err := app.LoadApp(filepath.Join(utils.RootDir(), appname), me.domain)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -175,7 +175,7 @@ func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string)
 }
 
 func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
-	names, err := app.ListApps(me.dir)
+	names, err := app.ListApps(utils.RootDir())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -183,7 +183,7 @@ func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
 
 	var apps []App
 	for _, name := range names {
-		a, err := app.LoadApp(filepath.Join(me.dir, name), me.domain)
+		a, err := app.LoadApp(filepath.Join(utils.RootDir(), name), me.domain)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -268,8 +268,8 @@ func (me *Server) RunApp(w http.ResponseWriter, r *http.Request, app string) {
 	}
 
 	res.Success = res.Code == 0
-	res.Stdout = stdout.String()
-	res.Stderr = stderr.String()
+	res.Stdout = base64.StdEncoding.EncodeToString([]byte(stdout.String()))
+	res.Stderr = base64.StdEncoding.EncodeToString([]byte(stderr.String()))
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(res); err != nil {
@@ -279,6 +279,11 @@ func (me *Server) RunApp(w http.ResponseWriter, r *http.Request, app string) {
 }
 
 func (me *Server) GetHttpLogs(w http.ResponseWriter, r *http.Request, params GetHttpLogsParams) {
+	if me.httpWriter == nil {
+		http.Error(w, "Logging unsupported", http.StatusInternalServerError)
+		return
+	}
+
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
@@ -337,7 +342,7 @@ func (me *Server) GetHttpLogs(w http.ResponseWriter, r *http.Request, params Get
 
 func (me *Server) GetConsoleLogs(w http.ResponseWriter, r *http.Request, params GetConsoleLogsParams) {
 	if me.consoleWriter == nil {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		http.Error(w, "Logging unsupported", http.StatusInternalServerError)
 		return
 	}
 
