@@ -283,7 +283,20 @@ func Middleware(provider string, email string, appname string) func(http.Handler
 			}
 
 			session, err := GetSession(cookie.Value)
-			if session.Domain != r.Host || session.Email != email {
+			if err != nil {
+				http.SetCookie(w, &http.Cookie{
+					Name:     sessionCookieName,
+					Expires:  time.Now().Add(-1 * time.Hour),
+					SameSite: http.SameSiteLaxMode,
+					HttpOnly: true,
+					Secure:   true,
+				})
+
+				http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
+				return
+			}
+
+			if session.Domain != r.Host {
 				http.SetCookie(w, &http.Cookie{
 					Name:     sessionCookieName,
 					Expires:  time.Now().Add(-1 * time.Hour),
@@ -296,19 +309,6 @@ func Middleware(provider string, email string, appname string) func(http.Handler
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 					return
 				}
-
-				http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
-				return
-			}
-
-			if err != nil {
-				http.SetCookie(w, &http.Cookie{
-					Name:     sessionCookieName,
-					Expires:  time.Now().Add(-1 * time.Hour),
-					SameSite: http.SameSiteLaxMode,
-					HttpOnly: true,
-					Secure:   true,
-				})
 
 				http.Redirect(w, r, fmt.Sprintf("/_auth/login?redirect=%s", r.URL.Path), http.StatusSeeOther)
 				return

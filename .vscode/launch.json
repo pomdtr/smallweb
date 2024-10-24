@@ -7,15 +7,21 @@
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "up",
-            ]
+            ],
+            "env": {
+                "SMALLWEB_DIR": "${workspaceFolder}/examples"
+            },
         },
         {
             "name": "smallweb cli",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
+            "args": [],
+            "env": {
+                "SMALLWEB_DIR": "${workspaceFolder}/examples"
+            },
             "console": "integratedTerminal",
-            "args": []
         }
     ]
 }

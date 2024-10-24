@@ -19,12 +19,10 @@
             "type": "string"
         },
         "auth": {
-            "description": "Authentication method",
+            "description": "Authentication method. Leave empty to choose at runtime.",
             "enum": [
-                "lastlogin",
-                "email",
-                "google",
                 "github",
+                "google",
                 "gitlab",
                 "facebook"
             ]
