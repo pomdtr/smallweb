@@ -14,7 +14,7 @@ import (
 type Session struct {
 	ID        string    `json:"id"`
 	Email     string    `json:"email"`
-	Domain    string    `json:"app"`
+	Domain    string    `json:"domain"`
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }

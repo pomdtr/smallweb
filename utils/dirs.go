@@ -18,5 +18,5 @@ func ConfigPath() string {
 }
 
 func DataDir() string {
-	return filepath.Join(RootDir(), "data")
+	return filepath.Join(RootDir(), ".smallweb", "data")
 }

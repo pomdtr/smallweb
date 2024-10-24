@@ -69,11 +69,12 @@ func CreateToken(token Token) error {
 		return err
 	}
 
-	if err := os.MkdirAll(tokenDir(), 0700); err != nil {
+	tokenPath := tokenPath(token.ID)
+	if err := os.MkdirAll(filepath.Dir(tokenPath), 0700); err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(tokenPath(token.ID), tokenBytes, 0600); err != nil {
+	if err := os.WriteFile(tokenPath, tokenBytes, 0600); err != nil {
 		return err
 	}
 
