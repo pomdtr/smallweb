@@ -15,7 +15,6 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/knadh/koanf/v2"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 	"golang.org/x/net/webdav"
@@ -34,37 +33,37 @@ var schemas embed.FS
 var swagger embed.FS
 
 type Server struct {
-	k             *koanf.Koanf
+	domain        string
+	dir           string
 	httpWriter    *utils.MultiWriter
-	cronWriter    *utils.MultiWriter
 	consoleWriter *utils.MultiWriter
 }
 
-func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils.MultiWriter, consoleWriter *utils.MultiWriter) http.Handler {
-	server := &Server{k: k, httpWriter: httpWriter, cronWriter: cronWriter, consoleWriter: consoleWriter}
+func NewHandler(dir string, domain string, httpWriter *utils.MultiWriter, consoleWriter *utils.MultiWriter) http.Handler {
+	server := &Server{domain: domain, dir: dir, httpWriter: httpWriter, consoleWriter: consoleWriter}
 	handler := Handler(server)
 	webdavHandler := webdav.Handler{
-		FileSystem: webdav.Dir(k.String("dir")),
+		FileSystem: webdav.Dir(dir),
 		LockSystem: webdav.NewMemLS(),
 		Prefix:     "/webdav",
 	}
 
 	caddyHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		domain := r.URL.Query().Get("domain")
-		if domain == k.String("domain") {
+		d := r.URL.Query().Get("domain")
+		if d == domain {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("OK"))
 			return
 		}
 
-		if !strings.HasSuffix(domain, "."+k.String("domain")) {
+		if !strings.HasSuffix(d, "."+domain) {
 			http.Error(w, "invalid domain", http.StatusBadRequest)
 			return
 		}
 
-		appname := strings.TrimSuffix(domain, "."+k.String("domain"))
-		appDir := filepath.Join(k.String("dir"), appname)
-		if _, err := app.LoadApp(appDir, k.String("domain")); err != nil {
+		appname := strings.TrimSuffix(d, "."+domain)
+		appDir := filepath.Join(dir, appname)
+		if _, err := app.LoadApp(appDir, domain); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -129,7 +128,7 @@ func NewHandler(k *koanf.Koanf, httpWriter *utils.MultiWriter, cronWriter *utils
 
 // GetV0AppsAppEnv implements ServerInterface.
 func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string) {
-	a, err := app.LoadApp(filepath.Join(me.k.String("dir"), appname), me.k.String("domain"))
+	a, err := app.LoadApp(filepath.Join(me.dir, appname), me.domain)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -176,8 +175,7 @@ func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string)
 }
 
 func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
-	rootDir := me.k.String("dir")
-	names, err := app.ListApps(me.k.String("dir"))
+	names, err := app.ListApps(me.dir)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -185,7 +183,7 @@ func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
 
 	var apps []App
 	for _, name := range names {
-		a, err := app.LoadApp(filepath.Join(rootDir, name), me.k.String("domain"))
+		a, err := app.LoadApp(filepath.Join(me.dir, name), me.domain)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -325,63 +323,6 @@ func (me *Server) GetHttpLogs(w http.ResponseWriter, r *http.Request, params Get
 			}
 
 			if host != *params.Host {
-				continue
-			}
-
-			w.Write(logMsg)
-			flusher.Flush() // Push data to the client
-		case <-r.Context().Done():
-			// If the client disconnects, stop the loop
-			return
-		}
-	}
-}
-
-func (me *Server) GetCronLogs(w http.ResponseWriter, r *http.Request, params GetCronLogsParams) {
-	if me.cronWriter == nil {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-
-	// Set the necessary headers for SSE
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
-	// Create a new channel for this client to receive logs
-	clientChan := make(chan []byte)
-	me.httpWriter.AddClient(clientChan)
-	defer me.httpWriter.RemoveClient(clientChan)
-
-	// Listen to the client channel and send logs to the client
-	for {
-		select {
-		case logMsg := <-clientChan:
-			// Send the log message as SSE event
-			if params.App == nil {
-				w.Write(logMsg)
-				flusher.Flush() // Push data to the client
-				continue
-			}
-
-			var log map[string]any
-			if err := json.Unmarshal(logMsg, &log); err != nil {
-				fmt.Fprintln(os.Stderr, "failed to parse log:", err)
-				continue
-			}
-
-			app, ok := log["app"].(string)
-			if !ok {
-				continue
-			}
-
-			if app != *params.App {
 				continue
 			}
 

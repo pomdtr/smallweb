@@ -43,12 +43,6 @@ type GetConsoleLogsParams struct {
 	App *string `form:"app,omitempty" json:"app,omitempty"`
 }
 
-// GetCronLogsParams defines parameters for GetCronLogs.
-type GetCronLogsParams struct {
-	// App Filter logs by app
-	App *string `form:"app,omitempty" json:"app,omitempty"`
-}
-
 // GetHttpLogsParams defines parameters for GetHttpLogs.
 type GetHttpLogsParams struct {
 	// Host Filter logs by host
@@ -145,9 +139,6 @@ type ClientInterface interface {
 	// GetConsoleLogs request
 	GetConsoleLogs(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetCronLogs request
-	GetCronLogs(ctx context.Context, params *GetCronLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetHttpLogs request
 	GetHttpLogs(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -183,18 +174,6 @@ func (c *Client) GetApp(ctx context.Context, app string, reqEditors ...RequestEd
 
 func (c *Client) GetConsoleLogs(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetConsoleLogsRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetCronLogs(ctx context.Context, params *GetCronLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetCronLogsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -312,55 +291,6 @@ func NewGetConsoleLogsRequest(server string, params *GetConsoleLogsParams) (*htt
 	}
 
 	operationPath := fmt.Sprintf("/v0/logs/console")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.App != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "app", runtime.ParamLocationQuery, *params.App); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetCronLogsRequest generates requests for GetCronLogs
-func NewGetCronLogsRequest(server string, params *GetCronLogsParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/v0/logs/cron")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -548,9 +478,6 @@ type ClientWithResponsesInterface interface {
 	// GetConsoleLogsWithResponse request
 	GetConsoleLogsWithResponse(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*GetConsoleLogsResponse, error)
 
-	// GetCronLogsWithResponse request
-	GetCronLogsWithResponse(ctx context.Context, params *GetCronLogsParams, reqEditors ...RequestEditorFn) (*GetCronLogsResponse, error)
-
 	// GetHttpLogsWithResponse request
 	GetHttpLogsWithResponse(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*GetHttpLogsResponse, error)
 
@@ -625,27 +552,6 @@ func (r GetConsoleLogsResponse) StatusCode() int {
 	return 0
 }
 
-type GetCronLogsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r GetCronLogsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetCronLogsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type GetHttpLogsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -714,15 +620,6 @@ func (c *ClientWithResponses) GetConsoleLogsWithResponse(ctx context.Context, pa
 		return nil, err
 	}
 	return ParseGetConsoleLogsResponse(rsp)
-}
-
-// GetCronLogsWithResponse request returning *GetCronLogsResponse
-func (c *ClientWithResponses) GetCronLogsWithResponse(ctx context.Context, params *GetCronLogsParams, reqEditors ...RequestEditorFn) (*GetCronLogsResponse, error) {
-	rsp, err := c.GetCronLogs(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetCronLogsResponse(rsp)
 }
 
 // GetHttpLogsWithResponse request returning *GetHttpLogsResponse
@@ -819,22 +716,6 @@ func ParseGetConsoleLogsResponse(rsp *http.Response) (*GetConsoleLogsResponse, e
 	return response, nil
 }
 
-// ParseGetCronLogsResponse parses an HTTP response from a GetCronLogsWithResponse call
-func ParseGetCronLogsResponse(rsp *http.Response) (*GetCronLogsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetCronLogsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
 // ParseGetHttpLogsResponse parses an HTTP response from a GetHttpLogsWithResponse call
 func ParseGetHttpLogsResponse(rsp *http.Response) (*GetHttpLogsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -891,9 +772,6 @@ type ServerInterface interface {
 
 	// (GET /v0/logs/console)
 	GetConsoleLogs(w http.ResponseWriter, r *http.Request, params GetConsoleLogsParams)
-
-	// (GET /v0/logs/cron)
-	GetCronLogs(w http.ResponseWriter, r *http.Request, params GetCronLogsParams)
 
 	// (GET /v0/logs/http)
 	GetHttpLogs(w http.ResponseWriter, r *http.Request, params GetHttpLogsParams)
@@ -968,33 +846,6 @@ func (siw *ServerInterfaceWrapper) GetConsoleLogs(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetConsoleLogs(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// GetCronLogs operation middleware
-func (siw *ServerInterfaceWrapper) GetCronLogs(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetCronLogsParams
-
-	// ------------- Optional query parameter "app" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "app", r.URL.Query(), &params.App)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetCronLogs(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1179,7 +1030,6 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetApps)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}", wrapper.GetApp)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/console", wrapper.GetConsoleLogs)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/cron", wrapper.GetCronLogs)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/http", wrapper.GetHttpLogs)
 	m.HandleFunc("POST "+options.BaseURL+"/v0/run/{app}", wrapper.RunApp)
 
@@ -1189,16 +1039,16 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+SWzW7bMAyAX8XgdvTqYL351hVYV6DAhvY49KDYjKPCFlWK6hYEfveBctPGsdvur4dh",
-	"pwik+PeJJrOFijpPDp0EKLcQqjV2Jh1PvNcfz+SRxWISdsbZFQbRs2w8Qgm0vMFKoM/BmQ73FEHYukYV",
-	"kdsZeZ8D4220jDWUXwfr4e51PnV+Sl1nXP05io8yTayiej+2dYINshoGqZF5Nq8gNUWZV8WqwhD2dEui",
-	"Fo2b5L27mQ85PHh9iDytRl1Yt6Lk3UqruqvOtO03XGYnX84hhzvkYMlBCQtNhzw64y2UcHy0ODqGHLyR",
-	"dUqvuFsUxvt0bjBVo2CMWHLnNZRwhnKiek07eHJhIPZ+sRjAOUGXzIz3ra2SYXETNPiuIfRkBbtk+JZx",
-	"BSW8KR5bp7jvm0Kbpn+o1zCbzVBujaFi62Wo6cIGyWiVpbxVLaYJCjMJrlWyK6vYGu/7F4pLPNh0KMjq",
-	"ZwtWwygj2PWl+ob9pxOOmO8VeNie138I7EVOUy5nKMrkGSQtNaGoyAVq8Tkop8OVC2rCFM446EfbCnKm",
-	"nrPlJhswJX63EXlzCPBvAaNKUN4FYTTdGNyKuDOin5x1JiVwGGkC7iq5STWM4CXBATweHupJckzuP8NG",
-	"q0yp/BS+tYh/Dt8nEf8b+NYU5Al+96p/uO84uscx5inMkLuM7lXn2G3EIB+o3vzSCBvvWMNNGG2CydY8",
-	"mPvjRZnM55Zh/4qDdvy3IT0RfpfCt8YeeHnxrS+j0688q1o7O6D7/kcAAAD//yG73PJOCQAA",
+	"H4sIAAAAAAAC/9SVTW/bPAyA/4rB9z16dbDefOsKrCtQYEN7HHpQbMZRYYuqSHULAv/3gXLTxrGXYB89",
+	"7GSBFL8ekfQWKuo8OXTCUG6BqzV2Jh0vvNePD+QxiMUk7IyzK2TRs2w8Qgm0fMBKoM/BmQ73FCzBukYV",
+	"MbQz8j6HgI/RBqyh/DpYD3fv86nzS+o64+rPUXyUaWIV1fuxrRNsMKghS40hzObFUlOUeVWsKmTe0y2J",
+	"WjRukvfuZj7k8OL1JfK0GnVh3YqSdyut6u4607bfcJldfLmGHJ4wsCUHJSw0HfLojLdQwvnZ4uwccvBG",
+	"1im94mlRGO/TucFUjYIxYsld11DCFcqF6jVt9uR4IPZ+sRjAOUGXzIz3ra2SYfHAGnzXEHqygl0y/D/g",
+	"Ckr4r3htneK5bwptmv6lXhOC2Qzl1shVsF6Gmm4sS0arLOWtajENK8wkuFfJrqxia7zvTxSXeATToWBQ",
+	"P1uwGkYZwa4v1TfsP52EiPlegYftef+HwE5ymnK5QlEmR5C01HBRkWNq8RiUy+HKDTU8hTMO+tG2giFT",
+	"z9lykw2YEr/HiGFzCPBvAaNKUN6xBDTdGNyKQmdER846kxI4jDQBd5fcpBpG8JJgDG8t4o+R+yTifwPb",
+	"mlh+wu1Z9Q+DC9G9zqEnniF3G92bDuJjRJYPVG9+aQbHPwkTGh6tssnaP1hc402fzOe2ef+Gm2L830tP",
+	"hN+l8K2xB15OvvVtdDrdWdXa2Q3T9z8CAAD//4ItGTEPCAAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

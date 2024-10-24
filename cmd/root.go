@@ -27,25 +27,6 @@ var (
 	k = koanf.New(".")
 )
 
-func findConfigPath() string {
-	if config, ok := os.LookupEnv("SMALLWEB_CONFIG"); ok {
-		return config
-	}
-
-	var configDir string
-	if configHome, ok := os.LookupEnv("XDG_CONFIG_HOME"); ok {
-		configDir = filepath.Join(configHome, "smallweb")
-	} else {
-		configDir = filepath.Join(os.Getenv("HOME"), ".config", "smallweb")
-	}
-
-	if utils.FileExists(filepath.Join(configDir, "config.jsonc")) {
-		return filepath.Join(configDir, "config.jsonc")
-	}
-
-	return filepath.Join(configDir, "config.json")
-}
-
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"addr": ":7777",
@@ -65,20 +46,19 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		return strings.Replace(strings.ToLower(key), "_", ".", -1)
 	})
 
-	configPath := findConfigPath()
+	rootDir := utils.RootDir()
+	configPath := filepath.Join(rootDir, ".smallweb", "config.json")
 	fileProvider := file.Provider(configPath)
 	fileProvider.Watch(func(event interface{}, err error) {
 		k = koanf.New(".")
 		k.Load(defaultProvider, nil)
 		k.Load(fileProvider, utils.ConfigParser())
 		k.Load(envProvider, nil)
-		k.Set("dir", utils.ExpandTilde(k.String("dir")))
 	})
 
 	k.Load(defaultProvider, nil)
 	k.Load(fileProvider, utils.ConfigParser())
 	k.Load(envProvider, nil)
-	k.Set("dir", utils.ExpandTilde(k.String("dir")))
 
 	cmd := &cobra.Command{
 		Use:          "smallweb",
@@ -95,13 +75,11 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdTunnel())
-	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdUpgrade())
 	cmd.AddCommand(NewCmdToken())
 	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdConfig())
-	cmd.AddCommand(NewCmdAPI())
 	cmd.AddCommand(NewCmdLog())
 	cmd.AddCommand(NewCmdCreate())
 	cmd.AddCommand(NewCmdOpen())

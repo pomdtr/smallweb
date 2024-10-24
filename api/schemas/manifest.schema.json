@@ -22,39 +22,6 @@
             "items": {
                 "type": "string"
             }
-        },
-        "crons": {
-            "type": "array",
-            "description": "Set of cron jobs",
-            "items": {
-                "type": "object",
-                "required": [
-                    "name",
-                    "schedule",
-                    "args"
-                ],
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Name of the cron job"
-                    },
-                    "description": {
-                        "type": "string",
-                        "description": "Description of the cron job"
-                    },
-                    "schedule": {
-                        "type": "string",
-                        "description": "Cron schedule"
-                    },
-                    "args": {
-                        "type": "array",
-                        "description": "Arguments to pass to the script",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
         }
     }
 }

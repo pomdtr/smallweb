@@ -1,103 +1,18 @@
 package auth
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
-	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/mssola/user_agent"
-	"github.com/pomdtr/smallweb/database"
 	"github.com/pomdtr/smallweb/utils"
-	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 )
-
-func CreateSession(db *sql.DB, email string, domain string) (string, error) {
-	sessionID, err := gonanoid.New()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate session ID: %w", err)
-	}
-
-	session := database.Session{
-		ID:        sessionID,
-		Email:     email,
-		Domain:    domain,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(14 * 24 * time.Hour),
-	}
-
-	if err := database.InsertSession(db, &session); err != nil {
-		return "", fmt.Errorf("failed to insert session: %w", err)
-	}
-
-	return sessionID, nil
-}
-
-func DeleteSession(db *sql.DB, sessionID string) error {
-	if err := database.DeleteSession(db, sessionID); err != nil {
-		return fmt.Errorf("failed to delete session: %w", err)
-	}
-
-	return nil
-}
-
-func GetSession(db *sql.DB, sessionID string, domain string) (database.Session, error) {
-	session, err := database.GetSession(db, sessionID)
-	if err != nil {
-		return database.Session{}, fmt.Errorf("failed to get session: %w", err)
-	}
-
-	if session.Domain != domain {
-		return database.Session{}, fmt.Errorf("session not found")
-	}
-
-	return *session, nil
-}
-
-func ExtendSession(db *sql.DB, sessionID string, expiresAt time.Time) error {
-	session, err := database.GetSession(db, sessionID)
-	if err != nil {
-		return fmt.Errorf("failed to get session: %w", err)
-	}
-
-	session.ExpiresAt = expiresAt
-	if err := database.UpdateSession(db, session); err != nil {
-		return fmt.Errorf("failed to update session: %w", err)
-	}
-
-	return nil
-}
-
-func VerifyToken(db *sql.DB, token string, appname string) error {
-	public, secret, err := database.ParseToken(token)
-	if err != nil {
-		return err
-	}
-
-	t, err := database.GetToken(db, public)
-	if err != nil {
-		return err
-	}
-
-	if !t.Admin {
-		if !slices.Contains(t.Apps, appname) {
-			return fmt.Errorf("app not authorized")
-		}
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(secret)); err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func isBrowser(ua *user_agent.UserAgent) bool {
 	if ua.Bot() {
@@ -125,7 +40,7 @@ func isBrowser(ua *user_agent.UserAgent) bool {
 	return false
 }
 
-func Middleware(db *sql.DB, provider string, email string, appname string) func(http.Handler) http.Handler {
+func Middleware(provider string, email string, appname string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		sessionCookieName := "smallweb-session"
 		oauthCookieName := "smallweb-oauth-store"
@@ -137,7 +52,7 @@ func Middleware(db *sql.DB, provider string, email string, appname string) func(
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			username, _, ok := r.BasicAuth()
 			if ok {
-				if err := VerifyToken(db, username, appname); err != nil {
+				if err := VerifyToken(username, appname); err != nil {
 					w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
 					// here we return unauthorized instead of forbidden to trigger the basic auth prompt
 					http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -151,7 +66,7 @@ func Middleware(db *sql.DB, provider string, email string, appname string) func(
 			authorization := r.Header.Get("Authorization")
 			if strings.HasPrefix(authorization, "Bearer ") {
 				token := strings.TrimPrefix(authorization, "Bearer ")
-				if err := VerifyToken(db, token, appname); err != nil {
+				if err := VerifyToken(token, appname); err != nil {
 					w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
 					http.Error(w, "Forbidden", http.StatusForbidden)
 					return
@@ -297,7 +212,7 @@ func Middleware(db *sql.DB, provider string, email string, appname string) func(
 					return
 				}
 
-				sessionID, err := CreateSession(db, userinfo.Email, r.Host)
+				sessionID, err := CreateSession(userinfo.Email, r.Host)
 				if err != nil {
 					log.Printf("failed to create session: %v", err)
 					http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -337,7 +252,7 @@ func Middleware(db *sql.DB, provider string, email string, appname string) func(
 					return
 				}
 
-				if err := DeleteSession(db, cookie.Value); err != nil {
+				if err := DeleteSession(cookie.Value); err != nil {
 					log.Printf("failed to delete session: %v", err)
 					http.Error(w, "Unauthorized", http.StatusUnauthorized)
 					return
@@ -367,7 +282,7 @@ func Middleware(db *sql.DB, provider string, email string, appname string) func(
 				return
 			}
 
-			session, err := GetSession(db, cookie.Value, r.Host)
+			session, err := GetSession(cookie.Value, r.Host)
 			if err != nil {
 				http.SetCookie(w, &http.Cookie{
 					Name:     sessionCookieName,
@@ -382,7 +297,7 @@ func Middleware(db *sql.DB, provider string, email string, appname string) func(
 			}
 
 			if time.Now().After(session.ExpiresAt) {
-				if err := DeleteSession(db, cookie.Value); err != nil {
+				if err := DeleteSession(cookie.Value); err != nil {
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 					return
 				}
@@ -407,7 +322,7 @@ func Middleware(db *sql.DB, provider string, email string, appname string) func(
 
 			// if session is near expiration, extend it
 			if time.Now().Add(7 * 24 * time.Hour).After(session.ExpiresAt) {
-				if err := ExtendSession(db, cookie.Value, time.Now().Add(14*24*time.Hour)); err != nil {
+				if err := ExtendSession(cookie.Value, time.Now().Add(14*24*time.Hour)); err != nil {
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 					return
 				}

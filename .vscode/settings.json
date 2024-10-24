@@ -1,8 +1,5 @@
 {
     "deno.enable": true,
-    "deno.disablePaths": [
-        "term"
-    ],
     "search.exclude": {
         "**/dist": true,
     },

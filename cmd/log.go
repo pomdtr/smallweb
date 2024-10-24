@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/pomdtr/smallweb/api"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +23,6 @@ func NewCmdLog() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdLogHttp())
-	cmd.AddCommand(NewCmdLogCron())
 	cmd.AddCommand(NewCmdLogConsole())
 
 	return cmd
@@ -137,98 +137,6 @@ func NewCmdLogHttp() *cobra.Command {
 	return cmd
 }
 
-func NewCmdLogCron() *cobra.Command {
-	var flags struct {
-		host string
-		json bool
-	}
-	cmd := &cobra.Command{
-		Use:   "cron",
-		Short: "Show cron logs",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			// use api unix socket if available
-			client := &http.Client{
-				Transport: &http.Transport{
-					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-						return net.Dial("unix", api.SocketPath(k.String("domain")))
-					},
-				},
-			}
-
-			req, err := http.NewRequest("GET", "http://unix/v0/logs/cron", nil)
-			if err != nil {
-				return err
-			}
-
-			q := req.URL.Query()
-			if flags.host != "" {
-				q.Add("host", flags.host)
-			}
-			req.URL.RawQuery = q.Encode()
-
-			resp, err := client.Do(req)
-			if err != nil {
-				return fmt.Errorf("failed to get logs: %w", err)
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				return fmt.Errorf("failed to get logs: %s", resp.Body)
-			}
-
-			scanner := bufio.NewScanner(resp.Body)
-			for scanner.Scan() {
-				if scanner.Err() != nil {
-					if scanner.Err().Error() == "EOF" {
-						break
-					}
-
-					return fmt.Errorf("failed to read logs: %w", scanner.Err())
-				}
-
-				if flags.json {
-					fmt.Println(scanner.Text())
-					continue
-				}
-
-				var log map[string]any
-				if err := json.Unmarshal(scanner.Bytes(), &log); err != nil {
-					return fmt.Errorf("failed to parse log: %w", err)
-				}
-
-				time, ok := log["time"].(string)
-				if !ok {
-					return fmt.Errorf("failed to parse time")
-				}
-
-				id, ok := log["id"].(string)
-				if !ok {
-					return fmt.Errorf("failed to parse id")
-				}
-
-				schedule, ok := log["schedule"].(string)
-				if !ok {
-					return fmt.Errorf("failed to parse schedule")
-				}
-
-				exitCode, ok := log["exit_code"].(int)
-				if !ok {
-					return fmt.Errorf("failed to parse exit_code")
-				}
-
-				fmt.Printf("%s %s %s %d\n", time, id, schedule, exitCode)
-			}
-
-			return nil
-		},
-	}
-
-	cmd.Flags().StringVar(&flags.host, "host", "", "filter logs by host")
-	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
-
-	return cmd
-}
-
 func NewCmdLogConsole() *cobra.Command {
 	var flags struct {
 		json bool
@@ -312,7 +220,7 @@ func NewCmdLogConsole() *cobra.Command {
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter logs by app")
-	cmd.RegisterFlagCompletionFunc("app", completeApp(k.String("dir")))
+	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir()))
 
 	return cmd
 }

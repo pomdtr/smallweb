@@ -1,21 +1,17 @@
 package cmd
 
 import (
-	"context"
 	"crypto/tls"
-	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
 
 	_ "embed"
 
@@ -23,11 +19,9 @@ import (
 	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/auth"
-	"github.com/pomdtr/smallweb/database"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
-	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -45,21 +39,15 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			db, err := database.OpenDB(filepath.Join(DataDir(), "smallweb.db"))
-			if err != nil {
-				return fmt.Errorf("failed to open database: %v", err)
-			}
-
 			httpWriter := utils.NewMultiWriter()
-			cronWriter := utils.NewMultiWriter()
 			consoleWriter := utils.NewMultiWriter()
 
 			consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
 
-			apiHandler := api.NewHandler(k, httpWriter, cronWriter, consoleWriter)
-			appHandler := &AppHandler{apiServer: apiHandler, db: db, logger: consoleLogger}
+			apiHandler := api.NewHandler(utils.RootDir(), k.String("domain"), httpWriter, consoleWriter)
+			appHandler := &AppHandler{apiServer: apiHandler, logger: consoleLogger}
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				rootDir := k.String("dir")
+				rootDir := utils.RootDir()
 
 				if r.Host == k.String("domain") {
 					// if we are on the apex domain and www exists, redirect to www
@@ -100,74 +88,7 @@ func NewCmdUp() *cobra.Command {
 				appHandler.ServeApp(w, r, a)
 			})
 
-			parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
-			c := cron.New(cron.WithParser(parser))
-			cronLogger := slog.New(slog.NewJSONHandler(cronWriter, nil))
-			c.AddFunc("* * * * *", func() {
-				rounded := time.Now().Truncate(time.Minute)
-				rootDir := k.String("dir")
-				apps, err := app.ListApps(rootDir)
-				if err != nil {
-					fmt.Println(err)
-				}
-
-				for _, name := range apps {
-					a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
-					if err != nil {
-						fmt.Println(err)
-						continue
-					}
-
-					for _, job := range a.Config.Crons {
-						sched, err := parser.Parse(job.Schedule)
-						if err != nil {
-							fmt.Println(err)
-							continue
-						}
-
-						if sched.Next(rounded.Add(-1*time.Second)) != rounded {
-							continue
-						}
-
-						wk := worker.NewWorker(a, consoleLogger)
-
-						command, err := wk.Command(job.Args...)
-						if err != nil {
-							fmt.Println(err)
-							continue
-						}
-						command.Stdout = os.Stdout
-						command.Stderr = os.Stderr
-
-						t1 := time.Now()
-						var exitCode int
-						if err := command.Run(); err != nil {
-							if exitError, ok := err.(*exec.ExitError); ok {
-								exitCode = exitError.ExitCode()
-							}
-						}
-						duration := time.Since(t1)
-
-						cronLogger.LogAttrs(
-							context.Background(),
-							slog.LevelInfo,
-							fmt.Sprintf("Exit Code: %d", exitCode),
-							slog.String("type", "cron"),
-							slog.String("id", fmt.Sprintf("%s:%s", a.Name, job.Name)),
-							slog.String("app", a.Name),
-							slog.String("job", job.Name),
-							slog.String("schedule", job.Schedule),
-							slog.Any("args", job.Args),
-							slog.Int("exit_code", exitCode),
-							slog.Int64("duration", duration.Milliseconds()),
-						)
-					}
-				}
-			})
-
-			go c.Start()
-
-			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), k.String("dir"), k.String("addr"))
+			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), utils.RootDir(), k.String("addr"))
 			httpLogger := utils.NewLogger(httpWriter)
 			server := http.Server{
 				Handler: httpLogger.Middleware(handler),
@@ -180,40 +101,13 @@ func NewCmdUp() *cobra.Command {
 
 			go server.Serve(ln)
 
-			// start api server on unix socket
-			apiServer := http.Server{
-				Handler: apiHandler,
-			}
-
-			go func() {
-				socketPath := api.SocketPath(k.String("domain"))
-				if err := os.MkdirAll(filepath.Dir(socketPath), 0755); err != nil {
-					log.Fatal(err)
-				}
-
-				if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
-					log.Fatal(err)
-				}
-				defer os.Remove(socketPath)
-
-				listener, err := net.Listen("unix", socketPath)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				if err := apiServer.Serve(listener); err != nil && err != http.ErrServerClosed {
-					log.Fatal(err)
-				}
-			}()
-
 			// sigint handling
 			sigint := make(chan os.Signal, 1)
 			signal.Notify(sigint, os.Interrupt)
 			<-sigint
 
 			log.Println("Shutting down server...")
-			apiServer.Shutdown(context.Background())
-			c.Stop()
+			server.Close()
 			return nil
 		},
 	}
@@ -258,7 +152,6 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 
 type AppHandler struct {
 	apiServer http.Handler
-	db        *sql.DB
 	logger    *slog.Logger
 }
 
@@ -333,11 +226,11 @@ func (me *AppHandler) ServeApp(w http.ResponseWriter, r *http.Request, a app.App
 				return
 			}
 		})
-	} else if !strings.HasPrefix(a.Entrypoint(), "smallweb:") {
-		handler = worker.NewWorker(a, me.logger)
-	} else {
+	} else if strings.HasPrefix(a.Entrypoint(), "smallweb:") {
 		http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
 		return
+	} else {
+		handler = worker.NewWorker(a, me.logger)
 	}
 
 	isPrivateRoute := a.Config.Private
@@ -356,7 +249,7 @@ func (me *AppHandler) ServeApp(w http.ResponseWriter, r *http.Request, a app.App
 	}
 
 	if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
-		authMiddleware := auth.Middleware(me.db, k.String("auth"), k.String("email"), a.Name)
+		authMiddleware := auth.Middleware(k.String("auth"), k.String("email"), a.Name)
 		handler = authMiddleware(handler)
 	}
 

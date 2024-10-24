@@ -113,37 +113,6 @@
         }
       }
     },
-    "/v0/logs/cron": {
-      "get": {
-        "tags": [
-          "logs"
-        ],
-        "operationId": "getCronLogs",
-        "parameters": [
-          {
-            "name": "app",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter logs by app"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Stream of cron logs",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v0/logs/http": {
       "get": {
         "operationId": "getHttpLogs",

@@ -12,20 +12,12 @@ import (
 	"github.com/tailscale/hujson"
 )
 
-type CronJob struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Schedule    string   `json:"schedule"`
-	Args        []string `json:"args"`
-}
-
 type AppConfig struct {
-	Entrypoint    string    `json:"entrypoint,omitempty"`
-	Root          string    `json:"root,omitempty"`
-	Private       bool      `json:"private,omitempty"`
-	PublicRoutes  []string  `json:"publicRoutes,omitempty"`
-	PrivateRoutes []string  `json:"privateRoutes,omitempty"`
-	Crons         []CronJob `json:"crons,omitempty"`
+	Entrypoint    string   `json:"entrypoint,omitempty"`
+	Root          string   `json:"root,omitempty"`
+	Private       bool     `json:"private,omitempty"`
+	PublicRoutes  []string `json:"publicRoutes,omitempty"`
+	PrivateRoutes []string `json:"privateRoutes,omitempty"`
 }
 
 type App struct {
@@ -79,7 +71,6 @@ func LoadApp(dir string, domain string) (App, error) {
 		Url:  fmt.Sprintf("https://%s.%s/", name, domain),
 		Env:  make(map[string]string),
 		Config: AppConfig{
-			Crons:         make([]CronJob, 0),
 			PublicRoutes:  make([]string, 0),
 			PrivateRoutes: make([]string, 0),
 		},

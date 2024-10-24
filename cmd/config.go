@@ -19,8 +19,7 @@ func NewCmdConfig() *cobra.Command {
 		GroupID: CoreGroupID,
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			configPath := findConfigPath()
-
+			configPath := filepath.Join(utils.RootDir(), ".smallweb", "config.json")
 			if !utils.FileExists(configPath) {
 				var config map[string]any
 				if err := k.Unmarshal("", &config); err != nil {

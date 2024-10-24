@@ -13,20 +13,18 @@ RUN curl -fsSL "https://install.smallweb.run?v=${SMALLWEB_VERSION:-0.14.5}&targe
     && chmod +x /usr/local/bin/smallweb
 
 # Set environment variables
-ENV SMALLWEB_DATA_DIR=/var/lib/smallweb \
-    SMALLWEB_DIR=/smallweb \
-    SMALLWEB_HOST=0.0.0.0 \
-    SMALLWEB_PORT=7777
+ENV SMALLWEB_DIR=/smallweb \
+    SMALLWEB_ADDR=0.0.0.0:7777
 
 # Create necessary directories and set permissions
-RUN mkdir -p "$SMALLWEB_DATA_DIR" "$SMALLWEB_DIR" \
+RUN mkdir -p "$SMALLWEB_DIR" \
     && chown -R smallweb:smallweb "$SMALLWEB_DATA_DIR" "$SMALLWEB_DIR"
 
 # Switch to non-root user
 USER smallweb
 
 # Declare volumes
-VOLUME ["$SMALLWEB_DATA_DIR", "$SMALLWEB_DIR"]
+VOLUME ["$SMALLWEB_DIR"]
 
 # Expose port
 EXPOSE 7777
