@@ -4,7 +4,7 @@
         "term"
     ],
     "search.exclude": {
-        "docs/book": true,
+        "**/dist": true,
     },
     "json.schemas": [
         {
