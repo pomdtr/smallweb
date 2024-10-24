@@ -47,6 +47,10 @@ func CreateSession(email string, domain string) (string, error) {
 		return "", fmt.Errorf("failed to marshal session: %w", err)
 	}
 
+	if err := os.MkdirAll(sessionDir(), 0700); err != nil {
+		return "", fmt.Errorf("failed to create session directory: %w", err)
+	}
+
 	if err := os.WriteFile(sessionPath, sessionBytes, 0600); err != nil {
 		return "", fmt.Errorf("failed to write session: %w", err)
 	}
