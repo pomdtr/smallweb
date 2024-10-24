@@ -64,7 +64,7 @@ func GetToken(publicID string) (Token, error) {
 }
 
 func CreateToken(token Token) error {
-	tokenBytes, err := json.Marshal(token)
+	tokenBytes, err := json.MarshalIndent(token, "", "  ")
 	if err != nil {
 		return err
 	}

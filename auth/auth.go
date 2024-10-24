@@ -340,7 +340,8 @@ func Middleware(provider string, email string, appname string) func(http.Handler
 
 			// if session is near expiration, extend it
 			if time.Now().Add(7 * 24 * time.Hour).After(session.ExpiresAt) {
-				if err := ExtendSession(cookie.Value, time.Now().Add(14*24*time.Hour)); err != nil {
+				session.ExpiresAt = time.Now().Add(14 * 24 * time.Hour)
+				if err := SaveSession(session); err != nil {
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 					return
 				}

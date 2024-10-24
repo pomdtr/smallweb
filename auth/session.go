@@ -41,18 +41,8 @@ func CreateSession(email string, domain string) (string, error) {
 		ExpiresAt: time.Now().Add(14 * 24 * time.Hour),
 	}
 
-	sessionPath := sessionPath(sessionID)
-	sessionBytes, err := json.Marshal(session)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal session: %w", err)
-	}
-
-	if err := os.MkdirAll(sessionDir(), 0700); err != nil {
-		return "", fmt.Errorf("failed to create session directory: %w", err)
-	}
-
-	if err := os.WriteFile(sessionPath, sessionBytes, 0600); err != nil {
-		return "", fmt.Errorf("failed to write session: %w", err)
+	if err := SaveSession(session); err != nil {
+		return "", fmt.Errorf("failed to save session: %w", err)
 	}
 
 	if err := DeleteExpiredSessions(); err != nil {
@@ -64,7 +54,11 @@ func CreateSession(email string, domain string) (string, error) {
 
 func SaveSession(session Session) error {
 	sessionPath := sessionPath(session.ID)
-	sessionBytes, err := json.Marshal(session)
+	if err := os.MkdirAll(sessionDir(), 0700); err != nil {
+		return fmt.Errorf("failed to create session directory: %w", err)
+	}
+
+	sessionBytes, err := json.MarshalIndent(session, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal session: %w", err)
 	}
@@ -126,14 +120,4 @@ func GetSession(sessionID string) (Session, error) {
 	}
 
 	return session, nil
-}
-
-func ExtendSession(sessionID string, expiresAt time.Time) error {
-	session, err := GetSession(sessionID)
-	if err != nil {
-		return fmt.Errorf("failed to load session: %w", err)
-	}
-
-	session.ExpiresAt = expiresAt
-	return SaveSession(session)
 }
