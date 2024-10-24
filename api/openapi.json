@@ -58,61 +58,6 @@
         }
       }
     },
-    "/v0/run/{app}": {
-      "post": {
-        "operationId": "runApp",
-        "tags": [
-          "apps"
-        ],
-        "parameters": [
-          {
-            "name": "app",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "args"
-                ],
-                "properties": {
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Run app cli",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommandOutput"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v0/logs/http": {
       "get": {
         "operationId": "getHttpLogs",

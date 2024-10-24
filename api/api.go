@@ -2,15 +2,11 @@ package api
 
 import (
 	"embed"
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -219,62 +215,6 @@ func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(apps); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func (me *Server) RunApp(w http.ResponseWriter, r *http.Request, app string) {
-	executable, err := os.Executable()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var body RunAppJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	cmd := exec.Command(executable, "run", app)
-	cmd.Args = append(cmd.Args, body.Args...)
-	cmd.Env = os.Environ()
-
-	if strings.Contains(r.Header.Get("Accept"), "text/plain") {
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			http.Error(w, string(output), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write(output)
-		return
-	}
-
-	var res CommandOutput
-	stdout := &strings.Builder{}
-	stderr := &strings.Builder{}
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-
-	if err := cmd.Run(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			res.Code = exitErr.ExitCode()
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	res.Success = res.Code == 0
-	res.Stdout = base64.StdEncoding.EncodeToString([]byte(stdout.String()))
-	res.Stderr = base64.StdEncoding.EncodeToString([]byte(stderr.String()))
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(res); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 }
 
