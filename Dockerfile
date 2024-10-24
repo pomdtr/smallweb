@@ -18,7 +18,7 @@ ENV SMALLWEB_DIR=/smallweb \
 
 # Create necessary directories and set permissions
 RUN mkdir -p "$SMALLWEB_DIR" \
-    && chown -R smallweb:smallweb "$SMALLWEB_DATA_DIR" "$SMALLWEB_DIR"
+    && chown -R smallweb:smallweb "$SMALLWEB_DIR"
 
 # Switch to non-root user
 USER smallweb

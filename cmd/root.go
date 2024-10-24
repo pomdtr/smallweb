@@ -30,15 +30,10 @@ var (
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"addr": ":7777",
-		"dir":  "~/smallweb",
 	}, "")
 
 	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
-		if s == "SMALLWEB_CONFIG" {
-			return ""
-		}
-
-		if s == "SMALLWEB_DATA_DIR" {
+		if s == "SMALLWEB_DIR" {
 			return ""
 		}
 
@@ -80,7 +75,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdConfig())
-	cmd.AddCommand(NewCmdLog())
 	cmd.AddCommand(NewCmdCreate())
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdList())

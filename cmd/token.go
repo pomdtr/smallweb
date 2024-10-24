@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
-	"github.com/adrg/xdg"
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/auth"
@@ -16,14 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
 )
-
-func DataDir() string {
-	if dataDir, ok := os.LookupEnv("SMALLWEB_DATA_DIR"); ok {
-		return dataDir
-	}
-
-	return filepath.Join(xdg.DataHome, "smallweb")
-}
 
 func NewCmdToken() *cobra.Command {
 	cmd := &cobra.Command{
@@ -86,8 +76,7 @@ func NewCmdTokenCreate() *cobra.Command {
 	cmd.MarkFlagRequired("description")
 	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "app token")
 	cmd.MarkFlagRequired("app")
-	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.ExpandTilde("~/.smallweb/apps")))
-	cmd.MarkFlagsMutuallyExclusive("admin", "app")
+	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir()))
 
 	return cmd
 }

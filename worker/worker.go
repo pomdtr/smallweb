@@ -146,19 +146,17 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 	logPipe := func(pipe io.ReadCloser, logType string) {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
-			if me.Logger == nil {
-				os.Stdout.WriteString(scanner.Text() + "\n")
-				continue
+			os.Stdout.WriteString(scanner.Text() + "\n")
+			if me.Logger != nil {
+				me.Logger.LogAttrs(
+					context.Background(),
+					slog.LevelInfo,
+					logType,
+					slog.String("type", logType),
+					slog.String("app", me.App.Name),
+					slog.String("text", scanner.Text()),
+				)
 			}
-
-			me.Logger.LogAttrs(
-				context.Background(),
-				slog.LevelInfo,
-				logType,
-				slog.String("type", logType),
-				slog.String("app", me.App.Name),
-				slog.String("text", scanner.Text()),
-			)
 
 		}
 	}

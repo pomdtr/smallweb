@@ -14,7 +14,7 @@ import (
 type Session struct {
 	ID        string    `json:"id"`
 	Email     string    `json:"email"`
-	Domain    string    `json:"domain"`
+	Domain    string    `json:"app"`
 	CreatedAt time.Time `json:"createdAt"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
@@ -109,26 +109,7 @@ func DeleteExpiredSessions() error {
 	return nil
 }
 
-func GetSession(sessionID string, domain string) (Session, error) {
-	sessionPath := sessionPath(sessionID)
-	sessionBytes, err := os.ReadFile(sessionPath)
-	if err != nil {
-		return Session{}, fmt.Errorf("failed to read session: %w", err)
-	}
-
-	var session Session
-	if err := json.Unmarshal(sessionBytes, &session); err != nil {
-		return Session{}, fmt.Errorf("failed to unmarshal session: %w", err)
-	}
-
-	if session.Domain != domain {
-		return Session{}, fmt.Errorf("session not found")
-	}
-
-	return session, nil
-}
-
-func LoadSession(sessionID string) (Session, error) {
+func GetSession(sessionID string) (Session, error) {
 	sessionPath := sessionPath(sessionID)
 	sessionBytes, err := os.ReadFile(sessionPath)
 	if err != nil {
@@ -144,7 +125,7 @@ func LoadSession(sessionID string) (Session, error) {
 }
 
 func ExtendSession(sessionID string, expiresAt time.Time) error {
-	session, err := LoadSession(sessionID)
+	session, err := GetSession(sessionID)
 	if err != nil {
 		return fmt.Errorf("failed to load session: %w", err)
 	}
