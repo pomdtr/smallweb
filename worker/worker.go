@@ -76,6 +76,7 @@ func (me *Worker) Flags() []string {
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath),
 		fmt.Sprintf("--allow-write=%s", me.App.Root()),
 		fmt.Sprintf("--location=%s", me.App.URL),
+		"--unstable-kv",
 		"--no-prompt",
 		"--quiet",
 	}
