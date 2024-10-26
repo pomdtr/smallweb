@@ -113,7 +113,7 @@ func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string)
 		encoder.SetIndent("", "  ")
 		encoder.Encode(App{
 			Name: a.Name,
-			Url:  a.Url,
+			Url:  a.URL,
 		})
 		return
 	}
@@ -131,7 +131,7 @@ func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string)
 		encoder.SetIndent("", "  ")
 		encoder.Encode(App{
 			Name: a.Name,
-			Url:  a.Url,
+			Url:  a.URL,
 		})
 		return
 	}
@@ -141,7 +141,7 @@ func (me *Server) GetApp(w http.ResponseWriter, r *http.Request, appname string)
 	encoder.SetIndent("", "  ")
 	encoder.Encode(App{
 		Name:     a.Name,
-		Url:      a.Url,
+		Url:      a.URL,
 		Manifest: &manifest,
 	})
 }
@@ -165,7 +165,7 @@ func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
 		if !utils.FileExists(manifestPath) {
 			apps = append(apps, App{
 				Name: a.Name,
-				Url:  a.Url,
+				Url:  a.URL,
 			})
 			continue
 		}
@@ -183,7 +183,7 @@ func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
 
 		apps = append(apps, App{
 			Name:     a.Name,
-			Url:      a.Url,
+			Url:      a.URL,
 			Manifest: &manifest,
 		})
 	}

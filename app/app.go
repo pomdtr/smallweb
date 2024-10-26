@@ -23,7 +23,7 @@ type AppConfig struct {
 type App struct {
 	Name   string            `json:"name"`
 	Dir    string            `json:"dir,omitempty"`
-	Url    string            `json:"url"`
+	URL    string            `json:"url"`
 	Env    map[string]string `json:"-"`
 	Config AppConfig         `json:"-"`
 }
@@ -68,7 +68,7 @@ func LoadApp(dir string, domain string) (App, error) {
 	app := App{
 		Name: name,
 		Dir:  dir,
-		Url:  fmt.Sprintf("https://%s.%s/", name, domain),
+		URL:  fmt.Sprintf("http://%s.%s/", name, domain),
 		Env:  make(map[string]string),
 		Config: AppConfig{
 			PublicRoutes:  make([]string, 0),

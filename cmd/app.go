@@ -78,7 +78,7 @@ func NewCmdOpen() *cobra.Command {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
 
-				if err := browser.OpenURL(a.Url); err != nil {
+				if err := browser.OpenURL(a.URL); err != nil {
 					return fmt.Errorf("failed to open browser: %w", err)
 				}
 
@@ -90,7 +90,7 @@ func NewCmdOpen() *cobra.Command {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			if err := browser.OpenURL(a.Url); err != nil {
+			if err := browser.OpenURL(a.URL); err != nil {
 				return fmt.Errorf("failed to open browser: %w", err)
 			}
 
@@ -163,7 +163,7 @@ func NewCmdList() *cobra.Command {
 			for _, a := range apps {
 				printer.AddField(a.Name)
 				printer.AddField(strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1))
-				printer.AddField(a.Url)
+				printer.AddField(a.URL)
 
 				printer.EndRow()
 			}

@@ -75,9 +75,9 @@ func (me *Worker) Flags() []string {
 		"--allow-sys=osRelease,homedir,cpus,hostname",
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath),
 		fmt.Sprintf("--allow-write=%s", me.App.Root()),
+		fmt.Sprintf("--location=%s", me.App.URL),
 		"--no-prompt",
 		"--quiet",
-		fmt.Sprintf("--location=%s", me.App.Url),
 	}
 
 	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
