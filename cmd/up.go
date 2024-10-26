@@ -42,64 +42,70 @@ func NewCmdUp() *cobra.Command {
 			httpWriter := utils.NewMultiWriter()
 			consoleWriter := utils.NewMultiWriter()
 
-			consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
+			apiServer := http.Server{
+				Handler: api.NewHandler(k.String("domain"), httpWriter, consoleWriter),
+			}
 
-			apiHandler := api.NewHandler(k.String("domain"), httpWriter, consoleWriter)
-			appHandler := &AppHandler{apiServer: apiHandler, logger: consoleLogger}
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				rootDir := utils.RootDir()
+			apiAddr := net.JoinHostPort("127.0.0.1", k.String("apiPort"))
+			apiLn, err := net.Listen("tcp", apiAddr)
+			if err != nil {
+				return fmt.Errorf("failed to listen: %v", err)
+			}
+			go apiServer.Serve(apiLn)
 
-				if r.Host == k.String("domain") {
-					// if we are on the apex domain and www exists, redirect to www
-					if _, err := os.Stat(filepath.Join(rootDir, "www")); err == nil {
-						target := r.URL
-						target.Scheme = r.Header.Get("X-Forwarded-Proto")
-						if target.Scheme == "" {
-							target.Scheme = "http"
+			httpLogger := utils.NewLogger(httpWriter)
+			httpServer := http.Server{
+				Handler: httpLogger.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					rootDir := utils.RootDir()
+
+					if r.Host == k.String("domain") {
+						// if we are on the apex domain and www exists, redirect to www
+						if _, err := os.Stat(filepath.Join(rootDir, "www")); err == nil {
+							target := r.URL
+							target.Scheme = r.Header.Get("X-Forwarded-Proto")
+							if target.Scheme == "" {
+								target.Scheme = "http"
+							}
+
+							target.Host = "www." + k.String("domain")
+							http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+							return
 						}
 
-						target.Host = "www." + k.String("domain")
-						http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+						w.WriteHeader(http.StatusNotFound)
 						return
 					}
 
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
+					if !strings.HasSuffix(r.Host, "."+k.String("domain")) {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
 
-				if !strings.HasSuffix(r.Host, "."+k.String("domain")) {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
+					var appname string
+					if name, ok := k.StringMap("customDomains")[r.Host]; ok {
+						appname = name
+					} else {
+						appname = strings.TrimSuffix(r.Host, "."+k.String("domain"))
+					}
 
-				var appname string
-				if name, ok := k.StringMap("customDomains")[r.Host]; ok {
-					appname = name
-				} else {
-					appname = strings.TrimSuffix(r.Host, "."+k.String("domain"))
-				}
+					a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
+					if err != nil {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
 
-				a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
-				if err != nil {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
-
-				appHandler.ServeApp(w, r, a)
-			})
-
-			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), utils.RootDir(), k.String("addr"))
-			httpLogger := utils.NewLogger(httpWriter)
-			server := http.Server{
-				Handler: httpLogger.Middleware(handler),
+					consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
+					ServeApp(w, r, a, fmt.Sprintf("http://%s", apiAddr), consoleLogger)
+				})),
 			}
 
-			ln, err := getListener(k.String("addr"), utils.ExpandTilde(k.String("cert")), utils.ExpandTilde(k.String("key")))
+			httpLn, err := getListener(k.String("addr"), utils.ExpandTilde(k.String("cert")), utils.ExpandTilde(k.String("key")))
 			if err != nil {
 				return fmt.Errorf("failed to listen: %v", err)
 			}
 
-			go server.Serve(ln)
+			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), utils.RootDir(), k.String("addr"))
+			go httpServer.Serve(httpLn)
 
 			// sigint handling
 			sigint := make(chan os.Signal, 1)
@@ -107,7 +113,8 @@ func NewCmdUp() *cobra.Command {
 			<-sigint
 
 			log.Println("Shutting down server...")
-			server.Close()
+			httpServer.Close()
+			apiServer.Close()
 			return nil
 		},
 	}
@@ -150,16 +157,9 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 	return net.Listen("tcp", addr)
 }
 
-type AppHandler struct {
-	apiServer http.Handler
-	logger    *slog.Logger
-}
-
-func (me *AppHandler) ServeApp(w http.ResponseWriter, r *http.Request, a app.App) {
+func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, apiUrl string, logger *slog.Logger) {
 	var handler http.Handler
-	if a.Entrypoint() == "smallweb:api" {
-		handler = me.apiServer
-	} else if a.Entrypoint() == "smallweb:static" {
+	if a.Entrypoint() == "smallweb:static" {
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -230,7 +230,7 @@ func (me *AppHandler) ServeApp(w http.ResponseWriter, r *http.Request, a app.App
 		http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
 		return
 	} else {
-		handler = worker.NewWorker(a, me.logger)
+		handler = worker.NewWorker(a, k.Int("apiPort"), logger)
 	}
 
 	isPrivateRoute := a.Config.Private

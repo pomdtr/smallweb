@@ -51,14 +51,14 @@ type Worker struct {
 	*slog.Logger
 }
 
-func NewWorker(app app.App, logger *slog.Logger) *Worker {
+func NewWorker(app app.App, apiPort int, logger *slog.Logger) *Worker {
 	worker := &Worker{
 		App:    app,
 		Logger: logger,
 	}
 
 	worker.Env = make(map[string]string)
-	worker.Env["SMALLWEB"] = "1"
+	worker.Env["SMALLWEB_API_URL"] = fmt.Sprintf("http://127.0.0.1:%d", apiPort)
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
 
@@ -89,7 +89,12 @@ func (me *Worker) Flags() []string {
 	return flags
 }
 
-func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
+func (me *Worker) Start() (*exec.Cmd, int, error) {
+	port, err := GetFreePort()
+	if err != nil {
+		return nil, 0, fmt.Errorf("could not get free port: %w", err)
+	}
+
 	args := []string{"run"}
 	args = append(args, me.Flags()...)
 
@@ -99,14 +104,13 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 	encoder.Encode(map[string]any{
 		"command":    "fetch",
 		"entrypoint": me.App.Entrypoint(),
-		"url":        url,
 		"port":       port,
 	})
 	args = append(args, sandboxPath, input.String())
 
 	deno, err := DenoExecutable()
 	if err != nil {
-		return nil, fmt.Errorf("could not find deno executable")
+		return nil, 0, fmt.Errorf("could not find deno executable")
 	}
 
 	command := exec.Command(deno, args...)
@@ -123,23 +127,23 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("could not get stdout pipe: %w", err)
+		return nil, 0, fmt.Errorf("could not get stdout pipe: %w", err)
 	}
 
 	stderrPipe, err := command.StderrPipe()
 	if err != nil {
-		return nil, fmt.Errorf("could not get stderr pipe: %w", err)
+		return nil, 0, fmt.Errorf("could not get stderr pipe: %w", err)
 	}
 
 	if err := command.Start(); err != nil {
-		return nil, fmt.Errorf("could not start server: %w", err)
+		return nil, 0, fmt.Errorf("could not start server: %w", err)
 	}
 
 	// Wait for the "READY" signal from stdout
 	scanner := bufio.NewScanner(stdoutPipe)
 	scanner.Scan()
 	if scanner.Text() != "READY" {
-		return nil, fmt.Errorf("server did not start correctly")
+		return nil, 0, fmt.Errorf("server did not start correctly")
 	}
 
 	// Function to handle logging for both stdout and stderr
@@ -167,7 +171,7 @@ func (me *Worker) Start(url string, port int) (*exec.Cmd, error) {
 	// Start goroutine for stderr
 	go logPipe(stderrPipe, "stderr")
 
-	return command, nil
+	return command, port, nil
 }
 
 func (me *Worker) Stop(command *exec.Cmd) error {
@@ -193,19 +197,7 @@ func (me *Worker) Stop(command *exec.Cmd) error {
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	scheme := r.Header.Get("X-Forwarded-Proto")
-	if scheme == "" {
-		scheme = "http"
-	}
-
-	url := fmt.Sprintf("%s://%s%s", scheme, r.Host, r.URL.String())
-	port, err := GetFreePort()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	command, err := me.Start(url, port)
+	command, port, err := me.Start()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -228,36 +220,41 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		defer clientConn.Close()
 
+		// Channel to signal closure
+		done := make(chan struct{})
 		go func() {
+			defer close(done)
 			for {
 				messageType, p, err := clientConn.ReadMessage()
 				if err != nil {
-					log.Printf("Error reading message: %v", err)
-					break
+					return
 				}
 
 				if err := serverConn.WriteMessage(messageType, p); err != nil {
-					log.Printf("Error writing message: %v", err)
-					break
+					return
 				}
 			}
 		}()
 
-		for {
-			messageType, p, err := serverConn.ReadMessage()
-			if err != nil {
-				log.Printf("Error reading message: %v", err)
-				break
-			}
+		go func() {
+			defer close(done)
+			for {
+				messageType, p, err := serverConn.ReadMessage()
+				if err != nil {
+					return
+				}
 
-			if err := clientConn.WriteMessage(messageType, p); err != nil {
-				log.Printf("Error writing message: %v", err)
-				break
+				if err := clientConn.WriteMessage(messageType, p); err != nil {
+					return
+				}
 			}
-		}
+		}()
+
+		<-done
+		return
 	}
 
-	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://localhost:%d%s", port, r.URL.String()), r.Body)
+	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://%s%s", r.Host, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -272,6 +269,11 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
+		},
+		Transport: &http.Transport{
+			Dial: func(network, addr string) (net.Conn, error) {
+				return net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
+			},
 		},
 	}
 

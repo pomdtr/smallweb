@@ -1,7 +1,7 @@
 const input = JSON.parse(Deno.args[0]);
 
 if (input.command === "fetch") {
-    const { entrypoint, port, url } = input;
+    const { entrypoint, port } = input;
     const server = Deno.serve(
         {
             port: parseInt(port),
@@ -41,23 +41,7 @@ if (input.command === "fetch") {
                 }
 
                 const handler = mod.default.fetch;
-
-                const resp = await handler(
-                    new Request(url, {
-                        method: req.method,
-                        headers: req.headers,
-                        body: req.body,
-                    }),
-                );
-                if (!(resp instanceof Response)) {
-                    return new Response(
-                        "The app fetch function must return a Response object",
-                        {
-                            status: 500,
-                        },
-                    );
-                }
-                return resp;
+                return handler(req);
             } catch (e) {
                 if (e instanceof Error) {
                     console.error(e.stack);

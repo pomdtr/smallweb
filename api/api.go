@@ -10,21 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/adrg/xdg"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 	"golang.org/x/net/webdav"
 )
 
 //go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml ./openapi.json
-
-func SocketPath(domain string) string {
-	return filepath.Join(xdg.CacheHome, "smallweb", "api", domain, "api.sock")
-}
-
-//go:embed schemas
-var schemas embed.FS
 
 //go:embed swagger
 var swagger embed.FS
@@ -74,12 +65,6 @@ func NewHandler(domain string, httpWriter *utils.MultiWriter, consoleWriter *uti
 			return
 		}
 
-		if strings.HasPrefix(r.URL.Path, "/schemas") {
-			server := http.FileServer(http.FS(schemas))
-			server.ServeHTTP(w, r)
-			return
-		}
-
 		if strings.HasPrefix(r.URL.Path, "/v0") {
 			handler.ServeHTTP(w, r)
 			return
@@ -89,15 +74,6 @@ func NewHandler(domain string, httpWriter *utils.MultiWriter, consoleWriter *uti
 			spec, err := GetSwagger()
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-
-			scheme := "http"
-			if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
-				scheme = "https"
-			}
-
-			spec.Servers = openapi3.Servers{
-				{URL: scheme + "://" + r.Host},
 			}
 
 			w.Header().Set("Content-Type", "text/json")

@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 
-	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
@@ -23,11 +21,6 @@ func NewCmdTunnel() *cobra.Command {
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completeApp(utils.RootDir()),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			appHandler := AppHandler{
-				apiServer: api.NewHandler(k.String("domain"), nil, nil),
-				logger:    slog.New(slog.NewJSONHandler(os.Stderr, nil)),
-			}
-
 			server := http.Server{
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					rootDir := utils.RootDir()
@@ -37,7 +30,8 @@ func NewCmdTunnel() *cobra.Command {
 						return
 					}
 
-					appHandler.ServeApp(w, r, app)
+					apiUrl := fmt.Sprintf("http://127.0.0.1:%d", k.Int("apiPort"))
+					ServeApp(w, r, app, apiUrl, nil)
 				}),
 			}
 

@@ -21,7 +21,6 @@ require (
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.0
-	github.com/oapi-codegen/runtime v1.1.1
 	github.com/spf13/cobra v1.8.1
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a
 	golang.org/x/crypto v0.27.0
@@ -30,7 +29,10 @@ require (
 	golang.org/x/term v0.24.0
 )
 
-require github.com/mssola/user_agent v0.6.0
+require (
+	github.com/mssola/user_agent v0.6.0
+	github.com/oapi-codegen/runtime v1.1.1
+)
 
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
@@ -48,7 +50,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
+	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect

@@ -9,7 +9,8 @@
                 "up",
             ],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/examples"
+                "SMALLWEB_DIR": "${userHome}/smallweb",
+                "SMALLWEB_DOMAIN": "localhost"
             },
         },
         {
