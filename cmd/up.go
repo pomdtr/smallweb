@@ -212,8 +212,18 @@ func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, apiUrl string, 
 				w.Write(code)
 				return
 			default:
-				if utils.FileExists(p) {
-					http.ServeFile(w, r, p)
+				if entry, err := os.Stat(p); err == nil {
+					if !entry.IsDir() {
+						http.ServeFile(w, r, p)
+						return
+					}
+
+					if utils.FileExists(filepath.Join(p, "index.html")) {
+						http.ServeFile(w, r, p+"/index.html")
+						return
+					}
+
+					http.Error(w, "file not found", http.StatusNotFound)
 					return
 				}
 
