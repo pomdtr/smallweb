@@ -18,33 +18,45 @@ if (input.command === "fetch") {
             try {
                 const mod = await import(entrypoint);
                 if (!mod.default) {
-                    console.error(
-                        "The app does not provide a default export.",
-                    );
-                    Deno.exit(1);
+                    return new Response("The app does not provide a default export.", { status: 500 });
                 }
 
                 if (typeof mod.default !== "object") {
-                    console.error(
-                        "The app default export must be either an object or a function.",
-                    );
-                    Deno.exit(1);
+                    return new Response("The app default export must be an object.", { status: 500 });
                 }
                 if (
                     !("fetch" in mod.default) ||
                     typeof mod.default.fetch !== "function"
                 ) {
-                    console.error(
-                        "The app default export does not have a fetch method.",
-                    );
-                    Deno.exit(1);
+                    return new Response("The app default export does not have a fetch method.", { status: 500 });
                 }
 
                 const handler = mod.default.fetch;
-                return handler(req);
+                // Websocket requests are stateful and should be handled differently
+                if (req.headers.get("upgrade") === "websocket") {
+                    const resp = await handler(req);
+                    if (resp instanceof Response) {
+                        return resp;
+                    }
+
+                    return new Response("Fetch handler must return a Response object.", { status: 500 });
+                }
+
+                const url = new URL(req.url);
+                const proto = req.headers.get("x-forwarded-proto");
+                const host = req.headers.get("x-forwarded-host");
+                const resp = await handler(new Request(`${proto}://${host}${url.pathname}${url.search}`, {
+                    method: req.method,
+                    headers: req.headers,
+                    body: req.body,
+                }));
+                if (resp instanceof Response) {
+                    return resp;
+                }
+
+                return new Response("Fetch handler must return a Response object.", { status: 500 });
             } catch (e) {
                 if (e instanceof Error) {
-                    console.error(e.stack);
                     return new Response(e.stack, { status: 500 });
                 }
 

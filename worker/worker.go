@@ -255,7 +255,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://%s%s", r.Host, r.URL.String()), r.Body)
+	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", port, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -267,14 +267,21 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if r.Header.Get("x-forwarded-host") == "" {
+		r.Header.Set("x-forwarded-host", r.Host)
+	}
+
+	if r.Header.Get("x-forwarded-proto") == "" {
+		if r.TLS != nil {
+			r.Header.Set("x-forwarded-proto", "https")
+		} else {
+			r.Header.Set("x-forwarded-proto", "http")
+		}
+	}
+
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
-		},
-		Transport: &http.Transport{
-			Dial: func(network, addr string) (net.Conn, error) {
-				return net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
-			},
 		},
 	}
 

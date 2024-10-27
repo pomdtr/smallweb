@@ -68,7 +68,7 @@ func LoadApp(dir string, domain string) (App, error) {
 	app := App{
 		Name: name,
 		Dir:  dir,
-		URL:  fmt.Sprintf("http://%s.%s/", name, domain),
+		URL:  fmt.Sprintf("https://%s.%s/", name, domain),
 		Env:  make(map[string]string),
 		Config: AppConfig{
 			PublicRoutes:  make([]string, 0),
