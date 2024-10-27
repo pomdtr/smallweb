@@ -115,7 +115,6 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Root()
 
-	command.Env = os.Environ()
 	for k, v := range me.Env {
 		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
 	}
@@ -350,6 +349,12 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	}
 
 	denoArgs := []string{"run", "--allow-all", fmt.Sprintf("--location=%s", me.App.URL), "--unstable-kv", "--no-prompt", "--quiet"}
+	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
+		denoArgs = append(denoArgs, "--config", configPath)
+	} else if configPath := filepath.Join(me.App.Dir, "deno.jsonc"); utils.FileExists(configPath) {
+		denoArgs = append(denoArgs, "--config", configPath)
+	}
+
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
@@ -366,6 +371,8 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 
 	cmd := exec.Command(deno, denoArgs...)
 	cmd.Dir = me.App.Root()
+
+	cmd.Env = os.Environ()
 	for k, v := range me.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}

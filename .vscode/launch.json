@@ -20,7 +20,7 @@
             "program": "${workspaceFolder}/main.go",
             "args": [],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/examples"
+                "SMALLWEB_DIR": "${userHome}/smallweb"
             },
             "console": "integratedTerminal",
         }

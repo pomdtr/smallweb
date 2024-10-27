@@ -75,8 +75,13 @@ if (input.command === "fetch") {
     }
 
     const handler = mod.default;
-    if (!("run" in handler) || typeof handler.run !== "function") {
+    if (!("run" in handler)) {
         console.error("The mod default export does not have a run function.");
+        Deno.exit(1);
+    }
+
+    if (!(typeof handler.run === "function")) {
+        console.error("The mod default export run property must be a function.");
         Deno.exit(1);
     }
 
