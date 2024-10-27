@@ -47,18 +47,16 @@ func init() {
 
 type Worker struct {
 	App app.App
-	Env map[string]string
 	*slog.Logger
+	Env map[string]string
 }
 
-func NewWorker(app app.App, apiPort int, logger *slog.Logger) *Worker {
+func NewWorker(app app.App) *Worker {
 	worker := &Worker{
-		App:    app,
-		Logger: logger,
+		App: app,
 	}
 
 	worker.Env = make(map[string]string)
-	worker.Env["SMALLWEB_API_URL"] = fmt.Sprintf("http://127.0.0.1:%d", apiPort)
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
 
@@ -117,14 +115,13 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Root()
 
-	var env []string
+	command.Env = os.Environ()
 	for k, v := range me.Env {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
+		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 	for k, v := range me.App.Env {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
+		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
 	}
-	command.Env = env
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -151,18 +148,19 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 	logPipe := func(pipe io.ReadCloser, logType string) {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
-			os.Stdout.WriteString(scanner.Text() + "\n")
-			if me.Logger != nil {
-				me.Logger.LogAttrs(
-					context.Background(),
-					slog.LevelInfo,
-					logType,
-					slog.String("type", logType),
-					slog.String("app", me.App.Name),
-					slog.String("text", scanner.Text()),
-				)
+			if me.Logger == nil {
+				os.Stdout.WriteString(scanner.Text() + "\n")
+				continue
 			}
 
+			me.Logger.LogAttrs(
+				context.Background(),
+				slog.LevelInfo,
+				logType,
+				slog.String("type", logType),
+				slog.String("app", me.App.Name),
+				slog.String("text", scanner.Text()),
+			)
 		}
 	}
 
@@ -351,9 +349,7 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
-	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.Flags()...)
-
+	denoArgs := []string{"run", "--allow-all", fmt.Sprintf("--location=%s", me.App.URL), "--unstable-kv", "--no-prompt", "--quiet"}
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)

@@ -39,7 +39,7 @@ func NewCmdRun() *cobra.Command {
 				return fmt.Errorf("smallweb built-in apps do not support running as a CLI")
 			}
 
-			worker := worker.NewWorker(app, k.Int("apiPort"), nil)
+			worker := worker.NewWorker(app)
 			command, err := worker.Command(args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

@@ -230,7 +230,10 @@ func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, apiUrl string, 
 		http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
 		return
 	} else {
-		handler = worker.NewWorker(a, k.Int("apiPort"), logger)
+		wk := worker.NewWorker(a)
+		wk.Logger = logger
+		wk.Env["SMALLWEB_API_URL"] = apiUrl
+		handler = wk
 	}
 
 	isPrivateRoute := a.Config.Private
