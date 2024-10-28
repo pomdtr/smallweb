@@ -76,7 +76,7 @@ func NewHandler(domain string, httpWriter *utils.MultiWriter, consoleWriter *uti
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 
-			w.Header().Set("Content-Type", "text/json")
+			w.Header().Set("Content-Type", "application/json")
 			encoder := json.NewEncoder(w)
 			encoder.SetIndent("", "  ")
 			encoder.Encode(spec)
