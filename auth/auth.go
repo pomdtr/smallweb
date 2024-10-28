@@ -88,7 +88,7 @@ func Middleware(provider string, email string, appname string) func(http.Handler
 				return
 			}
 
-			authUrl := "https://lastlogin.net/auth"
+			authUrl := "https://lastlogin.io/auth"
 			if provider != "" {
 				authUrl += "?provider=" + provider
 			}
@@ -97,7 +97,7 @@ func Middleware(provider string, email string, appname string) func(http.Handler
 				ClientID: fmt.Sprintf("https://%s/", r.Host),
 				Endpoint: oauth2.Endpoint{
 					AuthURL:   authUrl,
-					TokenURL:  "https://lastlogin.net/token",
+					TokenURL:  "https://lastlogin.io/token",
 					AuthStyle: oauth2.AuthStyleInParams,
 				},
 				Scopes:      []string{"email"},
@@ -180,7 +180,7 @@ func Middleware(provider string, email string, appname string) func(http.Handler
 					return
 				}
 
-				req, err := http.NewRequest("GET", "https://lastlogin.net/userinfo", nil)
+				req, err := http.NewRequest("GET", "https://lastlogin.io/userinfo", nil)
 				if err != nil {
 					log.Printf("failed to create userinfo request: %v", err)
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
