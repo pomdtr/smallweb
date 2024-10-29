@@ -29,6 +29,19 @@ import (
 var sandboxBytes []byte
 var sandboxPath string
 
+var allowedCommands = []string{
+	"clip",
+	"explorer",
+	"pbcopy",
+	"pbpaste",
+	"open",
+	"xclip",
+	"xsel",
+	"wl-copy",
+	"wl-paste",
+	"xdg-open",
+}
+
 func init() {
 	sha := crypto.SHA256.New()
 	sha.Write(sandboxBytes)
@@ -65,13 +78,13 @@ func NewWorker(app app.App) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) Flags() []string {
+func (me *Worker) Flags(execPath string) []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-import",
 		"--allow-env",
 		"--allow-sys=osRelease,homedir,cpus,hostname",
-		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath),
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath, execPath),
 		fmt.Sprintf("--allow-write=%s", me.App.Root()),
 		fmt.Sprintf("--deny-write=%s,%s", filepath.Join(me.App.Dir, "smallweb.json"), filepath.Join(me.App.Dir, "smallweb.jsonc")),
 		fmt.Sprintf("--location=%s", me.App.URL),
@@ -95,8 +108,12 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 		return nil, 0, fmt.Errorf("could not get free port: %w", err)
 	}
 
+	deno, err := DenoExecutable()
+	if err != nil {
+		return nil, 0, fmt.Errorf("could not find deno executable")
+	}
 	args := []string{"run"}
-	args = append(args, me.Flags()...)
+	args = append(args, me.Flags(deno)...)
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
@@ -107,11 +124,6 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 		"port":       port,
 	})
 	args = append(args, sandboxPath, input.String())
-
-	deno, err := DenoExecutable()
-	if err != nil {
-		return nil, 0, fmt.Errorf("could not find deno executable")
-	}
 
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Root()
@@ -349,8 +361,14 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
+	deno, err := DenoExecutable()
+	if err != nil {
+		return nil, fmt.Errorf("could not find deno executable")
+	}
+
 	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.Flags()...)
+	denoArgs = append(denoArgs, me.Flags(deno)...)
+	denoArgs = append(denoArgs, fmt.Sprintf("--allow-run=%s", strings.Join(allowedCommands, ",")))
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
@@ -361,10 +379,6 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		"args":       args,
 	})
 	denoArgs = append(denoArgs, sandboxPath, input.String())
-	deno, err := DenoExecutable()
-	if err != nil {
-		return nil, fmt.Errorf("could not find deno executable")
-	}
 
 	cmd := exec.Command(deno, denoArgs...)
 	cmd.Dir = me.App.Root()
