@@ -24,10 +24,6 @@ jobs:
       - uses: denoland/setup-deno@v1
         with:
           deno-version: "1.46.3"
-      - name: Setup mdBook
-        uses: peaceiris/actions-mdbook@v2
-        with:
-          mdbook-version: "latest"
       - uses: goreleaser/goreleaser-action@v4
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro':
