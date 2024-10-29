@@ -242,7 +242,17 @@ func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, apiUrl string, 
 	} else {
 		wk := worker.NewWorker(a)
 		wk.Logger = logger
-		wk.Env["SMALLWEB_API_URL"] = apiUrl
+		if a.Config.Admin {
+			apiToken, err := auth.GetApiToken()
+			if err != nil {
+				http.Error(w, "failed to get api token", http.StatusInternalServerError)
+				return
+			}
+
+			wk.Env["SMALLWEB_API_URL"] = apiUrl
+			wk.Env["SMALLWEB_API_TOKEN"] = apiToken
+		}
+
 		handler = wk
 	}
 

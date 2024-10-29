@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/auth"
 	"github.com/pomdtr/smallweb/utils"
 	"golang.org/x/net/webdav"
 )
@@ -60,6 +61,17 @@ func NewHandler(domain string, httpWriter *utils.MultiWriter, consoleWriter *uti
 	})
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		apiToken, err := auth.GetApiToken()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if r.Header.Get("Authorization") != "Bearer "+apiToken {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		if strings.HasPrefix(r.URL.Path, "/webdav") {
 			webdavHandler.ServeHTTP(w, r)
 			return

@@ -50,9 +50,9 @@ func Middleware(provider string, email string, appname string) func(http.Handler
 		}
 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			username, _, ok := r.BasicAuth()
+			token, _, ok := r.BasicAuth()
 			if ok {
-				if err := VerifyToken(username, appname); err != nil {
+				if err := VerifyToken(token, appname); err != nil {
 					w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
 					// here we return unauthorized instead of forbidden to trigger the basic auth prompt
 					http.Error(w, "Unauthorized", http.StatusUnauthorized)

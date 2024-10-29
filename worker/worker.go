@@ -73,6 +73,7 @@ func (me *Worker) Flags() []string {
 		"--allow-sys=osRelease,homedir,cpus,hostname",
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath),
 		fmt.Sprintf("--allow-write=%s", me.App.Root()),
+		fmt.Sprintf("--deny-write=%s,%s", filepath.Join(me.App.Dir, "smallweb.json"), filepath.Join(me.App.Dir, "smallweb.jsonc")),
 		fmt.Sprintf("--location=%s", me.App.URL),
 		"--unstable-kv",
 		"--no-prompt",
@@ -348,12 +349,8 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
-	denoArgs := []string{"run", "--allow-all", fmt.Sprintf("--location=%s", me.App.URL), "--unstable-kv", "--no-prompt", "--quiet"}
-	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
-		denoArgs = append(denoArgs, "--config", configPath)
-	} else if configPath := filepath.Join(me.App.Dir, "deno.jsonc"); utils.FileExists(configPath) {
-		denoArgs = append(denoArgs, "--config", configPath)
-	}
+	denoArgs := []string{"run"}
+	denoArgs = append(denoArgs, me.Flags()...)
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
