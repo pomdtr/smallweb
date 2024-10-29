@@ -2,13 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 
-	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
@@ -23,15 +22,43 @@ func NewCmdTunnel() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			server := http.Server{
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					rootDir := utils.RootDir()
-					app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
+					req, err := http.NewRequest(r.Method, fmt.Sprintf("http://%s:%d%s", k.String("host"), k.Int("port"), r.URL.Path), r.Body)
 					if err != nil {
-						w.WriteHeader(http.StatusNotFound)
+						http.Error(w, err.Error(), http.StatusInternalServerError)
 						return
 					}
 
-					apiUrl := fmt.Sprintf("http://127.0.0.1:%d", k.Int("apiPort"))
-					ServeApp(w, r, app, apiUrl, nil)
+					for k, v := range r.Header {
+						for _, vv := range v {
+							req.Header.Add(k, vv)
+						}
+					}
+					req.Header.Add("X-Forwarded-Host", fmt.Sprintf("%s.%s", args[0], k.String("domain")))
+
+					client := &http.Client{
+						CheckRedirect: func(req *http.Request, via []*http.Request) error {
+							return http.ErrUseLastResponse
+						},
+					}
+
+					resp, err := client.Do(req)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+
+					for k, v := range resp.Header {
+						for _, vv := range v {
+							w.Header().Add(k, vv)
+						}
+					}
+
+					w.WriteHeader(resp.StatusCode)
+					_, err = io.Copy(w, resp.Body)
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
 				}),
 			}
 
@@ -44,15 +71,12 @@ func NewCmdTunnel() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to parse address: %v", err)
 			}
+			go server.Serve(ln)
 
 			sshCommand := exec.Command("ssh", "-R", fmt.Sprintf("80:localhost:%s", port), "nokey@localhost.run")
-
 			sshCommand.Stdin = os.Stdin
 			sshCommand.Stdout = os.Stdout
 			sshCommand.Stderr = os.Stderr
-
-			go server.Serve(ln)
-
 			if err := sshCommand.Run(); err != nil {
 				return fmt.Errorf("failed to start ssh command: %v", err)
 			}
