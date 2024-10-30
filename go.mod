@@ -30,6 +30,7 @@ require (
 )
 
 require (
+	github.com/atotto/clipboard v0.1.4
 	github.com/mssola/user_agent v0.6.0
 	github.com/oapi-codegen/runtime v1.1.1
 )

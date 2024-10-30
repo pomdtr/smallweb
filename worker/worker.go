@@ -27,19 +27,35 @@ import (
 
 //go:embed sandbox.ts
 var sandboxBytes []byte
-var sandboxPath string
+var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%s.ts", hash(sandboxBytes)))
+
+//go:embed sdk.sh
+var sdkBytes []byte
+var sdkPath = filepath.Join(xdg.CacheHome, "smallweb", "sdk", fmt.Sprintf("%s.sh", hash(sdkBytes)))
+
+func hash(b []byte) string {
+	sha := crypto.SHA256.New()
+	sha.Write(b)
+	return base64.URLEncoding.EncodeToString(sha.Sum(nil))
+}
 
 func init() {
-	sha := crypto.SHA256.New()
-	sha.Write(sandboxBytes)
-	sandboxHash := base64.URLEncoding.EncodeToString(sha.Sum(nil))
-	sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "deno", "sandbox", string(sandboxHash), "main.ts")
 	if !utils.FileExists(sandboxPath) {
 		if err := os.MkdirAll(filepath.Dir(sandboxPath), 0755); err != nil {
 			log.Fatalf("could not create directory: %v", err)
 		}
 
 		if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
+			log.Fatalf("could not write file: %v", err)
+		}
+	}
+
+	if !utils.FileExists(sdkPath) {
+		if err := os.MkdirAll(filepath.Dir(sdkPath), 0755); err != nil {
+			log.Fatalf("could not create directory: %v", err)
+		}
+
+		if err := os.WriteFile(sdkPath, sdkBytes, 0755); err != nil {
 			log.Fatalf("could not write file: %v", err)
 		}
 	}
@@ -398,6 +414,8 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	for k, v := range me.App.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
+
+	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_SDK_PATH=%s", sdkPath))
 	if me.App.Config.Admin {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", execPath))
 	}
