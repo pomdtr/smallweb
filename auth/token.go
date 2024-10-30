@@ -12,22 +12,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var adminToken string
-
-func GetApiToken() (string, error) {
-	if adminToken != "" {
-		return adminToken, nil
-	}
-
-	token, _, _, err := GenerateToken()
-	if err != nil {
-		return "", err
-	}
-
-	adminToken = token
-	return adminToken, nil
-}
-
 type Token struct {
 	ID          string    `json:"id"`
 	Hash        []byte    `json:"hash"`

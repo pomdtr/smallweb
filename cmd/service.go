@@ -8,9 +8,8 @@ import (
 
 func NewCmdService() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "service",
-		Short:   "Manage smallweb service",
-		GroupID: CoreGroupID,
+		Use:   "service",
+		Short: "Manage smallweb service",
 	}
 
 	cmd.AddCommand(NewCmdServiceInstall())

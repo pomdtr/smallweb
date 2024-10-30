@@ -17,9 +17,8 @@ import (
 
 func NewCmdToken() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "token",
-		Short:   "Manage api tokens",
-		GroupID: CoreGroupID,
+		Use:   "token",
+		Short: "Manage api tokens",
 	}
 
 	cmd.AddCommand(NewCmdTokenCreate())

@@ -31,7 +31,6 @@ func NewCmdUp() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "up",
 		Short:   "Start the smallweb evaluation server",
-		GroupID: CoreGroupID,
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -43,15 +42,8 @@ func NewCmdUp() *cobra.Command {
 			consoleWriter := utils.NewMultiWriter()
 
 			apiServer := http.Server{
-				Handler: api.NewHandler(k.String("domain"), httpWriter, consoleWriter),
+				Handler: api.NewHandler(k.String("domain")),
 			}
-
-			apiAddr := net.JoinHostPort("127.0.0.1", k.String("apiPort"))
-			apiLn, err := net.Listen("tcp", apiAddr)
-			if err != nil {
-				return fmt.Errorf("failed to listen: %v", err)
-			}
-			go apiServer.Serve(apiLn)
 
 			httpLogger := utils.NewLogger(httpWriter)
 			httpServer := http.Server{
@@ -95,7 +87,7 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
-					ServeApp(w, r, a, fmt.Sprintf("http://%s", apiAddr), consoleLogger)
+					ServeApp(w, r, a, consoleLogger)
 				})),
 			}
 
@@ -157,7 +149,7 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 	return net.Listen("tcp", addr)
 }
 
-func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, apiUrl string, logger *slog.Logger) {
+func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, logger *slog.Logger) {
 	var handler http.Handler
 	if a.Entrypoint() == "smallweb:static" {
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -242,17 +234,6 @@ func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, apiUrl string, 
 	} else {
 		wk := worker.NewWorker(a)
 		wk.Logger = logger
-		if a.Config.Admin {
-			apiToken, err := auth.GetApiToken()
-			if err != nil {
-				http.Error(w, "failed to get api token", http.StatusInternalServerError)
-				return
-			}
-
-			wk.Env["SMALLWEB_API_URL"] = apiUrl
-			wk.Env["SMALLWEB_API_TOKEN"] = apiToken
-		}
-
 		handler = wk
 	}
 

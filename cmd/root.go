@@ -18,19 +18,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	CoreGroupID      = "core"
-	ExtensionGroupID = "extension"
-)
-
 var (
 	k = koanf.New(".")
 )
 
 func NewCmdRoot(version string, changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
-		"addr":    ":7777",
-		"apiPort": 7778,
+		"addr": ":7777",
 	}, "")
 
 	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
@@ -57,16 +51,50 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	k.Load(envProvider, nil)
 
 	cmd := &cobra.Command{
-		Use:          "smallweb",
-		Short:        "Host websites from your internet folder",
-		Version:      version,
-		SilenceUsage: true,
-	}
+		Use:                "smallweb",
+		Short:              "Host websites from your internet folder",
+		Version:            version,
+		Args:               cobra.ArbitraryArgs,
+		DisableFlagParsing: true,
+		SilenceUsage:       true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
+				return cmd.Help()
+			}
 
-	cmd.AddGroup(&cobra.Group{
-		ID:    CoreGroupID,
-		Title: "Core Commands",
-	})
+			for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+				entries, err := os.ReadDir(dir)
+				if err != nil {
+					continue
+				}
+
+				for _, entry := range entries {
+					if entry.IsDir() {
+						continue
+					}
+
+					if entry.Name() != "smallweb-"+args[0] {
+						continue
+					}
+
+					entrypoint := filepath.Join(dir, entry.Name())
+					if ok, err := isExecutable(entrypoint); !ok || err != nil {
+						continue
+					}
+
+					cmd.SilenceErrors = true
+					command := exec.Command(entrypoint, args[1:]...)
+					command.Env = os.Environ()
+					command.Stdin = os.Stdin
+					command.Stdout = os.Stdout
+					command.Stderr = os.Stderr
+					return command.Run()
+				}
+			}
+
+			return fmt.Errorf("unknown command: %s", args[0])
+		},
+	}
 
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdDocs())
@@ -76,16 +104,18 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdConfig())
 	cmd.AddCommand(NewCmdCreate())
+	cmd.AddCommand(NewCmdAPI())
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdRename())
+	cmd.AddCommand(NewCmdOpenapi())
 	cmd.AddCommand(NewCmdClone())
 	cmd.AddCommand(NewCmdDelete())
+	cmd.AddCommand(NewCmdWebdav())
 
 	cmd.AddCommand(&cobra.Command{
-		Use:     "changelog",
-		Short:   "Show the changelog",
-		GroupID: CoreGroupID,
+		Use:   "changelog",
+		Short: "Show the changelog",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !isatty.IsTerminal(os.Stdout.Fd()) {
 				fmt.Println(changelog)
@@ -101,64 +131,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 			return nil
 		},
 	})
-
-	var extensions []string
-	path := os.Getenv("PATH")
-	for _, dir := range filepath.SplitList(path) {
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			continue
-		}
-
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-
-			if !strings.HasPrefix(entry.Name(), "smallweb-") {
-				continue
-			}
-
-			entrypoint := filepath.Join(dir, entry.Name())
-			if ok, err := isExecutable(entrypoint); !ok || err != nil {
-				continue
-			}
-
-			extensions = append(extensions, entrypoint)
-		}
-	}
-
-	if len(extensions) == 0 {
-		return cmd
-	}
-
-	cmd.AddGroup(&cobra.Group{
-		ID:    ExtensionGroupID,
-		Title: "Extension Commands",
-	})
-
-	for _, entrypoint := range extensions {
-		name := strings.TrimPrefix(filepath.Base(entrypoint), "smallweb-")
-		if HasCommand(cmd, name) {
-			continue
-		}
-
-		cmd.AddCommand(&cobra.Command{
-			Use:                name,
-			Short:              fmt.Sprintf("Extension %s", name),
-			GroupID:            ExtensionGroupID,
-			DisableFlagParsing: true,
-			SilenceErrors:      true,
-			RunE: func(cmd *cobra.Command, args []string) error {
-				command := exec.Command(entrypoint, args...)
-				command.Env = os.Environ()
-				command.Stdin = os.Stdin
-				command.Stdout = os.Stdout
-				command.Stderr = os.Stderr
-				return command.Run()
-			},
-		})
-	}
 
 	return cmd
 }

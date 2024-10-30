@@ -13,10 +13,9 @@ import (
 
 func NewCmdUpgrade() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "upgrade [version]",
-		Short:   "Upgrade to the latest version",
-		GroupID: CoreGroupID,
-		Args:    cobra.MaximumNArgs(1),
+		Use:   "upgrade [version]",
+		Short: "Upgrade to the latest version",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			version := cmd.Root().Version
 			if version == "dev" {

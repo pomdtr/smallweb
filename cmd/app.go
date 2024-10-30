@@ -26,7 +26,6 @@ func NewCmdCreate() *cobra.Command {
 		Use:     "create <app>",
 		Aliases: []string{"new"},
 		Short:   "Create a new smallweb app",
-		GroupID: CoreGroupID,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.RootDir()
@@ -56,7 +55,6 @@ func NewCmdOpen() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "open [app]",
 		Short:             "Open an app in the browser",
-		GroupID:           CoreGroupID,
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completeApp(utils.RootDir()),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -109,7 +107,6 @@ func NewCmdList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Short:   "List all smallweb apps",
-		GroupID: CoreGroupID,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.RootDir()
@@ -181,7 +178,6 @@ func NewCmdRename() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "rename [app] [new-name]",
 		Short:             "Rename an app",
-		GroupID:           CoreGroupID,
 		Aliases:           []string{"move", "mv"},
 		ValidArgsFunction: completeApp(utils.RootDir()),
 		Args:              cobra.ExactArgs(2),
@@ -214,7 +210,6 @@ func NewCmdClone() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "clone [app] [new-name]",
 		Short:             "Clone an app",
-		GroupID:           CoreGroupID,
 		Aliases:           []string{"cp", "copy", "fork"},
 		ValidArgsFunction: completeApp(utils.RootDir()),
 		Args:              cobra.ExactArgs(2),
@@ -248,7 +243,6 @@ func NewCmdDelete() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "delete",
 		Short:             "Delete an app",
-		GroupID:           CoreGroupID,
 		Aliases:           []string{"remove", "rm"},
 		ValidArgsFunction: completeApp(utils.RootDir()),
 		Args:              cobra.ExactArgs(1),

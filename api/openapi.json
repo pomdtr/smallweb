@@ -58,61 +58,71 @@
         }
       }
     },
-    "/v0/logs/http": {
-      "get": {
-        "operationId": "getHttpLogs",
+    "/v0/run/{app}": {
+      "post": {
         "tags": [
-          "logs"
-        ],
-        "parameters": [
-          {
-            "name": "host",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Filter logs by host"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Stream logs",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v0/logs/console": {
-      "get": {
-        "operationId": "getConsoleLogs",
-        "tags": [
-          "logs"
+          "apps"
         ],
         "parameters": [
           {
             "name": "app",
-            "in": "query",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
-            },
-            "description": "Filter logs by app"
+            }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "args"
+                ],
+                "properties": {
+                  "args": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "stdin": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Stream logs",
+            "description": "command output",
             "content": {
-              "application/octet-stream": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "binary"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "code",
+                    "stdout",
+                    "stderr"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "code": {
+                      "type": "integer"
+                    },
+                    "stdout": {
+                      "type": "string"
+                    },
+                    "stderr": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -138,29 +148,6 @@
           },
           "manifest": {
             "type": "object"
-          }
-        }
-      },
-      "CommandOutput": {
-        "type": "object",
-        "required": [
-          "success",
-          "code",
-          "stdout",
-          "stderr"
-        ],
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "code": {
-            "type": "integer"
-          },
-          "stdout": {
-            "type": "string"
-          },
-          "stderr": {
-            "type": "string"
           }
         }
       }

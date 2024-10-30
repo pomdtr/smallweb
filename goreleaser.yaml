@@ -39,7 +39,7 @@ release:
   prerelease: auto
   extra_files:
     - glob: api/openapi.json
-    - glob: api/schemas/*
+    - glob: schemas/*.schema.json
   github:
     owner: pomdtr
     name: smallweb

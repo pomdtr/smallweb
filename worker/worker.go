@@ -29,19 +29,6 @@ import (
 var sandboxBytes []byte
 var sandboxPath string
 
-var allowedCommands = []string{
-	"clip",
-	"explorer",
-	"pbcopy",
-	"pbpaste",
-	"open",
-	"xclip",
-	"xsel",
-	"wl-copy",
-	"wl-paste",
-	"xdg-open",
-}
-
 func init() {
 	sha := crypto.SHA256.New()
 	sha.Write(sandboxBytes)
@@ -108,12 +95,20 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 		return nil, 0, fmt.Errorf("could not get free port: %w", err)
 	}
 
+	execPath, err := os.Executable()
+	if err != nil {
+		return nil, 0, fmt.Errorf("could not get executable path: %w", err)
+	}
+
 	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, 0, fmt.Errorf("could not find deno executable")
 	}
 	args := []string{"run"}
 	args = append(args, me.Flags(deno)...)
+	if me.App.Config.Admin {
+		args = append(args, fmt.Sprintf("--allow-run=%s", execPath))
+	}
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
@@ -133,6 +128,9 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 	}
 	for k, v := range me.App.Env {
 		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+	if me.App.Config.Admin {
+		command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", execPath))
 	}
 
 	stdoutPipe, err := command.StdoutPipe()
@@ -361,6 +359,11 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
+	execPath, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("could not get executable path: %w", err)
+	}
+
 	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, fmt.Errorf("could not find deno executable")
@@ -368,6 +371,11 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 
 	denoArgs := []string{"run"}
 	denoArgs = append(denoArgs, me.Flags(deno)...)
+
+	allowedCommands := []string{"clip", "explorer", "pbcopy", "pbpaste", "open", "xclip", "xsel", "wl-copy", "wl-paste", "xdg-open"}
+	if me.App.Config.Admin {
+		allowedCommands = append(allowedCommands, execPath)
+	}
 	denoArgs = append(denoArgs, fmt.Sprintf("--allow-run=%s", strings.Join(allowedCommands, ",")))
 
 	input := strings.Builder{}
@@ -389,6 +397,9 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	}
 	for k, v := range me.App.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+	if me.App.Config.Admin {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", execPath))
 	}
 
 	return cmd, nil

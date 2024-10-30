@@ -29,17 +29,14 @@ type App struct {
 	Url      string                  `json:"url"`
 }
 
-// GetConsoleLogsParams defines parameters for GetConsoleLogs.
-type GetConsoleLogsParams struct {
-	// App Filter logs by app
-	App *string `form:"app,omitempty" json:"app,omitempty"`
+// PostV0RunAppJSONBody defines parameters for PostV0RunApp.
+type PostV0RunAppJSONBody struct {
+	Args  []string `json:"args"`
+	Stdin *string  `json:"stdin,omitempty"`
 }
 
-// GetHttpLogsParams defines parameters for GetHttpLogs.
-type GetHttpLogsParams struct {
-	// Host Filter logs by host
-	Host *string `form:"host,omitempty" json:"host,omitempty"`
-}
+// PostV0RunAppJSONRequestBody defines body for PostV0RunApp for application/json ContentType.
+type PostV0RunAppJSONRequestBody PostV0RunAppJSONBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -120,11 +117,10 @@ type ClientInterface interface {
 	// GetApp request
 	GetApp(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetConsoleLogs request
-	GetConsoleLogs(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostV0RunAppWithBody request with any body
+	PostV0RunAppWithBody(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetHttpLogs request
-	GetHttpLogs(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostV0RunApp(ctx context.Context, app string, body PostV0RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetApps(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -151,8 +147,8 @@ func (c *Client) GetApp(ctx context.Context, app string, reqEditors ...RequestEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetConsoleLogs(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetConsoleLogsRequest(c.Server, params)
+func (c *Client) PostV0RunAppWithBody(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostV0RunAppRequestWithBody(c.Server, app, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -163,8 +159,8 @@ func (c *Client) GetConsoleLogs(ctx context.Context, params *GetConsoleLogsParam
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetHttpLogs(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetHttpLogsRequest(c.Server, params)
+func (c *Client) PostV0RunApp(ctx context.Context, app string, body PostV0RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostV0RunAppRequest(c.Server, app, body)
 	if err != nil {
 		return nil, err
 	}
@@ -236,65 +232,34 @@ func NewGetAppRequest(server string, app string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewGetConsoleLogsRequest generates requests for GetConsoleLogs
-func NewGetConsoleLogsRequest(server string, params *GetConsoleLogsParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
+// NewPostV0RunAppRequest calls the generic PostV0RunApp builder with application/json body
+func NewPostV0RunAppRequest(server string, app string, body PostV0RunAppJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
-
-	operationPath := fmt.Sprintf("/v0/logs/console")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.App != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "app", runtime.ParamLocationQuery, *params.App); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
+	bodyReader = bytes.NewReader(buf)
+	return NewPostV0RunAppRequestWithBody(server, app, "application/json", bodyReader)
 }
 
-// NewGetHttpLogsRequest generates requests for GetHttpLogs
-func NewGetHttpLogsRequest(server string, params *GetHttpLogsParams) (*http.Request, error) {
+// NewPostV0RunAppRequestWithBody generates requests for PostV0RunApp with any type of body
+func NewPostV0RunAppRequestWithBody(server string, app string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "app", runtime.ParamLocationPath, app)
+	if err != nil {
+		return nil, err
+	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/v0/logs/http")
+	operationPath := fmt.Sprintf("/v0/run/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -304,32 +269,12 @@ func NewGetHttpLogsRequest(server string, params *GetHttpLogsParams) (*http.Requ
 		return nil, err
 	}
 
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Host != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "host", runtime.ParamLocationQuery, *params.Host); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	req, err := http.NewRequest("POST", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -383,11 +328,10 @@ type ClientWithResponsesInterface interface {
 	// GetAppWithResponse request
 	GetAppWithResponse(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*GetAppResponse, error)
 
-	// GetConsoleLogsWithResponse request
-	GetConsoleLogsWithResponse(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*GetConsoleLogsResponse, error)
+	// PostV0RunAppWithBodyWithResponse request with any body
+	PostV0RunAppWithBodyWithResponse(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV0RunAppResponse, error)
 
-	// GetHttpLogsWithResponse request
-	GetHttpLogsWithResponse(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*GetHttpLogsResponse, error)
+	PostV0RunAppWithResponse(ctx context.Context, app string, body PostV0RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*PostV0RunAppResponse, error)
 }
 
 type GetAppsResponse struct {
@@ -434,13 +378,19 @@ func (r GetAppResponse) StatusCode() int {
 	return 0
 }
 
-type GetConsoleLogsResponse struct {
+type PostV0RunAppResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *struct {
+		Code    int    `json:"code"`
+		Stderr  string `json:"stderr"`
+		Stdout  string `json:"stdout"`
+		Success bool   `json:"success"`
+	}
 }
 
 // Status returns HTTPResponse.Status
-func (r GetConsoleLogsResponse) Status() string {
+func (r PostV0RunAppResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -448,28 +398,7 @@ func (r GetConsoleLogsResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetConsoleLogsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetHttpLogsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r GetHttpLogsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetHttpLogsResponse) StatusCode() int {
+func (r PostV0RunAppResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -494,22 +423,21 @@ func (c *ClientWithResponses) GetAppWithResponse(ctx context.Context, app string
 	return ParseGetAppResponse(rsp)
 }
 
-// GetConsoleLogsWithResponse request returning *GetConsoleLogsResponse
-func (c *ClientWithResponses) GetConsoleLogsWithResponse(ctx context.Context, params *GetConsoleLogsParams, reqEditors ...RequestEditorFn) (*GetConsoleLogsResponse, error) {
-	rsp, err := c.GetConsoleLogs(ctx, params, reqEditors...)
+// PostV0RunAppWithBodyWithResponse request with arbitrary body returning *PostV0RunAppResponse
+func (c *ClientWithResponses) PostV0RunAppWithBodyWithResponse(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV0RunAppResponse, error) {
+	rsp, err := c.PostV0RunAppWithBody(ctx, app, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetConsoleLogsResponse(rsp)
+	return ParsePostV0RunAppResponse(rsp)
 }
 
-// GetHttpLogsWithResponse request returning *GetHttpLogsResponse
-func (c *ClientWithResponses) GetHttpLogsWithResponse(ctx context.Context, params *GetHttpLogsParams, reqEditors ...RequestEditorFn) (*GetHttpLogsResponse, error) {
-	rsp, err := c.GetHttpLogs(ctx, params, reqEditors...)
+func (c *ClientWithResponses) PostV0RunAppWithResponse(ctx context.Context, app string, body PostV0RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*PostV0RunAppResponse, error) {
+	rsp, err := c.PostV0RunApp(ctx, app, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetHttpLogsResponse(rsp)
+	return ParsePostV0RunAppResponse(rsp)
 }
 
 // ParseGetAppsResponse parses an HTTP response from a GetAppsWithResponse call
@@ -564,33 +492,32 @@ func ParseGetAppResponse(rsp *http.Response) (*GetAppResponse, error) {
 	return response, nil
 }
 
-// ParseGetConsoleLogsResponse parses an HTTP response from a GetConsoleLogsWithResponse call
-func ParseGetConsoleLogsResponse(rsp *http.Response) (*GetConsoleLogsResponse, error) {
+// ParsePostV0RunAppResponse parses an HTTP response from a PostV0RunAppWithResponse call
+func ParsePostV0RunAppResponse(rsp *http.Response) (*PostV0RunAppResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetConsoleLogsResponse{
+	response := &PostV0RunAppResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
-	return response, nil
-}
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Code    int    `json:"code"`
+			Stderr  string `json:"stderr"`
+			Stdout  string `json:"stdout"`
+			Success bool   `json:"success"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
-// ParseGetHttpLogsResponse parses an HTTP response from a GetHttpLogsWithResponse call
-func ParseGetHttpLogsResponse(rsp *http.Response) (*GetHttpLogsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetHttpLogsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -605,11 +532,8 @@ type ServerInterface interface {
 	// (GET /v0/apps/{app})
 	GetApp(w http.ResponseWriter, r *http.Request, app string)
 
-	// (GET /v0/logs/console)
-	GetConsoleLogs(w http.ResponseWriter, r *http.Request, params GetConsoleLogsParams)
-
-	// (GET /v0/logs/http)
-	GetHttpLogs(w http.ResponseWriter, r *http.Request, params GetHttpLogsParams)
+	// (POST /v0/run/{app})
+	PostV0RunApp(w http.ResponseWriter, r *http.Request, app string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -660,51 +584,22 @@ func (siw *ServerInterfaceWrapper) GetApp(w http.ResponseWriter, r *http.Request
 	handler.ServeHTTP(w, r)
 }
 
-// GetConsoleLogs operation middleware
-func (siw *ServerInterfaceWrapper) GetConsoleLogs(w http.ResponseWriter, r *http.Request) {
+// PostV0RunApp operation middleware
+func (siw *ServerInterfaceWrapper) PostV0RunApp(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetConsoleLogsParams
+	// ------------- Path parameter "app" -------------
+	var app string
 
-	// ------------- Optional query parameter "app" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "app", r.URL.Query(), &params.App)
+	err = runtime.BindStyledParameterWithOptions("simple", "app", r.PathValue("app"), &app, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
 		return
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetConsoleLogs(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// GetHttpLogs operation middleware
-func (siw *ServerInterfaceWrapper) GetHttpLogs(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetHttpLogsParams
-
-	// ------------- Optional query parameter "host" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "host", r.URL.Query(), &params.Host)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "host", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetHttpLogs(w, r, params)
+		siw.Handler.PostV0RunApp(w, r, app)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -836,8 +731,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetApps)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}", wrapper.GetApp)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/console", wrapper.GetConsoleLogs)
-	m.HandleFunc("GET "+options.BaseURL+"/v0/logs/http", wrapper.GetHttpLogs)
+	m.HandleFunc("POST "+options.BaseURL+"/v0/run/{app}", wrapper.PostV0RunApp)
 
 	return m
 }
@@ -845,14 +739,14 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9SRQW/bMAyF/4rB7ejVxnrzLRiwrkAPA3occlAc2lFhiSzFdAgC//eBcrMlzpYA2y49",
-	"ieATH/U+7aGlwBQxaoJmD6ndYHC5XDDbwUKMoh5zM7joO0xqte4YoQFaPWGrMJYQXcAjIan42JuwleE3",
-	"/bEEweetF1xD822anu4uy7m5Xfaxo2zjdTDtMbhh+I6rYvH1Hkp4QUmeIjRQ205ijI49NHB7U9/cQgns",
-	"dJNDVC915Zhz3WPOYhmdeor3a2jgDnVhuj0wMcU0hf9Y13a0FBVjHnPMg2/zYPWUbPkBoVVeMeTB94Id",
-	"NPCu+gW7eiVdGebxZ14n4nZT3DWmVjzrlOnBJy2oK/K7TVbXJ8OWG0vrHGJVe8c8XgmXeYgLqCjmswdv",
-	"a4wRHH7SvOH4k1S2WB4FnH/o8h+BXeV0zuUO1ZhcQDJQn6qWYqIBL0H5NF15oD6dwzld+tkPilKYc7Ha",
-	"FROmzO95i7KbA/xfwKhV1A9JBV04BdeRBKfQwMpHlx8w33QG7jHb5Awn8HLjFN5GlS+R+6LKf4FtQ0n/",
-	"wO1VepPgxvFHAAAA//+qymDlVQUAAA==",
+	"H4sIAAAAAAAC/7SUzW7bMAzHXyXgdjRqY735ll2KAjsUG7DLkIMiM6kKW2QpqkMQ+N0Hyk2aNMaCodjJ",
+	"gih+/H8kvQdPA1PEqAnaPST/iIMrxyWzfViIUTRguRxcDBtMamfdMUILtH5CrzBWEN2AJ4akEuLWDFn6",
+	"mfuxAsHnHAQ7aH9N3tPbVfU+uD0OcUMlTNDebD8G1/e/cb1YPtxDBS8oKVCEFhrLSYzRcYAWbm+am1uo",
+	"gJ0+FhH1S1M75nLeYtFiGp0GivcdtHCHujS7FZiYYprEf2ka+3iKirG4OeY++OJYPyVLfkBop6A4FMfP",
+	"ghto4VP9Brt+JV0b5vGo14m43SS3w+QlsE6avoWkC9osSt1mVrdNhq1crOzmIKveO+bxirjCQ9yAimJx",
+	"9hAsjTGCQyctNpw2SSVjdSLwfUNXHwR2ldMllztUY/IXJJLjGxGmNIPkgZL+bL7n+F/BPGdM+pW63T8x",
+	"Od8/J9t0NloXu3Y+SBUk7UK8vn0l8NzejR/s6Xn9nrrTX0SIiluU1zpRZFZS0o6yzpuy95hOSayJenTx",
+	"QuDhZTXVcIx6zDz/0zmfNk/D4GK3oKycdXboxvFPAAAA//9zWj0OVAUAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

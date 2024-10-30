@@ -14,10 +14,9 @@ import (
 
 func NewCmdConfig() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "config [key]",
-		Short:   "Open the smallweb config in your editor",
-		GroupID: CoreGroupID,
-		Args:    cobra.MaximumNArgs(1),
+		Use:   "config [key]",
+		Short: "Open the smallweb config in your editor",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			configPath := filepath.Join(utils.RootDir(), ".smallweb", "config.json")
 			if !utils.FileExists(configPath) {
