@@ -112,6 +112,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdDelete())
 	cmd.AddCommand(NewCmdFetch())
 	cmd.AddCommand(NewCmdWebdav())
+	cmd.AddCommand(NewCmdCron())
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "changelog",

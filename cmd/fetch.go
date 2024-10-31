@@ -6,12 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -25,17 +22,13 @@ func NewCmdFetch() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "fetch <app> <path>",
 		Short:             "Fetch a path from an app",
-		Args:              cobra.RangeArgs(1, 2),
+		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completeApp(),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(filepath.Join(utils.RootDir(), args[0]), k.String("domain"))
-			if err != nil {
-				return fmt.Errorf("failed to load app: %w", err)
-			}
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				ServeApp(w, r, a, nil, true)
+				ServeApp(w, r, true)
 			})
-			if len(args) == 1 {
+			if len(args) == 0 {
 				if isatty.IsTerminal(os.Stdin.Fd()) {
 					return cmd.Help()
 				}
@@ -50,7 +43,7 @@ func NewCmdFetch() *cobra.Command {
 				body = os.Stdin
 			}
 
-			req := httptest.NewRequest(flags.method, args[1], body)
+			req := httptest.NewRequest(flags.method, args[0], body)
 			for _, header := range flags.headers {
 				parts := strings.SplitN(header, ":", 2)
 				if len(parts) != 2 {
@@ -59,7 +52,6 @@ func NewCmdFetch() *cobra.Command {
 
 				req.Header.Add(parts[0], parts[1])
 			}
-			req.Host = fmt.Sprintf("%s.%s", a.Name, k.String("domain"))
 
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -28,6 +27,10 @@ import (
 )
 
 func NewCmdUp() *cobra.Command {
+	var flags struct {
+		cron bool
+	}
+
 	cmd := &cobra.Command{
 		Use:     "up",
 		Short:   "Start the smallweb evaluation server",
@@ -38,56 +41,14 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			httpWriter := utils.NewMultiWriter()
-			consoleWriter := utils.NewMultiWriter()
-
 			apiServer := http.Server{
 				Handler: api.NewHandler(k.String("domain")),
 			}
 
-			httpLogger := utils.NewLogger(httpWriter)
+			httpLogger := utils.NewLogger(os.Stdout)
 			httpServer := http.Server{
 				Handler: httpLogger.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					rootDir := utils.RootDir()
-
-					if r.Host == k.String("domain") {
-						// if we are on the apex domain and www exists, redirect to www
-						if _, err := os.Stat(filepath.Join(rootDir, "www")); err == nil {
-							target := r.URL
-							target.Scheme = r.Header.Get("X-Forwarded-Proto")
-							if target.Scheme == "" {
-								target.Scheme = "http"
-							}
-
-							target.Host = "www." + k.String("domain")
-							http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
-							return
-						}
-
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					if !strings.HasSuffix(r.Host, "."+k.String("domain")) {
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					var appname string
-					if name, ok := k.StringMap("customDomains")[r.Host]; ok {
-						appname = name
-					} else {
-						appname = strings.TrimSuffix(r.Host, "."+k.String("domain"))
-					}
-
-					a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
-					if err != nil {
-						w.WriteHeader(http.StatusNotFound)
-						return
-					}
-
-					consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
-					ServeApp(w, r, a, consoleLogger, false)
+					ServeApp(w, r, false)
 				})),
 			}
 
@@ -99,6 +60,12 @@ func NewCmdUp() *cobra.Command {
 			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), utils.RootDir(), k.String("addr"))
 			go httpServer.Serve(httpLn)
 
+			crons := CronRunner()
+			if flags.cron {
+				log.Println("Starting cron jobs...")
+				crons.Start()
+			}
+
 			// sigint handling
 			sigint := make(chan os.Signal, 1)
 			signal.Notify(sigint, os.Interrupt)
@@ -107,10 +74,16 @@ func NewCmdUp() *cobra.Command {
 			log.Println("Shutting down server...")
 			httpServer.Close()
 			apiServer.Close()
+			if flags.cron {
+				log.Println("Shutting down cron jobs...")
+				ctx := crons.Stop()
+				<-ctx.Done()
+			}
 			return nil
 		},
 	}
 
+	cmd.Flags().BoolVar(&flags.cron, "cron", false, "run cron jobs")
 	return cmd
 }
 
@@ -149,7 +122,45 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 	return net.Listen("tcp", addr)
 }
 
-func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, logger *slog.Logger, disableAuth bool) {
+func ServeApp(w http.ResponseWriter, r *http.Request, disableAuth bool) {
+	rootDir := utils.RootDir()
+
+	if r.Host == k.String("domain") {
+		// if we are on the apex domain and www exists, redirect to www
+		if _, err := os.Stat(filepath.Join(rootDir, "www")); err == nil {
+			target := r.URL
+			target.Scheme = r.Header.Get("X-Forwarded-Proto")
+			if target.Scheme == "" {
+				target.Scheme = "http"
+			}
+
+			target.Host = "www." + k.String("domain")
+			http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if !strings.HasSuffix(r.Host, "."+k.String("domain")) {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	var appname string
+	if name, ok := k.StringMap("customDomains")[r.Host]; ok {
+		appname = name
+	} else {
+		appname = strings.TrimSuffix(r.Host, "."+k.String("domain"))
+	}
+
+	a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	var handler http.Handler
 	if a.Entrypoint() == "smallweb:static" {
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

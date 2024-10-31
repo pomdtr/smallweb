@@ -13,12 +13,20 @@ import (
 )
 
 type AppConfig struct {
-	Entrypoint    string   `json:"entrypoint,omitempty"`
-	Root          string   `json:"root,omitempty"`
-	Admin         bool     `json:"admin,omitempty"`
-	Private       bool     `json:"private,omitempty"`
-	PublicRoutes  []string `json:"publicRoutes,omitempty"`
-	PrivateRoutes []string `json:"privateRoutes,omitempty"`
+	Entrypoint    string    `json:"entrypoint,omitempty"`
+	Root          string    `json:"root,omitempty"`
+	Admin         bool      `json:"admin,omitempty"`
+	Crons         []CronJob `json:"crons,omitempty"`
+	Private       bool      `json:"private,omitempty"`
+	PublicRoutes  []string  `json:"publicRoutes,omitempty"`
+	PrivateRoutes []string  `json:"privateRoutes,omitempty"`
+}
+
+type CronJob struct {
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Schedule    string   `json:"schedule"`
+	Args        []string `json:"args"`
 }
 
 type App struct {

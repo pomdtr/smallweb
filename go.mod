@@ -32,6 +32,7 @@ require (
 require (
 	github.com/mssola/user_agent v0.6.0
 	github.com/oapi-codegen/runtime v1.1.1
+	github.com/robfig/cron/v3 v3.0.1
 )
 
 require (
