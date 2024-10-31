@@ -26,7 +26,7 @@ func NewCmdFetch() *cobra.Command {
 		Use:               "fetch <app> <path>",
 		Short:             "Fetch a path from an app",
 		Args:              cobra.RangeArgs(1, 2),
-		ValidArgsFunction: completeApp(utils.RootDir()),
+		ValidArgsFunction: completeApp(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			a, err := app.LoadApp(filepath.Join(utils.RootDir(), args[0]), k.String("domain"))
 			if err != nil {

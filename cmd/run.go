@@ -17,7 +17,7 @@ func NewCmdRun() *cobra.Command {
 		Use:                "run <app> [args...]",
 		Short:              "Run an app cli",
 		DisableFlagParsing: true,
-		ValidArgsFunction:  completeApp(utils.RootDir()),
+		ValidArgsFunction:  completeApp(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()

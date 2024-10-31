@@ -54,7 +54,7 @@ func NewCmdOpen() *cobra.Command {
 		Use:               "open [app]",
 		Short:             "Open an app in the browser",
 		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp(utils.RootDir()),
+		ValidArgsFunction: completeApp(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.RootDir()
 			client, err := NewApiClient(k.String("domain"))
@@ -192,7 +192,7 @@ func NewCmdRename() *cobra.Command {
 		Use:               "rename [app] [new-name]",
 		Short:             "Rename an app",
 		Aliases:           []string{"move", "mv"},
-		ValidArgsFunction: completeApp(utils.RootDir()),
+		ValidArgsFunction: completeApp(),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := NewApiClient(k.String("domain"))
@@ -224,7 +224,7 @@ func NewCmdDelete() *cobra.Command {
 		Use:               "delete",
 		Short:             "Delete an app",
 		Aliases:           []string{"remove", "rm"},
-		ValidArgsFunction: completeApp(utils.RootDir()),
+		ValidArgsFunction: completeApp(),
 		Args:              cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := NewApiClient(k.String("domain"))
@@ -249,7 +249,7 @@ func NewCmdDelete() *cobra.Command {
 	return cmd
 }
 
-func completeApp(rootDir string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func completeApp() func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) > 0 {
 			return nil, cobra.ShellCompDirectiveDefault

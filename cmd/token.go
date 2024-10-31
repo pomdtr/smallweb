@@ -9,7 +9,6 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/auth"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
@@ -75,7 +74,7 @@ func NewCmdTokenCreate() *cobra.Command {
 	cmd.MarkFlagRequired("description")
 	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "app token")
 	cmd.MarkFlagRequired("app")
-	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir()))
+	cmd.RegisterFlagCompletionFunc("app", completeApp())
 
 	return cmd
 }
