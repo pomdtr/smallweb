@@ -3,7 +3,6 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -62,7 +61,7 @@ func NewCmdUp() *cobra.Command {
 
 			crons := CronRunner()
 			if flags.cron {
-				log.Println("Starting cron jobs...")
+				fmt.Fprintln(os.Stderr, "Starting cron jobs...")
 				crons.Start()
 			}
 
@@ -71,11 +70,11 @@ func NewCmdUp() *cobra.Command {
 			signal.Notify(sigint, os.Interrupt)
 			<-sigint
 
-			log.Println("Shutting down server...")
+			fmt.Fprintln(os.Stderr, "Shutting down server...")
 			httpServer.Close()
 			apiServer.Close()
 			if flags.cron {
-				log.Println("Shutting down cron jobs...")
+				fmt.Fprintln(os.Stderr, "Shutting down cron jobs...")
 				ctx := crons.Stop()
 				<-ctx.Done()
 			}

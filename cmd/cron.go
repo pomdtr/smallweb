@@ -152,7 +152,7 @@ func NewCmdCronUp() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runner := CronRunner()
-			log.Println("Starting cron daemon")
+			fmt.Fprintln(os.Stderr, "Starting cron daemon...")
 			runner.Start()
 
 			sigint := make(chan os.Signal, 1)
