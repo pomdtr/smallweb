@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 
@@ -25,15 +26,15 @@ func NewCmdAPI() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "api",
 		Short: "Interact with the smallweb API",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			handler := api.NewHandler(k.String("domain"))
-
 			if len(args) == 0 {
 				if isatty.IsTerminal(os.Stdin.Fd()) {
-					return fmt.Errorf("no input data provided")
+					return cmd.Help()
 				}
 
-				return serveStream(handler, os.Stdin, os.Stdout)
+				return serveFromStream(handler, os.Stdin, os.Stdout)
 			}
 
 			var body io.Reader
@@ -43,7 +44,11 @@ func NewCmdAPI() *cobra.Command {
 				body = os.Stdin
 			}
 
-			req := httptest.NewRequest(flags.method, fmt.Sprintf("http://api"+args[0]), body)
+			url, err := url.JoinPath("http://api/", args[0])
+			if err != nil {
+				return fmt.Errorf("path is not valid: %w", err)
+			}
+			req := httptest.NewRequest(flags.method, url, body)
 			for _, header := range flags.headers {
 				parts := strings.SplitN(header, ":", 2)
 				if len(parts) != 2 {
@@ -68,7 +73,7 @@ func NewCmdAPI() *cobra.Command {
 	return cmd
 }
 
-func serveStream(handler http.Handler, input io.Reader, outpput io.Writer) error {
+func serveFromStream(handler http.Handler, input io.Reader, outpput io.Writer) error {
 	inputBytes, err := io.ReadAll(input)
 	if err != nil {
 		return fmt.Errorf("failed to read input: %w", err)
@@ -128,4 +133,19 @@ func serveStream(handler http.Handler, input io.Reader, outpput io.Writer) error
 	}
 
 	return nil
+}
+
+type HttpClient struct {
+	handler http.Handler
+}
+
+func (c *HttpClient) Do(req *http.Request) (*http.Response, error) {
+	w := httptest.NewRecorder()
+	c.handler.ServeHTTP(w, req)
+	return w.Result(), nil
+}
+
+func NewApiClient(domain string) (*api.ClientWithResponses, error) {
+	handler := api.NewHandler(domain)
+	return api.NewClientWithResponses("", api.WithHTTPClient(&HttpClient{handler: handler}))
 }

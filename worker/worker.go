@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -28,10 +29,6 @@ import (
 //go:embed sandbox.ts
 var sandboxBytes []byte
 var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%s.ts", hash(sandboxBytes)))
-
-//go:embed sdk.sh
-var sdkBytes []byte
-var sdkPath = filepath.Join(xdg.CacheHome, "smallweb", "sdk", fmt.Sprintf("%s.sh", hash(sdkBytes)))
 
 func hash(b []byte) string {
 	sha := crypto.SHA256.New()
@@ -46,16 +43,6 @@ func init() {
 		}
 
 		if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
-			log.Fatalf("could not write file: %v", err)
-		}
-	}
-
-	if !utils.FileExists(sdkPath) {
-		if err := os.MkdirAll(filepath.Dir(sdkPath), 0755); err != nil {
-			log.Fatalf("could not create directory: %v", err)
-		}
-
-		if err := os.WriteFile(sdkPath, sdkBytes, 0755); err != nil {
 			log.Fatalf("could not write file: %v", err)
 		}
 	}
@@ -291,16 +278,12 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if r.Header.Get("x-forwarded-host") == "" {
-		r.Header.Set("x-forwarded-host", r.Host)
+	if request.Header.Get("x-forwarded-host") == "" {
+		request.Header.Set("x-forwarded-host", r.Host)
 	}
 
-	if r.Header.Get("x-forwarded-proto") == "" {
-		if r.TLS != nil {
-			r.Header.Set("x-forwarded-proto", "https")
-		} else {
-			r.Header.Set("x-forwarded-proto", "http")
-		}
+	if request.Header.Get("x-forwarded-proto") == "" {
+		request.Header.Set("x-forwarded-proto", "https")
 	}
 
 	client := &http.Client{
@@ -388,7 +371,14 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	denoArgs := []string{"run"}
 	denoArgs = append(denoArgs, me.Flags(deno)...)
 
-	allowedCommands := []string{"clip", "explorer", "pbcopy", "pbpaste", "open", "xclip", "xsel", "wl-copy", "wl-paste", "xdg-open"}
+	var allowedCommands []string
+	switch runtime.GOOS {
+	case "darwin":
+		allowedCommands = []string{"open"}
+	default:
+		allowedCommands = []string{"xdg-open"}
+	}
+
 	if me.App.Config.Admin {
 		allowedCommands = append(allowedCommands, execPath)
 	}
@@ -415,10 +405,7 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_SDK_PATH=%s", sdkPath))
-	if me.App.Config.Admin {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", execPath))
-	}
+	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", execPath))
 
 	return cmd, nil
 }

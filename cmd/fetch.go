@@ -3,18 +3,19 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/mattn/go-isatty"
+	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/webdav"
 )
 
-func NewCmdWebdav() *cobra.Command {
+func NewCmdFetch() *cobra.Command {
 	var flags struct {
 		method  string
 		headers []string
@@ -22,15 +23,19 @@ func NewCmdWebdav() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "webdav",
-		Short: "Interact with the smallweb WebDAV server",
-		Args:  cobra.MaximumNArgs(1),
+		Use:               "fetch <app> <path>",
+		Short:             "Fetch a path from an app",
+		Args:              cobra.RangeArgs(1, 2),
+		ValidArgsFunction: completeApp(utils.RootDir()),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var handler = &webdav.Handler{
-				FileSystem: webdav.Dir(utils.RootDir()),
-				LockSystem: webdav.NewMemLS(),
+			a, err := app.LoadApp(filepath.Join(utils.RootDir(), args[0]), k.String("domain"))
+			if err != nil {
+				return fmt.Errorf("failed to load app: %w", err)
 			}
-			if len(args) == 0 {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				ServeApp(w, r, a, nil, true)
+			})
+			if len(args) == 1 {
 				if isatty.IsTerminal(os.Stdin.Fd()) {
 					return cmd.Help()
 				}
@@ -45,11 +50,7 @@ func NewCmdWebdav() *cobra.Command {
 				body = os.Stdin
 			}
 
-			u, err := url.JoinPath("http://webdav/", args[0])
-			if err != nil {
-				return fmt.Errorf("path is not valid: %w", err)
-			}
-			req := httptest.NewRequest(flags.method, u, body)
+			req := httptest.NewRequest(flags.method, args[1], body)
 			for _, header := range flags.headers {
 				parts := strings.SplitN(header, ":", 2)
 				if len(parts) != 2 {
@@ -58,10 +59,10 @@ func NewCmdWebdav() *cobra.Command {
 
 				req.Header.Add(parts[0], parts[1])
 			}
+			req.Host = fmt.Sprintf("%s.%s", a.Name, k.String("domain"))
 
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
-
 			io.Copy(os.Stdout, w.Body)
 			return nil
 		},

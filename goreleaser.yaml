@@ -10,6 +10,7 @@ before:
     - sh -c 'go run . completion "bash" >./completions/{{ .ProjectName }}.bash'
     - sh -c 'go run . completion "zsh" >./completions/{{ .ProjectName }}.zsh'
     - sh -c 'go run . completion "fish" >./completions/{{ .ProjectName }}.fish'
+    - sh -c 'go run . openapi >openapi.json'
 changelog:
   disable: true
 builds:
@@ -38,7 +39,7 @@ snapshot:
 release:
   prerelease: auto
   extra_files:
-    - glob: api/openapi.json
+    - glob: openapi.json
     - glob: schemas/*.schema.json
   github:
     owner: pomdtr

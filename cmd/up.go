@@ -87,7 +87,7 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					consoleLogger := slog.New(slog.NewJSONHandler(consoleWriter, nil))
-					ServeApp(w, r, a, consoleLogger)
+					ServeApp(w, r, a, consoleLogger, false)
 				})),
 			}
 
@@ -149,7 +149,7 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 	return net.Listen("tcp", addr)
 }
 
-func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, logger *slog.Logger) {
+func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, logger *slog.Logger, disableAuth bool) {
 	var handler http.Handler
 	if a.Entrypoint() == "smallweb:static" {
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -252,7 +252,7 @@ func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, logger *slog.Lo
 		}
 	}
 
-	if isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth") {
+	if !disableAuth && (isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth")) {
 		authMiddleware := auth.Middleware(k.String("auth"), k.String("email"), a.Name)
 		handler = authMiddleware(handler)
 	}

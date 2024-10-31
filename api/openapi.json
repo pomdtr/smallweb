@@ -26,6 +26,41 @@
             }
           }
         }
+      },
+      "post": {
+        "operationId": "createApp",
+        "tags": [
+          "apps"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Create app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/App"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v0/apps/{app}": {
@@ -54,15 +89,17 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "App not found"
           }
         }
-      }
-    },
-    "/v0/run/{app}": {
-      "post": {
+      },
+      "put": {
         "tags": [
           "apps"
         ],
+        "operationId": "updateApp",
         "parameters": [
           {
             "name": "app",
@@ -79,16 +116,10 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "args"
+                  "name"
                 ],
                 "properties": {
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "stdin": {
+                  "name": {
                     "type": "string"
                   }
                 }
@@ -98,34 +129,38 @@
         },
         "responses": {
           "200": {
-            "description": "command output",
+            "description": "Updated app",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "code",
-                    "stdout",
-                    "stderr"
-                  ],
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "code": {
-                      "type": "integer"
-                    },
-                    "stdout": {
-                      "type": "string"
-                    },
-                    "stderr": {
-                      "type": "string"
-                    }
-                  }
+                  "$ref": "#/components/schemas/App"
                 }
               }
             }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "apps"
+        ],
+        "operationId": "deleteApp",
+        "parameters": [
+          {
+            "name": "app",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "App not found"
+          },
+          "204": {
+            "description": "Delete app"
           }
         }
       }

@@ -1,21 +1,22 @@
 package api
 
 import (
-	"bytes"
-	"encoding/base64"
+	"embed"
 	"encoding/json"
-	"errors"
+	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
-	"github.com/pomdtr/smallweb/worker"
 )
 
 //go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml ./openapi.json
+
+//go:embed template/*
+var initTemplate embed.FS
 
 type Server struct {
 	domain string
@@ -138,73 +139,74 @@ func (me *Server) GetApps(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type CommandOutput struct {
-	Stdout  string `json:"stdout"`
-	Stderr  string `json:"stderr"`
-	Code    int    `json:"code"`
-	Success bool   `json:"success"`
-}
-
-func (me *Server) PostV0RunApp(w http.ResponseWriter, r *http.Request, appname string) {
-	a, err := app.LoadApp(filepath.Join(utils.RootDir(), appname), me.domain)
-	if err != nil {
+func (me *Server) DeleteApp(w http.ResponseWriter, r *http.Request, appname string) {
+	if err := os.RemoveAll(filepath.Join(utils.RootDir(), appname)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	var body PostV0RunAppJSONRequestBody
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (me *Server) UpdateApp(w http.ResponseWriter, r *http.Request, appname string) {
+	var body UpdateAppJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	wk := worker.NewWorker(a)
-	command, err := wk.Command(body.Args...)
+	rootDir := utils.RootDir()
+	src := filepath.Join(rootDir, appname)
+	dst := filepath.Join(rootDir, body.Name)
+
+	if _, err := os.Stat(src); os.IsNotExist(err) {
+		http.Error(w, fmt.Sprintf("app not found: %s", appname), http.StatusNotFound)
+		return
+	}
+
+	if _, err := os.Stat(dst); !os.IsNotExist(err) {
+		http.Error(w, fmt.Sprintf("app already exists: %s", body.Name), http.StatusConflict)
+		return
+	}
+
+	if err := os.Rename(src, dst); err != nil {
+		http.Error(w, fmt.Sprintf("failed to rename app: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (me *Server) CreateApp(w http.ResponseWriter, r *http.Request) {
+	var body CreateAppJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	rootDir := utils.RootDir()
+	appDir := filepath.Join(rootDir, body.Name)
+	if _, err := os.Stat(appDir); !os.IsNotExist(err) {
+		http.Error(w, fmt.Sprintf("app already exists: %s", body.Name), http.StatusConflict)
+	}
+
+	subFs, err := fs.Sub(initTemplate, "template")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("failed to read template: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	if body.Stdin != nil {
-		stdin, err := base64.StdEncoding.DecodeString(*body.Stdin)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		command.Stdin = bytes.NewReader(stdin)
-	}
-
-	var stdout, stderr bytes.Buffer
-	command.Stdout = &stdout
-	command.Stderr = &stderr
-
-	if err := command.Start(); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := os.CopyFS(appDir, subFs); err != nil {
+		http.Error(w, fmt.Sprintf("failed to copy template: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	var code int
-	if err := command.Wait(); err != nil {
-		var exitErr *exec.ExitError
-		if !errors.As(err, &exitErr) {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		code = exitErr.ExitCode()
-	}
-
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-
-	if err := encoder.Encode(CommandOutput{
-		Stdout:  base64.StdEncoding.EncodeToString(stdout.Bytes()),
-		Stderr:  base64.StdEncoding.EncodeToString(stderr.Bytes()),
-		Code:    code,
-		Success: code == 0,
-	}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	encoder.Encode(App{
+		Name: body.Name,
+		Url:  fmt.Sprintf("https://%s.%s/", body.Name, me.domain),
+	})
 }

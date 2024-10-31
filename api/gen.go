@@ -29,14 +29,21 @@ type App struct {
 	Url      string                  `json:"url"`
 }
 
-// PostV0RunAppJSONBody defines parameters for PostV0RunApp.
-type PostV0RunAppJSONBody struct {
-	Args  []string `json:"args"`
-	Stdin *string  `json:"stdin,omitempty"`
+// CreateAppJSONBody defines parameters for CreateApp.
+type CreateAppJSONBody struct {
+	Name string `json:"name"`
 }
 
-// PostV0RunAppJSONRequestBody defines body for PostV0RunApp for application/json ContentType.
-type PostV0RunAppJSONRequestBody PostV0RunAppJSONBody
+// UpdateAppJSONBody defines parameters for UpdateApp.
+type UpdateAppJSONBody struct {
+	Name string `json:"name"`
+}
+
+// CreateAppJSONRequestBody defines body for CreateApp for application/json ContentType.
+type CreateAppJSONRequestBody CreateAppJSONBody
+
+// UpdateAppJSONRequestBody defines body for UpdateApp for application/json ContentType.
+type UpdateAppJSONRequestBody UpdateAppJSONBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -114,17 +121,61 @@ type ClientInterface interface {
 	// GetApps request
 	GetApps(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateAppWithBody request with any body
+	CreateAppWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateApp(ctx context.Context, body CreateAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteApp request
+	DeleteApp(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetApp request
 	GetApp(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostV0RunAppWithBody request with any body
-	PostV0RunAppWithBody(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// UpdateAppWithBody request with any body
+	UpdateAppWithBody(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostV0RunApp(ctx context.Context, app string, body PostV0RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	UpdateApp(ctx context.Context, app string, body UpdateAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) GetApps(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAppsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateAppWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateAppRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateApp(ctx context.Context, body CreateAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateAppRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteApp(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteAppRequest(c.Server, app)
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +198,8 @@ func (c *Client) GetApp(ctx context.Context, app string, reqEditors ...RequestEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostV0RunAppWithBody(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostV0RunAppRequestWithBody(c.Server, app, contentType, body)
+func (c *Client) UpdateAppWithBody(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateAppRequestWithBody(c.Server, app, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +210,8 @@ func (c *Client) PostV0RunAppWithBody(ctx context.Context, app string, contentTy
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostV0RunApp(ctx context.Context, app string, body PostV0RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostV0RunAppRequest(c.Server, app, body)
+func (c *Client) UpdateApp(ctx context.Context, app string, body UpdateAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateAppRequest(c.Server, app, body)
 	if err != nil {
 		return nil, err
 	}
@@ -191,6 +242,80 @@ func NewGetAppsRequest(server string) (*http.Request, error) {
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateAppRequest calls the generic CreateApp builder with application/json body
+func NewCreateAppRequest(server string, body CreateAppJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateAppRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateAppRequestWithBody generates requests for CreateApp with any type of body
+func NewCreateAppRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v0/apps")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteAppRequest generates requests for DeleteApp
+func NewDeleteAppRequest(server string, app string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "app", runtime.ParamLocationPath, app)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v0/apps/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -232,19 +357,19 @@ func NewGetAppRequest(server string, app string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewPostV0RunAppRequest calls the generic PostV0RunApp builder with application/json body
-func NewPostV0RunAppRequest(server string, app string, body PostV0RunAppJSONRequestBody) (*http.Request, error) {
+// NewUpdateAppRequest calls the generic UpdateApp builder with application/json body
+func NewUpdateAppRequest(server string, app string, body UpdateAppJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPostV0RunAppRequestWithBody(server, app, "application/json", bodyReader)
+	return NewUpdateAppRequestWithBody(server, app, "application/json", bodyReader)
 }
 
-// NewPostV0RunAppRequestWithBody generates requests for PostV0RunApp with any type of body
-func NewPostV0RunAppRequestWithBody(server string, app string, contentType string, body io.Reader) (*http.Request, error) {
+// NewUpdateAppRequestWithBody generates requests for UpdateApp with any type of body
+func NewUpdateAppRequestWithBody(server string, app string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -259,7 +384,7 @@ func NewPostV0RunAppRequestWithBody(server string, app string, contentType strin
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/v0/run/%s", pathParam0)
+	operationPath := fmt.Sprintf("/v0/apps/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -269,7 +394,7 @@ func NewPostV0RunAppRequestWithBody(server string, app string, contentType strin
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", queryURL.String(), body)
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -325,13 +450,21 @@ type ClientWithResponsesInterface interface {
 	// GetAppsWithResponse request
 	GetAppsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetAppsResponse, error)
 
+	// CreateAppWithBodyWithResponse request with any body
+	CreateAppWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateAppResponse, error)
+
+	CreateAppWithResponse(ctx context.Context, body CreateAppJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateAppResponse, error)
+
+	// DeleteAppWithResponse request
+	DeleteAppWithResponse(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*DeleteAppResponse, error)
+
 	// GetAppWithResponse request
 	GetAppWithResponse(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*GetAppResponse, error)
 
-	// PostV0RunAppWithBodyWithResponse request with any body
-	PostV0RunAppWithBodyWithResponse(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV0RunAppResponse, error)
+	// UpdateAppWithBodyWithResponse request with any body
+	UpdateAppWithBodyWithResponse(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateAppResponse, error)
 
-	PostV0RunAppWithResponse(ctx context.Context, app string, body PostV0RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*PostV0RunAppResponse, error)
+	UpdateAppWithResponse(ctx context.Context, app string, body UpdateAppJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateAppResponse, error)
 }
 
 type GetAppsResponse struct {
@@ -350,6 +483,49 @@ func (r GetAppsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetAppsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateAppResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *App
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateAppResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateAppResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteAppResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteAppResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteAppResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -378,19 +554,14 @@ func (r GetAppResponse) StatusCode() int {
 	return 0
 }
 
-type PostV0RunAppResponse struct {
+type UpdateAppResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Code    int    `json:"code"`
-		Stderr  string `json:"stderr"`
-		Stdout  string `json:"stdout"`
-		Success bool   `json:"success"`
-	}
+	JSON200      *App
 }
 
 // Status returns HTTPResponse.Status
-func (r PostV0RunAppResponse) Status() string {
+func (r UpdateAppResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -398,7 +569,7 @@ func (r PostV0RunAppResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostV0RunAppResponse) StatusCode() int {
+func (r UpdateAppResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -414,6 +585,32 @@ func (c *ClientWithResponses) GetAppsWithResponse(ctx context.Context, reqEditor
 	return ParseGetAppsResponse(rsp)
 }
 
+// CreateAppWithBodyWithResponse request with arbitrary body returning *CreateAppResponse
+func (c *ClientWithResponses) CreateAppWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateAppResponse, error) {
+	rsp, err := c.CreateAppWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateAppResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateAppWithResponse(ctx context.Context, body CreateAppJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateAppResponse, error) {
+	rsp, err := c.CreateApp(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateAppResponse(rsp)
+}
+
+// DeleteAppWithResponse request returning *DeleteAppResponse
+func (c *ClientWithResponses) DeleteAppWithResponse(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*DeleteAppResponse, error) {
+	rsp, err := c.DeleteApp(ctx, app, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteAppResponse(rsp)
+}
+
 // GetAppWithResponse request returning *GetAppResponse
 func (c *ClientWithResponses) GetAppWithResponse(ctx context.Context, app string, reqEditors ...RequestEditorFn) (*GetAppResponse, error) {
 	rsp, err := c.GetApp(ctx, app, reqEditors...)
@@ -423,21 +620,21 @@ func (c *ClientWithResponses) GetAppWithResponse(ctx context.Context, app string
 	return ParseGetAppResponse(rsp)
 }
 
-// PostV0RunAppWithBodyWithResponse request with arbitrary body returning *PostV0RunAppResponse
-func (c *ClientWithResponses) PostV0RunAppWithBodyWithResponse(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostV0RunAppResponse, error) {
-	rsp, err := c.PostV0RunAppWithBody(ctx, app, contentType, body, reqEditors...)
+// UpdateAppWithBodyWithResponse request with arbitrary body returning *UpdateAppResponse
+func (c *ClientWithResponses) UpdateAppWithBodyWithResponse(ctx context.Context, app string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateAppResponse, error) {
+	rsp, err := c.UpdateAppWithBody(ctx, app, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostV0RunAppResponse(rsp)
+	return ParseUpdateAppResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostV0RunAppWithResponse(ctx context.Context, app string, body PostV0RunAppJSONRequestBody, reqEditors ...RequestEditorFn) (*PostV0RunAppResponse, error) {
-	rsp, err := c.PostV0RunApp(ctx, app, body, reqEditors...)
+func (c *ClientWithResponses) UpdateAppWithResponse(ctx context.Context, app string, body UpdateAppJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateAppResponse, error) {
+	rsp, err := c.UpdateApp(ctx, app, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostV0RunAppResponse(rsp)
+	return ParseUpdateAppResponse(rsp)
 }
 
 // ParseGetAppsResponse parses an HTTP response from a GetAppsWithResponse call
@@ -461,6 +658,48 @@ func ParseGetAppsResponse(rsp *http.Response) (*GetAppsResponse, error) {
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseCreateAppResponse parses an HTTP response from a CreateAppWithResponse call
+func ParseCreateAppResponse(rsp *http.Response) (*CreateAppResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateAppResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest App
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteAppResponse parses an HTTP response from a DeleteAppWithResponse call
+func ParseDeleteAppResponse(rsp *http.Response) (*DeleteAppResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteAppResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -492,27 +731,22 @@ func ParseGetAppResponse(rsp *http.Response) (*GetAppResponse, error) {
 	return response, nil
 }
 
-// ParsePostV0RunAppResponse parses an HTTP response from a PostV0RunAppWithResponse call
-func ParsePostV0RunAppResponse(rsp *http.Response) (*PostV0RunAppResponse, error) {
+// ParseUpdateAppResponse parses an HTTP response from a UpdateAppWithResponse call
+func ParseUpdateAppResponse(rsp *http.Response) (*UpdateAppResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostV0RunAppResponse{
+	response := &UpdateAppResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Code    int    `json:"code"`
-			Stderr  string `json:"stderr"`
-			Stdout  string `json:"stdout"`
-			Success bool   `json:"success"`
-		}
+		var dest App
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -529,11 +763,17 @@ type ServerInterface interface {
 	// (GET /v0/apps)
 	GetApps(w http.ResponseWriter, r *http.Request)
 
+	// (POST /v0/apps)
+	CreateApp(w http.ResponseWriter, r *http.Request)
+
+	// (DELETE /v0/apps/{app})
+	DeleteApp(w http.ResponseWriter, r *http.Request, app string)
+
 	// (GET /v0/apps/{app})
 	GetApp(w http.ResponseWriter, r *http.Request, app string)
 
-	// (POST /v0/run/{app})
-	PostV0RunApp(w http.ResponseWriter, r *http.Request, app string)
+	// (PUT /v0/apps/{app})
+	UpdateApp(w http.ResponseWriter, r *http.Request, app string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -550,6 +790,45 @@ func (siw *ServerInterfaceWrapper) GetApps(w http.ResponseWriter, r *http.Reques
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetApps(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateApp operation middleware
+func (siw *ServerInterfaceWrapper) CreateApp(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateApp(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteApp operation middleware
+func (siw *ServerInterfaceWrapper) DeleteApp(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "app" -------------
+	var app string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "app", r.PathValue("app"), &app, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "app", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteApp(w, r, app)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -584,8 +863,8 @@ func (siw *ServerInterfaceWrapper) GetApp(w http.ResponseWriter, r *http.Request
 	handler.ServeHTTP(w, r)
 }
 
-// PostV0RunApp operation middleware
-func (siw *ServerInterfaceWrapper) PostV0RunApp(w http.ResponseWriter, r *http.Request) {
+// UpdateApp operation middleware
+func (siw *ServerInterfaceWrapper) UpdateApp(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
@@ -599,7 +878,7 @@ func (siw *ServerInterfaceWrapper) PostV0RunApp(w http.ResponseWriter, r *http.R
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostV0RunApp(w, r, app)
+		siw.Handler.UpdateApp(w, r, app)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -730,8 +1009,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	}
 
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps", wrapper.GetApps)
+	m.HandleFunc("POST "+options.BaseURL+"/v0/apps", wrapper.CreateApp)
+	m.HandleFunc("DELETE "+options.BaseURL+"/v0/apps/{app}", wrapper.DeleteApp)
 	m.HandleFunc("GET "+options.BaseURL+"/v0/apps/{app}", wrapper.GetApp)
-	m.HandleFunc("POST "+options.BaseURL+"/v0/run/{app}", wrapper.PostV0RunApp)
+	m.HandleFunc("PUT "+options.BaseURL+"/v0/apps/{app}", wrapper.UpdateApp)
 
 	return m
 }
@@ -739,14 +1020,14 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7SUzW7bMAzHXyXgdjRqY735ll2KAjsUG7DLkIMiM6kKW2QpqkMQ+N0Hyk2aNMaCodjJ",
-	"gih+/H8kvQdPA1PEqAnaPST/iIMrxyWzfViIUTRguRxcDBtMamfdMUILtH5CrzBWEN2AJ4akEuLWDFn6",
-	"mfuxAsHnHAQ7aH9N3tPbVfU+uD0OcUMlTNDebD8G1/e/cb1YPtxDBS8oKVCEFhrLSYzRcYAWbm+am1uo",
-	"gJ0+FhH1S1M75nLeYtFiGp0GivcdtHCHujS7FZiYYprEf2ka+3iKirG4OeY++OJYPyVLfkBop6A4FMfP",
-	"ghto4VP9Brt+JV0b5vGo14m43SS3w+QlsE6avoWkC9osSt1mVrdNhq1crOzmIKveO+bxirjCQ9yAimJx",
-	"9hAsjTGCQyctNpw2SSVjdSLwfUNXHwR2ldMllztUY/IXJJLjGxGmNIPkgZL+bL7n+F/BPGdM+pW63T8x",
-	"Od8/J9t0NloXu3Y+SBUk7UK8vn0l8NzejR/s6Xn9nrrTX0SIiluU1zpRZFZS0o6yzpuy95hOSayJenTx",
-	"QuDhZTXVcIx6zDz/0zmfNk/D4GK3oKycdXboxvFPAAAA//9zWj0OVAUAAA==",
+	"H4sIAAAAAAAC/8yTQW/VMAzHv0plOEZrYTv19gBpmsQBCXFC7+C17lumNjGJO/T0lO+OnLDxWDvQhB7a",
+	"KZYdx/7/7Byg8xN7R04itAeI3Q1NmM0Nsx4cPFMQS9k5obMDRVFb9kzQgr++pU4gGXA40VEgSrBup4E5",
+	"jCv+ZCDQt9kG6qH9WrLL3a15/Lhetm7w+Rkro8Y+TziO3+m62ny6AgN3FKL1DlpotKZncsgWWjg/a87O",
+	"wQCj3GQR9V1TI3O2d5S1qEYU691VDy1ckmw0rg1G9i4W8W+bRo/OOyGX05B5tF1OrG+jFr9HqJYVmnLi",
+	"60ADtPCq/gW7/km6VszpQS+GgPsit6fYBctSNH20USo/VLlvDQvuomLLjm0ywD6uSHkfCIW0SKFNUd75",
+	"fv8sHb+vwBNTXpvm2hzTAuqbZzXzV5ZLdoWBolsjl8zDQtQHZE5apaeRhJY4P2R/wckYcCKhoK8dwGop",
+	"3TG4/wlaAY6xSJjJHGl5jHC7YHNRmjlWU1ooagxcrF3ZMFfOSzX42fXr2/KHvf9P0ppTj/2S5F8p8bxC",
+	"6Qv3eOIdeJH/9OQDK2D7Jz9qSj8CAAD//8+XWqCvBgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -18,7 +18,11 @@
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "args": [],
+            "args": [
+                "fetch",
+                "smallblog",
+                "/"
+            ],
             "env": {
                 "SMALLWEB_DIR": "${userHome}/smallweb"
             },
