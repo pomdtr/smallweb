@@ -58,8 +58,13 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		DisableFlagParsing: true,
 		SilenceUsage:       true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 || args[0] == "-h" || args[0] == "--help" {
+			if len(args) == 0 || args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
 				return cmd.Help()
+			}
+
+			if args[0] == "--version" || args[0] == "-v" {
+				fmt.Fprintln(os.Stdout, version)
+				return nil
 			}
 
 			for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
