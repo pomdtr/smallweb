@@ -232,9 +232,7 @@ func ServeApp(w http.ResponseWriter, r *http.Request, a app.App, logger *slog.Lo
 		http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
 		return
 	} else {
-		wk := worker.NewWorker(a)
-		wk.Logger = logger
-		handler = wk
+		handler = worker.NewWorker(a)
 	}
 
 	isPrivateRoute := a.Config.Private
