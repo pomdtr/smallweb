@@ -47,7 +47,7 @@ func NewCmdUp() *cobra.Command {
 			httpLogger := utils.NewLogger(os.Stdout)
 			httpServer := http.Server{
 				Handler: httpLogger.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					ServeApp(w, r, false)
+					ServeApps(w, r, false)
 				})),
 			}
 
@@ -121,7 +121,7 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 	return net.Listen("tcp", addr)
 }
 
-func ServeApp(w http.ResponseWriter, r *http.Request, disableAuth bool) {
+func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool) {
 	rootDir := utils.RootDir()
 
 	if r.Host == k.String("domain") {
