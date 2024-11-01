@@ -25,7 +25,7 @@ func NewCmdFetch() *cobra.Command {
 		ValidArgsFunction: completeApp(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				ServeApps(w, r, true)
+				ServeApps(w, r, true, nil, nil)
 			})
 
 			var body io.Reader

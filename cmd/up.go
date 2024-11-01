@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -44,10 +46,12 @@ func NewCmdUp() *cobra.Command {
 				Handler: api.NewHandler(k.String("domain")),
 			}
 
-			httpLogger := utils.NewLogger(os.Stdout)
+			consoleWriter := utils.NewMultiWriter()
+			httpWriter := utils.NewMultiWriter()
+			httpLogger := utils.NewLogger(httpWriter)
 			httpServer := http.Server{
 				Handler: httpLogger.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					ServeApps(w, r, false)
+					ServeApps(w, r, false, httpWriter, consoleWriter)
 				})),
 			}
 
@@ -121,7 +125,7 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 	return net.Listen("tcp", addr)
 }
 
-func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool) {
+func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool, httpWriter *utils.MultiWriter, consoleWriter *utils.MultiWriter) {
 	rootDir := utils.RootDir()
 
 	if r.Host == k.String("domain") {
@@ -161,7 +165,118 @@ func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool) {
 	}
 
 	var handler http.Handler
-	if a.Entrypoint() == "smallweb:static" {
+	if strings.HasPrefix(r.URL.Path, "/_logs/http") {
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if httpWriter == nil {
+				http.Error(w, "logs not enabled", http.StatusInternalServerError)
+				return
+			}
+
+			flusher, ok := w.(http.Flusher)
+			if !ok {
+				http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "text/x-ndjson")
+			w.Header().Set("Transfer-Encoding", "chunked")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.Header().Set("Connection", "keep-alive")
+
+			// Create a new channel for this client to receive logs
+			clientChan := make(chan []byte)
+			httpWriter.AddClient(clientChan)
+			defer httpWriter.RemoveClient(clientChan)
+
+			// Listen to the client channel and send logs to the client
+			for {
+				select {
+				case logMsg := <-clientChan:
+					// Send the log message as SSE event
+
+					var log map[string]any
+					if err := json.Unmarshal(logMsg, &log); err != nil {
+						fmt.Fprintln(os.Stderr, "failed to parse log:", err)
+						continue
+					}
+
+					request, ok := log["request"].(map[string]any)
+					if !ok {
+						continue
+					}
+
+					host, ok := request["host"].(string)
+					if !ok {
+						continue
+					}
+
+					if host != r.Host {
+						continue
+					}
+
+					w.Write(logMsg)
+					flusher.Flush() // Push data to the client
+				case <-r.Context().Done():
+					// If the client disconnects, stop the loop
+					return
+				}
+			}
+		})
+	} else if strings.HasPrefix(r.URL.Path, "/_logs/console") {
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if consoleWriter == nil {
+				http.Error(w, "logs not enabled", http.StatusInternalServerError)
+				return
+			}
+
+			flusher, ok := w.(http.Flusher)
+			if !ok {
+				http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "text/x-ndjson")
+			w.Header().Set("Transfer-Encoding", "chunked")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.Header().Set("Connection", "keep-alive")
+
+			// Create a new channel for this client to receive logs
+			clientChan := make(chan []byte)
+			httpWriter.AddClient(clientChan)
+			defer httpWriter.RemoveClient(clientChan)
+
+			// Listen to the client channel and send logs to the client
+			for {
+				select {
+				case logMsg := <-clientChan:
+					// Send the log message as SSE event
+
+					var log map[string]any
+					if err := json.Unmarshal(logMsg, &log); err != nil {
+						fmt.Fprintln(os.Stderr, "failed to parse log:", err)
+						continue
+					}
+
+					name, ok := log["app"].(string)
+					if !ok {
+						continue
+					}
+
+					if name != a.Name {
+						continue
+					}
+
+					w.Write(logMsg)
+					flusher.Flush() // Push data to the client
+				case <-r.Context().Done():
+					// If the client disconnects, stop the loop
+					return
+				}
+			}
+		})
+	} else if a.Entrypoint() == "smallweb:static" {
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -242,7 +357,12 @@ func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool) {
 		http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
 		return
 	} else {
-		handler = worker.NewWorker(a)
+		wk := worker.NewWorker(a)
+		if consoleWriter != nil {
+			handler := slog.NewJSONHandler(consoleWriter, nil)
+			wk.Logger = slog.New(handler)
+		}
+		handler = wk
 	}
 
 	isPrivateRoute := a.Config.Private
@@ -260,7 +380,7 @@ func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool) {
 		}
 	}
 
-	if !disableAuth && (isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth")) {
+	if !disableAuth && (isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth/") || strings.HasPrefix(r.URL.Path, "/_logs/")) {
 		authMiddleware := auth.Middleware(k.String("auth"), k.String("email"))
 		handler = authMiddleware(handler)
 	}
