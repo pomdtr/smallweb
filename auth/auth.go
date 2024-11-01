@@ -40,7 +40,7 @@ func isBrowser(ua *user_agent.UserAgent) bool {
 	return false
 }
 
-func Middleware(provider string, email string, appname string) func(http.Handler) http.Handler {
+func Middleware(provider string, email string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		sessionCookieName := "smallweb-session"
 		oauthCookieName := "smallweb-oauth-store"
@@ -52,7 +52,7 @@ func Middleware(provider string, email string, appname string) func(http.Handler
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, _, ok := r.BasicAuth()
 			if ok {
-				if err := VerifyToken(token, appname); err != nil {
+				if err := VerifyToken(token); err != nil {
 					w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
 					// here we return unauthorized instead of forbidden to trigger the basic auth prompt
 					http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -66,7 +66,7 @@ func Middleware(provider string, email string, appname string) func(http.Handler
 			authorization := r.Header.Get("Authorization")
 			if strings.HasPrefix(authorization, "Bearer ") {
 				token := strings.TrimPrefix(authorization, "Bearer ")
-				if err := VerifyToken(token, appname); err != nil {
+				if err := VerifyToken(token); err != nil {
 					w.Header().Add("WWW-Authenticate", `Basic realm="smallweb"`)
 					http.Error(w, "Forbidden", http.StatusForbidden)
 					return

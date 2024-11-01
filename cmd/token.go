@@ -29,7 +29,6 @@ func NewCmdToken() *cobra.Command {
 func NewCmdTokenCreate() *cobra.Command {
 	var flags struct {
 		description string
-		app         string
 	}
 
 	cmd := &cobra.Command{
@@ -53,7 +52,6 @@ func NewCmdTokenCreate() *cobra.Command {
 				Description: flags.description,
 				Hash:        hash,
 				CreatedAt:   time.Now(),
-				App:         flags.app,
 			}
 
 			if err := auth.CreateToken(token); err != nil {
@@ -71,9 +69,6 @@ func NewCmdTokenCreate() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&flags.description, "description", "d", "", "description of the token")
-	cmd.MarkFlagRequired("description")
-	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "app token")
-	cmd.MarkFlagRequired("app")
 	cmd.RegisterFlagCompletionFunc("app", completeApp())
 
 	return cmd
@@ -127,7 +122,7 @@ func NewCmdTokenList() *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"ID", "Description", "App", "Creation Time"})
+			printer.AddHeader([]string{"ID", "Description", "Creation Time"})
 			for _, token := range tokens {
 				printer.AddField(token.ID)
 				description := token.Description
@@ -135,11 +130,6 @@ func NewCmdTokenList() *cobra.Command {
 					description = "N/A"
 				}
 				printer.AddField(description)
-				if token.App == "" {
-					printer.AddField("<all>")
-				} else {
-					printer.AddField(token.App)
-				}
 				printer.AddField(token.CreatedAt.Format(time.RFC3339))
 				printer.EndRow()
 			}

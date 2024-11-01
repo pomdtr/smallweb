@@ -17,7 +17,6 @@ type Token struct {
 	Hash        []byte    `json:"hash"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"createdAt"`
-	App         string    `json:"app"`
 }
 
 func tokenDir() string {
@@ -81,7 +80,7 @@ func CreateToken(token Token) error {
 	return nil
 }
 
-func VerifyToken(token string, appname string) error {
+func VerifyToken(token string) error {
 	public, secret, err := ParseToken(token)
 	if err != nil {
 		return err
@@ -90,10 +89,6 @@ func VerifyToken(token string, appname string) error {
 	t, err := GetToken(public)
 	if err != nil {
 		return err
-	}
-
-	if t.App != appname {
-		return fmt.Errorf("invalid token")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(secret)); err != nil {
