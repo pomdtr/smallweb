@@ -63,6 +63,12 @@ func NewWorker(app app.App) *Worker {
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
 	worker.Env["HOME"] = xdg.Home
+	for _, env := range os.Environ() {
+		if strings.HasPrefix(env, "SMALLWEB_") {
+			parts := strings.SplitN(env, "=", 2)
+			worker.Env[parts[0]] = parts[1]
+		}
+	}
 
 	return worker
 }
