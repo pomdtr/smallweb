@@ -165,7 +165,11 @@ func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool, httpWri
 	}
 
 	var handler http.Handler
-	if strings.HasPrefix(r.URL.Path, "/_logs/http") {
+	if r.URL.Path == "/_logs" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`TODO`))
+		return
+	} else if r.URL.Path == "/_logs/http" {
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if httpWriter == nil {
 				http.Error(w, "logs not enabled", http.StatusInternalServerError)
@@ -223,7 +227,7 @@ func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool, httpWri
 				}
 			}
 		})
-	} else if strings.HasPrefix(r.URL.Path, "/_logs/console") {
+	} else if r.URL.Path == "/_logs/console" {
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if consoleWriter == nil {
 				http.Error(w, "logs not enabled", http.StatusInternalServerError)
