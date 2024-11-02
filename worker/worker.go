@@ -63,12 +63,6 @@ func NewWorker(app app.App) *Worker {
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
 	worker.Env["HOME"] = xdg.Home
-	for _, env := range os.Environ() {
-		if strings.HasPrefix(env, "SMALLWEB_") {
-			parts := strings.SplitN(env, "=", 2)
-			worker.Env[parts[0]] = parts[1]
-		}
-	}
 
 	return worker
 }
@@ -81,13 +75,25 @@ func (me *Worker) Flags(execPath string) []string {
 		"--allow-import",
 		"--allow-env",
 		"--allow-sys=osRelease,homedir,cpus,hostname",
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath, execPath),
-		fmt.Sprintf("--allow-write=%s", me.App.Root()),
-		fmt.Sprintf("--deny-write=%s,%s", filepath.Join(me.App.Dir, "smallweb.json"), filepath.Join(me.App.Dir, "smallweb.jsonc")),
 		fmt.Sprintf("--location=%s", me.App.URL),
 		"--unstable-kv",
 		"--no-prompt",
 		"--quiet",
+	}
+
+	if me.App.Config.Admin {
+		flags = append(
+			flags,
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath, execPath),
+			fmt.Sprintf("--allow-write=%s", me.App.Root()),
+			fmt.Sprintf("--deny-write=%s,%s", filepath.Join(me.App.Dir, "smallweb.json"), filepath.Join(me.App.Dir, "smallweb.jsonc")),
+		)
+	} else {
+		flags = append(
+			flags,
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.RootDir(), me.Env["DENO_DIR"], sandboxPath, execPath),
+			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
+		)
 	}
 
 	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
@@ -105,21 +111,13 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 		return nil, 0, fmt.Errorf("could not get free port: %w", err)
 	}
 
-	execPath, err := os.Executable()
-	if err != nil {
-		return nil, 0, fmt.Errorf("could not get executable path: %w", err)
-	}
-
 	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, 0, fmt.Errorf("could not find deno executable")
 	}
+
 	args := []string{"run"}
 	args = append(args, me.Flags(deno)...)
-	if me.App.Config.Admin {
-		args = append(args, fmt.Sprintf("--allow-run=%s", execPath))
-	}
-
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
@@ -140,7 +138,7 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 	if me.App.Config.Admin {
-		command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", execPath))
+		command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", utils.RootDir()))
 	}
 
 	stdoutPipe, err := command.StdoutPipe()
@@ -365,11 +363,6 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
-	execPath, err := os.Executable()
-	if err != nil {
-		return nil, fmt.Errorf("could not get executable path: %w", err)
-	}
-
 	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, fmt.Errorf("could not find deno executable")
@@ -377,19 +370,11 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 
 	denoArgs := []string{"run"}
 	denoArgs = append(denoArgs, me.Flags(deno)...)
-
-	var allowedCommands []string
-	switch runtime.GOOS {
-	case "darwin":
-		allowedCommands = []string{"open"}
-	default:
-		allowedCommands = []string{"xdg-open"}
+	if runtime.GOOS == "darwin" {
+		denoArgs = append(denoArgs, "--allow-run=open")
+	} else {
+		denoArgs = append(denoArgs, "--allow-run=xdg-open")
 	}
-
-	if me.App.Config.Admin {
-		allowedCommands = append(allowedCommands, execPath)
-	}
-	denoArgs = append(denoArgs, fmt.Sprintf("--allow-run=%s", strings.Join(allowedCommands, ",")))
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
@@ -401,20 +386,21 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	})
 	denoArgs = append(denoArgs, sandboxPath, input.String())
 
-	cmd := exec.Command(deno, denoArgs...)
-	cmd.Dir = me.App.Root()
+	command := exec.Command(deno, denoArgs...)
+	command.Dir = me.App.Root()
 
-	cmd.Env = os.Environ()
+	command.Env = os.Environ()
 	for k, v := range me.Env {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 	for k, v := range me.App.Env {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+	if me.App.Config.Admin {
+		command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", utils.RootDir()))
 	}
 
-	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_EXEC_PATH=%s", execPath))
-
-	return cmd, nil
+	return command, nil
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.

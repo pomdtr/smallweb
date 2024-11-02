@@ -9,7 +9,7 @@ require (
 	github.com/cli/browser v1.3.0
 	github.com/cli/go-gh/v2 v2.9.0
 	github.com/evanw/esbuild v0.24.0
-	github.com/getkin/kin-openapi v0.127.0
+	github.com/getkin/kin-openapi v0.127.0 // indirect
 	github.com/gobwas/glob v0.2.3
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.5.3
@@ -24,20 +24,18 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a
 	golang.org/x/crypto v0.27.0
-	golang.org/x/net v0.29.0
+	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/oauth2 v0.23.0
 	golang.org/x/term v0.24.0
 )
 
 require (
 	github.com/mssola/user_agent v0.6.0
-	github.com/oapi-codegen/runtime v1.1.1
 	github.com/robfig/cron/v3 v3.0.1
 )
 
 require (
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
-	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/charmbracelet/lipgloss v0.13.0 // indirect
@@ -51,7 +49,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
-	github.com/google/uuid v1.5.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect

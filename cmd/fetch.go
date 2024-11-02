@@ -19,9 +19,9 @@ func NewCmdFetch() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:               "fetch <app> <path>",
+		Use:               "fetch [app] <path>",
 		Short:             "Fetch a path from an app",
-		Args:              cobra.RangeArgs(1, 2),
+		Args:              cobra.ExactArgs(2),
 		ValidArgsFunction: completeApp(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +44,7 @@ func NewCmdFetch() *cobra.Command {
 
 				req.Header.Add(parts[0], parts[1])
 			}
+
 			req.Host = fmt.Sprintf("%s.%s", args[0], k.String("domain"))
 
 			w := httptest.NewRecorder()

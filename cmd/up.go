@@ -16,7 +16,6 @@ import (
 	_ "embed"
 
 	"github.com/gobwas/glob"
-	"github.com/pomdtr/smallweb/api"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/auth"
 
@@ -40,10 +39,6 @@ func NewCmdUp() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if k.String("domain") == "" {
 				return fmt.Errorf("domain cannot be empty")
-			}
-
-			apiServer := http.Server{
-				Handler: api.NewHandler(k.String("domain")),
 			}
 
 			consoleWriter := utils.NewMultiWriter()
@@ -76,7 +71,6 @@ func NewCmdUp() *cobra.Command {
 
 			fmt.Fprintln(os.Stderr, "Shutting down server...")
 			httpServer.Close()
-			apiServer.Close()
 			if flags.cron {
 				fmt.Fprintln(os.Stderr, "Shutting down cron jobs...")
 				ctx := crons.Stop()

@@ -1,20 +1,25 @@
 package cmd
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cli/browser"
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/api"
+	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
+
+//go:embed embed/template/*
+var initTemplate embed.FS
 
 func NewCmdCreate() *cobra.Command {
 	cmd := &cobra.Command{
@@ -23,26 +28,23 @@ func NewCmdCreate() *cobra.Command {
 		Short:   "Create a new smallweb app",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := NewApiClient(k.String("domain"))
+			rootDir := utils.RootDir()
+			appDir := filepath.Join(rootDir, args[0])
+			if _, err := os.Stat(appDir); !os.IsNotExist(err) {
+				return fmt.Errorf("directory already exists: %s", appDir)
+			}
+
+			subFs, err := fs.Sub(initTemplate, "embed/template")
 			if err != nil {
-				return fmt.Errorf("failed to create api client: %w", err)
+				return fmt.Errorf("failed to get template sub fs: %w", err)
 			}
 
-			res, err := client.CreateAppWithResponse(cmd.Context(), api.CreateAppJSONRequestBody{
-				Name: args[0],
-			})
-
-			if err != nil {
-				return fmt.Errorf("failed to create app: %w", err)
+			if err := os.CopyFS(appDir, subFs); err != nil {
+				return fmt.Errorf("failed to copy template: %w", err)
 			}
 
-			if res.StatusCode() != http.StatusCreated {
-				return fmt.Errorf("failed to create app: %s", res.Status())
-			}
-
-			cmd.Printf("App %s created\n", args[0])
+			cmd.Printf("App initialized, you can now access it at https://%s.%s\n", args[0], k.String("domain"))
 			return nil
-
 		},
 	}
 
@@ -57,10 +59,6 @@ func NewCmdOpen() *cobra.Command {
 		ValidArgsFunction: completeApp(),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.RootDir()
-			client, err := NewApiClient(k.String("domain"))
-			if err != nil {
-				return fmt.Errorf("failed to create api client: %w", err)
-			}
 
 			if len(args) == 0 {
 				cwd, err := os.Getwd()
@@ -73,36 +71,24 @@ func NewCmdOpen() *cobra.Command {
 				}
 
 				appname := filepath.Base(cwd)
-				res, err := client.GetAppWithResponse(cmd.Context(), appname)
+				a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
 				if err != nil {
-					return fmt.Errorf("failed to get app: %w", err)
-				}
-				if res.StatusCode() != http.StatusOK {
-					return fmt.Errorf("app not found: %s", appname)
+					return fmt.Errorf("failed to load app: %w", err)
 				}
 
-				app := *res.JSON200
-				if err := browser.OpenURL(app.Url); err != nil {
+				if err := browser.OpenURL(a.URL); err != nil {
 					return fmt.Errorf("failed to open browser: %w", err)
 				}
 
 				return nil
 			}
 
-			res, err := client.GetAppWithResponse(cmd.Context(), args[0])
+			a, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
 			if err != nil {
-				return fmt.Errorf("failed to get app: %w", err)
-			}
-			if res.StatusCode() != http.StatusOK {
-				return fmt.Errorf("app not found: %s", args[0])
+				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			app := *res.JSON200
-			if err := browser.OpenURL(app.Url); err != nil {
-				return fmt.Errorf("failed to open browser: %w", err)
-			}
-
-			if err := browser.OpenURL(app.Url); err != nil {
+			if err := browser.OpenURL(a.URL); err != nil {
 				return fmt.Errorf("failed to open browser: %w", err)
 			}
 
@@ -123,21 +109,22 @@ func NewCmdList() *cobra.Command {
 		Short:   "List all smallweb apps",
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := NewApiClient(k.String("domain"))
+			rootDir := utils.RootDir()
+			names, err := app.ListApps(rootDir)
 			if err != nil {
-				return fmt.Errorf("failed to create api client: %w", err)
+				return fmt.Errorf("failed to list apps: %w", err)
 			}
 
-			res, err := client.GetAppsWithResponse(cmd.Context())
-			if err != nil {
-				return fmt.Errorf("failed to get apps: %w", err)
+			apps := make([]app.App, 0)
+			for _, name := range names {
+				a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
+				if err != nil {
+					return fmt.Errorf("failed to load app: %w", err)
+				}
+
+				apps = append(apps, a)
 			}
 
-			if res.JSON200 == nil {
-				return fmt.Errorf("failed to get apps: %s", res.Status())
-			}
-
-			apps := *res.JSON200
 			if flags.json {
 				encoder := json.NewEncoder(os.Stdout)
 				encoder.SetEscapeHTML(false)
@@ -172,8 +159,8 @@ func NewCmdList() *cobra.Command {
 			printer.AddHeader([]string{"Name", "Dir", "Url"})
 			for _, a := range apps {
 				printer.AddField(a.Name)
-				printer.AddField(filepath.Join(utils.RootDir(), a.Name))
-				printer.AddField(a.Url)
+				printer.AddField(strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(a.URL)
 
 				printer.EndRow()
 			}
@@ -195,20 +182,53 @@ func NewCmdRename() *cobra.Command {
 		ValidArgsFunction: completeApp(),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := NewApiClient(k.String("domain"))
-			if err != nil {
-				return fmt.Errorf("failed to create api client: %w", err)
+			rootDir := utils.RootDir()
+			src := filepath.Join(rootDir, args[0])
+			dst := filepath.Join(rootDir, args[1])
+
+			if _, err := os.Stat(src); os.IsNotExist(err) {
+				return fmt.Errorf("app not found: %s", args[0])
 			}
 
-			res, err := client.UpdateAppWithResponse(cmd.Context(), args[0], api.UpdateAppJSONRequestBody{
-				Name: args[1],
-			})
-			if err != nil {
+			if _, err := os.Stat(dst); !os.IsNotExist(err) {
+				return fmt.Errorf("app already exists: %s", args[1])
+			}
+
+			if err := os.Rename(src, dst); err != nil {
 				return fmt.Errorf("failed to rename app: %w", err)
 			}
 
-			if res.StatusCode() != http.StatusOK {
-				return fmt.Errorf("failed to rename app: %s", res.Status())
+			cmd.Printf("App %s renamed to %s\n", args[0], args[1])
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func NewCmdClone() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:               "clone [app] [new-name]",
+		Short:             "Clone an app",
+		Aliases:           []string{"cp", "copy", "fork"},
+		ValidArgsFunction: completeApp(),
+		Args:              cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rootDir := utils.RootDir()
+			src := filepath.Join(rootDir, args[0])
+			dst := filepath.Join(rootDir, args[1])
+
+			if _, err := os.Stat(src); os.IsNotExist(err) {
+				return fmt.Errorf("app not found: %s", args[0])
+			}
+
+			if _, err := os.Stat(dst); !os.IsNotExist(err) {
+				return fmt.Errorf("app already exists: %s", args[1])
+			}
+
+			fs := os.DirFS(src)
+			if err := os.CopyFS(dst, fs); err != nil {
+				return fmt.Errorf("failed to copy app: %w", err)
 			}
 
 			cmd.Printf("App %s renamed to %s\n", args[0], args[1])
@@ -227,18 +247,14 @@ func NewCmdDelete() *cobra.Command {
 		ValidArgsFunction: completeApp(),
 		Args:              cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, err := NewApiClient(k.String("domain"))
-			if err != nil {
-				return fmt.Errorf("failed to create api client: %w", err)
+			rootDir := utils.RootDir()
+			p := filepath.Join(rootDir, args[0])
+			if _, err := os.Stat(p); os.IsNotExist(err) {
+				return fmt.Errorf("app not found: %s", args[0])
 			}
 
-			res, err := client.DeleteAppWithResponse(cmd.Context(), args[0])
-			if err != nil {
+			if err := os.RemoveAll(p); err != nil {
 				return fmt.Errorf("failed to delete app: %w", err)
-			}
-
-			if res.StatusCode() != http.StatusOK {
-				return fmt.Errorf("failed to delete app: %s", res.Status())
 			}
 
 			cmd.Printf("App %s deleted\n", args[0])
@@ -255,23 +271,9 @@ func completeApp() func(cmd *cobra.Command, args []string, toComplete string) ([
 			return nil, cobra.ShellCompDirectiveDefault
 		}
 
-		client, err := NewApiClient(k.String("domain"))
+		apps, err := app.ListApps(utils.RootDir())
 		if err != nil {
-			return nil, cobra.ShellCompDirectiveError
-		}
-
-		res, err := client.GetAppsWithResponse(cmd.Context())
-		if err != nil {
-			return nil, cobra.ShellCompDirectiveError
-		}
-
-		if res.StatusCode() != http.StatusOK {
-			return nil, cobra.ShellCompDirectiveError
-		}
-
-		var apps []string
-		for _, app := range *res.JSON200 {
-			apps = append(apps, app.Name)
+			return nil, cobra.ShellCompDirectiveDefault
 		}
 
 		return apps, cobra.ShellCompDirectiveDefault
