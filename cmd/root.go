@@ -56,6 +56,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 		Version:            version,
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
+		ValidArgsFunction:  completePlugins(),
 		SilenceUsage:       true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 || args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
@@ -88,11 +89,15 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 					}
 
 					cmd.SilenceErrors = true
+
 					command := exec.Command(entrypoint, args[1:]...)
 					command.Env = os.Environ()
+					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
+					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
 					command.Stdin = os.Stdin
 					command.Stdout = os.Stdout
 					command.Stderr = os.Stderr
+
 					return command.Run()
 				}
 			}
@@ -137,6 +142,43 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	})
 
 	return cmd
+}
+
+func completePlugins() func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		var completions []string
+
+		for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+			entries, err := os.ReadDir(dir)
+			if err != nil {
+				continue
+			}
+
+			for _, entry := range entries {
+				if entry.IsDir() {
+					continue
+				}
+
+				if !strings.HasPrefix(entry.Name(), "smallweb-") {
+					continue
+				}
+
+				entrypoint := filepath.Join(dir, entry.Name())
+				if ok, err := isExecutable(entrypoint); !ok || err != nil {
+					continue
+				}
+
+				completion := strings.TrimPrefix(entry.Name(), "smallweb-")
+				if completion == "" {
+					continue
+				}
+
+				completions = append(completions, fmt.Sprintf("%s\t%s", completion, "Custom command"))
+			}
+		}
+
+		return completions, cobra.ShellCompDirectiveDefault
+	}
 }
 
 func HasCommand(cmd *cobra.Command, name string) bool {
