@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"net/url"
 	"path/filepath"
 
@@ -11,8 +12,14 @@ import (
 )
 
 func NewCmdLogs() *cobra.Command {
+	var flags struct {
+		http    bool
+		console bool
+	}
+
 	cmd := &cobra.Command{
-		Use:               "logs",
+		Use:               "log",
+		Aliases:           []string{"logs"},
 		Short:             "View app logs",
 		Args:              cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 		ValidArgsFunction: completeApp(),
@@ -22,7 +29,16 @@ func NewCmdLogs() *cobra.Command {
 				return err
 			}
 
-			logsUrl, err := url.JoinPath(a.URL, "_logs")
+			var logPath string
+			if flags.console {
+				logPath = "_logs/console"
+			} else if flags.http {
+				logPath = "_logs/http"
+			} else {
+				return fmt.Errorf("one of --http or --console is required")
+			}
+
+			logsUrl, err := url.JoinPath(a.URL, logPath)
 			if err != nil {
 				return err
 			}
@@ -30,6 +46,10 @@ func NewCmdLogs() *cobra.Command {
 			return browser.OpenURL(logsUrl)
 		},
 	}
+
+	cmd.Flags().BoolVar(&flags.http, "http", false, "View logs in the browser")
+	cmd.Flags().BoolVar(&flags.console, "console", false, "View logs in the console")
+	cmd.MarkFlagsOneRequired("http", "console")
 
 	return cmd
 }
