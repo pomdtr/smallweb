@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
@@ -37,7 +38,9 @@ func NewCmdRun() *cobra.Command {
 				return fmt.Errorf("smallweb built-in apps do not support running as a CLI")
 			}
 
-			wk := worker.NewWorker(app)
+			wk := worker.NewWorker(app, config.Config{
+				Domain: k.String("domain"),
+			})
 			command, err := wk.Command(args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

@@ -13,6 +13,7 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
@@ -197,7 +198,9 @@ func CronRunner() *cron.Cron {
 					continue
 				}
 
-				wk := worker.NewWorker(a)
+				wk := worker.NewWorker(a, config.Config{
+					Domain: k.String("domain"),
+				})
 
 				command, err := wk.Command(job.Args...)
 				if err != nil {
@@ -272,7 +275,9 @@ func NewCmdCronTrigger() *cobra.Command {
 					continue
 				}
 
-				w := worker.NewWorker(app)
+				w := worker.NewWorker(app, config.Config{
+					Domain: k.String("domain"),
+				})
 				command, err := w.Command(cron.Args...)
 				if err != nil {
 					return fmt.Errorf("failed to create command: %w", err)

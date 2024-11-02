@@ -23,6 +23,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 )
 
@@ -51,10 +52,11 @@ func init() {
 type Worker struct {
 	App app.App
 	*slog.Logger
-	Env map[string]string
+	config config.Config
+	Env    map[string]string
 }
 
-func NewWorker(app app.App) *Worker {
+func NewWorker(app app.App, conf config.Config) *Worker {
 	worker := &Worker{
 		App: app,
 	}
@@ -63,6 +65,7 @@ func NewWorker(app app.App) *Worker {
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
 	worker.Env["HOME"] = xdg.Home
+	worker.config = conf
 
 	return worker
 }
@@ -84,15 +87,15 @@ func (me *Worker) Flags(execPath string) []string {
 	if me.App.Config.Admin {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath, execPath),
-			fmt.Sprintf("--allow-write=%s", me.App.Root()),
-			fmt.Sprintf("--deny-write=%s,%s", filepath.Join(me.App.Dir, "smallweb.json"), filepath.Join(me.App.Dir, "smallweb.jsonc")),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.RootDir(), me.Env["DENO_DIR"], sandboxPath, execPath),
+			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
 		)
 	} else {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.RootDir(), me.Env["DENO_DIR"], sandboxPath, execPath),
-			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath, execPath),
+			fmt.Sprintf("--allow-write=%s", me.App.Root()),
+			fmt.Sprintf("--deny-write=%s,%s", filepath.Join(me.App.Dir, "smallweb.json"), filepath.Join(me.App.Dir, "smallweb.jsonc")),
 		)
 	}
 
@@ -138,7 +141,11 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 	if me.App.Config.Admin {
-		command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", utils.RootDir()))
+		command.Env = append(
+			command.Env,
+			fmt.Sprintf("SMALLWEB_DIR=%s", utils.RootDir()),
+			fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.config.Domain),
+		)
 	}
 
 	stdoutPipe, err := command.StdoutPipe()
@@ -397,7 +404,11 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 	if me.App.Config.Admin {
-		command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", utils.RootDir()))
+		command.Env = append(
+			command.Env,
+			fmt.Sprintf("SMALLWEB_DIR=%s", utils.RootDir()),
+			fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.config.Domain),
+		)
 	}
 
 	return command, nil

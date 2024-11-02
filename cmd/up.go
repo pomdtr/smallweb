@@ -18,6 +18,7 @@ import (
 	"github.com/gobwas/glob"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/auth"
+	"github.com/pomdtr/smallweb/config"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -355,7 +356,10 @@ func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool, httpWri
 		http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
 		return
 	} else {
-		wk := worker.NewWorker(a)
+		wk := worker.NewWorker(a, config.Config{
+			Domain: k.String("domain"),
+		})
+
 		if consoleWriter != nil {
 			handler := slog.NewJSONHandler(consoleWriter, nil)
 			wk.Logger = slog.New(handler)
