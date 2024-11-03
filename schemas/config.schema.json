@@ -10,22 +10,16 @@
             "description": "Domain name",
             "type": "string"
         },
-        "dir": {
-            "description": "App directory",
-            "type": "string"
-        },
         "email": {
             "description": "Email address",
             "type": "string"
         },
-        "auth": {
-            "description": "Authentication method. Leave empty to choose at runtime.",
-            "enum": [
-                "github",
-                "google",
-                "gitlab",
-                "facebook"
-            ]
+        "customDomains": {
+            "description": "Custom domains",
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
         }
     }
 }

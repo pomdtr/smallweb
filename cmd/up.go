@@ -383,7 +383,7 @@ func ServeApps(w http.ResponseWriter, r *http.Request, disableAuth bool, httpWri
 	}
 
 	if !disableAuth && (isPrivateRoute || strings.HasPrefix(r.URL.Path, "/_auth/") || strings.HasPrefix(r.URL.Path, "/_logs/")) {
-		authMiddleware := auth.Middleware(k.String("auth"), k.String("email"))
+		authMiddleware := auth.Middleware(k.String("email"))
 		handler = authMiddleware(handler)
 	}
 
