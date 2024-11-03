@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/pomdtr/smallweb/utils"
 )
 
@@ -28,7 +27,7 @@ func sessionPath(sessionID string) string {
 }
 
 func CreateSession(email string, domain string) (string, error) {
-	sessionID, err := gonanoid.New()
+	sessionID, err := utils.GenerateBase62String(16)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate session ID: %w", err)
 	}
