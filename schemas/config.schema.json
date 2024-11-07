@@ -6,12 +6,16 @@
             "description": "Server address",
             "type": "string"
         },
-        "domain": {
-            "description": "Domain name",
+        "cert": {
+            "description": "Path to certificate file",
             "type": "string"
         },
-        "email": {
-            "description": "Email address",
+        "key": {
+            "description": "Path to private key file",
+            "type": "string"
+        },
+        "domain": {
+            "description": "Domain name",
             "type": "string"
         },
         "customDomains": {

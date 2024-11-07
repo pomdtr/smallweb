@@ -10,7 +10,6 @@ require (
 	github.com/cli/go-gh/v2 v2.9.0
 	github.com/evanw/esbuild v0.24.0
 	github.com/getkin/kin-openapi v0.127.0 // indirect
-	github.com/gobwas/glob v0.2.3
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
@@ -22,15 +21,13 @@ require (
 	github.com/oapi-codegen/oapi-codegen/v2 v2.4.0
 	github.com/spf13/cobra v1.8.1
 	github.com/tailscale/hujson v0.0.0-20221223112325-20486734a56a
-	golang.org/x/crypto v0.27.0
 	golang.org/x/net v0.29.0 // indirect
-	golang.org/x/oauth2 v0.23.0
 	golang.org/x/term v0.24.0
 )
 
 require (
-	github.com/mssola/user_agent v0.6.0
 	github.com/robfig/cron/v3 v3.0.1
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (

@@ -19,6 +19,24 @@ type (
 		Size                int
 	}
 
+	HttpLog struct {
+		Time    time.Time `json:"time"`
+		Level   string    `json:"level"`
+		Msg     string    `json:"msg"`
+		Request struct {
+			Url     string            `json:"url"`
+			Host    string            `json:"host"`
+			Method  string            `json:"method"`
+			Path    string            `json:"path"`
+			Headers map[string]string `json:"headers"`
+		} `json:"request"`
+		Response struct {
+			Status  int     `json:"status"`
+			Bytes   int     `json:"bytes"`
+			Elapsed float64 `json:"elapsed"`
+		} `json:"response"`
+	}
+
 	Logger struct {
 		*slog.Logger
 	}
@@ -96,7 +114,6 @@ func (l *Logger) Middleware(h http.Handler) http.Handler {
 
 		// Use slog to log the entry
 		l.LogAttrs(r.Context(), slog.LevelInfo, fmt.Sprintf("Response: %d %s", lrw.Status, http.StatusText(lrw.Status)),
-			slog.String("type", "http"),
 			slog.Group("request", slog.String("url", fmt.Sprintf("https://%s%s", r.Host, r.URL.String())), slog.String("host", r.Host), slog.String("method", r.Method), slog.String("path", r.URL.Path), slog.Group("headers", headers...)),
 			slog.Group("response", slog.Int("status", lrw.Status), slog.Int("bytes", lrw.Size), slog.Float64("elapsed", duration.Seconds())),
 		)

@@ -92,6 +92,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 
 					command := exec.Command(entrypoint, args[1:]...)
 					command.Env = os.Environ()
+
 					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
 					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
 					command.Stdin = os.Stdin
@@ -109,7 +110,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdDocs())
 	cmd.AddCommand(NewCmdUpgrade())
-	cmd.AddCommand(NewCmdToken())
 	cmd.AddCommand(NewCmdUp())
 	cmd.AddCommand(NewCmdService())
 	cmd.AddCommand(NewCmdConfig())
@@ -118,7 +118,6 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdRename())
 	cmd.AddCommand(NewCmdDelete())
-	cmd.AddCommand(NewCmdFetch())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdLogs())
 

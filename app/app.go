@@ -13,13 +13,10 @@ import (
 )
 
 type AppConfig struct {
-	Entrypoint    string    `json:"entrypoint,omitempty"`
-	Root          string    `json:"root,omitempty"`
-	Admin         bool      `json:"admin,omitempty"`
-	Crons         []CronJob `json:"crons,omitempty"`
-	Private       bool      `json:"private,omitempty"`
-	PublicRoutes  []string  `json:"publicRoutes,omitempty"`
-	PrivateRoutes []string  `json:"privateRoutes,omitempty"`
+	Entrypoint string    `json:"entrypoint,omitempty"`
+	Root       string    `json:"root,omitempty"`
+	Admin      bool      `json:"admin,omitempty"`
+	Crons      []CronJob `json:"crons,omitempty"`
 }
 
 type CronJob struct {
@@ -79,10 +76,6 @@ func LoadApp(dir string, domain string) (App, error) {
 		Dir:  dir,
 		URL:  fmt.Sprintf("https://%s.%s/", name, domain),
 		Env:  make(map[string]string),
-		Config: AppConfig{
-			PublicRoutes:  make([]string, 0),
-			PrivateRoutes: make([]string, 0),
-		},
 	}
 
 	if dotenvPath := filepath.Join(dir, "..", ".env"); utils.FileExists(dotenvPath) {
