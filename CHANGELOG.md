@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.15.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.15>.
+
+- most smallweb commands now works wherever you're smallweb dir is synced
+- autentication is now handled at the deno level
+- admin apps replace the legacy rest api
+- global env vars should be set in `$SMALLWEB_DIR/.env`
+- You should explicitely use `smallweb up --cron` flag to launch the cron daemon
+- `smallweb logs` now support an `--app` flag
+
 ## 0.14.6
 
 - add `SMALLWEB_DATA_DIR` environment variable to specify the data directory
