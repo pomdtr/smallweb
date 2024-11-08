@@ -52,8 +52,7 @@ func init() {
 type Worker struct {
 	App app.App
 	*slog.Logger
-	config config.Config
-	Env    map[string]string
+	Env map[string]string
 }
 
 func NewWorker(app app.App, conf config.Config) *Worker {
@@ -62,10 +61,15 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 	}
 
 	worker.Env = make(map[string]string)
+
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
-	worker.Env["HOME"] = xdg.Home
-	worker.config = conf
+
+	worker.Env["SMALLWEB_DOMAIN"] = conf.Domain
+	worker.Env["SMALLWEB_DIR"] = utils.RootDir()
+	worker.Env["SMALLWEB_APP_DIR"] = app.Dir
+	worker.Env["SMALLWEB_APP_NAME"] = app.Name
+	worker.Env["SMALLWEB_APP_URL"] = app.URL
 
 	return worker
 }
@@ -139,13 +143,6 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 	}
 	for k, v := range me.App.Env {
 		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
-	}
-	if me.App.Config.Admin {
-		command.Env = append(
-			command.Env,
-			fmt.Sprintf("SMALLWEB_DIR=%s", utils.RootDir()),
-			fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.config.Domain),
-		)
 	}
 
 	stdoutPipe, err := command.StdoutPipe()
@@ -402,13 +399,6 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	}
 	for k, v := range me.App.Env {
 		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
-	}
-	if me.App.Config.Admin {
-		command.Env = append(
-			command.Env,
-			fmt.Sprintf("SMALLWEB_DIR=%s", utils.RootDir()),
-			fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.config.Domain),
-		)
 	}
 
 	return command, nil
