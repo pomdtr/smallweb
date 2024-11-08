@@ -3,30 +3,19 @@
     "type": "object",
     "properties": {
         "entrypoint": {
+            "description": "The file that smallweb will run",
             "type": "string"
         },
         "root": {
+            "description": "The root directory of the project",
             "type": "string"
         },
         "admin": {
+            "description": "Whether the app has read/write access to the whole smallweb dir",
             "type": "boolean"
-        },
-        "private": {
-            "type": "boolean"
-        },
-        "privateRoutes": {
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
-        "publicRoutes": {
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
         },
         "crons": {
+            "description": "An array of cron jobs",
             "type": "array",
             "items": {
                 "type": "object",
@@ -38,16 +27,20 @@
                 ],
                 "properties": {
                     "name": {
+                        "description": "The name of the cron job",
                         "type": "string",
                         "pattern": "^[a-z][a-z0-9-]+$"
                     },
                     "description": {
+                        "description": "A description of the cron job",
                         "type": "string"
                     },
                     "schedule": {
+                        "description": "The cron schedule",
                         "type": "string"
                     },
                     "args": {
+                        "description": "An array of arguments to pass to the app cli entrypoint",
                         "type": "array",
                         "items": {
                             "type": "string"
