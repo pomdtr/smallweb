@@ -16,6 +16,10 @@ import (
 )
 
 func NewCmdLogs() *cobra.Command {
+	var flags struct {
+		json bool
+	}
+
 	cmd := &cobra.Command{
 		Use:               "logs",
 		Aliases:           []string{"log"},
@@ -45,6 +49,11 @@ func NewCmdLogs() *cobra.Command {
 				return err
 			}
 			for _, line := range lines {
+				if flags.json {
+					fmt.Println(line)
+					continue
+				}
+
 				msg, err := formatLine(line)
 				if err != nil {
 					return fmt.Errorf("failed to format log line: %w", err)
@@ -64,6 +73,11 @@ func NewCmdLogs() *cobra.Command {
 					return err
 				}
 
+				if flags.json {
+					fmt.Println(line)
+					continue
+				}
+
 				msg, err := formatLine(line)
 				if err != nil {
 					return fmt.Errorf("failed to format log line: %w", err)
@@ -73,6 +87,8 @@ func NewCmdLogs() *cobra.Command {
 			}
 		},
 	}
+
+	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
 
 	return cmd
 }
