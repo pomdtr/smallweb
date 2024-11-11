@@ -67,7 +67,6 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 
 	worker.Env["SMALLWEB_DOMAIN"] = conf.Domain
 	worker.Env["SMALLWEB_DIR"] = utils.RootDir()
-	worker.Env["SMALLWEB_APP_DIR"] = app.Dir
 	worker.Env["SMALLWEB_APP_NAME"] = app.Name
 	worker.Env["SMALLWEB_APP_URL"] = app.URL
 
