@@ -81,7 +81,6 @@ func (me *Worker) Flags(execPath string) []string {
 		"--allow-import",
 		"--allow-env",
 		"--allow-sys=osRelease,homedir,cpus,hostname",
-		fmt.Sprintf("--location=%s", me.App.URL),
 		"--unstable-kv",
 		"--no-prompt",
 		"--quiet",
