@@ -163,5 +163,5 @@ func (me App) Entrypoint() string {
 		}
 	}
 
-	return "smallweb:static"
+	return "jsr:@smallweb/file-server@0.3.0"
 }

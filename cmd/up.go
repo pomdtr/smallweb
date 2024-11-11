@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -21,8 +20,6 @@ import (
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
-
-	esbuild "github.com/evanw/esbuild/pkg/api"
 )
 
 func NewCmdUp() *cobra.Command {
@@ -169,110 +166,10 @@ func ServeApps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var handler http.Handler
-	if a.Entrypoint() == "smallweb:static" {
-		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-			if strings.HasPrefix(filepath.Base(r.URL.Path), ".") {
-				http.Error(w, "file not found", http.StatusNotFound)
-				return
-			}
-
-			p := filepath.Join(a.Root(), r.URL.Path)
-			transformOptions := esbuild.TransformOptions{
-				Target:       esbuild.ESNext,
-				Format:       esbuild.FormatESModule,
-				MinifySyntax: false,
-				Sourcemap:    esbuild.SourceMapNone,
-			}
-
-			switch path.Ext(r.URL.Path) {
-			case ".ts":
-				transformOptions.Loader = esbuild.LoaderTS
-				code, err := transpile(p, transformOptions)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-				}
-
-				w.Header().Set("Content-Type", "application/javascript")
-				w.Write(code)
-				return
-			case ".jsx":
-				transformOptions.Loader = esbuild.LoaderJSX
-				transformOptions.JSX = esbuild.JSXAutomatic
-				code, err := transpile(p, transformOptions)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-				}
-
-				w.Header().Set("Content-Type", "application/javascript")
-				w.Write(code)
-				return
-			case ".tsx":
-				transformOptions.Loader = esbuild.LoaderTSX
-				transformOptions.JSX = esbuild.JSXAutomatic
-				code, err := transpile(p, transformOptions)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-				}
-
-				w.Header().Set("Content-Type", "application/javascript")
-				w.Write(code)
-				return
-			default:
-				if entry, err := os.Stat(p); err == nil {
-					if !entry.IsDir() {
-						http.ServeFile(w, r, p)
-						return
-					}
-
-					if utils.FileExists(filepath.Join(p, "index.html")) {
-						http.ServeFile(w, r, p+"/index.html")
-						return
-					}
-
-					http.Error(w, "file not found", http.StatusNotFound)
-					return
-				}
-
-				if utils.FileExists(p + ".html") {
-					http.ServeFile(w, r, p+".html")
-					return
-				}
-
-				http.Error(w, "file not found", http.StatusNotFound)
-				return
-			}
-		})
-	} else if strings.HasPrefix(a.Entrypoint(), "smallweb:") {
-		http.Error(w, "invalid entrypoint", http.StatusInternalServerError)
-		return
-	} else {
-		wk := worker.NewWorker(a, config.Config{
-			Dir:    utils.RootDir(),
-			Domain: k.String("domain"),
-		})
-
-		handler = wk
-	}
+	handler := worker.NewWorker(a, config.Config{
+		Dir:    utils.RootDir(),
+		Domain: k.String("domain"),
+	})
 
 	handler.ServeHTTP(w, r)
-}
-
-func transpile(p string, options esbuild.TransformOptions) ([]byte, error) {
-	content, err := os.ReadFile(p)
-	if err != nil {
-		return nil, err
-	}
-
-	result := esbuild.Transform(string(content), options)
-
-	if len(result.Errors) > 0 {
-		return nil, fmt.Errorf(result.Errors[0].Text)
-	}
-
-	return result.Code, nil
 }
