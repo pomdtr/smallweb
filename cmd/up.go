@@ -160,7 +160,10 @@ func ServeApps(w http.ResponseWriter, r *http.Request) {
 		appname = strings.TrimSuffix(r.Host, "."+k.String("domain"))
 	}
 
-	a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
+	a, err := app.LoadApp(appname, config.Config{
+		Domain: k.String("domain"),
+		Dir:    utils.RootDir(),
+	})
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return

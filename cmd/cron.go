@@ -73,7 +73,10 @@ func NewCmdCronList() *cobra.Command {
 					continue
 				}
 
-				app, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
+				app, err := app.LoadApp(name, config.Config{
+					Dir:    rootDir,
+					Domain: k.String("domain"),
+				})
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -181,7 +184,10 @@ func CronRunner() *cron.Cron {
 		}
 
 		for _, name := range apps {
-			a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
+			a, err := app.LoadApp(name, config.Config{
+				Dir:    rootDir,
+				Domain: k.String("domain"),
+			})
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -235,7 +241,10 @@ func NewCmdCronTrigger() *cobra.Command {
 			}
 
 			for _, name := range apps {
-				app, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
+				app, err := app.LoadApp(name, config.Config{
+					Dir:    rootDir,
+					Domain: k.String("domain"),
+				})
 				if err != nil {
 					continue
 				}
@@ -260,7 +269,10 @@ func NewCmdCronTrigger() *cobra.Command {
 			}
 
 			appname, jobName := parts[0], parts[1]
-			app, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
+			app, err := app.LoadApp(appname, config.Config{
+				Dir:    rootDir,
+				Domain: k.String("domain"),
+			})
 			if err != nil {
 				return fmt.Errorf("failed to get app: %w", err)
 			}

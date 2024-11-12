@@ -13,6 +13,7 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -71,7 +72,10 @@ func NewCmdOpen() *cobra.Command {
 				}
 
 				appname := filepath.Base(cwd)
-				a, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
+				a, err := app.LoadApp(appname, config.Config{
+					Dir:    rootDir,
+					Domain: k.String("domain"),
+				})
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -83,7 +87,10 @@ func NewCmdOpen() *cobra.Command {
 				return nil
 			}
 
-			a, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
+			a, err := app.LoadApp(args[0], config.Config{
+				Dir:    rootDir,
+				Domain: k.String("domain"),
+			})
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
@@ -117,7 +124,10 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
-				a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
+				a, err := app.LoadApp(name, config.Config{
+					Dir:    rootDir,
+					Domain: k.String("domain"),
+				})
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/tailscale/hujson"
 )
@@ -42,6 +44,8 @@ func (me *App) Root() string {
 	}
 }
 
+var APP_REGEX = regexp.MustCompile(`^[a-z0-9][a-z0-9-]+$`)
+
 func ListApps(rootDir string) ([]string, error) {
 	entries, err := os.ReadDir(rootDir)
 	if err != nil {
@@ -58,27 +62,34 @@ func ListApps(rootDir string) ([]string, error) {
 			continue
 		}
 
+		if !APP_REGEX.MatchString(entry.Name()) {
+			continue
+		}
+
 		apps = append(apps, entry.Name())
 	}
 
 	return apps, nil
 }
 
-func LoadApp(dir string, domain string) (App, error) {
-	if !utils.FileExists(dir) {
-		return App{}, fmt.Errorf("directory does not exist: %s", dir)
+func LoadApp(name string, conf config.Config) (App, error) {
+	if !APP_REGEX.MatchString(name) {
+		return App{}, fmt.Errorf("invalid app name: %s", name)
 	}
 
-	name := filepath.Base(dir)
+	appdir := filepath.Join(conf.Dir, name)
+	if !utils.FileExists(appdir) {
+		return App{}, fmt.Errorf("directory does not exist: %s", appdir)
+	}
 
 	app := App{
 		Name: name,
-		Dir:  dir,
-		URL:  fmt.Sprintf("https://%s.%s/", name, domain),
+		Dir:  appdir,
+		URL:  fmt.Sprintf("https://%s.%s/", name, conf.Domain),
 		Env:  make(map[string]string),
 	}
 
-	if dotenvPath := filepath.Join(dir, "..", ".env"); utils.FileExists(dotenvPath) {
+	if dotenvPath := filepath.Join(conf.Dir, ".env"); utils.FileExists(dotenvPath) {
 		dotenv, err := godotenv.Read(dotenvPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read .env: %v", err)
@@ -89,7 +100,7 @@ func LoadApp(dir string, domain string) (App, error) {
 		}
 	}
 
-	if dotenvPath := filepath.Join(dir, ".env"); utils.FileExists(dotenvPath) {
+	if dotenvPath := filepath.Join(appdir, ".env"); utils.FileExists(dotenvPath) {
 		dotenv, err := godotenv.Read(dotenvPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read .env: %v", err)
@@ -100,7 +111,7 @@ func LoadApp(dir string, domain string) (App, error) {
 		}
 	}
 
-	if configPath := filepath.Join(dir, "smallweb.json"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(appdir, "smallweb.json"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read smallweb.json: %v", err)
@@ -118,7 +129,7 @@ func LoadApp(dir string, domain string) (App, error) {
 		return app, nil
 	}
 
-	if configPath := filepath.Join(dir, "smallweb.jsonc"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(appdir, "smallweb.jsonc"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read smallweb.json: %v", err)

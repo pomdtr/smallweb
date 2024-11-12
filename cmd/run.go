@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/config"
@@ -28,7 +27,10 @@ func NewCmdRun() *cobra.Command {
 			}
 
 			rootDir := utils.RootDir()
-			app, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
+			app, err := app.LoadApp(args[0], config.Config{
+				Dir:    rootDir,
+				Domain: k.String("domain"),
+			})
 			if err != nil {
 				return fmt.Errorf("failed to get app: %w", err)
 			}
