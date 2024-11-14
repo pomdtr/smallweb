@@ -32,6 +32,7 @@ func NewCmdSyncCreate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "create <remote> [dir]",
 		Short: "Sync the smallweb config with the filesystem",
+		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			remote := args[0]
 			remoteDir, err := getRemoteDir(args[0])
@@ -40,7 +41,13 @@ func NewCmdSyncCreate() *cobra.Command {
 			}
 
 			alpha := fmt.Sprintf("%s:%s", remote, remoteDir)
-			beta := utils.RootDir()
+
+			var beta string
+			if len(args) > 1 {
+				beta = args[1]
+			} else {
+				beta = utils.RootDir()
+			}
 
 			return mutagen("sync", "create", "--name=smallweb", "--ignore=node_modules", "--ignore-vcs", "--mode=two-way-resolved", alpha, beta)
 		},

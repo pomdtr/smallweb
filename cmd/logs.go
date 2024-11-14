@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -21,11 +22,30 @@ func NewCmdLogs() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:     "logs",
+		Use:     "logs [remote]",
 		Aliases: []string{"log"},
 		Short:   "View app logs",
-		Args:    cobra.NoArgs,
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				remote := args[0]
+				args := []string{remote, "smallweb", "logs"}
+				if flags.app != "" {
+					args = append(args, "--app", flags.app)
+				}
+
+				if flags.json {
+					args = append(args, "--json")
+				}
+
+				command := exec.Command("ssh", args...)
+
+				command.Stdout = os.Stdout
+				command.Stderr = os.Stderr
+
+				return command.Run()
+			}
+
 			logPath := filepath.Join(xdg.CacheHome, "smallweb", "http.log")
 			if _, err := os.Stat(logPath); err != nil {
 				if os.IsNotExist(err) {
@@ -95,7 +115,7 @@ func NewCmdLogs() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
-	cmd.Flags().StringVar(&flags.app, "app", "", "app to view logs for")
+	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "app to view logs for")
 	cmd.RegisterFlagCompletionFunc("app", completeApp())
 
 	return cmd
