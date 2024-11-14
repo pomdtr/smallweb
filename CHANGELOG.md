@@ -5,6 +5,7 @@
 Full release notes at <https://blog.smallweb.run/posts/v0.15>.
 
 - most smallweb commands now works wherever you're smallweb dir is synced
+- apps now only have write access to the `data` subdirectory (ex: `~/smallweb/<app>/data`)
 - autentication is now handled at the deno level
 - admin apps replace the legacy rest api
 - global env vars should be set in `$SMALLWEB_DIR/.env`
