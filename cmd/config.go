@@ -45,6 +45,11 @@ func NewCmdConfig() *cobra.Command {
 			}
 
 			if len(args) > 0 {
+				if args[0] == "dir" {
+					fmt.Println(utils.RootDir())
+					return nil
+				}
+
 				v := k.Get(args[0])
 				if v == nil {
 					return fmt.Errorf("key %q not found", args[0])
