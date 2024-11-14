@@ -10,10 +10,8 @@ import (
 //go:embed CHANGELOG.md
 var changelog string
 
-var version = "dev"
-
 func main() {
-	root := cmd.NewCmdRoot(version, changelog)
+	root := cmd.NewCmdRoot(changelog)
 	if err := root.Execute(); err != nil {
 		os.Exit(1)
 	}

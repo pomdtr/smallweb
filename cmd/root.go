@@ -14,6 +14,7 @@ import (
 	"github.com/knadh/koanf/v2"
 	"github.com/mattn/go-isatty"
 
+	"github.com/pomdtr/smallweb/build"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +23,7 @@ var (
 	k = koanf.New(".")
 )
 
-func NewCmdRoot(version string, changelog string) *cobra.Command {
+func NewCmdRoot(changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"addr":   ":7777",
 		"domain": "localhost",
@@ -54,7 +55,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                "smallweb",
 		Short:              "Host websites from your internet folder",
-		Version:            version,
+		Version:            build.Version,
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
 		ValidArgsFunction:  completePlugins(),
@@ -65,7 +66,7 @@ func NewCmdRoot(version string, changelog string) *cobra.Command {
 			}
 
 			if args[0] == "--version" || args[0] == "-v" {
-				fmt.Fprintln(os.Stdout, version)
+				fmt.Fprintln(os.Stdout, build.Version)
 				return nil
 			}
 

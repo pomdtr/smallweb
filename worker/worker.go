@@ -23,8 +23,8 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/build"
 	"github.com/pomdtr/smallweb/config"
-	"github.com/pomdtr/smallweb/meta"
 	"github.com/pomdtr/smallweb/utils"
 )
 
@@ -67,7 +67,7 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
 	worker.Env["TMPDIR"] = filepath.Join(app.Root(), "data", "tmp")
 
-	worker.Env["SMALLWEB_VERSION"] = meta.Version
+	worker.Env["SMALLWEB_VERSION"] = build.Version
 	worker.Env["SMALLWEB_DOMAIN"] = conf.Domain
 	worker.Env["SMALLWEB_DIR"] = utils.RootDir()
 	worker.Env["SMALLWEB_APP_NAME"] = app.Name
