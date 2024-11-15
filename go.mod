@@ -23,6 +23,7 @@ require (
 )
 
 require (
+	github.com/fsnotify/fsnotify v1.8.0
 	github.com/robfig/cron/v3 v3.0.1
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
@@ -37,7 +38,6 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
-	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
