@@ -3,11 +3,14 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 
+	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/config"
+	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -24,10 +27,6 @@ func NewCmdFetch() *cobra.Command {
 		Args:              cobra.ExactArgs(2),
 		ValidArgsFunction: completeApp(),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				ServeApps(w, r)
-			})
-
 			var body io.Reader
 			if flags.data != "" {
 				body = strings.NewReader(flags.data)
@@ -47,8 +46,22 @@ func NewCmdFetch() *cobra.Command {
 
 			req.Host = fmt.Sprintf("%s.%s", args[0], k.String("domain"))
 
+			conf := config.Config{
+				Dir:    utils.RootDir(),
+				Domain: k.String("domain"),
+			}
+
+			a, err := app.LoadApp(args[0], conf)
+			if err != nil {
+				return fmt.Errorf("failed to load app: %v", err)
+			}
+
+			wk := worker.NewWorker(a, conf)
+			wk.Start()
+			defer wk.Stop()
+
 			w := httptest.NewRecorder()
-			handler.ServeHTTP(w, req)
+			wk.ServeHTTP(w, req)
 			io.Copy(os.Stdout, w.Body)
 			return nil
 		},

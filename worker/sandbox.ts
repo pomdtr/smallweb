@@ -2,7 +2,7 @@ const input = JSON.parse(Deno.args[0]);
 
 if (input.command === "fetch") {
     const { entrypoint, port } = input;
-    const server = Deno.serve(
+    Deno.serve(
         {
             port: parseInt(port),
             onListen: () => {
@@ -12,9 +12,6 @@ if (input.command === "fetch") {
         },
         async (req) => {
             // exit the server once the request will be handled
-            queueMicrotask(async () => {
-                await server.shutdown();
-            });
             try {
                 const mod = await import(entrypoint);
                 if (!mod.default) {
