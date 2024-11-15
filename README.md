@@ -9,13 +9,13 @@ Smallweb maps domains to folders in your filesystem. For example, if you own the
 
 Creating a new website is as simple as creating a folder and opening the corresponding URL in your browser. There's no need to configure a build step (unless you want to) or start a development server. Since servers are mapped to folders, you can manage them using standard Unix tools like `cp`, `mv`, or `rm`.
 
-## A self-hosted serverless platform
+## A self-hosted personal cloud
 
 Each incoming HTTP request is sandboxed in a single Deno subprocess by the Smallweb evaluation server. If there are no incoming requests, no resources are used, making it an ideal solution for low-traffic websites.
 
 Smallweb does not use Docker, but it still sandboxes your code using Deno. A smallweb app only has access to:
 
-- the network
+ the network
 - some environment variables (for configuration or secrets)
 - it own folder (read and write)
 
