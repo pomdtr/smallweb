@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -32,8 +32,6 @@ import (
 //go:embed sandbox.ts
 var sandboxBytes []byte
 var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%s.ts", hash(sandboxBytes)))
-
-var timeout = 10 * time.Second
 
 func hash(b []byte) string {
 	sha := crypto.SHA256.New()
@@ -55,19 +53,13 @@ func init() {
 
 type Worker struct {
 	App       app.App
-	wg        sync.WaitGroup
 	port      int
 	idleTimer *time.Timer
 	command   *exec.Cmd
 	StartedAt time.Time
 	*slog.Logger
-	Env map[string]string
-}
-
-// Method to monitor the idle timer
-func (me *Worker) monitorIdleTimer() {
-	<-me.idleTimer.C
-	me.Stop()
+	Env            map[string]string
+	activeRequests atomic.Int32
 }
 
 func NewWorker(app app.App, conf config.Config) *Worker {
@@ -208,6 +200,9 @@ func (me *Worker) Start() error {
 
 	me.command = command
 	me.StartedAt = time.Now()
+	me.idleTimer = time.NewTimer(10 * time.Second)
+	go me.monitorIdleTimer()
+
 	return nil
 }
 
@@ -222,9 +217,6 @@ func (me *Worker) Stop() error {
 
 	command := me.command
 	me.command = nil
-
-	// wait for all requests to finish
-	me.wg.Wait()
 
 	if err := command.Process.Signal(os.Interrupt); err != nil {
 		log.Printf("Failed to send interrupt signal: %v", err)
@@ -246,16 +238,23 @@ func (me *Worker) Stop() error {
 	}
 }
 
-func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if me.idleTimer != nil {
-		me.idleTimer.Reset(timeout)
-	} else {
-		me.idleTimer = time.NewTimer(timeout)
-		go me.monitorIdleTimer()
+func (me *Worker) monitorIdleTimer() {
+	for {
+		<-me.idleTimer.C
+		// if there are no active requests, stop the worker
+		if me.activeRequests.Load() == 0 {
+			me.Stop()
+			return
+		}
 	}
+}
 
-	me.wg.Add(1)
-	defer me.wg.Done()
+func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	me.activeRequests.Add(1)
+	defer func() {
+		me.idleTimer.Reset(10 * time.Second)
+		me.activeRequests.Add(-1)
+	}()
 
 	// handle websockets
 	if r.Header.Get("Upgrade") == "websocket" {
