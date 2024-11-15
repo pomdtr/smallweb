@@ -70,39 +70,41 @@ func NewCmdRoot(changelog string) *cobra.Command {
 				return nil
 			}
 
-			for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
-				entries, err := os.ReadDir(dir)
-				if err != nil {
+			entries, err := os.ReadDir(utils.PluginDir())
+			if err != nil {
+				return fmt.Errorf("unknown command: %s", args[0])
+			}
+
+			for _, entry := range entries {
+				if entry.IsDir() {
 					continue
 				}
 
-				for _, entry := range entries {
-					if entry.IsDir() {
-						continue
-					}
-
-					if entry.Name() != "smallweb-"+args[0] {
-						continue
-					}
-
-					entrypoint := filepath.Join(dir, entry.Name())
-					if ok, err := isExecutable(entrypoint); !ok || err != nil {
-						continue
-					}
-
-					cmd.SilenceErrors = true
-
-					command := exec.Command(entrypoint, args[1:]...)
-					command.Env = os.Environ()
-
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
-					command.Stdin = os.Stdin
-					command.Stdout = os.Stdout
-					command.Stderr = os.Stderr
-
-					return command.Run()
+				plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+				if plugin != args[0] {
+					continue
 				}
+
+				entrypoint := filepath.Join(utils.PluginDir(), entry.Name())
+				if ok, err := isExecutable(entrypoint); err != nil {
+					return fmt.Errorf("failed to check if plugin is executable: %v", err)
+				} else if !ok {
+					if err := os.Chmod(entrypoint, 0755); err != nil {
+						return fmt.Errorf("failed to make plugin executable: %v", err)
+					}
+				}
+
+				command := exec.Command(entrypoint, args[1:]...)
+				command.Env = os.Environ()
+
+				command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
+				command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
+				command.Stdin = os.Stdin
+				command.Stdout = os.Stdout
+				command.Stderr = os.Stderr
+
+				cmd.SilenceErrors = true
+				return command.Run()
 			}
 
 			return fmt.Errorf("unknown command: %s", args[0])
@@ -149,38 +151,26 @@ func NewCmdRoot(changelog string) *cobra.Command {
 
 func completePlugins() func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		var completions []string
+		entries, err := os.ReadDir(utils.PluginDir())
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
 
-		for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
-			entries, err := os.ReadDir(dir)
-			if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+
+		var plugins []string
+		for _, entry := range entries {
+			if entry.IsDir() {
 				continue
 			}
 
-			for _, entry := range entries {
-				if entry.IsDir() {
-					continue
-				}
-
-				if !strings.HasPrefix(entry.Name(), "smallweb-") {
-					continue
-				}
-
-				entrypoint := filepath.Join(dir, entry.Name())
-				if ok, err := isExecutable(entrypoint); !ok || err != nil {
-					continue
-				}
-
-				completion := strings.TrimPrefix(entry.Name(), "smallweb-")
-				if completion == "" {
-					continue
-				}
-
-				completions = append(completions, fmt.Sprintf("%s\t%s", completion, "Custom command"))
-			}
+			plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+			plugins = append(plugins, plugin)
 		}
 
-		return completions, cobra.ShellCompDirectiveDefault
+		return plugins, cobra.ShellCompDirectiveDefault
 	}
 }
 
