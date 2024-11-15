@@ -195,8 +195,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (me *Handler) GetWorker(a app.App) (*worker.Worker, error) {
-	wk, ok := me.workers[a.Name]
-	if !ok {
+	if wk, ok := me.workers[a.Name]; !ok {
 		wk = worker.NewWorker(a, config.Config{
 			Dir:    utils.RootDir(),
 			Domain: k.String("domain"),
@@ -208,15 +207,11 @@ func (me *Handler) GetWorker(a app.App) (*worker.Worker, error) {
 
 		me.workers[a.Name] = wk
 		return wk, nil
-	}
-
-	mtime := me.watcher.GetAppMtime(a.Name)
-	if wk.IsRunning() && mtime.Before(wk.StartedAt) {
+	} else if mtime := me.watcher.GetAppMtime(a.Name); wk.IsRunning() && mtime.Before(wk.StartedAt) {
 		return wk, nil
 	}
 
-	wk.Stop()
-	wk = worker.NewWorker(a, config.Config{
+	wk := worker.NewWorker(a, config.Config{
 		Dir:    utils.RootDir(),
 		Domain: k.String("domain"),
 	})
