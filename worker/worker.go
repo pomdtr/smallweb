@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -54,6 +55,7 @@ func init() {
 
 type Worker struct {
 	App       app.App
+	wg        sync.WaitGroup
 	port      int
 	idleTimer *time.Timer
 	command   *exec.Cmd
@@ -217,8 +219,12 @@ func (me *Worker) Stop() error {
 	if !me.IsRunning() {
 		return nil
 	}
+
 	command := me.command
 	me.command = nil
+
+	// wait for all requests to finish
+	me.wg.Wait()
 
 	if err := command.Process.Signal(os.Interrupt); err != nil {
 		log.Printf("Failed to send interrupt signal: %v", err)
@@ -247,6 +253,9 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		me.idleTimer = time.NewTimer(timeout)
 		go me.monitorIdleTimer()
 	}
+
+	me.wg.Add(1)
+	defer me.wg.Done()
 
 	// handle websockets
 	if r.Header.Get("Upgrade") == "websocket" {
@@ -298,7 +307,9 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", me.port, r.URL.String()), r.Body)
+	ctx, cancelFunc := context.WithTimeout(r.Context(), 5*time.Minute)
+	defer cancelFunc()
+	request, err := http.NewRequestWithContext(ctx, r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", me.port, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
