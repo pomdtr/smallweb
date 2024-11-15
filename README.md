@@ -13,13 +13,7 @@ Creating a new website is as simple as creating a folder and opening the corresp
 
 Each incoming HTTP request is sandboxed in a single Deno subprocess by the Smallweb evaluation server. If there are no incoming requests, no resources are used, making it an ideal solution for low-traffic websites.
 
-Smallweb does not use Docker, but it still sandboxes your code using Deno. A smallweb app only has access to:
-
- the network
-- some environment variables (for configuration or secrets)
-- it own folder (read and write)
-
-And if you website suddenly go viral, you can move your site to Deno Deploy in one command.
+Smallweb does not use Docker, but it still sandboxes your code using Deno. And if you website suddenly go viral, you can move your site to Deno Deploy in one command.
 
 ## Installation
 
