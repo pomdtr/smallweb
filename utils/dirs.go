@@ -17,6 +17,10 @@ func ConfigPath() string {
 	return filepath.Join(RootDir(), ".smallweb", "config.json")
 }
 
+func PluginDir() string {
+	return filepath.Join(RootDir(), ".smallweb", "plugins")
+}
+
 func DataDir() string {
 	return filepath.Join(RootDir(), ".smallweb", "data")
 }

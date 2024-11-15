@@ -9,7 +9,6 @@
                 "up",
             ],
             "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb",
                 "SMALLWEB_DOMAIN": "localhost"
             },
         },

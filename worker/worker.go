@@ -32,6 +32,8 @@ import (
 var sandboxBytes []byte
 var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%s.ts", hash(sandboxBytes)))
 
+var timeout = 10 * time.Second
+
 func hash(b []byte) string {
 	sha := crypto.SHA256.New()
 	sha.Write(b)
@@ -51,9 +53,19 @@ func init() {
 }
 
 type Worker struct {
-	App app.App
+	App       app.App
+	port      int
+	idleTimer *time.Timer
+	command   *exec.Cmd
+	StartedAt time.Time
 	*slog.Logger
 	Env map[string]string
+}
+
+// Method to monitor the idle timer
+func (me *Worker) monitorIdleTimer() {
+	<-me.idleTimer.C
+	me.Stop()
 }
 
 func NewWorker(app app.App, conf config.Config) *Worker {
@@ -111,15 +123,16 @@ func (me *Worker) Flags(execPath string) []string {
 	return flags
 }
 
-func (me *Worker) Start() (*exec.Cmd, int, error) {
+func (me *Worker) Start() error {
 	port, err := GetFreePort()
 	if err != nil {
-		return nil, 0, fmt.Errorf("could not get free port: %w", err)
+		return fmt.Errorf("could not get free port: %w", err)
 	}
+	me.port = port
 
 	deno, err := DenoExecutable()
 	if err != nil {
-		return nil, 0, fmt.Errorf("could not find deno executable")
+		return fmt.Errorf("could not find deno executable")
 	}
 
 	args := []string{"run"}
@@ -146,23 +159,23 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
-		return nil, 0, fmt.Errorf("could not get stdout pipe: %w", err)
+		return fmt.Errorf("could not get stdout pipe: %w", err)
 	}
 
 	stderrPipe, err := command.StderrPipe()
 	if err != nil {
-		return nil, 0, fmt.Errorf("could not get stderr pipe: %w", err)
+		return fmt.Errorf("could not get stderr pipe: %w", err)
 	}
 
 	if err := command.Start(); err != nil {
-		return nil, 0, fmt.Errorf("could not start server: %w", err)
+		return fmt.Errorf("could not start server: %w", err)
 	}
 
 	// Wait for the "READY" signal from stdout
 	scanner := bufio.NewScanner(stdoutPipe)
 	scanner.Scan()
 	if scanner.Text() != "READY" {
-		return nil, 0, fmt.Errorf("server did not start correctly")
+		return fmt.Errorf("server did not start correctly")
 	}
 
 	// Function to handle logging for both stdout and stderr
@@ -191,10 +204,22 @@ func (me *Worker) Start() (*exec.Cmd, int, error) {
 	// Start goroutine for stderr
 	go logPipe(stderrPipe, "stderr")
 
-	return command, port, nil
+	me.command = command
+	me.StartedAt = time.Now()
+	return nil
 }
 
-func (me *Worker) Stop(command *exec.Cmd) error {
+func (me *Worker) IsRunning() bool {
+	return me.command != nil
+}
+
+func (me *Worker) Stop() error {
+	if !me.IsRunning() {
+		return nil
+	}
+	command := me.command
+	me.command = nil
+
 	if err := command.Process.Signal(os.Interrupt); err != nil {
 		log.Printf("Failed to send interrupt signal: %v", err)
 	}
@@ -209,7 +234,6 @@ func (me *Worker) Stop(command *exec.Cmd) error {
 		if err := command.Process.Kill(); err != nil {
 			return fmt.Errorf("failed to kill process: %w", err)
 		}
-
 		return fmt.Errorf("process did not exit after 5 seconds")
 	case <-done:
 		return nil
@@ -217,12 +241,12 @@ func (me *Worker) Stop(command *exec.Cmd) error {
 }
 
 func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	command, port, err := me.Start()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if me.idleTimer != nil {
+		me.idleTimer.Reset(timeout)
+	} else {
+		me.idleTimer = time.NewTimer(timeout)
+		go me.monitorIdleTimer()
 	}
-	defer me.Stop(command)
 
 	// handle websockets
 	if r.Header.Get("Upgrade") == "websocket" {
@@ -233,7 +257,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		defer serverConn.Close()
 
-		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", port, r.URL.Path), nil)
+		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", me.port, r.URL.Path), nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -274,7 +298,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", port, r.URL.String()), r.Body)
+	request, err := http.NewRequest(r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", me.port, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
