@@ -11,7 +11,6 @@ if (input.command === "fetch") {
             },
         },
         async (req) => {
-            // exit the server once the request will be handled
             try {
                 const mod = await import(entrypoint);
                 if (!mod.default) {
@@ -32,11 +31,11 @@ if (input.command === "fetch") {
                 // Websocket requests are stateful and should be handled differently
                 if (req.headers.get("upgrade") === "websocket") {
                     const resp = await handler(req);
-                    if (resp instanceof Response) {
-                        return resp;
+                    if (!(resp instanceof Response)) {
+                        return new Response("Fetch handler must return a Response object.", { status: 500 });
                     }
 
-                    return new Response("Fetch handler must return a Response object.", { status: 500 });
+                    return resp;
                 }
 
                 const url = new URL(req.url);
@@ -47,11 +46,11 @@ if (input.command === "fetch") {
                     headers: req.headers,
                     body: req.body,
                 }));
-                if (resp instanceof Response) {
-                    return resp;
+                if (!(resp instanceof Response)) {
+                    return new Response("Fetch handler must return a Response object.", { status: 500 });
                 }
 
-                return new Response("Fetch handler must return a Response object.", { status: 500 });
+                return resp;
             } catch (e) {
                 if (e instanceof Error) {
                     return new Response(e.stack, { status: 500 });
