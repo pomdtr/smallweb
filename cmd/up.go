@@ -15,6 +15,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/config"
+	"github.com/pomdtr/smallweb/watcher"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/pomdtr/smallweb/utils"
@@ -44,10 +45,19 @@ func NewCmdUp() *cobra.Command {
 				MaxAge:     28,
 			})
 
+			watcher, err := watcher.NewWatcher(utils.RootDir())
+			if err != nil {
+				return fmt.Errorf("failed to create watcher: %v", err)
+			}
+
+			go watcher.Start()
+			defer watcher.Stop()
+
 			httpServer := http.Server{
-				Handler: httpLogger.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					ServeApps(w, r)
-				})),
+				Handler: httpLogger.Middleware(&Handler{
+					watcher: watcher,
+					workers: make(map[string]*worker.Worker),
+				}),
 			}
 
 			logSocketPath := filepath.Join(xdg.CacheHome, "smallweb", "smallweb.sock")
@@ -127,7 +137,12 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 	return net.Listen("tcp", addr)
 }
 
-func ServeApps(w http.ResponseWriter, r *http.Request) {
+type Handler struct {
+	watcher *watcher.Watcher
+	workers map[string]*worker.Worker
+}
+
+func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rootDir := utils.RootDir()
 
 	if r.Host == k.String("domain") {
@@ -162,17 +177,49 @@ func ServeApps(w http.ResponseWriter, r *http.Request) {
 
 	a, err := app.LoadApp(appname, config.Config{
 		Domain: k.String("domain"),
-		Dir:    utils.RootDir(),
+		Dir:    rootDir,
 	})
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	handler := worker.NewWorker(a, config.Config{
+	wk, err := me.GetWorker(a)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "failed to get worker: %v", err)
+		return
+	}
+
+	wk.ServeHTTP(w, r)
+}
+
+func (me *Handler) GetWorker(a app.App) (*worker.Worker, error) {
+	if wk, ok := me.workers[a.Name]; !ok {
+		wk = worker.NewWorker(a, config.Config{
+			Dir:    utils.RootDir(),
+			Domain: k.String("domain"),
+		})
+
+		if err := wk.Start(); err != nil {
+			return nil, fmt.Errorf("failed to start worker: %v", err)
+		}
+
+		me.workers[a.Name] = wk
+		return wk, nil
+	} else if mtime := me.watcher.GetAppMtime(a.Name); wk.IsRunning() && mtime.Before(wk.StartedAt) {
+		return wk, nil
+	}
+
+	wk := worker.NewWorker(a, config.Config{
 		Dir:    utils.RootDir(),
 		Domain: k.String("domain"),
 	})
 
-	handler.ServeHTTP(w, r)
+	if err := wk.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start worker: %v", err)
+	}
+
+	me.workers[a.Name] = wk
+	return wk, nil
 }
