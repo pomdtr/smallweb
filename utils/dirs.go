@@ -3,6 +3,8 @@ package utils
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/adrg/xdg"
 )
 
 func RootDir() string {
@@ -17,8 +19,8 @@ func ConfigPath() string {
 	return filepath.Join(RootDir(), ".smallweb", "config.json")
 }
 
-func PluginDir() string {
-	return filepath.Join(RootDir(), ".smallweb", "plugins")
+func PluginDirs() []string {
+	return []string{filepath.Join(RootDir(), ".smallweb", "plugins"), filepath.Join(xdg.DataHome, "smallweb", "plugins")}
 }
 
 func DataDir() string {
