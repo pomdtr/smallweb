@@ -16,3 +16,11 @@ func ExpandTilde(p string) string {
 	}
 	return p
 }
+
+func AddTilde(p string) string {
+	home := os.Getenv("HOME")
+	if strings.HasPrefix(p, home) {
+		return strings.Replace(p, home, "~", 1)
+	}
+	return p
+}

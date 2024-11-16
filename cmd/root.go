@@ -167,8 +167,9 @@ func completePlugins() func(cmd *cobra.Command, args []string, toComplete string
 					continue
 				}
 
+				entrypoint := filepath.Join(pluginDir, entry.Name())
 				plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-				plugins = append(plugins, plugin)
+				plugins = append(plugins, fmt.Sprintf("%s\t%s", plugin, utils.AddTilde(entrypoint)))
 			}
 		}
 

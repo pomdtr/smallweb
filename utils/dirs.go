@@ -22,7 +22,3 @@ func ConfigPath() string {
 func PluginDirs() []string {
 	return []string{filepath.Join(RootDir(), ".smallweb", "plugins"), filepath.Join(xdg.DataHome, "smallweb", "plugins")}
 }
-
-func DataDir() string {
-	return filepath.Join(RootDir(), ".smallweb", "data")
-}
