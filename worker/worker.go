@@ -96,13 +96,13 @@ func (me *Worker) Flags(execPath string) []string {
 	if me.App.Config.Admin {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.RootDir(), me.Env["DENO_DIR"], sandboxPath, execPath),
+			fmt.Sprintf("--allow-read=%s,%s,%s", utils.RootDir(), sandboxPath, execPath),
 			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
 		)
 	} else {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.Root(), me.Env["DENO_DIR"], sandboxPath, execPath),
+			fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), sandboxPath, execPath),
 			fmt.Sprintf("--allow-write=%s", filepath.Join(me.App.Root(), "data")),
 		)
 	}
