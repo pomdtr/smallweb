@@ -28,6 +28,10 @@ func NewCmdSync() *cobra.Command {
 	return cmd
 }
 
+func syncName() string {
+	return strings.Replace(k.String("domain"), ".", "-", -1)
+}
+
 func NewCmdSyncCreate() *cobra.Command {
 	return &cobra.Command{
 		Use:   "create <remote> [dir]",
@@ -49,7 +53,7 @@ func NewCmdSyncCreate() *cobra.Command {
 				beta = utils.RootDir()
 			}
 
-			return mutagen("sync", "create", "--ignore=node_modules,.DS_Store", "--ignore-vcs", "--mode=two-way-resolved", alpha, beta)
+			return mutagen("sync", "create", fmt.Sprintf("--name=%s", syncName()), "--ignore=node_modules,.DS_Store", "--ignore-vcs", "--mode=two-way-resolved", alpha, beta)
 		},
 	}
 }
@@ -59,7 +63,7 @@ func NewCmdSyncTerminate() *cobra.Command {
 		Use:   "terminate",
 		Short: "Terminate the smallweb sync",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mutagen("sync", "terminate", "smallweb")
+			return mutagen("sync", "terminate", syncName())
 		},
 	}
 }
@@ -69,7 +73,7 @@ func NewCmdSyncMonitor() *cobra.Command {
 		Use:   "monitor",
 		Short: "Monitor the smallweb sync",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mutagen("sync", "monitor", "smallweb")
+			return mutagen("sync", "monitor", syncName())
 		},
 	}
 }
@@ -79,7 +83,7 @@ func NewCmdSyncPause() *cobra.Command {
 		Use:   "pause",
 		Short: "Pause the smallweb sync",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mutagen("sync", "pause", "smallweb")
+			return mutagen("sync", "pause", syncName())
 		},
 	}
 }
@@ -89,7 +93,7 @@ func NewCmdSyncResume() *cobra.Command {
 		Use:   "resume",
 		Short: "Resume the smallweb sync",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mutagen("sync", "resume", "smallweb")
+			return mutagen("sync", "resume", syncName())
 		},
 	}
 }
