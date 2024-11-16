@@ -46,10 +46,10 @@ func NewCmdLogs() *cobra.Command {
 				return command.Run()
 			}
 
-			logPath := filepath.Join(xdg.CacheHome, "smallweb", "http.log")
-			if _, err := os.Stat(logPath); err != nil {
+			logFilename := filepath.Join(xdg.CacheHome, "smallweb", k.String("domain"), "http.log")
+			if _, err := os.Stat(logFilename); err != nil {
 				if os.IsNotExist(err) {
-					return fmt.Errorf("log file does not exist: %s", logPath)
+					return fmt.Errorf("log file does not exist: %s", logFilename)
 				}
 
 				return err
@@ -69,7 +69,7 @@ func NewCmdLogs() *cobra.Command {
 			}
 
 			// Open the log file
-			f, err := os.Open(logPath)
+			f, err := os.Open(logFilename)
 			if err != nil {
 				return err
 			}

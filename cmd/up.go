@@ -38,8 +38,13 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
+			logFilename := filepath.Join(xdg.CacheHome, "smallweb", k.String("domain"), "http.log")
+			if err := os.MkdirAll(filepath.Dir(logFilename), 0755); err != nil {
+				return fmt.Errorf("failed to create log directory: %v", err)
+			}
+
 			httpLogger := utils.NewLogger(&lumberjack.Logger{
-				Filename:   filepath.Join(xdg.CacheHome, "smallweb", "http.log"),
+				Filename:   logFilename,
 				MaxSize:    100,
 				MaxBackups: 3,
 				MaxAge:     28,
@@ -58,18 +63,6 @@ func NewCmdUp() *cobra.Command {
 					watcher: watcher,
 					workers: make(map[string]*worker.Worker),
 				}),
-			}
-
-			logSocketPath := filepath.Join(xdg.CacheHome, "smallweb", "smallweb.sock")
-			if err := os.MkdirAll(filepath.Dir(logSocketPath), 0755); err != nil {
-				return fmt.Errorf("failed to create log socket directory: %v", err)
-			}
-			defer os.Remove(logSocketPath)
-
-			if _, err := os.Stat(logSocketPath); err == nil {
-				if err := os.Remove(logSocketPath); err != nil {
-					return fmt.Errorf("failed to remove existing log socket: %v", err)
-				}
 			}
 
 			httpLn, err := getListener(k.String("addr"), utils.ExpandTilde(k.String("cert")), utils.ExpandTilde(k.String("key")))
