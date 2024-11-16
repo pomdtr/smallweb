@@ -70,6 +70,7 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 	worker.Env = make(map[string]string)
 
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
+	worker.Env["DENO_DIR"] = utils.DenoDir()
 
 	worker.Env["SMALLWEB_VERSION"] = build.Version
 	worker.Env["SMALLWEB_DOMAIN"] = conf.Domain
@@ -96,13 +97,13 @@ func (me *Worker) Flags(execPath string) []string {
 	if me.App.Config.Admin {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s", utils.RootDir(), sandboxPath, execPath),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), utils.RootDir(), sandboxPath, execPath),
 			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
 		)
 	} else {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), sandboxPath, execPath),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), me.App.Root(), sandboxPath, execPath),
 			fmt.Sprintf("--allow-write=%s", filepath.Join(me.App.Root(), "data")),
 		)
 	}
