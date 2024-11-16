@@ -98,13 +98,13 @@ func (me *Worker) Flags(execPath string) []string {
 		flags = append(
 			flags,
 			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), utils.RootDir(), sandboxPath, execPath),
-			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
+			fmt.Sprintf("--allow-write=%s,%s", utils.DenoDir(), utils.RootDir()),
 		)
 	} else {
 		flags = append(
 			flags,
 			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), me.App.Root(), sandboxPath, execPath),
-			fmt.Sprintf("--allow-write=%s", filepath.Join(me.App.Root(), "data")),
+			fmt.Sprintf("--allow-write=%s,%s", utils.DenoDir(), filepath.Join(me.App.Root(), "data")),
 		)
 	}
 
