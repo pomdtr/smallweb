@@ -70,7 +70,6 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 	worker.Env = make(map[string]string)
 
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
-	worker.Env["DENO_DIR"] = filepath.Join(xdg.CacheHome, "smallweb", "deno", "dir")
 
 	worker.Env["SMALLWEB_VERSION"] = build.Version
 	worker.Env["SMALLWEB_DOMAIN"] = conf.Domain
