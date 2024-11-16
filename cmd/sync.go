@@ -49,7 +49,7 @@ func NewCmdSyncCreate() *cobra.Command {
 				beta = utils.RootDir()
 			}
 
-			return mutagen("sync", "create", "--name=smallweb", "--ignore=node_modules,.DS_Store", "--ignore-vcs", "--mode=two-way-resolved", alpha, beta)
+			return mutagen("sync", "create", "--ignore=node_modules,.DS_Store", "--ignore-vcs", "--mode=two-way-resolved", alpha, beta)
 		},
 	}
 }
