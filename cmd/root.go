@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/glamour"
@@ -108,6 +109,12 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		},
 	})
 
+	if env, ok := os.LookupEnv("SMALLWEB_DISABLE_PLUGINS"); ok {
+		if disablePlugins, _ := strconv.ParseBool(env); disablePlugins {
+			return cmd
+		}
+	}
+
 	for _, pluginDir := range utils.PluginDirs() {
 		entries, err := os.ReadDir(pluginDir)
 		if err != nil {
@@ -195,12 +202,4 @@ func isExecutable(path string) (bool, error) {
 		return false, err
 	}
 	return fileInfo.Mode().Perm()&0111 != 0, nil
-}
-
-func findEditor() string {
-	if env, ok := os.LookupEnv("EDITOR"); ok {
-		return env
-	}
-
-	return "vi"
 }

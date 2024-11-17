@@ -32,15 +32,9 @@ import (
 //go:embed sandbox.ts
 var sandboxBytes []byte
 var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%s.ts", hash(sandboxBytes)))
-var smallweb string
+var cliPath string
 
 func hash(b []byte) string {
-	execPath, err := os.Executable()
-	if err != nil {
-		log.Fatalf("could not get executable path: %v", err)
-	}
-	smallweb = execPath
-
 	sha := crypto.SHA256.New()
 	sha.Write(b)
 	return base64.URLEncoding.EncodeToString(sha.Sum(nil))
@@ -53,6 +47,27 @@ func init() {
 		}
 
 		if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
+			log.Fatalf("could not write file: %v", err)
+		}
+	}
+
+	executable, err := os.Executable()
+	if err != nil {
+		log.Fatalf("could not get executable path: %v", err)
+	}
+
+	cli := fmt.Sprintf(`#!/bin/sh
+
+SMALLWEB_DISABLE_PLUGINS=1 exec %s "$@"
+`, executable)
+
+	cliPath = filepath.Join(xdg.CacheHome, "smallweb", "cli", hash([]byte(cli)))
+	if !utils.FileExists(cliPath) {
+		if err := os.MkdirAll(filepath.Dir(cliPath), 0755); err != nil {
+			log.Fatalf("could not create directory: %v", err)
+		}
+
+		if err := os.WriteFile(cliPath, []byte(cli), 0755); err != nil {
 			log.Fatalf("could not write file: %v", err)
 		}
 	}
@@ -80,7 +95,7 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = utils.DenoDir()
 
-	worker.Env["SMALLWEB_CLI_PATH"] = smallweb
+	worker.Env["SMALLWEB_CLI_PATH"] = cliPath
 	worker.Env["SMALLWEB_VERSION"] = build.Version
 	worker.Env["SMALLWEB_DOMAIN"] = conf.Domain
 	worker.Env["SMALLWEB_DIR"] = utils.RootDir()
@@ -112,7 +127,7 @@ func (me *Worker) Flags(deno string) []string {
 			flags,
 			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), utils.RootDir(), sandboxPath, deno),
 			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
-			fmt.Sprintf("--allow-run=%s", smallweb),
+			fmt.Sprintf("--allow-run=%s", cliPath),
 		)
 	} else {
 		root := me.App.Root()
