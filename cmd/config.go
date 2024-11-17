@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
@@ -9,9 +10,21 @@ import (
 
 func NewCmdConfig() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:  "config [key]",
-		Args: cobra.ExactArgs(1),
+		Use:   "config [key]",
+		Short: "Get config values",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				k.Set("dir", utils.RootDir())
+				output, err := k.Marshal(&utils.HuJSON{})
+				if err != nil {
+					return fmt.Errorf("could not marshal config: %w", err)
+				}
+
+				os.Stdout.Write(output)
+				return nil
+			}
+
 			if args[0] == "dir" {
 				fmt.Println(utils.RootDir())
 				return nil
