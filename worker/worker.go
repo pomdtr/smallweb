@@ -131,11 +131,30 @@ func (me *Worker) Flags(deno string) []string {
 		)
 	} else {
 		root := me.App.Root()
-		flags = append(
-			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), root, sandboxPath, deno),
-			fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
-		)
+		// check if root is a symlink
+		if fi, err := os.Lstat(root); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(root)
+			if err != nil {
+				log.Printf("could not read symlink: %v", err)
+			}
+
+			if !filepath.IsAbs(target) {
+				target = filepath.Join(filepath.Dir(root), target)
+			}
+
+			flags = append(
+				flags,
+				fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", utils.DenoDir(), root, target, sandboxPath, deno),
+				fmt.Sprintf("--allow-write=%s,%s", filepath.Join(root, "data"), filepath.Join(target, "data")),
+			)
+
+		} else {
+			flags = append(
+				flags,
+				fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), root, sandboxPath, deno),
+				fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
+			)
+		}
 	}
 
 	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
