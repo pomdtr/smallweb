@@ -8,21 +8,16 @@
             "args": [
                 "up",
             ],
-            "env": {
-                "SMALLWEB_DOMAIN": "localhost"
-            },
+            "envFile": "${workspaceFolder}/.env",
         },
         {
             "name": "smallweb cli",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "args": [
-                "sync",
-                "create",
-                "smallweb.run"
-            ],
+            "args": [],
             "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env",
         }
     ]
 }

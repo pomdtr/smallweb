@@ -101,10 +101,25 @@ func (me *Worker) Flags(execPath string) []string {
 			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
 		)
 	} else {
+		root := me.App.Root()
+		// check if root is a symlink
+		if fi, err := os.Lstat(root); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(root)
+			if err != nil {
+				log.Printf("could not read symlink: %v", err)
+			}
+
+			if filepath.IsAbs(target) {
+				root = target
+			} else {
+				root = filepath.Join(filepath.Dir(root), target)
+			}
+		}
+
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), me.App.Root(), sandboxPath, execPath),
-			fmt.Sprintf("--allow-write=%s", filepath.Join(me.App.Root(), "data")),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), root, sandboxPath, execPath),
+			fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
 		)
 	}
 
