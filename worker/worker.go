@@ -86,6 +86,10 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 	worker.Env["SMALLWEB_APP_NAME"] = app.Name
 	worker.Env["SMALLWEB_APP_URL"] = app.URL
 
+	if app.Config.Admin {
+		worker.Env["SMALLWEB_ADMIN"] = "1"
+	}
+
 	return worker
 }
 
