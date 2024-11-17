@@ -131,20 +131,6 @@ func (me *Worker) Flags(deno string) []string {
 		)
 	} else {
 		root := me.App.Root()
-		// check if root is a symlink
-		if fi, err := os.Lstat(root); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-			target, err := os.Readlink(root)
-			if err != nil {
-				log.Printf("could not read symlink: %v", err)
-			}
-
-			if filepath.IsAbs(target) {
-				root = target
-			} else {
-				root = filepath.Join(filepath.Dir(root), target)
-			}
-		}
-
 		flags = append(
 			flags,
 			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), root, sandboxPath, deno),
