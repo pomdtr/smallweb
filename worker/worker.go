@@ -32,8 +32,15 @@ import (
 //go:embed sandbox.ts
 var sandboxBytes []byte
 var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%s.ts", hash(sandboxBytes)))
+var smallweb string
 
 func hash(b []byte) string {
+	execPath, err := os.Executable()
+	if err != nil {
+		log.Fatalf("could not get executable path: %v", err)
+	}
+	smallweb = execPath
+
 	sha := crypto.SHA256.New()
 	sha.Write(b)
 	return base64.URLEncoding.EncodeToString(sha.Sum(nil))
@@ -69,10 +76,11 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 
 	worker.Env = make(map[string]string)
 
+	worker.Env["HOME"] = os.Getenv("HOME")
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = utils.DenoDir()
 
-	worker.Env["SMALLWEB_CLI_PATH"] = smallwebExecPath
+	worker.Env["SMALLWEB_CLI_PATH"] = smallweb
 	worker.Env["SMALLWEB_VERSION"] = build.Version
 	worker.Env["SMALLWEB_DOMAIN"] = conf.Domain
 	worker.Env["SMALLWEB_DIR"] = utils.RootDir()
@@ -88,7 +96,7 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) Flags(smallweb, deno string) []string {
+func (me *Worker) Flags(deno string) []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-import",
@@ -145,18 +153,13 @@ func (me *Worker) Start() error {
 	}
 	me.port = port
 
-	smallweb, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("could not find smallweb executable")
-	}
-
 	deno, err := DenoExecutable()
 	if err != nil {
 		return fmt.Errorf("could not find deno executable")
 	}
 
 	args := []string{"run"}
-	args = append(args, me.Flags(smallweb, deno)...)
+	args = append(args, me.Flags(deno)...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
@@ -426,18 +429,13 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
-	smallweb, err := os.Executable()
-	if err != nil {
-		return nil, fmt.Errorf("could not find smallweb executable")
-	}
-
 	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, fmt.Errorf("could not find deno executable")
 	}
 
 	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.Flags(smallweb, deno)...)
+	denoArgs = append(denoArgs, me.Flags(deno)...)
 	if runtime.GOOS == "darwin" {
 		denoArgs = append(denoArgs, "--allow-run=open")
 	} else {
