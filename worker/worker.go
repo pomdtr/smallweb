@@ -32,7 +32,6 @@ import (
 //go:embed sandbox.ts
 var sandboxBytes []byte
 var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%s.ts", hash(sandboxBytes)))
-var execPath string
 
 func hash(b []byte) string {
 	sha := crypto.SHA256.New()
@@ -41,12 +40,6 @@ func hash(b []byte) string {
 }
 
 func init() {
-	var err error
-	execPath, err = os.Executable()
-	if err != nil {
-		log.Fatalf("could not get executable path: %v", err)
-	}
-
 	if !utils.FileExists(sandboxPath) {
 		if err := os.MkdirAll(filepath.Dir(sandboxPath), 0755); err != nil {
 			log.Fatalf("could not create directory: %v", err)
@@ -79,7 +72,7 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
 	worker.Env["DENO_DIR"] = utils.DenoDir()
 
-	worker.Env["SMALLWEB_CLI_PATH"] = execPath
+	worker.Env["SMALLWEB_CLI_PATH"] = smallwebExecPath
 	worker.Env["SMALLWEB_VERSION"] = build.Version
 	worker.Env["SMALLWEB_DOMAIN"] = conf.Domain
 	worker.Env["SMALLWEB_DIR"] = utils.RootDir()
@@ -95,7 +88,7 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) Flags(execPath string) []string {
+func (me *Worker) Flags(smallweb, deno string) []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-import",
@@ -109,9 +102,9 @@ func (me *Worker) Flags(execPath string) []string {
 	if me.App.Config.Admin {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), utils.RootDir(), sandboxPath, execPath),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), utils.RootDir(), sandboxPath, deno),
 			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
-			fmt.Sprintf("--allow-run=%s", execPath),
+			fmt.Sprintf("--allow-run=%s", smallweb),
 		)
 	} else {
 		root := me.App.Root()
@@ -131,7 +124,7 @@ func (me *Worker) Flags(execPath string) []string {
 
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), root, sandboxPath, execPath),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), root, sandboxPath, deno),
 			fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
 		)
 	}
@@ -152,13 +145,18 @@ func (me *Worker) Start() error {
 	}
 	me.port = port
 
+	smallweb, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("could not find smallweb executable")
+	}
+
 	deno, err := DenoExecutable()
 	if err != nil {
 		return fmt.Errorf("could not find deno executable")
 	}
 
 	args := []string{"run"}
-	args = append(args, me.Flags(deno)...)
+	args = append(args, me.Flags(smallweb, deno)...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
@@ -428,13 +426,18 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
+	smallweb, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("could not find smallweb executable")
+	}
+
 	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, fmt.Errorf("could not find deno executable")
 	}
 
 	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.Flags(deno)...)
+	denoArgs = append(denoArgs, me.Flags(smallweb, deno)...)
 	if runtime.GOOS == "darwin" {
 		denoArgs = append(denoArgs, "--allow-run=open")
 	} else {
