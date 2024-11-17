@@ -10,7 +10,7 @@ import (
 func NewCmdConfig() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:  "config [key]",
-		Args: cobra.MaximumNArgs(1),
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if args[0] == "dir" {
 				fmt.Println(utils.RootDir())
