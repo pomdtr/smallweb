@@ -131,7 +131,7 @@ func (me *Worker) Flags(deno string, allowRun ...string) []string {
 		if len(allowRun) > 0 {
 			flags = append(flags, fmt.Sprintf("--allow-run=%s,%s", cliPath, strings.Join(allowRun, ",")))
 		} else {
-			flags = append(flags, "--allow-run=%s", cliPath)
+			flags = append(flags, fmt.Sprintf("--allow-run=%s", cliPath))
 		}
 
 	} else {
