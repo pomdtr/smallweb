@@ -4,9 +4,11 @@
 
 - new runtime allowing process to be reused for multiple requests
 - new plugin default dirs ($SMALLWEB_DIR/.smallweb/plugins and $XDG_DATA_HOME/smallweb/plugins)
+- new `smallweb sync` set of commands
 - add a template flag to `smallweb create`
 - admin apps now have access to the cli!
 - fixed deno permission when an app dir is a symlink
+- add support for `index.md` in the static server
 
 ## 0.15.0
 
