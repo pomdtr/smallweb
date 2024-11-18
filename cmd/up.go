@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	_ "embed"
 
@@ -132,6 +133,7 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 
 type Handler struct {
 	watcher *watcher.Watcher
+	mu      sync.Mutex
 	workers map[string]*worker.Worker
 }
 
@@ -198,7 +200,9 @@ func (me *Handler) GetWorker(a app.App) (*worker.Worker, error) {
 			return nil, fmt.Errorf("failed to start worker: %v", err)
 		}
 
+		me.mu.Lock()
 		me.workers[a.Name] = wk
+		me.mu.Unlock()
 		return wk, nil
 	} else if mtime := me.watcher.GetAppMtime(a.Name); wk.IsRunning() && mtime.Before(wk.StartedAt) {
 		return wk, nil
