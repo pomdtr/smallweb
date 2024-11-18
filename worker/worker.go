@@ -223,11 +223,24 @@ func (me *Worker) Start() error {
 		return fmt.Errorf("could not start server: %w", err)
 	}
 
-	// Wait for the "READY" signal from stdout
-	scanner := bufio.NewScanner(stdoutPipe)
-	scanner.Scan()
-	if scanner.Text() != "READY" {
-		return fmt.Errorf("server did not start correctly")
+	readyChan := make(chan bool)
+	go func() {
+		scanner := bufio.NewScanner(stdoutPipe)
+		scanner.Scan()
+		if scanner.Text() == "READY" {
+			readyChan <- true
+		} else {
+			readyChan <- false
+		}
+	}()
+
+	select {
+	case ready := <-readyChan:
+		if !ready {
+			return fmt.Errorf("server did not start correctly")
+		}
+	case <-time.After(5 * time.Second):
+		return fmt.Errorf("server start timed out")
 	}
 
 	// Function to handle logging for both stdout and stderr
