@@ -8,6 +8,7 @@ Type=simple
 ExecStart={{ .ExecPath }} up
 Restart=always
 RestartSec=10
+Environment="SMALLWEB_DIR={{ .SmallwebDir }}"
 
 [Install]
 WantedBy=default.target

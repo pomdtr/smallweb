@@ -9,6 +9,11 @@
             <string>{{ .ExecPath }}</string>
             <string>up</string>
         </array>
+        <key>EnvironmentVariables</key>
+        <dict>
+            <key>SMALLWEB_DIR</key>
+            <string>{{ .SmallwebDir }}</string>
+        </dict>
         <key>RunAtLoad</key>
         <true />
         <key>StandardOutPath</key>

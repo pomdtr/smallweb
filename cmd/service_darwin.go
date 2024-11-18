@@ -40,8 +40,9 @@ func InstallService() error {
 	defer f.Close()
 
 	if err := serviceConfig.Execute(f, map[string]any{
-		"ExecPath": execPath,
-		"HomeDir":  os.Getenv("HOME"),
+		"SmallwebDir": utils.RootDir(),
+		"ExecPath":    execPath,
+		"HomeDir":     os.Getenv("HOME"),
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)
 	}
