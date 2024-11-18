@@ -11,6 +11,7 @@ import (
 
 	"github.com/cli/browser"
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
+	"github.com/hashicorp/go-getter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/config"
@@ -23,6 +24,10 @@ import (
 var initTemplate embed.FS
 
 func NewCmdCreate() *cobra.Command {
+	var flags struct {
+		template string
+	}
+
 	cmd := &cobra.Command{
 		Use:     "create <app>",
 		Aliases: []string{"new"},
@@ -33,6 +38,15 @@ func NewCmdCreate() *cobra.Command {
 			appDir := filepath.Join(rootDir, args[0])
 			if _, err := os.Stat(appDir); !os.IsNotExist(err) {
 				return fmt.Errorf("directory already exists: %s", appDir)
+			}
+
+			if flags.template != "" {
+				if err := getter.Get(appDir, flags.template); err != nil {
+					return fmt.Errorf("failed to get template: %w", err)
+				}
+
+				cmd.Printf("App initialized, you can now access it at https://%s.%s\n", args[0], k.String("domain"))
+				return nil
 			}
 
 			subFs, err := fs.Sub(initTemplate, "embed/template")
@@ -49,6 +63,7 @@ func NewCmdCreate() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVar(&flags.template, "template", "", "template to use")
 	return cmd
 }
 
