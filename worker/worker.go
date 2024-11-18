@@ -111,7 +111,7 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) Flags(deno string) []string {
+func (me *Worker) Flags(deno string, allowRun ...string) []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-import",
@@ -127,8 +127,13 @@ func (me *Worker) Flags(deno string) []string {
 			flags,
 			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), utils.RootDir(), sandboxPath, deno),
 			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
-			fmt.Sprintf("--allow-run=%s", cliPath),
 		)
+		if len(allowRun) > 0 {
+			flags = append(flags, fmt.Sprintf("--allow-run=%s,%s", cliPath, strings.Join(allowRun, ",")))
+		} else {
+			flags = append(flags, "--allow-run=%s", cliPath)
+		}
+
 	} else {
 		root := me.App.Root()
 		// check if root is a symlink
@@ -147,7 +152,6 @@ func (me *Worker) Flags(deno string) []string {
 				fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", utils.DenoDir(), root, target, sandboxPath, deno),
 				fmt.Sprintf("--allow-write=%s,%s", filepath.Join(root, "data"), filepath.Join(target, "data")),
 			)
-
 		} else {
 			flags = append(
 				flags,
@@ -155,6 +159,11 @@ func (me *Worker) Flags(deno string) []string {
 				fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
 			)
 		}
+
+		if len(allowRun) > 0 {
+			flags = append(flags, fmt.Sprintf("--allow-run=%s", strings.Join(allowRun, ",")))
+		}
+
 	}
 
 	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
@@ -455,11 +464,10 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	}
 
 	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.Flags(deno)...)
 	if runtime.GOOS == "darwin" {
-		denoArgs = append(denoArgs, "--allow-run=open")
+		denoArgs = append(denoArgs, me.Flags(deno, "open")...)
 	} else {
-		denoArgs = append(denoArgs, "--allow-run=xdg-open")
+		denoArgs = append(denoArgs, me.Flags(deno, "xdg-open")...)
 	}
 
 	input := strings.Builder{}
