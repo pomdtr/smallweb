@@ -19,10 +19,8 @@ func NewCmdSync() *cobra.Command {
 	}
 
 	cmd.AddCommand(NewCmdSyncCreate())
-	cmd.AddCommand(NewCmdSyncTerminate())
-	cmd.AddCommand(NewCmdSyncMonitor())
-	cmd.AddCommand(NewCmdSyncPause())
-	cmd.AddCommand(NewCmdSyncResume())
+	cmd.AddCommand(NewCmdSyncDelete())
+	cmd.AddCommand(NewCmdSyncStatus())
 	cmd.AddCommand(NewCmdSyncDaemon())
 
 	return cmd
@@ -58,9 +56,9 @@ func NewCmdSyncCreate() *cobra.Command {
 	}
 }
 
-func NewCmdSyncTerminate() *cobra.Command {
+func NewCmdSyncDelete() *cobra.Command {
 	return &cobra.Command{
-		Use:   "terminate",
+		Use:   "delete",
 		Short: "Terminate the smallweb sync",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("sync", "terminate", syncName())
@@ -68,9 +66,9 @@ func NewCmdSyncTerminate() *cobra.Command {
 	}
 }
 
-func NewCmdSyncMonitor() *cobra.Command {
+func NewCmdSyncStatus() *cobra.Command {
 	return &cobra.Command{
-		Use:   "monitor",
+		Use:   "status",
 		Short: "Monitor the smallweb sync",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("sync", "monitor", syncName())
@@ -78,41 +76,21 @@ func NewCmdSyncMonitor() *cobra.Command {
 	}
 }
 
-func NewCmdSyncPause() *cobra.Command {
-	return &cobra.Command{
-		Use:   "pause",
-		Short: "Pause the smallweb sync",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return mutagen("sync", "pause", syncName())
-		},
-	}
-}
-
-func NewCmdSyncResume() *cobra.Command {
-	return &cobra.Command{
-		Use:   "resume",
-		Short: "Resume the smallweb sync",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return mutagen("sync", "resume", syncName())
-		},
-	}
-}
-
 func NewCmdSyncDaemon() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "daemon",
-		Short: "Manage the smallweb sync daemon",
+		Use:   "service",
+		Short: "Manage the smallweb sync service",
 	}
 
-	cmd.AddCommand(NewCmdSyncDaemonStart())
-	cmd.AddCommand(NewCmdSyncDaemonStop())
-	cmd.AddCommand(NewCmdSyncDaemonRegister())
-	cmd.AddCommand(NewCmdSyncDaemonUnregister())
+	cmd.AddCommand(NewCmdSyncServiceStart())
+	cmd.AddCommand(NewCmdSyncServiceStop())
+	cmd.AddCommand(NewCmdSyncServiceInstall())
+	cmd.AddCommand(NewCmdSyncServiceUninstall())
 
 	return cmd
 }
 
-func NewCmdSyncDaemonStart() *cobra.Command {
+func NewCmdSyncServiceStart() *cobra.Command {
 	return &cobra.Command{
 		Use:   "start",
 		Short: "Start the smallweb sync daemon",
@@ -122,7 +100,7 @@ func NewCmdSyncDaemonStart() *cobra.Command {
 	}
 }
 
-func NewCmdSyncDaemonStop() *cobra.Command {
+func NewCmdSyncServiceStop() *cobra.Command {
 	return &cobra.Command{
 		Use:   "stop",
 		Short: "Stop the smallweb sync daemon",
@@ -132,9 +110,9 @@ func NewCmdSyncDaemonStop() *cobra.Command {
 	}
 }
 
-func NewCmdSyncDaemonRegister() *cobra.Command {
+func NewCmdSyncServiceInstall() *cobra.Command {
 	return &cobra.Command{
-		Use:   "register",
+		Use:   "install",
 		Short: "Register the smallweb sync daemon",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("mutagen", "daemon", "register")
@@ -142,9 +120,9 @@ func NewCmdSyncDaemonRegister() *cobra.Command {
 	}
 }
 
-func NewCmdSyncDaemonUnregister() *cobra.Command {
+func NewCmdSyncServiceUninstall() *cobra.Command {
 	return &cobra.Command{
-		Use:   "unregister",
+		Use:   "uninstall",
 		Short: "Unregister the smallweb sync daemon",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("mutagen", "daemon", "unregister")

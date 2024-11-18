@@ -2,6 +2,8 @@
 
 ## 0.16.0
 
+Full release notes at <https://blog.smallweb.run/posts/v0.16>.
+
 - new runtime allowing process to be reused for multiple requests
 - new plugin default dirs ($SMALLWEB_DIR/.smallweb/plugins and $XDG_DATA_HOME/smallweb/plugins)
 - new `smallweb sync` set of commands
