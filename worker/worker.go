@@ -386,9 +386,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancelFunc := context.WithTimeout(r.Context(), 5*time.Minute)
-	defer cancelFunc()
-	request, err := http.NewRequestWithContext(ctx, r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", me.port, r.URL.String()), r.Body)
+	request, err := http.NewRequestWithContext(r.Context(), r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", me.port, r.URL.String()), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -412,6 +410,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
+		Timeout: 5 * time.Minute,
 	}
 
 	resp, err := client.Do(request)
