@@ -98,14 +98,26 @@ func LoadApp(appDir, domain string) (App, error) {
 		}
 	}
 
-	for _, secretPath := range []string{filepath.Join(appDir, "secrets.env"), filepath.Join(filepath.Dir(appDir), "secrets.env")} {
+	for _, secretPath := range []string{
+		filepath.Join(appDir, "secrets.env"),
+		filepath.Join(appDir, "secrets.json"),
+		filepath.Join(filepath.Dir(appDir), "secrets.env"),
+		filepath.Join(filepath.Dir(appDir), "secrets.json"),
+	} {
 		if utils.FileExists(secretPath) {
 			dotenvBytes, err := os.ReadFile(secretPath)
 			if err != nil {
 				return App{}, fmt.Errorf("could not read file: %v", err)
 			}
 
-			dotenvText, err := decrypt.Data(dotenvBytes, "dotenv")
+			var format string
+			if filepath.Ext(secretPath) == ".json" {
+				format = "json"
+			} else {
+				format = "dotenv"
+			}
+
+			dotenvText, err := decrypt.Data(dotenvBytes, format)
 			if err != nil {
 				return App{}, fmt.Errorf("could not decrypt .env: %v", err)
 			}
