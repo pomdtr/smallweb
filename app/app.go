@@ -103,10 +103,10 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 	}
 
 	for _, secretPath := range []string{
-		filepath.Join(rootDir, ".smallweb", "secrets.env"),
+		filepath.Join(appDir, ".smallweb", "secrets.env"),
 		filepath.Join(rootDir, ".smallweb", "secrets.json"),
-		filepath.Join(rootDir, ".smallweb", "secrets.env"),
-		filepath.Join(rootDir, ".smallweb", "secrets.json"),
+		filepath.Join(appDir, "secrets.env"),
+		filepath.Join(appDir, "secrets.json"),
 	} {
 		if utils.FileExists(secretPath) {
 			dotenvBytes, err := os.ReadFile(secretPath)
