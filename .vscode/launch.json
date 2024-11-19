@@ -8,7 +8,10 @@
             "args": [
                 "up",
             ],
-            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "SMALLWEB_DOMAIN": "localhost",
+                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
+            }
         },
         {
             "name": "smallweb cli",
@@ -18,6 +21,10 @@
             "args": [],
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "SMALLWEB_DOMAIN": "localhost",
+                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run"
+            }
         }
     ]
 }
