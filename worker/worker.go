@@ -25,7 +25,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/build"
-	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 )
 
@@ -74,36 +73,47 @@ SMALLWEB_DISABLE_PLUGINS=1 exec %s "$@"
 }
 
 type Worker struct {
-	App       app.App
+	AppName   string
+	RootDir   string
+	Domain    string
 	port      int
 	idleTimer *time.Timer
 	command   *exec.Cmd
 	StartedAt time.Time
 	*slog.Logger
-	Env            map[string]string
 	activeRequests atomic.Int32
 }
 
-func NewWorker(app app.App, conf config.Config) *Worker {
-	worker := &Worker{
-		App: app,
+func commandEnv(a app.App, rootDir string, domain string) []string {
+	env := []string{}
+
+	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+	env = append(env, "DENO_NO_UPDATE_CHECK=1")
+	env = append(env, fmt.Sprintf("DENO_DIR=%s", utils.DenoDir()))
+
+	for k, v := range a.Env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	worker.Env = make(map[string]string)
+	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
+	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
+	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", domain))
+	env = append(env, fmt.Sprintf("SMALLWEB_APP_NAME=%s", a.Name))
+	env = append(env, fmt.Sprintf("SMALLWEB_APP_URL=%s", a.URL))
 
-	worker.Env["HOME"] = os.Getenv("HOME")
-	worker.Env["DENO_NO_UPDATE_CHECK"] = "1"
-	worker.Env["DENO_DIR"] = utils.DenoDir()
+	if a.Config.Admin {
+		env = append(env, "SMALLWEB_ADMIN=1")
+		env = append(env, fmt.Sprintf("SMALLWEB_CLI_PATH=%s", cliPath))
+	}
 
-	worker.Env["SMALLWEB_VERSION"] = build.Version
-	worker.Env["SMALLWEB_DOMAIN"] = conf.Domain
-	worker.Env["SMALLWEB_DIR"] = utils.RootDir()
-	worker.Env["SMALLWEB_APP_NAME"] = app.Name
-	worker.Env["SMALLWEB_APP_URL"] = app.URL
+	return env
+}
 
-	if app.Config.Admin {
-		worker.Env["SMALLWEB_ADMIN"] = "1"
-		worker.Env["SMALLWEB_CLI_PATH"] = cliPath
+func NewWorker(appname string, rootDir string, domain string) *Worker {
+	worker := &Worker{
+		AppName: appname,
+		RootDir: rootDir,
+		Domain:  domain,
 	}
 
 	return worker
@@ -111,7 +121,7 @@ func NewWorker(app app.App, conf config.Config) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) Flags(deno string, allowRun ...string) []string {
+func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 	flags := []string{
 		"--allow-net",
 		"--allow-import",
@@ -122,11 +132,11 @@ func (me *Worker) Flags(deno string, allowRun ...string) []string {
 		"--quiet",
 	}
 
-	if me.App.Config.Admin {
+	if a.Config.Admin {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), utils.RootDir(), sandboxPath, deno),
-			fmt.Sprintf("--allow-write=%s", utils.RootDir()),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), me.RootDir, sandboxPath, deno),
+			fmt.Sprintf("--allow-write=%s", me.RootDir),
 		)
 		if len(allowRun) > 0 {
 			flags = append(flags, fmt.Sprintf("--allow-run=%s,%s", cliPath, strings.Join(allowRun, ",")))
@@ -135,7 +145,7 @@ func (me *Worker) Flags(deno string, allowRun ...string) []string {
 		}
 
 	} else {
-		root := me.App.Root()
+		root := a.Root()
 		// check if root is a symlink
 		if fi, err := os.Lstat(root); err == nil && fi.Mode()&os.ModeSymlink != 0 {
 			target, err := os.Readlink(root)
@@ -166,9 +176,9 @@ func (me *Worker) Flags(deno string, allowRun ...string) []string {
 
 	}
 
-	if configPath := filepath.Join(me.App.Dir, "deno.json"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(a.Dir, "deno.json"); utils.FileExists(configPath) {
 		flags = append(flags, "--config", configPath)
-	} else if configPath := filepath.Join(me.App.Dir, "deno.jsonc"); utils.FileExists(configPath) {
+	} else if configPath := filepath.Join(a.Dir, "deno.jsonc"); utils.FileExists(configPath) {
 		flags = append(flags, "--config", configPath)
 	}
 
@@ -176,6 +186,11 @@ func (me *Worker) Flags(deno string, allowRun ...string) []string {
 }
 
 func (me *Worker) Start() error {
+	a, err := app.LoadApp(filepath.Join(me.RootDir, me.AppName), me.Domain)
+	if err != nil {
+		return fmt.Errorf("could not load app: %w", err)
+	}
+
 	port, err := GetFreePort()
 	if err != nil {
 		return fmt.Errorf("could not get free port: %w", err)
@@ -188,26 +203,20 @@ func (me *Worker) Start() error {
 	}
 
 	args := []string{"run"}
-	args = append(args, me.Flags(deno)...)
+	args = append(args, me.Flags(a, deno)...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(map[string]any{
 		"command":    "fetch",
-		"entrypoint": me.App.Entrypoint(),
+		"entrypoint": a.Entrypoint(),
 		"port":       port,
 	})
 	args = append(args, sandboxPath, input.String())
 
 	command := exec.Command(deno, args...)
-	command.Dir = me.App.Root()
-
-	for k, v := range me.Env {
-		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
-	}
-	for k, v := range me.App.Env {
-		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
-	}
+	command.Dir = a.Root()
+	command.Env = commandEnv(a, me.RootDir, me.Domain)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -257,7 +266,7 @@ func (me *Worker) Start() error {
 				slog.LevelInfo,
 				logType,
 				slog.String("type", logType),
-				slog.String("app", me.App.Name),
+				slog.String("app", a.Name),
 				slog.String("text", scanner.Text()),
 			)
 		}
@@ -471,6 +480,11 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
+	a, err := app.LoadApp(filepath.Join(me.RootDir, me.AppName), me.Domain)
+	if err != nil {
+		return nil, fmt.Errorf("could not load app: %w", err)
+	}
+
 	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, fmt.Errorf("could not find deno executable")
@@ -478,9 +492,9 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 
 	denoArgs := []string{"run"}
 	if runtime.GOOS == "darwin" {
-		denoArgs = append(denoArgs, me.Flags(deno, "open")...)
+		denoArgs = append(denoArgs, me.Flags(a, deno, "open")...)
 	} else {
-		denoArgs = append(denoArgs, me.Flags(deno, "xdg-open")...)
+		denoArgs = append(denoArgs, me.Flags(a, deno, "xdg-open")...)
 	}
 
 	input := strings.Builder{}
@@ -488,21 +502,15 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(map[string]any{
 		"command":    "run",
-		"entrypoint": me.App.Entrypoint(),
+		"entrypoint": a.Entrypoint(),
 		"args":       args,
 	})
 	denoArgs = append(denoArgs, sandboxPath, input.String())
 
 	command := exec.Command(deno, denoArgs...)
-	command.Dir = me.App.Root()
+	command.Dir = a.Root()
 
-	command.Env = os.Environ()
-	for k, v := range me.Env {
-		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
-	}
-	for k, v := range me.App.Env {
-		command.Env = append(command.Env, fmt.Sprintf("%s=%s", k, v))
-	}
+	command.Env = commandEnv(a, me.RootDir, me.Domain)
 
 	return command, nil
 }

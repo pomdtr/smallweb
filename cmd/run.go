@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
@@ -16,7 +14,7 @@ func NewCmdRun() *cobra.Command {
 		Use:                "run <app> [args...]",
 		Short:              "Run an app cli",
 		DisableFlagParsing: true,
-		ValidArgsFunction:  completeApp(),
+		ValidArgsFunction:  completeApp(utils.RootDir()),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -26,18 +24,7 @@ func NewCmdRun() *cobra.Command {
 				return cmd.Help()
 			}
 
-			rootDir := utils.RootDir()
-			app, err := app.LoadApp(args[0], config.Config{
-				Dir:    rootDir,
-				Domain: k.String("domain"),
-			})
-			if err != nil {
-				return fmt.Errorf("failed to get app: %w", err)
-			}
-
-			wk := worker.NewWorker(app, config.Config{
-				Domain: k.String("domain"),
-			})
+			wk := worker.NewWorker(args[0], utils.RootDir(), k.String("domain"))
 			command, err := wk.Command(args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

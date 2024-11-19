@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -72,7 +71,7 @@ func NewCmdOpen() *cobra.Command {
 		Use:               "open [app]",
 		Short:             "Open an app in the browser",
 		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp(),
+		ValidArgsFunction: completeApp(utils.RootDir()),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.RootDir()
 
@@ -86,11 +85,7 @@ func NewCmdOpen() *cobra.Command {
 					return fmt.Errorf("no app specified and not in an app directory")
 				}
 
-				appname := filepath.Base(cwd)
-				a, err := app.LoadApp(appname, config.Config{
-					Dir:    rootDir,
-					Domain: k.String("domain"),
-				})
+				a, err := app.LoadApp(cwd, k.String("domain"))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -102,10 +97,7 @@ func NewCmdOpen() *cobra.Command {
 				return nil
 			}
 
-			a, err := app.LoadApp(args[0], config.Config{
-				Dir:    rootDir,
-				Domain: k.String("domain"),
-			})
+			a, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
@@ -139,10 +131,7 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
-				a, err := app.LoadApp(name, config.Config{
-					Dir:    rootDir,
-					Domain: k.String("domain"),
-				})
+				a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -204,7 +193,7 @@ func NewCmdRename() *cobra.Command {
 		Use:               "rename [app] [new-name]",
 		Short:             "Rename an app",
 		Aliases:           []string{"move", "mv"},
-		ValidArgsFunction: completeApp(),
+		ValidArgsFunction: completeApp(utils.RootDir()),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.RootDir()
@@ -236,7 +225,7 @@ func NewCmdClone() *cobra.Command {
 		Use:               "clone [app] [new-name]",
 		Short:             "Clone an app",
 		Aliases:           []string{"cp", "copy", "fork"},
-		ValidArgsFunction: completeApp(),
+		ValidArgsFunction: completeApp(utils.RootDir()),
 		Args:              cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.RootDir()
@@ -269,7 +258,7 @@ func NewCmdDelete() *cobra.Command {
 		Use:               "delete",
 		Short:             "Delete an app",
 		Aliases:           []string{"remove", "rm"},
-		ValidArgsFunction: completeApp(),
+		ValidArgsFunction: completeApp(utils.RootDir()),
 		Args:              cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.RootDir()
@@ -290,13 +279,13 @@ func NewCmdDelete() *cobra.Command {
 	return cmd
 }
 
-func completeApp() func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func completeApp(rootDir string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) > 0 {
 			return nil, cobra.ShellCompDirectiveDefault
 		}
 
-		apps, err := app.ListApps(utils.RootDir())
+		apps, err := app.ListApps(rootDir)
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveDefault
 		}

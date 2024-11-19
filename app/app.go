@@ -10,7 +10,6 @@ import (
 
 	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
-	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/tailscale/hujson"
 )
@@ -73,24 +72,20 @@ func ListApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func LoadApp(name string, conf config.Config) (App, error) {
+func LoadApp(appDir, domain string) (App, error) {
+	name := filepath.Base(appDir)
 	if !APP_REGEX.MatchString(name) {
 		return App{}, fmt.Errorf("invalid app name: %s", name)
 	}
 
-	appdir := filepath.Join(conf.Dir, name)
-	if !utils.FileExists(appdir) {
-		return App{}, fmt.Errorf("directory does not exist: %s", appdir)
-	}
-
 	app := App{
 		Name: name,
-		Dir:  appdir,
-		URL:  fmt.Sprintf("https://%s.%s/", name, conf.Domain),
+		Dir:  appDir,
+		URL:  fmt.Sprintf("https://%s.%s/", name, domain),
 		Env:  make(map[string]string),
 	}
 
-	for _, dotenvPath := range []string{filepath.Join(conf.Dir, ".env"), filepath.Join(appdir, ".env")} {
+	for _, dotenvPath := range []string{filepath.Join(appDir, ".env"), filepath.Join(appDir, ".env")} {
 		if utils.FileExists(dotenvPath) {
 			dotenv, err := godotenv.Read(dotenvPath)
 			if err != nil {
@@ -103,7 +98,7 @@ func LoadApp(name string, conf config.Config) (App, error) {
 		}
 	}
 
-	for _, secretPath := range []string{filepath.Join(conf.Dir, "secrets.env"), filepath.Join(appdir, "secrets.env")} {
+	for _, secretPath := range []string{filepath.Join(appDir, "secrets.env"), filepath.Join(appDir, "secrets.env")} {
 		if utils.FileExists(secretPath) {
 			dotenvBytes, err := os.ReadFile(secretPath)
 			if err != nil {
@@ -126,7 +121,7 @@ func LoadApp(name string, conf config.Config) (App, error) {
 		}
 	}
 
-	if configPath := filepath.Join(appdir, "smallweb.json"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(appDir, "smallweb.json"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read smallweb.json: %v", err)
@@ -144,7 +139,7 @@ func LoadApp(name string, conf config.Config) (App, error) {
 		return app, nil
 	}
 
-	if configPath := filepath.Join(appdir, "smallweb.jsonc"); utils.FileExists(configPath) {
+	if configPath := filepath.Join(appDir, "smallweb.jsonc"); utils.FileExists(configPath) {
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read smallweb.json: %v", err)

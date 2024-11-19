@@ -13,7 +13,6 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
@@ -73,10 +72,7 @@ func NewCmdCronList() *cobra.Command {
 					continue
 				}
 
-				app, err := app.LoadApp(name, config.Config{
-					Dir:    rootDir,
-					Domain: k.String("domain"),
-				})
+				app, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -144,7 +140,7 @@ func NewCmdCronList() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	cmd.RegisterFlagCompletionFunc("app", completeApp())
+	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir()))
 
 	return cmd
 }
@@ -184,10 +180,7 @@ func CronRunner() *cron.Cron {
 		}
 
 		for _, name := range apps {
-			a, err := app.LoadApp(name, config.Config{
-				Dir:    rootDir,
-				Domain: k.String("domain"),
-			})
+			a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -204,9 +197,7 @@ func CronRunner() *cron.Cron {
 					continue
 				}
 
-				wk := worker.NewWorker(a, config.Config{
-					Domain: k.String("domain"),
-				})
+				wk := worker.NewWorker(a.Name, rootDir, k.String("domain"))
 
 				command, err := wk.Command(job.Args...)
 				if err != nil {
@@ -241,10 +232,7 @@ func NewCmdCronTrigger() *cobra.Command {
 			}
 
 			for _, name := range apps {
-				app, err := app.LoadApp(name, config.Config{
-					Dir:    rootDir,
-					Domain: k.String("domain"),
-				})
+				app, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
 				if err != nil {
 					continue
 				}
@@ -269,10 +257,7 @@ func NewCmdCronTrigger() *cobra.Command {
 			}
 
 			appname, jobName := parts[0], parts[1]
-			app, err := app.LoadApp(appname, config.Config{
-				Dir:    rootDir,
-				Domain: k.String("domain"),
-			})
+			app, err := app.LoadApp(filepath.Join(rootDir, appname), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to get app: %w", err)
 			}
@@ -287,9 +272,7 @@ func NewCmdCronTrigger() *cobra.Command {
 					continue
 				}
 
-				w := worker.NewWorker(app, config.Config{
-					Domain: k.String("domain"),
-				})
+				w := worker.NewWorker(app.Name, rootDir, k.String("domain"))
 				command, err := w.Command(cron.Args...)
 				if err != nil {
 					return fmt.Errorf("failed to create command: %w", err)

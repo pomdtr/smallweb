@@ -7,8 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
@@ -25,7 +23,7 @@ func NewCmdFetch() *cobra.Command {
 		Use:               "fetch [app] <path>",
 		Short:             "Fetch a path from an app",
 		Args:              cobra.ExactArgs(2),
-		ValidArgsFunction: completeApp(),
+		ValidArgsFunction: completeApp(utils.RootDir()),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var body io.Reader
 			if flags.data != "" {
@@ -46,17 +44,7 @@ func NewCmdFetch() *cobra.Command {
 
 			req.Host = fmt.Sprintf("%s.%s", args[0], k.String("domain"))
 
-			conf := config.Config{
-				Dir:    utils.RootDir(),
-				Domain: k.String("domain"),
-			}
-
-			a, err := app.LoadApp(args[0], conf)
-			if err != nil {
-				return fmt.Errorf("failed to load app: %v", err)
-			}
-
-			wk := worker.NewWorker(a, conf)
+			wk := worker.NewWorker(args[0], utils.RootDir(), k.String("domain"))
 			wk.Start()
 			defer wk.Stop()
 

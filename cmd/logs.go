@@ -116,7 +116,7 @@ func NewCmdLogs() *cobra.Command {
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
 	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "app to view logs for")
-	cmd.RegisterFlagCompletionFunc("app", completeApp())
+	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir()))
 
 	return cmd
 }
