@@ -190,24 +190,12 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (me *Handler) GetWorker(a app.App) (*worker.Worker, error) {
-	if wk, ok := me.workers[a.Name]; !ok {
-		wk = worker.NewWorker(a, config.Config{
-			Dir:    utils.RootDir(),
-			Domain: k.String("domain"),
-		})
-
-		if err := wk.Start(); err != nil {
-			return nil, fmt.Errorf("failed to start worker: %v", err)
-		}
-
-		me.mu.Lock()
-		me.workers[a.Name] = wk
-		me.mu.Unlock()
-		return wk, nil
-	} else if mtime := me.watcher.GetAppMtime(a.Name); wk.IsRunning() && mtime.Before(wk.StartedAt) {
+	if wk, ok := me.workers[a.Name]; ok && wk.IsRunning() && me.watcher.GetAppMtime(a.Name).Before(wk.StartedAt) {
 		return wk, nil
 	}
 
+	me.mu.Lock()
+	defer me.mu.Unlock()
 	wk := worker.NewWorker(a, config.Config{
 		Dir:    utils.RootDir(),
 		Domain: k.String("domain"),
