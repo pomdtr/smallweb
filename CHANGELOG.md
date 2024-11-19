@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.17.0
+
+- add support for sops (through `secrets.env` and `secrets.json` files)
+
 ## 0.16.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.16>.
