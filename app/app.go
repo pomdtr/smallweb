@@ -85,7 +85,7 @@ func LoadApp(appDir, domain string) (App, error) {
 		Env:  make(map[string]string),
 	}
 
-	for _, dotenvPath := range []string{filepath.Join(appDir, ".env"), filepath.Join(appDir, ".env")} {
+	for _, dotenvPath := range []string{filepath.Join(appDir, ".env"), filepath.Join(filepath.Dir(appDir), ".env")} {
 		if utils.FileExists(dotenvPath) {
 			dotenv, err := godotenv.Read(dotenvPath)
 			if err != nil {
@@ -98,7 +98,7 @@ func LoadApp(appDir, domain string) (App, error) {
 		}
 	}
 
-	for _, secretPath := range []string{filepath.Join(appDir, "secrets.env"), filepath.Join(appDir, "secrets.env")} {
+	for _, secretPath := range []string{filepath.Join(appDir, "secrets.env"), filepath.Join(filepath.Dir(appDir), "secrets.env")} {
 		if utils.FileExists(secretPath) {
 			dotenvBytes, err := os.ReadFile(secretPath)
 			if err != nil {
