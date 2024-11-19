@@ -103,7 +103,7 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 	}
 
 	for _, secretPath := range []string{
-		filepath.Join(appDir, ".smallweb", "secrets.env"),
+		filepath.Join(rootDir, ".smallweb", "secrets.env"),
 		filepath.Join(rootDir, ".smallweb", "secrets.json"),
 		filepath.Join(appDir, "secrets.env"),
 		filepath.Join(appDir, "secrets.json"),
