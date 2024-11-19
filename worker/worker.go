@@ -186,7 +186,7 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 }
 
 func (me *Worker) Start() error {
-	a, err := app.LoadApp(filepath.Join(me.RootDir, me.AppName), me.Domain)
+	a, err := app.NewApp(me.AppName, me.RootDir, me.Domain)
 	if err != nil {
 		return fmt.Errorf("could not load app: %w", err)
 	}
@@ -480,7 +480,7 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
-	a, err := app.LoadApp(filepath.Join(me.RootDir, me.AppName), me.Domain)
+	a, err := app.NewApp(me.AppName, me.RootDir, me.Domain)
 	if err != nil {
 		return nil, fmt.Errorf("could not load app: %w", err)
 	}

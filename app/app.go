@@ -72,16 +72,20 @@ func ListApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func LoadApp(appDir, domain string) (App, error) {
-	name := filepath.Base(appDir)
-	if !APP_REGEX.MatchString(name) {
-		return App{}, fmt.Errorf("invalid app name: %s", name)
+func NewApp(appname string, rootDir string, domain string) (App, error) {
+	if !APP_REGEX.MatchString(appname) {
+		return App{}, fmt.Errorf("invalid app name: %s", appname)
+	}
+
+	appDir := filepath.Join(rootDir, appname)
+	if !utils.FileExists(filepath.Join(rootDir, appname)) {
+		return App{}, fmt.Errorf("app does not exist: %s", appname)
 	}
 
 	app := App{
-		Name: name,
-		Dir:  appDir,
-		URL:  fmt.Sprintf("https://%s.%s/", name, domain),
+		Name: appname,
+		Dir:  filepath.Join(rootDir, appname),
+		URL:  fmt.Sprintf("https://%s.%s/", appname, domain),
 		Env:  make(map[string]string),
 	}
 
@@ -99,10 +103,10 @@ func LoadApp(appDir, domain string) (App, error) {
 	}
 
 	for _, secretPath := range []string{
-		filepath.Join(appDir, "secrets.env"),
-		filepath.Join(appDir, "secrets.json"),
-		filepath.Join(filepath.Dir(appDir), "secrets.env"),
-		filepath.Join(filepath.Dir(appDir), "secrets.json"),
+		filepath.Join(rootDir, ".smallweb", "secrets.env"),
+		filepath.Join(rootDir, ".smallweb", "secrets.json"),
+		filepath.Join(rootDir, ".smallweb", "secrets.env"),
+		filepath.Join(rootDir, ".smallweb", "secrets.json"),
 	} {
 		if utils.FileExists(secretPath) {
 			dotenvBytes, err := os.ReadFile(secretPath)

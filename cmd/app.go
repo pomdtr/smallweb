@@ -85,7 +85,7 @@ func NewCmdOpen() *cobra.Command {
 					return fmt.Errorf("no app specified and not in an app directory")
 				}
 
-				a, err := app.LoadApp(cwd, k.String("domain"))
+				a, err := app.NewApp(filepath.Base(cwd), rootDir, k.String("domain"))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -97,7 +97,7 @@ func NewCmdOpen() *cobra.Command {
 				return nil
 			}
 
-			a, err := app.LoadApp(filepath.Join(rootDir, args[0]), k.String("domain"))
+			a, err := app.NewApp(args[0], rootDir, k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
@@ -131,7 +131,7 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
-				a, err := app.LoadApp(filepath.Join(rootDir, name), k.String("domain"))
+				a, err := app.NewApp(name, rootDir, k.String("domain"))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
