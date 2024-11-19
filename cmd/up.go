@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	_ "embed"
 
@@ -58,6 +59,7 @@ func NewCmdUp() *cobra.Command {
 			defer watcher.Stop()
 
 			httpServer := http.Server{
+				ReadHeaderTimeout: 5 * time.Second,
 				Handler: httpLogger.Middleware(&Handler{
 					watcher: watcher,
 					workers: make(map[string]*worker.Worker),

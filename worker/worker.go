@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -235,12 +236,14 @@ func (me *Worker) Start() error {
 	readyChan := make(chan bool)
 	go func() {
 		scanner := bufio.NewScanner(stdoutPipe)
-		scanner.Scan()
-		if scanner.Text() == "READY" {
-			readyChan <- true
-		} else {
-			readyChan <- false
+		for scanner.Scan() {
+			if scanner.Text() == "READY" {
+				readyChan <- true
+				return
+			}
 		}
+
+		readyChan <- false
 	}()
 
 	select {
@@ -352,37 +355,51 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		defer clientConn.Close()
 
+		ctx, cancel := context.WithCancel(r.Context())
+		defer cancel()
+
 		// Channel to signal closure
-		done := make(chan struct{})
+		var wg sync.WaitGroup
+		wg.Add(2)
 		go func() {
-			defer close(done)
+			defer wg.Done()
 			for {
-				messageType, p, err := clientConn.ReadMessage()
-				if err != nil {
+				select {
+				case <-ctx.Done():
 					return
-				}
+				default:
+					messageType, p, err := clientConn.ReadMessage()
+					if err != nil {
+						return
+					}
 
-				if err := serverConn.WriteMessage(messageType, p); err != nil {
-					return
+					if err := serverConn.WriteMessage(messageType, p); err != nil {
+						return
+					}
 				}
 			}
 		}()
 
 		go func() {
-			defer close(done)
+			defer wg.Done()
 			for {
-				messageType, p, err := serverConn.ReadMessage()
-				if err != nil {
+				select {
+				case <-ctx.Done():
 					return
-				}
+				default:
+					messageType, p, err := serverConn.ReadMessage()
+					if err != nil {
+						return
+					}
 
-				if err := clientConn.WriteMessage(messageType, p); err != nil {
-					return
+					if err := clientConn.WriteMessage(messageType, p); err != nil {
+						return
+					}
 				}
 			}
 		}()
 
-		<-done
+		wg.Wait()
 		return
 	}
 
@@ -428,7 +445,12 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(resp.StatusCode)
 
-	flusher := w.(http.Flusher)
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "expected http.ResponseWriter to be an http.Flusher", http.StatusInternalServerError)
+		return
+	}
+
 	// Stream the response body to the client
 	buf := make([]byte, 1024)
 	for {
@@ -441,6 +463,9 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush() // flush the buffer to the client
 		}
 		if err != nil {
+			if err != io.EOF {
+				http.Error(w, "Error reading response body", http.StatusInternalServerError)
+			}
 			break
 		}
 	}
