@@ -170,16 +170,10 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		appname = strings.TrimSuffix(r.Host, "."+k.String("domain"))
 	}
 
-	a, err := app.LoadApp(appname, config.Config{
-		Domain: k.String("domain"),
+	wk, err := me.GetWorker(appname, config.Config{
 		Dir:    rootDir,
+		Domain: k.String("domain"),
 	})
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
-	wk, err := me.GetWorker(a)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "failed to get worker: %v", err)
@@ -189,17 +183,19 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 
-func (me *Handler) GetWorker(a app.App) (*worker.Worker, error) {
-	if wk, ok := me.workers[a.Name]; ok && wk.IsRunning() && me.watcher.GetAppMtime(a.Name).Before(wk.StartedAt) {
+func (me *Handler) GetWorker(appname string, conf config.Config) (*worker.Worker, error) {
+	if wk, ok := me.workers[appname]; ok && wk.IsRunning() && me.watcher.GetAppMtime(appname).Before(wk.StartedAt) {
 		return wk, nil
+	}
+
+	a, err := app.LoadApp(appname, conf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load app: %v", err)
 	}
 
 	me.mu.Lock()
 	defer me.mu.Unlock()
-	wk := worker.NewWorker(a, config.Config{
-		Dir:    utils.RootDir(),
-		Domain: k.String("domain"),
-	})
+	wk := worker.NewWorker(a, conf)
 
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %v", err)
