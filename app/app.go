@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
 	"github.com/pomdtr/smallweb/config"
 	"github.com/pomdtr/smallweb/utils"
@@ -89,25 +90,39 @@ func LoadApp(name string, conf config.Config) (App, error) {
 		Env:  make(map[string]string),
 	}
 
-	if dotenvPath := filepath.Join(conf.Dir, ".env"); utils.FileExists(dotenvPath) {
-		dotenv, err := godotenv.Read(dotenvPath)
-		if err != nil {
-			return App{}, fmt.Errorf("could not read .env: %v", err)
-		}
+	for _, dotenvPath := range []string{filepath.Join(conf.Dir, ".env"), filepath.Join(appdir, ".env")} {
+		if utils.FileExists(dotenvPath) {
+			dotenv, err := godotenv.Read(dotenvPath)
+			if err != nil {
+				return App{}, fmt.Errorf("could not read .env: %v", err)
+			}
 
-		for key, value := range dotenv {
-			app.Env[key] = value
+			for key, value := range dotenv {
+				app.Env[key] = value
+			}
 		}
 	}
 
-	if dotenvPath := filepath.Join(appdir, ".env"); utils.FileExists(dotenvPath) {
-		dotenv, err := godotenv.Read(dotenvPath)
-		if err != nil {
-			return App{}, fmt.Errorf("could not read .env: %v", err)
-		}
+	for _, secretPath := range []string{filepath.Join(conf.Dir, "secrets.env"), filepath.Join(appdir, "secrets.env")} {
+		if utils.FileExists(secretPath) {
+			dotenvBytes, err := os.ReadFile(secretPath)
+			if err != nil {
+				return App{}, fmt.Errorf("could not read file: %v", err)
+			}
 
-		for key, value := range dotenv {
-			app.Env[key] = value
+			dotenvText, err := decrypt.Data(dotenvBytes, "dotenv")
+			if err != nil {
+				return App{}, fmt.Errorf("could not decrypt .env: %v", err)
+			}
+
+			dotenv, err := godotenv.Unmarshal(string(dotenvText))
+			if err != nil {
+				return App{}, fmt.Errorf("could not read .env: %v", err)
+			}
+
+			for key, value := range dotenv {
+				app.Env[key] = value
+			}
 		}
 	}
 
