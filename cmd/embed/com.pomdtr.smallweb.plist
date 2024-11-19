@@ -8,6 +8,7 @@
         <array>
             <string>{{ .ExecPath }}</string>
             <string>up</string>
+            <string>--cron</string>
         </array>
         <key>EnvironmentVariables</key>
         <dict>
