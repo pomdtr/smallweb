@@ -38,7 +38,7 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			logFilename := filepath.Join(xdg.CacheHome, "smallweb", k.String("domain"), "http.json")
+			logFilename := filepath.Join(xdg.CacheHome, "smallweb", k.String("domain"), "logs", "http.json")
 			if err := os.MkdirAll(filepath.Dir(logFilename), 0755); err != nil {
 				return fmt.Errorf("failed to create log directory: %v", err)
 			}
