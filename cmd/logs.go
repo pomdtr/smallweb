@@ -15,6 +15,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func GetLogFilename(domain string) string {
+	return filepath.Join(xdg.CacheHome, "smallweb", "logs", domain, "http.json")
+}
+
 func NewCmdLogs() *cobra.Command {
 	var flags struct {
 		json bool
@@ -46,7 +50,7 @@ func NewCmdLogs() *cobra.Command {
 				return command.Run()
 			}
 
-			logFilename := filepath.Join(xdg.CacheHome, "smallweb", k.String("domain"), "http.log")
+			logFilename := GetLogFilename(k.String("domain"))
 			if _, err := os.Stat(logFilename); err != nil {
 				if os.IsNotExist(err) {
 					return fmt.Errorf("log file does not exist: %s", logFilename)

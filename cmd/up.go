@@ -14,7 +14,6 @@ import (
 
 	_ "embed"
 
-	"github.com/adrg/xdg"
 	"github.com/pomdtr/smallweb/watcher"
 	"gopkg.in/natefinch/lumberjack.v2"
 
@@ -38,7 +37,7 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			logFilename := filepath.Join(xdg.CacheHome, "smallweb", k.String("domain"), "logs", "http.json")
+			logFilename := GetLogFilename(k.String("domain"))
 			if err := os.MkdirAll(filepath.Dir(logFilename), 0755); err != nil {
 				return fmt.Errorf("failed to create log directory: %v", err)
 			}
