@@ -103,10 +103,10 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 	}
 
 	for _, secretPath := range []string{
-		filepath.Join(rootDir, ".smallweb", "secrets.env"),
-		filepath.Join(rootDir, ".smallweb", "secrets.json"),
-		filepath.Join(appDir, "secrets.env"),
-		filepath.Join(appDir, "secrets.json"),
+		filepath.Join(rootDir, ".smallweb", "secrets.enc.env"),
+		filepath.Join(rootDir, ".smallweb", "secrets.enc.json"),
+		filepath.Join(appDir, "secrets.enc.env"),
+		filepath.Join(appDir, "secrets.enc.json"),
 	} {
 		if utils.FileExists(secretPath) {
 			dotenvBytes, err := os.ReadFile(secretPath)
@@ -123,12 +123,12 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 
 			dotenvText, err := decrypt.Data(dotenvBytes, format)
 			if err != nil {
-				return App{}, fmt.Errorf("could not decrypt .env: %v", err)
+				return App{}, fmt.Errorf("could not decrypt %s: %v", secretPath, err)
 			}
 
 			dotenv, err := godotenv.Unmarshal(string(dotenvText))
 			if err != nil {
-				return App{}, fmt.Errorf("could not read .env: %v", err)
+				return App{}, fmt.Errorf("could not read %s: %v", secretPath, err)
 			}
 
 			for key, value := range dotenv {
