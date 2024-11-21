@@ -7,7 +7,7 @@ if (input.command === "fetch") {
             port: parseInt(port),
             onListen: () => {
                 // This line will signal that the server is ready to the go
-                console.log("READY");
+                console.error("READY");
             },
         },
         async (req) => {

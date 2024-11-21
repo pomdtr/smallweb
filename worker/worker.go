@@ -235,12 +235,14 @@ func (me *Worker) Start() error {
 
 	readyChan := make(chan bool)
 	go func() {
-		scanner := bufio.NewScanner(stdoutPipe)
+		scanner := bufio.NewScanner(stderrPipe)
 		for scanner.Scan() {
 			if scanner.Text() == "READY" {
 				readyChan <- true
 				return
 			}
+
+			os.Stderr.WriteString(scanner.Text() + "\n")
 		}
 
 		readyChan <- false
