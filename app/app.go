@@ -49,7 +49,7 @@ var APP_REGEX = regexp.MustCompile(`^[a-z0-9][a-z0-9-]+$`)
 func ListApps(rootDir string) ([]string, error) {
 	entries, err := os.ReadDir(rootDir)
 	if err != nil {
-		return nil, fmt.Errorf("could not read directory: %v", err)
+		return nil, fmt.Errorf("could not read directory %s: %v", rootDir, err)
 	}
 
 	apps := make([]string, 0)
