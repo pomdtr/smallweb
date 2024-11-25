@@ -104,36 +104,57 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 
 	for _, secretPath := range []string{
 		filepath.Join(rootDir, ".smallweb", "secrets.enc.env"),
-		filepath.Join(rootDir, ".smallweb", "secrets.enc.json"),
 		filepath.Join(appDir, "secrets.enc.env"),
+	} {
+		if !utils.FileExists(secretPath) {
+			continue
+		}
+
+		rawBytes, err := os.ReadFile(secretPath)
+		if err != nil {
+			return App{}, fmt.Errorf("could not read file: %v", err)
+		}
+
+		rawText, err := decrypt.Data(rawBytes, "dotenv")
+		if err != nil {
+			return App{}, fmt.Errorf("could not decrypt %s: %v", secretPath, err)
+		}
+
+		dotenv, err := godotenv.Unmarshal(string(rawText))
+		if err != nil {
+			return App{}, fmt.Errorf("could not read %s: %v", secretPath, err)
+		}
+
+		for key, value := range dotenv {
+			app.Env[key] = value
+		}
+	}
+
+	for _, secretPath := range []string{
+		filepath.Join(rootDir, ".smallweb", "secrets.enc.json"),
 		filepath.Join(appDir, "secrets.enc.json"),
 	} {
-		if utils.FileExists(secretPath) {
-			dotenvBytes, err := os.ReadFile(secretPath)
-			if err != nil {
-				return App{}, fmt.Errorf("could not read file: %v", err)
-			}
+		if !utils.FileExists(secretPath) {
+			continue
+		}
 
-			var format string
-			if filepath.Ext(secretPath) == ".json" {
-				format = "json"
-			} else {
-				format = "dotenv"
-			}
+		rawBytes, err := os.ReadFile(secretPath)
+		if err != nil {
+			return App{}, fmt.Errorf("could not read file: %v", err)
+		}
 
-			dotenvText, err := decrypt.Data(dotenvBytes, format)
-			if err != nil {
-				return App{}, fmt.Errorf("could not decrypt %s: %v", secretPath, err)
-			}
+		jsonBytes, err := decrypt.Data(rawBytes, "json")
+		if err != nil {
+			return App{}, fmt.Errorf("could not decrypt %s: %v", secretPath, err)
+		}
 
-			dotenv, err := godotenv.Unmarshal(string(dotenvText))
-			if err != nil {
-				return App{}, fmt.Errorf("could not read %s: %v", secretPath, err)
-			}
+		secrets := make(map[string]string)
+		if err := json.Unmarshal(jsonBytes, &secrets); err != nil {
+			return App{}, fmt.Errorf("could not unmarshal %s: %v", secretPath, err)
+		}
 
-			for key, value := range dotenv {
-				app.Env[key] = value
-			}
+		for key, value := range secrets {
+			app.Env[key] = value
 		}
 	}
 
