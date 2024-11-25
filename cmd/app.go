@@ -19,7 +19,7 @@ import (
 	"golang.org/x/term"
 )
 
-//go:embed embed/template/*
+//go:embed embed/smallweb/hello-world
 var initTemplate embed.FS
 
 func NewCmdCreate() *cobra.Command {
@@ -48,7 +48,7 @@ func NewCmdCreate() *cobra.Command {
 				return nil
 			}
 
-			subFs, err := fs.Sub(initTemplate, "embed/template")
+			subFs, err := fs.Sub(initTemplate, "embed/smallweb/hello-world")
 			if err != nil {
 				return fmt.Errorf("failed to get template sub fs: %w", err)
 			}

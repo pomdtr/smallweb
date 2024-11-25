@@ -26,12 +26,13 @@ func NewCmdDoctor() *cobra.Command {
 			fmt.Fprintln(os.Stderr)
 
 			fmt.Fprintln(os.Stderr, "🔍 Checking Deno version...")
-			if err := checkDenoVersion(); err != nil {
+			version, err := checkDenoVersion()
+			if err != nil {
 				fmt.Fprintln(os.Stderr, "❌ Deno not found")
 				fmt.Fprintln(os.Stderr, "💡 Run `curl -fsSL https://deno.land/install.sh | sh` to install Deno")
 				return nil
 			}
-			fmt.Fprintln(os.Stderr, "✅ Deno version is compatible")
+			fmt.Fprintf(os.Stderr, "✅ Deno version is compatible (%s)\n", version)
 			fmt.Fprintln(os.Stderr)
 
 			fmt.Fprintln(os.Stderr, "🎉 smallweb is healthy")
@@ -42,29 +43,29 @@ func NewCmdDoctor() *cobra.Command {
 	return cmd
 }
 
-func checkDenoVersion() error {
+func checkDenoVersion() (string, error) {
 	deno, err := exec.LookPath("deno")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	cmd := exec.Command(deno, "eval", "--print", "Deno.version.deno")
 	out, err := cmd.Output()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	denoVersion := strings.Trim(string(out), "\n")
 	v, err := semver.NewVersion(denoVersion)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if v.Major() < 2 {
 		fmt.Fprintln(os.Stderr, "Deno version 2 or higher is required")
 		fmt.Fprintln(os.Stderr, "Run `deno upgrade` to upgrade Deno")
-		return nil
+		return "", nil
 	}
 
-	return nil
+	return v.String(), nil
 }

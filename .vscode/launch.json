@@ -5,10 +5,13 @@
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
-            "envFile": "${workspaceFolder}/.env",
             "args": [
                 "up",
             ],
+            "env": {
+                "SMALLWEB_DIR": "${workspaceFolder}/cmd/embed/smallweb",
+                "SMALLWEB_DOMAIN": "localhost",
+            },
         },
         {
             "name": "smallweb cli",
@@ -16,8 +19,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "console": "integratedTerminal",
-            "envFile": "${workspaceFolder}/.env",
-            "args": [],
+            "args": [
+                "doctor"
+            ],
+            "env": {
+                "SMALLWEB_DIR": "${workspaceFolder}/cmd/embed/smallweb",
+                "SMALLWEB_DOMAIN": "localhost",
+            },
         }
     ]
 }
