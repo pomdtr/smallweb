@@ -30,11 +30,21 @@ func syncName() string {
 	return strings.Replace(k.String("domain"), ".", "-", -1)
 }
 
+func checkMutagen(cmd *cobra.Command, args []string) error {
+	_, err := exec.LookPath("mutagen")
+	if err != nil {
+		return fmt.Errorf("could not find mutagen executable")
+	}
+
+	return nil
+}
+
 func NewCmdSyncCreate() *cobra.Command {
 	return &cobra.Command{
-		Use:   "create <remote> [dir]",
-		Short: "Sync the smallweb config with the filesystem",
-		Args:  cobra.RangeArgs(1, 2),
+		Use:     "create <remote> [dir]",
+		Short:   "Sync the smallweb config with the filesystem",
+		PreRunE: checkMutagen,
+		Args:    cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			remote := args[0]
 			remoteDir, err := getRemoteDir(args[0])
@@ -58,8 +68,9 @@ func NewCmdSyncCreate() *cobra.Command {
 
 func NewCmdSyncDelete() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete",
-		Short: "Terminate the smallweb sync",
+		Use:     "delete",
+		Short:   "Terminate the smallweb sync",
+		PreRunE: checkMutagen,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("sync", "terminate", syncName())
 		},
@@ -68,8 +79,9 @@ func NewCmdSyncDelete() *cobra.Command {
 
 func NewCmdSyncStatus() *cobra.Command {
 	return &cobra.Command{
-		Use:   "status",
-		Short: "Monitor the smallweb sync",
+		Use:     "status",
+		Short:   "Monitor the smallweb sync",
+		PreRunE: checkMutagen,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("sync", "monitor", syncName())
 		},
@@ -78,8 +90,9 @@ func NewCmdSyncStatus() *cobra.Command {
 
 func NewCmdSyncDaemon() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "service",
-		Short: "Manage the smallweb sync service",
+		Use:     "service",
+		PreRunE: checkMutagen,
+		Short:   "Manage the smallweb sync service",
 	}
 
 	cmd.AddCommand(NewCmdSyncServiceStart())
@@ -92,8 +105,9 @@ func NewCmdSyncDaemon() *cobra.Command {
 
 func NewCmdSyncServiceStart() *cobra.Command {
 	return &cobra.Command{
-		Use:   "start",
-		Short: "Start the smallweb sync daemon",
+		Use:     "start",
+		Short:   "Start the smallweb sync daemon",
+		PreRunE: checkMutagen,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("daemon", "start")
 		},
@@ -102,8 +116,9 @@ func NewCmdSyncServiceStart() *cobra.Command {
 
 func NewCmdSyncServiceStop() *cobra.Command {
 	return &cobra.Command{
-		Use:   "stop",
-		Short: "Stop the smallweb sync daemon",
+		Use:     "stop",
+		Short:   "Stop the smallweb sync daemon",
+		PreRunE: checkMutagen,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("mutagen", "daemon", "stop")
 		},
@@ -112,8 +127,9 @@ func NewCmdSyncServiceStop() *cobra.Command {
 
 func NewCmdSyncServiceInstall() *cobra.Command {
 	return &cobra.Command{
-		Use:   "install",
-		Short: "Register the smallweb sync daemon",
+		Use:     "install",
+		Short:   "Register the smallweb sync daemon",
+		PreRunE: checkMutagen,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("mutagen", "daemon", "register")
 		},
@@ -122,8 +138,9 @@ func NewCmdSyncServiceInstall() *cobra.Command {
 
 func NewCmdSyncServiceUninstall() *cobra.Command {
 	return &cobra.Command{
-		Use:   "uninstall",
-		Short: "Unregister the smallweb sync daemon",
+		Use:     "uninstall",
+		Short:   "Unregister the smallweb sync daemon",
+		PreRunE: checkMutagen,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mutagen("mutagen", "daemon", "unregister")
 		},
