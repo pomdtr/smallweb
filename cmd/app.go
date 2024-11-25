@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/cli/browser"
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -115,7 +116,9 @@ func NewCmdOpen() *cobra.Command {
 
 func NewCmdList() *cobra.Command {
 	var flags struct {
-		json bool
+		template     string
+		templateFile string
+		json         bool
 	}
 
 	cmd := &cobra.Command{
@@ -131,12 +134,11 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
-				a, err := app.NewApp(name, rootDir, k.String("domain"))
-				if err != nil {
-					return fmt.Errorf("failed to load app: %w", err)
-				}
-
-				apps = append(apps, a)
+				apps = append(apps, app.App{
+					Name: name,
+					Dir:  filepath.Join(rootDir, name),
+					URL:  fmt.Sprintf("https://%s.%s", name, k.String("domain")),
+				})
 			}
 
 			if flags.json {
@@ -148,6 +150,44 @@ func NewCmdList() *cobra.Command {
 
 				if err := encoder.Encode(apps); err != nil {
 					return fmt.Errorf("failed to encode tree: %w", err)
+				}
+
+				return nil
+			}
+
+			if flags.template != "" {
+				tmpl, err := template.New("").Funcs(
+					template.FuncMap{
+						"json": func(v interface{}) string {
+							b, _ := json.Marshal(v)
+							return string(b)
+						},
+					},
+				).Parse(flags.template)
+				if err != nil {
+					return fmt.Errorf("failed to parse template: %w", err)
+				}
+
+				if err := tmpl.Execute(os.Stdout, apps); err != nil {
+					return fmt.Errorf("failed to execute template: %w", err)
+				}
+
+				return nil
+			}
+
+			if flags.templateFile != "" {
+				tmpl, err := template.New("").Funcs(template.FuncMap{
+					"json": func(v interface{}) string {
+						b, _ := json.Marshal(v)
+						return string(b)
+					},
+				}).ParseFiles(flags.templateFile)
+				if err != nil {
+					return fmt.Errorf("failed to parse template file: %w", err)
+				}
+
+				if err := tmpl.Execute(os.Stdout, apps); err != nil {
+					return fmt.Errorf("failed to execute template: %w", err)
 				}
 
 				return nil
@@ -184,6 +224,8 @@ func NewCmdList() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
+	cmd.Flags().StringVar(&flags.template, "template", "", "template to use")
+	cmd.Flags().StringVar(&flags.templateFile, "template-file", "", "template file to use")
 
 	return cmd
 }
