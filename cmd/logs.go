@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"text/template"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -21,8 +22,9 @@ func GetLogFilename(domain string) string {
 
 func NewCmdLogs() *cobra.Command {
 	var flags struct {
-		json bool
-		app  string
+		json     bool
+		template string
+		app      string
 	}
 
 	cmd := &cobra.Command{
@@ -40,6 +42,10 @@ func NewCmdLogs() *cobra.Command {
 
 				if flags.json {
 					args = append(args, "--json")
+				}
+
+				if flags.template != "" {
+					args = append(args, "--template", flags.template)
 				}
 
 				command := exec.Command("ssh", args...)
@@ -102,6 +108,25 @@ func NewCmdLogs() *cobra.Command {
 					continue
 				}
 
+				if flags.template != "" {
+					tmpl, err := template.New("").Funcs(template.FuncMap{
+						"json": func(v interface{}) string {
+							b, _ := json.Marshal(v)
+							return string(b)
+						},
+					}).Parse(flags.template)
+					if err != nil {
+						return fmt.Errorf("failed to parse template: %w", err)
+					}
+
+					if err := tmpl.Execute(os.Stdout, log); err != nil {
+						return fmt.Errorf("failed to execute template: %w", err)
+					}
+					fmt.Println()
+
+					continue
+				}
+
 				if len(hosts) > 0 {
 					if _, ok := hosts[log.Request.Host]; !ok {
 						continue
@@ -120,6 +145,7 @@ func NewCmdLogs() *cobra.Command {
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
 	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "app to view logs for")
+	cmd.Flags().StringVar(&flags.template, "template", "", "output logs using a Go template")
 	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir()))
 
 	return cmd
