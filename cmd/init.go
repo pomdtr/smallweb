@@ -14,8 +14,9 @@ var initFS embed.FS
 
 func NewCmdInit() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "Initialize smallweb workspace",
+		Use:    "init",
+		Hidden: true,
+		Short:  "Initialize smallweb workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rootDir := utils.RootDir()
 			if _, err := os.Stat(rootDir); !os.IsNotExist(err) {
