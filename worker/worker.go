@@ -127,7 +127,7 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 		"--allow-net",
 		"--allow-import",
 		"--allow-env",
-		"--allow-sys=osRelease,homedir,cpus,hostname",
+		"--allow-sys",
 		"--unstable-kv",
 		"--no-prompt",
 		"--quiet",
