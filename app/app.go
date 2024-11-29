@@ -89,9 +89,31 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 		Env:  make(map[string]string),
 	}
 
-	for _, dotenvPath := range []string{filepath.Join(appDir, ".env"), filepath.Join(filepath.Dir(appDir), ".env")} {
+	for _, dotenvPath := range []string{filepath.Join(appDir, ".env"), filepath.Join(rootDir, ".env")} {
 		if utils.FileExists(dotenvPath) {
-			dotenv, err := godotenv.Read(dotenvPath)
+			dotenvBytes, err := os.ReadFile(dotenvPath)
+			if err != nil {
+				return App{}, fmt.Errorf("could not read .env: %v", err)
+			}
+
+			dotenv, err := godotenv.Unmarshal(string(dotenvBytes))
+			if err != nil {
+				return App{}, fmt.Errorf("could not read .env: %v", err)
+			}
+
+			if _, ok := dotenv["sops_version"]; !ok {
+				for key, value := range dotenv {
+					app.Env[key] = value
+				}
+				continue
+			}
+
+			rawBytes, err := decrypt.Data(dotenvBytes, "dotenv")
+			if err != nil {
+				return App{}, fmt.Errorf("could not decrypt .env: %v", err)
+			}
+
+			dotenv, err = godotenv.Unmarshal(string(rawBytes))
 			if err != nil {
 				return App{}, fmt.Errorf("could not read .env: %v", err)
 			}

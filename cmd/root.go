@@ -117,6 +117,15 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		}
 	}
 
+	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
+		disabledCommands := strings.Split(env, ",")
+		for _, commandName := range disabledCommands {
+			if command, ok := GetCommand(cmd, commandName); ok {
+				cmd.RemoveCommand(command)
+			}
+		}
+	}
+
 	for _, pluginDir := range utils.PluginDirs() {
 		entries, err := os.ReadDir(pluginDir)
 		if err != nil {
@@ -189,13 +198,14 @@ func completePlugins() func(cmd *cobra.Command, args []string, toComplete string
 	}
 }
 
-func HasCommand(cmd *cobra.Command, name string) bool {
+func GetCommand(cmd *cobra.Command, name string) (*cobra.Command, bool) {
 	for _, c := range cmd.Commands() {
 		if c.Name() == name {
-			return true
+			return c, true
 		}
 	}
-	return false
+
+	return nil, false
 }
 
 func isExecutable(path string) (bool, error) {
