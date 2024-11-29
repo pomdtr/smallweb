@@ -208,11 +208,14 @@ func (me *Worker) Start() error {
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
-	encoder.Encode(map[string]any{
+	if err := encoder.Encode(map[string]any{
 		"command":    "fetch",
 		"entrypoint": a.Entrypoint(),
 		"port":       port,
-	})
+	}); err != nil {
+		return fmt.Errorf("could not encode input: %w", err)
+	}
+
 	args = append(args, sandboxPath, input.String())
 
 	command := exec.Command(deno, args...)
@@ -328,7 +331,7 @@ func (me *Worker) monitorIdleTimer() {
 		<-me.idleTimer.C
 		// if there are no active requests, stop the worker
 		if me.activeRequests.Load() == 0 {
-			me.Stop()
+			_ = me.Stop()
 			return
 		}
 	}
@@ -526,11 +529,14 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
-	encoder.Encode(map[string]any{
+	if err := encoder.Encode(map[string]any{
 		"command":    "run",
 		"entrypoint": a.Entrypoint(),
 		"args":       args,
-	})
+	}); err != nil {
+		return nil, fmt.Errorf("could not encode input: %w", err)
+	}
+
 	denoArgs = append(denoArgs, sandboxPath, input.String())
 
 	command := exec.Command(deno, denoArgs...)

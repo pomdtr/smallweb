@@ -54,6 +54,7 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("failed to create watcher: %v", err)
 			}
 
+			//nolint:errcheck
 			go watcher.Start()
 			defer watcher.Stop()
 
@@ -71,6 +72,7 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), utils.RootDir(), k.String("addr"))
+			//nolint:errcheck
 			go httpServer.Serve(httpLn)
 
 			if flags.cron {

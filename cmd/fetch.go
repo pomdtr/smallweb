@@ -45,12 +45,14 @@ func NewCmdFetch() *cobra.Command {
 			req.Host = fmt.Sprintf("%s.%s", args[0], k.String("domain"))
 
 			wk := worker.NewWorker(args[0], utils.RootDir(), k.String("domain"))
-			wk.Start()
+			_ = wk.Start()
+
+			//nolint:errcheck
 			defer wk.Stop()
 
 			w := httptest.NewRecorder()
 			wk.ServeHTTP(w, req)
-			io.Copy(os.Stdout, w.Body)
+			_, _ = io.Copy(os.Stdout, w.Body)
 			return nil
 		},
 	}

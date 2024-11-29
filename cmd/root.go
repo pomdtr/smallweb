@@ -42,16 +42,16 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	rootDir := utils.RootDir()
 	configPath := filepath.Join(rootDir, ".smallweb", "config.json")
 	fileProvider := file.Provider(configPath)
-	fileProvider.Watch(func(event interface{}, err error) {
+	_ = fileProvider.Watch(func(event interface{}, err error) {
 		k = koanf.New(".")
-		k.Load(defaultProvider, nil)
-		k.Load(fileProvider, utils.ConfigParser())
-		k.Load(envProvider, nil)
+		_ = k.Load(defaultProvider, nil)
+		_ = k.Load(fileProvider, utils.ConfigParser())
+		_ = k.Load(envProvider, nil)
 	})
 
-	k.Load(defaultProvider, nil)
-	k.Load(fileProvider, utils.ConfigParser())
-	k.Load(envProvider, nil)
+	_ = k.Load(defaultProvider, nil)
+	_ = k.Load(fileProvider, utils.ConfigParser())
+	_ = k.Load(envProvider, nil)
 
 	cmd := &cobra.Command{
 		Use:                "smallweb",

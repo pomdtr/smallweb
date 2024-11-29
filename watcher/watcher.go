@@ -34,7 +34,9 @@ func (me *Watcher) Start() error {
 		return err
 	}
 	me.watcher = watcher
-	me.AddDir(me.root)
+	if err := me.AddDir(me.root); err != nil {
+		return err
+	}
 
 	for {
 		select {
@@ -51,7 +53,7 @@ func (me *Watcher) Start() error {
 			}
 			if fileinfo.IsDir() {
 				if event.Has(fsnotify.Create) {
-					me.AddDir(event.Name)
+					_ = me.AddDir(event.Name)
 				}
 				continue
 			}
@@ -128,7 +130,10 @@ func (me *Watcher) AddDir(dir string) error {
 			return filepath.SkipDir
 		}
 
-		me.watcher.Add(path)
+		if err := me.watcher.Add(path); err != nil {
+			return err
+		}
+
 		return nil
 	})
 

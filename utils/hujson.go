@@ -35,6 +35,9 @@ func (p *HuJSON) Marshal(o map[string]interface{}) ([]byte, error) {
 	encoder := json.NewEncoder(buf)
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "  ")
-	encoder.Encode(o)
+	if err := encoder.Encode(o); err != nil {
+		return nil, err
+	}
+
 	return buf.Bytes(), nil
 }

@@ -140,7 +140,7 @@ func NewCmdCronList() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir()))
+	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir()))
 
 	return cmd
 }
@@ -171,7 +171,7 @@ func NewCmdCronUp() *cobra.Command {
 func CronRunner() *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
-	c.AddFunc("* * * * *", func() {
+	_, _ = c.AddFunc("* * * * *", func() {
 		rounded := time.Now().Truncate(time.Minute)
 		rootDir := utils.ExpandTilde(k.String("dir"))
 		apps, err := app.ListApps(rootDir)
