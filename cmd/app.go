@@ -20,7 +20,7 @@ import (
 	"golang.org/x/term"
 )
 
-//go:embed embed/smallweb/hello-world
+//go:embed embed/hello-world.ts
 var initTemplate embed.FS
 
 func NewCmdCreate() *cobra.Command {
