@@ -6,6 +6,13 @@
             "description": "Server address",
             "type": "string"
         },
+        "env": {
+            "type": "object",
+            "description": "Environment variables",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
         "cert": {
             "description": "Path to certificate file",
             "type": "string"

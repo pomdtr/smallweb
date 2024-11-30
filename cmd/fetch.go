@@ -44,7 +44,7 @@ func NewCmdFetch() *cobra.Command {
 
 			req.Host = fmt.Sprintf("%s.%s", args[0], k.String("domain"))
 
-			wk := worker.NewWorker(args[0], utils.RootDir(), k.String("domain"))
+			wk := worker.NewWorker(args[0], utils.RootDir(), k.String("domain"), k.StringMap("env"))
 			_ = wk.Start()
 
 			//nolint:errcheck

@@ -189,7 +189,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 	me.mu.Lock()
 	defer me.mu.Unlock()
 
-	wk := worker.NewWorker(appname, rootDir, domain)
+	wk := worker.NewWorker(appname, rootDir, domain, k.StringMap("env"))
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %v", err)
 	}

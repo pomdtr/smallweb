@@ -77,25 +77,30 @@ type Worker struct {
 	AppName   string
 	RootDir   string
 	Domain    string
+	Env       map[string]string
+	StartedAt time.Time
+
 	port      int
 	idleTimer *time.Timer
 	command   *exec.Cmd
-	StartedAt time.Time
 	*slog.Logger
 	activeRequests atomic.Int32
 }
 
-func commandEnv(a app.App, rootDir string, domain string) []string {
+func commandEnv(a app.App, rootDir string, domain string, globalEnv map[string]string) []string {
 	env := []string{}
 
-	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
-	env = append(env, "DENO_NO_UPDATE_CHECK=1")
-	env = append(env, fmt.Sprintf("DENO_DIR=%s", utils.DenoDir()))
+	for k, v := range globalEnv {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
 
 	for k, v := range a.Env {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
+	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+	env = append(env, "DENO_NO_UPDATE_CHECK=1")
+	env = append(env, fmt.Sprintf("DENO_DIR=%s", utils.DenoDir()))
 	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
 	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
 	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", domain))
@@ -110,11 +115,12 @@ func commandEnv(a app.App, rootDir string, domain string) []string {
 	return env
 }
 
-func NewWorker(appname string, rootDir string, domain string) *Worker {
+func NewWorker(appname string, rootDir string, domain string, env map[string]string) *Worker {
 	worker := &Worker{
 		AppName: appname,
 		RootDir: rootDir,
 		Domain:  domain,
+		Env:     env,
 	}
 
 	return worker
@@ -220,7 +226,7 @@ func (me *Worker) Start() error {
 
 	command := exec.Command(deno, args...)
 	command.Dir = a.Root()
-	command.Env = commandEnv(a, me.RootDir, me.Domain)
+	command.Env = commandEnv(a, me.RootDir, me.Domain, me.Env)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -542,7 +548,7 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	command := exec.Command(deno, denoArgs...)
 	command.Dir = a.Root()
 
-	command.Env = commandEnv(a, me.RootDir, me.Domain)
+	command.Env = commandEnv(a, me.RootDir, me.Domain, me.Env)
 
 	return command, nil
 }

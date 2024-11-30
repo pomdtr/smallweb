@@ -24,7 +24,7 @@ func NewCmdRun() *cobra.Command {
 				return cmd.Help()
 			}
 
-			wk := worker.NewWorker(args[0], utils.RootDir(), k.String("domain"))
+			wk := worker.NewWorker(args[0], utils.RootDir(), k.String("domain"), k.StringMap("env"))
 			command, err := wk.Command(args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)
