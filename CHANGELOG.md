@@ -2,7 +2,11 @@
 
 ## 0.17.0
 
-- add support for sops (through `secrets.env` and `secrets.json` files)
+Full release notes at <https://blog.smallweb.run/posts/v0.17>.
+
+- add encryption using sops (through `secrets.enc.json` files)
+- add `smallweb doctor` command
+- add `--template` flag for `smallweb logs` and `smallweb list`
 
 ## 0.16.0
 
