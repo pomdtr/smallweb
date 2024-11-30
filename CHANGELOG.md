@@ -4,7 +4,7 @@
 
 Full release notes at <https://blog.smallweb.run/posts/v0.17>.
 
-- add encryption using sops (through `secrets.enc.json` files)
+- add encryption using sops (through `secrets.enc.env` files)
 - add `smallweb doctor` command
 - add `--template` flag for `smallweb logs` and `smallweb list`
 
