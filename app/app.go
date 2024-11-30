@@ -115,7 +115,7 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 			return App{}, fmt.Errorf("could not read file: %v", err)
 		}
 
-		dotenvBytes, err := decrypt.Data(rawBytes, "json")
+		dotenvBytes, err := decrypt.Data(rawBytes, "dotenv")
 		if err != nil {
 			return App{}, fmt.Errorf("could not decrypt %s: %v", secretPath, err)
 		}
