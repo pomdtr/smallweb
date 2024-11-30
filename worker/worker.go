@@ -135,6 +135,7 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 		"--allow-env",
 		"--allow-sys",
 		"--unstable-kv",
+		"--unstable-temporal",
 		"--no-prompt",
 		"--quiet",
 	}
