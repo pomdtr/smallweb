@@ -28,8 +28,8 @@ func NewCmdLogs() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:     "logs [remote]",
-		Aliases: []string{"log"},
+		Use:     "log [remote]",
+		Aliases: []string{"logs"},
 		Short:   "View app logs",
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
