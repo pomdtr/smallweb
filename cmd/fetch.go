@@ -20,9 +20,9 @@ func NewCmdFetch() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:               "fetch [app] <path>",
+		Use:               "fetch <app> [path]",
 		Short:             "Fetch a path from an app",
-		Args:              cobra.ExactArgs(2),
+		Args:              cobra.RangeArgs(1, 2),
 		ValidArgsFunction: completeApp(utils.RootDir),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var body io.Reader
@@ -32,7 +32,14 @@ func NewCmdFetch() *cobra.Command {
 				body = os.Stdin
 			}
 
-			req := httptest.NewRequest(flags.method, args[1], body)
+			var requestPath string
+			if len(args) == 2 {
+				requestPath = args[1]
+			} else {
+				requestPath = "/"
+			}
+
+			req := httptest.NewRequest(flags.method, requestPath, body)
 			for _, header := range flags.headers {
 				parts := strings.SplitN(header, ":", 2)
 				if len(parts) != 2 {
