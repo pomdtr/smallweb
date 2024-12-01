@@ -23,7 +23,7 @@ func NewCmdFetch() *cobra.Command {
 		Use:               "fetch [app] <path>",
 		Short:             "Fetch a path from an app",
 		Args:              cobra.ExactArgs(2),
-		ValidArgsFunction: completeApp(utils.RootDir()),
+		ValidArgsFunction: completeApp(utils.RootDir),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var body io.Reader
 			if flags.data != "" {
@@ -44,7 +44,7 @@ func NewCmdFetch() *cobra.Command {
 
 			req.Host = fmt.Sprintf("%s.%s", args[0], k.String("domain"))
 
-			wk := worker.NewWorker(args[0], utils.RootDir(), k.String("domain"), k.StringMap("env"))
+			wk := worker.NewWorker(args[0], utils.RootDir, k.String("domain"), k.StringMap("env"))
 			_ = wk.Start()
 
 			//nolint:errcheck

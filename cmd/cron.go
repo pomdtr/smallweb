@@ -60,7 +60,7 @@ func NewCmdCronList() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Short:   "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.RootDir()
+			rootDir := utils.RootDir
 			apps, err := app.ListApps(rootDir)
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
@@ -140,7 +140,7 @@ func NewCmdCronList() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir()))
+	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir))
 
 	return cmd
 }

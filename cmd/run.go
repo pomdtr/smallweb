@@ -14,7 +14,7 @@ func NewCmdRun() *cobra.Command {
 		Use:                "run <app> [args...]",
 		Short:              "Run an app cli",
 		DisableFlagParsing: true,
-		ValidArgsFunction:  completeApp(utils.RootDir()),
+		ValidArgsFunction:  completeApp(utils.RootDir),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -24,7 +24,7 @@ func NewCmdRun() *cobra.Command {
 				return cmd.Help()
 			}
 
-			wk := worker.NewWorker(args[0], utils.RootDir(), k.String("domain"), k.StringMap("env"))
+			wk := worker.NewWorker(args[0], utils.RootDir, k.String("domain"), k.StringMap("env"))
 			command, err := wk.Command(args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

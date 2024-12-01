@@ -40,7 +40,7 @@ func InstallService() error {
 	defer f.Close()
 
 	if err := serviceConfig.Execute(f, map[string]any{
-		"SmallwebDir": utils.RootDir(),
+		"SmallwebDir": utils.RootDir,
 		"ExecPath":    execPath,
 		"HomeDir":     os.Getenv("HOME"),
 	}); err != nil {

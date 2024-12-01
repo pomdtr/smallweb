@@ -15,6 +15,7 @@ import (
 	"github.com/knadh/koanf/v2"
 	"github.com/mattn/go-isatty"
 
+	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/build"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
@@ -39,7 +40,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		return strings.Replace(strings.ToLower(key), "_", ".", -1)
 	})
 
-	rootDir := utils.RootDir()
+	rootDir := utils.RootDir
 	configPath := filepath.Join(rootDir, ".smallweb", "config.json")
 	fileProvider := file.Provider(configPath)
 	_ = fileProvider.Watch(func(event interface{}, err error) {
@@ -85,11 +86,12 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdDoctor())
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdList())
-	cmd.AddCommand(NewCmdRename())
-	cmd.AddCommand(NewCmdDelete())
 	cmd.AddCommand(NewCmdFetch())
 	cmd.AddCommand(NewCmdCron())
 	cmd.AddCommand(NewCmdLogs())
+	cmd.AddCommand(NewCmdSync())
+	cmd.AddCommand(NewCmdSecrets())
+
 	cmd.AddCommand(&cobra.Command{
 		Use:   "changelog",
 		Short: "Show the changelog",
@@ -212,4 +214,19 @@ func isExecutable(path string) (bool, error) {
 		return false, err
 	}
 	return fileInfo.Mode().Perm()&0111 != 0, nil
+}
+
+func completeApp(rootDir string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) > 0 {
+			return nil, cobra.ShellCompDirectiveDefault
+		}
+
+		apps, err := app.ListApps(rootDir)
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveDefault
+		}
+
+		return apps, cobra.ShellCompDirectiveDefault
+	}
 }

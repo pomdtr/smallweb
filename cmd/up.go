@@ -49,7 +49,7 @@ func NewCmdUp() *cobra.Command {
 				MaxAge:     28,
 			})
 
-			watcher, err := watcher.NewWatcher(utils.RootDir())
+			watcher, err := watcher.NewWatcher(utils.RootDir)
 			if err != nil {
 				return fmt.Errorf("failed to create watcher: %v", err)
 			}
@@ -71,7 +71,7 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("failed to listen: %v", err)
 			}
 
-			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), utils.RootDir(), k.String("addr"))
+			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), utils.RootDir, k.String("addr"))
 			//nolint:errcheck
 			go httpServer.Serve(httpLn)
 
@@ -139,7 +139,7 @@ type Handler struct {
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rootDir := utils.RootDir()
+	rootDir := utils.RootDir
 
 	if r.Host == k.String("domain") {
 		// if we are on the apex domain and www exists, redirect to www
