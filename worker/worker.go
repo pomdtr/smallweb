@@ -272,7 +272,6 @@ func (me *Worker) Start() error {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
 			if me.Logger == nil {
-				os.Stdout.WriteString(scanner.Text() + "\n")
 				continue
 			}
 
