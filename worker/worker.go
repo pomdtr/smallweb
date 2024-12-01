@@ -100,7 +100,7 @@ func commandEnv(a app.App, rootDir string, domain string, globalEnv map[string]s
 
 	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
 	env = append(env, "DENO_NO_UPDATE_CHECK=1")
-	env = append(env, fmt.Sprintf("DENO_DIR=%s", utils.DenoDir()))
+	env = append(env, fmt.Sprintf("DENO_DIR=%s", utils.DenoDir))
 	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
 	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
 	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", domain))
@@ -144,7 +144,7 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 	if a.Config.Admin {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), me.RootDir, sandboxPath, deno),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir, me.RootDir, sandboxPath, deno),
 			fmt.Sprintf("--allow-write=%s", me.RootDir),
 		)
 		if len(allowRun) > 0 {
@@ -168,13 +168,13 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 
 			flags = append(
 				flags,
-				fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", utils.DenoDir(), root, target, sandboxPath, deno),
+				fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", utils.DenoDir, root, target, sandboxPath, deno),
 				fmt.Sprintf("--allow-write=%s,%s", filepath.Join(root, "data"), filepath.Join(target, "data")),
 			)
 		} else {
 			flags = append(
 				flags,
-				fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir(), root, sandboxPath, deno),
+				fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir, root, sandboxPath, deno),
 				fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
 			)
 		}

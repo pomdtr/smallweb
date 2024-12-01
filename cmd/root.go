@@ -126,7 +126,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		}
 	}
 
-	for _, pluginDir := range utils.PluginDirs() {
+	for _, pluginDir := range utils.PluginDirs {
 		entries, err := os.ReadDir(pluginDir)
 		if err != nil {
 			continue
@@ -177,7 +177,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 func completePlugins() func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		var plugins []string
-		for _, pluginDir := range utils.PluginDirs() {
+		for _, pluginDir := range utils.PluginDirs {
 			entries, err := os.ReadDir(pluginDir)
 			if err != nil {
 				continue
