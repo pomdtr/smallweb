@@ -98,7 +98,7 @@ func NewCmdSecrets() *cobra.Command {
 			}
 
 			if len(args) == 1 {
-				secretsPath := filepath.Join(utils.RootDir, args[0])
+				secretsPath := filepath.Join(utils.RootDir, args[0], "secrets.enc.env")
 				if _, err := os.Stat(secretsPath); os.IsNotExist(err) {
 					return fmt.Errorf("secrets not found: %s", secretsPath)
 				}
