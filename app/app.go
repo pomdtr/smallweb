@@ -87,7 +87,7 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 	app := App{
 		Name:   appname,
 		Dir:    filepath.Join(rootDir, appname),
-		Domain: domain,
+		Domain: fmt.Sprintf("%s.%s", appname, domain),
 		URL:    fmt.Sprintf("https://%s.%s/", appname, domain),
 		Env:    make(map[string]string),
 	}
