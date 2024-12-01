@@ -32,6 +32,7 @@ type CronJob struct {
 type App struct {
 	Name   string            `json:"name"`
 	Dir    string            `json:"dir,omitempty"`
+	Domain string            `json:"-"`
 	URL    string            `json:"url"`
 	Env    map[string]string `json:"-"`
 	Config AppConfig         `json:"-"`
@@ -84,10 +85,11 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 	}
 
 	app := App{
-		Name: appname,
-		Dir:  filepath.Join(rootDir, appname),
-		URL:  fmt.Sprintf("https://%s.%s/", appname, domain),
-		Env:  make(map[string]string),
+		Name:   appname,
+		Dir:    filepath.Join(rootDir, appname),
+		Domain: domain,
+		URL:    fmt.Sprintf("https://%s.%s/", appname, domain),
+		Env:    make(map[string]string),
 	}
 
 	dotenvPath := filepath.Join(appDir, ".env")

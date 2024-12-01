@@ -105,6 +105,7 @@ func commandEnv(a app.App, rootDir string, domain string, globalEnv map[string]s
 	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
 	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", domain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_NAME=%s", a.Name))
+	env = append(env, fmt.Sprintf("SMALLWEB_APP_DOMAIN=%s", a.Domain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_URL=%s", a.URL))
 
 	if a.Config.Admin {
