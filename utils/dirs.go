@@ -15,12 +15,10 @@ var (
 )
 
 func init() {
-	if env, ok := os.LookupEnv("SMALLWEB_DIR"); ok {
-		RootDir = env
-		return
+	RootDir = os.Getenv("SMALLWEB_DIR")
+	if RootDir == "" {
+		RootDir = filepath.Join(os.Getenv("HOME"), "smallweb")
 	}
-
-	RootDir = filepath.Join(os.Getenv("HOME"), "smallweb")
 	PluginDirs = []string{filepath.Join(RootDir, ".smallweb", "plugins"), filepath.Join(xdg.DataHome, "smallweb", "plugins")}
 	DenoDir = filepath.Join(xdg.CacheHome, "smallweb", "deno")
 }
