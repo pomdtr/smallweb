@@ -81,6 +81,7 @@ func NewCmdSecrets() *cobra.Command {
 				globalSecretsPath := filepath.Join(rootDir, ".smallweb", "secrets.enc.env")
 
 				c := exec.Command("sops", globalSecretsPath)
+				c.Dir = rootDir
 				c.Stdin = os.Stdin
 				c.Stdout = os.Stdout
 				c.Stderr = os.Stderr
@@ -99,11 +100,8 @@ func NewCmdSecrets() *cobra.Command {
 
 			if len(args) == 1 {
 				secretsPath := filepath.Join(utils.RootDir, args[0], "secrets.enc.env")
-				if _, err := os.Stat(secretsPath); os.IsNotExist(err) {
-					return fmt.Errorf("secrets not found: %s", secretsPath)
-				}
-
 				c := exec.Command("sops", secretsPath)
+				c.Dir = rootDir
 				c.Stdin = os.Stdin
 				c.Stdout = os.Stdout
 				c.Stderr = os.Stderr
@@ -131,6 +129,7 @@ func NewCmdSecrets() *cobra.Command {
 
 			secretPath := filepath.Join(wd, "secrets.enc.env")
 			c := exec.Command("sops", secretPath)
+			c.Dir = rootDir
 			c.Stdin = os.Stdin
 			c.Stdout = os.Stdout
 			c.Stderr = os.Stderr
