@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"text/template"
 	"time"
@@ -22,38 +21,18 @@ func GetLogFilename(domain string) string {
 
 func NewCmdLogs() *cobra.Command {
 	var flags struct {
+		app      string
 		json     bool
 		template string
-		remote   string
 	}
 
 	cmd := &cobra.Command{
-		Use:               "logs [app]",
+		Use:               "logs",
 		Aliases:           []string{"log"},
 		ValidArgsFunction: completeApp(utils.RootDir),
 		Short:             "View app logs",
-		Args:              cobra.MaximumNArgs(1),
+		Args:              cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if flags.remote != "" {
-				sshArgs := []string{flags.remote, "smallweb", "logs"}
-				sshArgs = append(sshArgs, args...)
-
-				if flags.json {
-					sshArgs = append(sshArgs, "--json")
-				}
-
-				if flags.template != "" {
-					sshArgs = append(sshArgs, "--template", flags.template)
-				}
-
-				command := exec.Command("ssh", sshArgs...)
-
-				command.Stdout = os.Stdout
-				command.Stderr = os.Stderr
-
-				return command.Run()
-			}
-
 			logFilename := GetLogFilename(k.String("domain"))
 			if _, err := os.Stat(logFilename); err != nil {
 				if os.IsNotExist(err) {
@@ -64,8 +43,8 @@ func NewCmdLogs() *cobra.Command {
 			}
 
 			hosts := make(map[string]struct{})
-			if len(args) > 0 {
-				appName := args[0]
+			if flags.app != "" {
+				appName := flags.app
 				hosts[fmt.Sprintf("%s.%s", appName, k.String("domain"))] = struct{}{}
 
 				for domain, app := range k.StringMap("customDomains") {
@@ -142,8 +121,8 @@ func NewCmdLogs() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
-	cmd.Flags().StringVar(&flags.remote, "remote", "", "view logs from a remote app")
 	cmd.Flags().StringVar(&flags.template, "template", "", "output logs using a Go template")
 
 	return cmd

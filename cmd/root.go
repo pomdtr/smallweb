@@ -71,7 +71,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	cmd.AddCommand(NewCmdOpen())
 	cmd.AddCommand(NewCmdList())
 	cmd.AddCommand(NewCmdFetch())
-	cmd.AddCommand(NewCmdCron())
+	cmd.AddCommand(NewCmdCrons())
 	cmd.AddCommand(NewCmdLogs())
 	cmd.AddCommand(NewCmdSync())
 	cmd.AddCommand(NewCmdSecrets())

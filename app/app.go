@@ -23,10 +23,8 @@ type AppConfig struct {
 }
 
 type CronJob struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Schedule    string   `json:"schedule"`
-	Args        []string `json:"args"`
+	Schedule string   `json:"schedule"`
+	Args     []string `json:"args"`
 }
 
 type App struct {

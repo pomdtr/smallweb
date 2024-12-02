@@ -20,21 +20,10 @@
             "items": {
                 "type": "object",
                 "required": [
-                    "name",
-                    "description",
                     "schedule",
                     "args"
                 ],
                 "properties": {
-                    "name": {
-                        "description": "The name of the cron job",
-                        "type": "string",
-                        "pattern": "^[a-z][a-z0-9-]+$"
-                    },
-                    "description": {
-                        "description": "A description of the cron job",
-                        "type": "string"
-                    },
                     "schedule": {
                         "description": "The cron schedule",
                         "type": "string"
