@@ -58,7 +58,7 @@ func init() {
 
 	cli := fmt.Sprintf(`#!/bin/sh
 
-SMALLWEB_DISABLE_PLUGINS=1 SMALLWEB_DISABLED_COMMANDS=upgrade,up,service,sync exec %s "$@"
+SMALLWEB_DISABLE_PLUGINS=1 SMALLWEB_DISABLED_COMMANDS=upgrade,up,service,sync,secrets,doctor,open,completion exec %s "$@"
 `, executable)
 
 	cliPath = filepath.Join(xdg.CacheHome, "smallweb", "cli", hash([]byte(cli)))

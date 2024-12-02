@@ -60,7 +60,6 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		Version:            build.Version,
 		Args:               cobra.ArbitraryArgs,
 		DisableFlagParsing: true,
-		ValidArgsFunction:  completePlugins(),
 		SilenceUsage:       true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 || args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
@@ -111,18 +110,19 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		},
 	})
 
-	if env, ok := os.LookupEnv("SMALLWEB_DISABLE_PLUGINS"); ok {
-		if disablePlugins, _ := strconv.ParseBool(env); disablePlugins {
-			return cmd
-		}
-	}
-
+	fmt.Println("disabled commands", os.Getenv("SMALLWEB_DISABLE_COMMANDS"))
 	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
 		disabledCommands := strings.Split(env, ",")
 		for _, commandName := range disabledCommands {
 			if command, ok := GetCommand(cmd, commandName); ok {
 				cmd.RemoveCommand(command)
 			}
+		}
+	}
+
+	if env, ok := os.LookupEnv("SMALLWEB_DISABLE_PLUGINS"); ok {
+		if disablePlugins, _ := strconv.ParseBool(env); disablePlugins {
+			return cmd
 		}
 	}
 
@@ -172,30 +172,6 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	}
 
 	return cmd
-}
-
-func completePlugins() func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		var plugins []string
-		for _, pluginDir := range utils.PluginDirs {
-			entries, err := os.ReadDir(pluginDir)
-			if err != nil {
-				continue
-			}
-
-			for _, entry := range entries {
-				if entry.IsDir() {
-					continue
-				}
-
-				entrypoint := filepath.Join(pluginDir, entry.Name())
-				plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-				plugins = append(plugins, fmt.Sprintf("%s\t%s", plugin, utils.AddTilde(entrypoint)))
-			}
-		}
-
-		return plugins, cobra.ShellCompDirectiveDefault
-	}
 }
 
 func GetCommand(cmd *cobra.Command, name string) (*cobra.Command, bool) {
