@@ -41,9 +41,24 @@ type App struct {
 func (me *App) Root() string {
 	if me.Config.Root != "" {
 		return filepath.Join(me.Dir, me.Config.Root)
-	} else {
+	}
+
+	if me.Config.Entrypoint != "" {
 		return me.Dir
 	}
+
+	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
+		path := filepath.Join(me.Dir, candidate)
+		if utils.FileExists(path) {
+			return me.Dir
+		}
+	}
+
+	if utils.FileExists(filepath.Join(me.Dir, "dist", "index.html")) {
+		return filepath.Join(me.Dir, "dist")
+	}
+
+	return me.Dir
 }
 
 var APP_REGEX = regexp.MustCompile(`^[a-z0-9][a-z0-9-]+$`)
