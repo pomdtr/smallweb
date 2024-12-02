@@ -21,6 +21,7 @@ func NewCmdSecrets() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "secrets [app]",
 		Short:             "Manage app secrets",
+		Aliases:           []string{"secret"},
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completeApp(utils.RootDir),
 		PreRunE: func(cmd *cobra.Command, args []string) error {

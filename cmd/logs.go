@@ -24,31 +24,29 @@ func NewCmdLogs() *cobra.Command {
 	var flags struct {
 		json     bool
 		template string
-		app      string
+		remote   string
 	}
 
 	cmd := &cobra.Command{
-		Use:     "log [remote]",
-		Aliases: []string{"logs"},
-		Short:   "View app logs",
-		Args:    cobra.MaximumNArgs(1),
+		Use:               "logs [app]",
+		Aliases:           []string{"log"},
+		ValidArgsFunction: completeApp(utils.RootDir),
+		Short:             "View app logs",
+		Args:              cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				remote := args[0]
-				args := []string{remote, "smallweb", "logs"}
-				if flags.app != "" {
-					args = append(args, "--app", flags.app)
-				}
+			if flags.remote != "" {
+				sshArgs := []string{flags.remote, "smallweb", "logs"}
+				sshArgs = append(sshArgs, args...)
 
 				if flags.json {
-					args = append(args, "--json")
+					sshArgs = append(sshArgs, "--json")
 				}
 
 				if flags.template != "" {
-					args = append(args, "--template", flags.template)
+					sshArgs = append(sshArgs, "--template", flags.template)
 				}
 
-				command := exec.Command("ssh", args...)
+				command := exec.Command("ssh", sshArgs...)
 
 				command.Stdout = os.Stdout
 				command.Stderr = os.Stderr
@@ -66,11 +64,12 @@ func NewCmdLogs() *cobra.Command {
 			}
 
 			hosts := make(map[string]struct{})
-			if flags.app != "" {
-				hosts[fmt.Sprintf("%s.%s", flags.app, k.String("domain"))] = struct{}{}
+			if len(args) > 0 {
+				appName := args[0]
+				hosts[fmt.Sprintf("%s.%s", appName, k.String("domain"))] = struct{}{}
 
 				for domain, app := range k.StringMap("customDomains") {
-					if app != flags.app {
+					if app != appName {
 						continue
 					}
 
@@ -144,9 +143,8 @@ func NewCmdLogs() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
-	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "app to view logs for")
+	cmd.Flags().StringVar(&flags.remote, "remote", "", "view logs from a remote app")
 	cmd.Flags().StringVar(&flags.template, "template", "", "output logs using a Go template")
-	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir))
 
 	return cmd
 }
