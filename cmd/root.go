@@ -55,24 +55,10 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	_ = k.Load(envProvider, nil)
 
 	cmd := &cobra.Command{
-		Use:                "smallweb",
-		Short:              "Host websites from your internet folder",
-		Version:            build.Version,
-		Args:               cobra.ArbitraryArgs,
-		DisableFlagParsing: true,
-		SilenceUsage:       true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 || args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
-				return cmd.Help()
-			}
-
-			if args[0] == "--version" || args[0] == "-v" {
-				fmt.Fprintln(os.Stdout, build.Version)
-				return nil
-			}
-
-			return fmt.Errorf("unknown command: %s", args[0])
-		},
+		Use:          "smallweb",
+		Short:        "Host websites from your internet folder",
+		Version:      build.Version,
+		SilenceUsage: true,
 	}
 
 	cmd.AddCommand(NewCmdRun())
