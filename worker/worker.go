@@ -87,12 +87,8 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func commandEnv(a app.App, rootDir string, domain string, globalEnv map[string]string) []string {
+func commandEnv(a app.App, rootDir string, domain string) []string {
 	env := []string{}
-
-	for k, v := range globalEnv {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
 
 	for k, v := range a.Env {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -116,12 +112,11 @@ func commandEnv(a app.App, rootDir string, domain string, globalEnv map[string]s
 	return env
 }
 
-func NewWorker(appname string, rootDir string, domain string, env map[string]string) *Worker {
+func NewWorker(appname string, rootDir string, domain string) *Worker {
 	worker := &Worker{
 		AppName: appname,
 		RootDir: rootDir,
 		Domain:  domain,
-		Env:     env,
 	}
 
 	return worker
@@ -228,7 +223,7 @@ func (me *Worker) Start() error {
 
 	command := exec.Command(deno, args...)
 	command.Dir = a.Root()
-	command.Env = commandEnv(a, me.RootDir, me.Domain, me.Env)
+	command.Env = commandEnv(a, me.RootDir, me.Domain)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -549,7 +544,7 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	command := exec.Command(deno, denoArgs...)
 	command.Dir = a.Root()
 
-	command.Env = commandEnv(a, me.RootDir, me.Domain, me.Env)
+	command.Env = commandEnv(a, me.RootDir, me.Domain)
 
 	return command, nil
 }

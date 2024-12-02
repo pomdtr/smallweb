@@ -197,7 +197,7 @@ func CronRunner() *cron.Cron {
 					continue
 				}
 
-				wk := worker.NewWorker(a.Name, rootDir, k.String("domain"), k.StringMap("env"))
+				wk := worker.NewWorker(a.Name, rootDir, k.String("domain"))
 
 				command, err := wk.Command(job.Args...)
 				if err != nil {
@@ -272,7 +272,7 @@ func NewCmdCronTrigger() *cobra.Command {
 					continue
 				}
 
-				w := worker.NewWorker(app.Name, rootDir, k.String("domain"), k.StringMap("env"))
+				w := worker.NewWorker(app.Name, rootDir, k.String("domain"))
 				command, err := w.Command(cron.Args...)
 				if err != nil {
 					return fmt.Errorf("failed to create command: %w", err)
