@@ -61,7 +61,7 @@ func (me *Watcher) Start() error {
 			}
 
 			// if the event is originated from .smallweb, update all app mtimes
-			if event.Name == filepath.Join(me.root, ".smallweb", "config.json") || event.Name == filepath.Join(me.root, ".smallweb", "secrets.enc.env") {
+			if event.Name == filepath.Join(me.root, ".env") || event.Name == filepath.Join(me.root, ".smallweb", "config.json") || event.Name == filepath.Join(me.root, ".smallweb", "secrets.enc.env") {
 				apps, err := app.ListApps(utils.RootDir)
 				if err != nil {
 					continue
