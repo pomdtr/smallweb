@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/utils"
 )
 
 type Watcher struct {
@@ -58,13 +60,38 @@ func (me *Watcher) Start() error {
 				continue
 			}
 
-			var appname string
-			for dir := filepath.Dir(event.Name); dir != me.root; dir = filepath.Dir(dir) {
-				appname = filepath.Base(dir)
+			// if the event is originated from .smallweb, update all app mtimes
+			if event.Name == filepath.Join(me.root, ".smallweb", "config.json") || event.Name == filepath.Join(me.root, ".smallweb", "secrets.enc.env") {
+				apps, err := app.ListApps(utils.RootDir)
+				if err != nil {
+					continue
+				}
+
+				me.mu.Lock()
+				for _, app := range apps {
+					me.mtimes[app] = fileinfo.ModTime()
+				}
+				me.mu.Unlock()
+				continue
+			}
+
+			var base string
+			parent := filepath.Dir(event.Name)
+			if parent == me.root {
+				continue
+			}
+
+			for parent != me.root {
+				base = filepath.Base(parent)
+				parent = filepath.Dir(parent)
+			}
+
+			if strings.HasPrefix(base, ".") {
+				continue
 			}
 
 			me.mu.Lock()
-			me.mtimes[appname] = fileinfo.ModTime()
+			me.mtimes[base] = fileinfo.ModTime()
 			me.mu.Unlock()
 		case err, ok := <-watcher.Errors:
 			if !ok {
