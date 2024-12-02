@@ -9,7 +9,7 @@
                 "up",
             ],
             "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
+                "SMALLWEB_DIR": "${workspaceFolder}/smallweb",
                 "SMALLWEB_DOMAIN": "localhost",
             },
         },
@@ -23,7 +23,7 @@
                 "doctor"
             ],
             "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
+                "SMALLWEB_DIR": "${workspaceFolder}/smallweb",
                 "SMALLWEB_DOMAIN": "localhost",
             },
         }
