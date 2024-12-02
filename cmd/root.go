@@ -110,7 +110,6 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		},
 	})
 
-	fmt.Println("disabled commands", os.Getenv("SMALLWEB_DISABLE_COMMANDS"))
 	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
 		disabledCommands := strings.Split(env, ",")
 		for _, commandName := range disabledCommands {
