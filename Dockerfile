@@ -1,4 +1,4 @@
-FROM denoland/deno:1.46.3
+FROM denoland/deno:2.1.2
 
 # install curl
 RUN apt-get update \
@@ -9,7 +9,7 @@ RUN apt-get update \
 RUN useradd -m smallweb
 
 # Combine RUN commands to reduce layers and use curl instead of apt-get for installation
-RUN curl -fsSL "https://install.smallweb.run?v=${SMALLWEB_VERSION:-0.14.5}&target_dir=/usr/local/bin" | sh \
+RUN curl -fsSL "https://install.smallweb.run?v=0.17.7&target_dir=/usr/local/bin" | sh \
     && chmod +x /usr/local/bin/smallweb
 
 # Set environment variables
