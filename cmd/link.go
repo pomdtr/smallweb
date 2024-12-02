@@ -12,7 +12,7 @@ import (
 
 func NewCmdLink() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "link [source] [target]",
+		Use:     "link <source> <target>",
 		Aliases: []string{"ln"},
 		Args:    cobra.ExactArgs(2),
 		Short:   "Create symbolic links",
@@ -39,16 +39,22 @@ func NewCmdLink() *cobra.Command {
 				return fmt.Errorf("target already exists")
 			}
 
-			if !strings.HasPrefix(target, utils.RootDir) {
-				return fmt.Errorf("target must be inside the smallweb directory")
+			// if target is inside the smallweb directory, create a relative symlink
+			if strings.HasPrefix(target, utils.RootDir) {
+				relative, err := filepath.Rel(filepath.Dir(target), source)
+				if err != nil {
+					return fmt.Errorf("failed to get relative path: %w", err)
+				}
+
+				if err := os.Symlink(relative, target); err != nil {
+					return fmt.Errorf("failed to create symbolic link: %w", err)
+				}
+
+				return nil
 			}
 
-			relative, err := filepath.Rel(filepath.Dir(target), source)
-			if err != nil {
-				return fmt.Errorf("failed to get relative path: %w", err)
-			}
-
-			if err := os.Symlink(relative, target); err != nil {
+			// if target is outside the smallweb directory, create an absolute symlink
+			if err := os.Symlink(source, target); err != nil {
 				return fmt.Errorf("failed to create symbolic link: %w", err)
 			}
 
