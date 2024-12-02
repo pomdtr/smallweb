@@ -107,8 +107,14 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 		Env:    make(map[string]string),
 	}
 
-	dotenvPath := filepath.Join(appDir, ".env")
-	if utils.FileExists(dotenvPath) {
+	for _, dotenvPath := range []string{
+		filepath.Join(rootDir, ".env"),
+		filepath.Join(appDir, ".env"),
+	} {
+		if !utils.FileExists(dotenvPath) {
+			continue
+		}
+
 		dotenv, err := godotenv.Read(dotenvPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read .env: %v", err)
