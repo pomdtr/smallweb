@@ -104,6 +104,10 @@ func commandEnv(a app.App, rootDir string, domain string) []string {
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DOMAIN=%s", a.Domain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_URL=%s", a.URL))
 
+	if deno, ok := os.LookupEnv("DENO_EXEC_PATH"); ok {
+		env = append(env, fmt.Sprintf("DENO_EXEC_PATH=%s", deno))
+	}
+
 	if a.Config.Admin {
 		env = append(env, "SMALLWEB_ADMIN=1")
 		env = append(env, fmt.Sprintf("SMALLWEB_CLI_PATH=%s", cliPath))
@@ -497,6 +501,7 @@ func DenoExecutable() (string, error) {
 		"/home/linuxbrew/.linuxbrew/bin/deno",
 		"/opt/homebrew/bin/deno",
 		"/usr/local/bin/deno",
+		"/usr/bin/deno",
 	} {
 		if utils.FileExists(candidate) {
 			return candidate, nil
