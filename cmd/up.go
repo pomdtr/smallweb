@@ -3,6 +3,7 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -37,7 +38,7 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			logFilename := GetLogFilename(k.String("domain"))
+			logFilename := GetLogFilename(k.String("domain"), "http")
 			if err := os.MkdirAll(filepath.Dir(logFilename), 0755); err != nil {
 				return fmt.Errorf("failed to create log directory: %v", err)
 			}
@@ -58,9 +59,17 @@ func NewCmdUp() *cobra.Command {
 			go watcher.Start()
 			defer watcher.Stop()
 
+			consoleLogger := slog.New(slog.NewJSONHandler(&lumberjack.Logger{
+				Filename:   GetLogFilename(k.String("domain"), "console"),
+				MaxSize:    100,
+				MaxBackups: 3,
+				MaxAge:     28,
+			}, nil))
+
 			httpServer := http.Server{
 				ReadHeaderTimeout: 5 * time.Second,
 				Handler: httpLogger.Middleware(&Handler{
+					logger:  consoleLogger,
 					watcher: watcher,
 					workers: make(map[string]*worker.Worker),
 				}),
@@ -134,6 +143,7 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 
 type Handler struct {
 	watcher *watcher.Watcher
+	logger  *slog.Logger
 	mu      sync.Mutex
 	workers map[string]*worker.Worker
 }
@@ -190,6 +200,8 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 	defer me.mu.Unlock()
 
 	wk := worker.NewWorker(appname, rootDir, domain)
+
+	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %v", err)
 	}

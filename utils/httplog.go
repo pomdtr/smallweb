@@ -19,24 +19,6 @@ type (
 		Size                int
 	}
 
-	HttpLog struct {
-		Time    time.Time `json:"time"`
-		Level   string    `json:"level"`
-		Msg     string    `json:"msg"`
-		Request struct {
-			Url     string            `json:"url"`
-			Host    string            `json:"host"`
-			Method  string            `json:"method"`
-			Path    string            `json:"path"`
-			Headers map[string]string `json:"headers"`
-		} `json:"request"`
-		Response struct {
-			Status  int     `json:"status"`
-			Bytes   int     `json:"bytes"`
-			Elapsed float64 `json:"elapsed"`
-		} `json:"response"`
-	}
-
 	Logger struct {
 		*slog.Logger
 	}

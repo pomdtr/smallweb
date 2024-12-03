@@ -15,44 +15,71 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func GetLogFilename(domain string) string {
-	return filepath.Join(xdg.CacheHome, "smallweb", "logs", domain, "http.json")
+type (
+	HttpLog struct {
+		Time    time.Time `json:"time"`
+		Level   string    `json:"level"`
+		Msg     string    `json:"msg"`
+		Request struct {
+			Url     string            `json:"url"`
+			Host    string            `json:"host"`
+			Method  string            `json:"method"`
+			Path    string            `json:"path"`
+			Headers map[string]string `json:"headers"`
+		} `json:"request"`
+		Response struct {
+			Status  int     `json:"status"`
+			Bytes   int     `json:"bytes"`
+			Elapsed float64 `json:"elapsed"`
+		} `json:"response"`
+	}
+	ConsoleLog struct {
+		Time  time.Time `json:"time"`
+		Level string    `json:"level"`
+		Msg   string    `json:"msg"`
+		Type  string    `json:"type"`
+		App   string    `json:"app"`
+		Text  string    `json:"text"`
+	}
+)
+
+func GetLogFilename(domain string, logType string) string {
+	return filepath.Join(xdg.CacheHome, "smallweb", "logs", domain, fmt.Sprintf("%s.json", logType))
 }
 
 func NewCmdLogs() *cobra.Command {
 	var flags struct {
 		app      string
-		json     bool
 		template string
 	}
 
 	cmd := &cobra.Command{
-		Use:               "logs",
+		Use:               "logs [type]",
 		Aliases:           []string{"log"},
-		ValidArgsFunction: completeApp(utils.RootDir),
+		ValidArgsFunction: cobra.FixedCompletions([]string{"http", "console"}, cobra.ShellCompDirectiveNoFileComp),
 		Short:             "View app logs",
-		Args:              cobra.NoArgs,
+		Args:              cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logFilename := GetLogFilename(k.String("domain"))
-			if _, err := os.Stat(logFilename); err != nil {
-				if os.IsNotExist(err) {
-					return fmt.Errorf("log file does not exist: %s", logFilename)
-				}
-
-				return err
+			var logType string
+			if len(args) > 0 {
+				logType = args[0]
+			} else {
+				logType = "http"
 			}
 
-			hosts := make(map[string]struct{})
-			if flags.app != "" {
-				appName := flags.app
-				hosts[fmt.Sprintf("%s.%s", appName, k.String("domain"))] = struct{}{}
+			logFilename := GetLogFilename(k.String("domain"), logType)
+			if _, err := os.Stat(logFilename); err != nil {
+				if err := os.MkdirAll(filepath.Dir(logFilename), 0755); err != nil {
+					return fmt.Errorf("failed to create log directory: %v", err)
+				}
 
-				for domain, app := range k.StringMap("customDomains") {
-					if app != appName {
-						continue
-					}
+				file, err := os.Create(logFilename)
+				if err != nil {
+					return fmt.Errorf("failed to create log file: %v", err)
+				}
 
-					hosts[domain] = struct{}{}
+				if err := file.Close(); err != nil {
+					return fmt.Errorf("failed to close log file: %v", err)
 				}
 			}
 
@@ -62,9 +89,67 @@ func NewCmdLogs() *cobra.Command {
 				return err
 			}
 			defer f.Close()
-
 			_, _ = f.Seek(0, io.SeekEnd)
-			// Stream new lines as they are added
+
+			if logType == "http" {
+				hosts := make(map[string]struct{})
+				if flags.app != "" {
+					appName := flags.app
+					hosts[fmt.Sprintf("%s.%s", appName, k.String("domain"))] = struct{}{}
+
+					for domain, app := range k.StringMap("customDomains") {
+						if app != appName {
+							continue
+						}
+
+						hosts[domain] = struct{}{}
+					}
+				}
+
+				// Stream new lines as they are added
+				reader := bufio.NewReader(f)
+				for {
+					line, err := reader.ReadString('\n')
+					if err != nil {
+						if err == io.EOF {
+							time.Sleep(1 * time.Second)
+							continue
+						}
+						return err
+					}
+
+					var log HttpLog
+					if err := json.Unmarshal([]byte(line), &log); err != nil {
+						return fmt.Errorf("failed to unmarshal log line: %w", err)
+					}
+
+					if _, ok := hosts[log.Request.Host]; flags.app != "" && !ok {
+						continue
+					}
+
+					if flags.template != "" {
+						tmpl, err := template.New("").Funcs(template.FuncMap{
+							"json": func(v interface{}) string {
+								b, _ := json.Marshal(v)
+								return string(b)
+							},
+						}).Parse(flags.template)
+						if err != nil {
+							return fmt.Errorf("failed to parse template: %w", err)
+						}
+
+						if err := tmpl.Execute(os.Stdout, log); err != nil {
+							return fmt.Errorf("failed to execute template: %w", err)
+						}
+						fmt.Println()
+
+						continue
+					}
+
+					fmt.Printf("%s %s %s %d %d\n", log.Time.Format(time.RFC3339), log.Request.Method, log.Request.Url, log.Response.Status, log.Response.Bytes)
+				}
+			}
+
 			reader := bufio.NewReader(f)
 			for {
 				line, err := reader.ReadString('\n')
@@ -75,14 +160,12 @@ func NewCmdLogs() *cobra.Command {
 					}
 					return err
 				}
-
-				var log utils.HttpLog
+				var log ConsoleLog
 				if err := json.Unmarshal([]byte(line), &log); err != nil {
 					return fmt.Errorf("failed to unmarshal log line: %w", err)
 				}
 
-				if flags.json {
-					fmt.Println(line)
+				if flags.app != "" && log.App != flags.app {
 					continue
 				}
 
@@ -105,29 +188,14 @@ func NewCmdLogs() *cobra.Command {
 					continue
 				}
 
-				if len(hosts) > 0 {
-					if _, ok := hosts[log.Request.Host]; !ok {
-						continue
-					}
-				}
-
-				msg, err := formatLog(log)
-				if err != nil {
-					return fmt.Errorf("failed to format log line: %w", err)
-				}
-
-				fmt.Println(msg)
+				fmt.Println(log.Text)
 			}
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
-	cmd.Flags().BoolVar(&flags.json, "json", false, "output logs in JSON format")
 	cmd.Flags().StringVar(&flags.template, "template", "", "output logs using a Go template")
+	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
+	cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir))
 
 	return cmd
-}
-
-func formatLog(log utils.HttpLog) (string, error) {
-	return fmt.Sprintf("%s %s %s %d %d", log.Time.Format(time.RFC3339), log.Request.Method, log.Request.Url, log.Response.Status, log.Response.Bytes), nil
 }
