@@ -43,6 +43,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get tag without v prefix
+        id: tag
+        run: echo "name=${${{ github.ref }}#v}" >> $GITHUB_OUTPUT
       # Use this for dockerhub
       # - uses: docker/login-action@v3
       #   with:
@@ -54,4 +57,4 @@ jobs:
           context: .
           push: true
           platforms: linux/arm64, linux/amd64
-          tags: ghcr.io/${{ github.repository_owner }}/smallweb:${{ github.ref_name }}, ghcr.io/${{ github.repository_owner }}/smallweb:latest # Include pomdtr/smallweb:${{ github.ref_name }}, pomdtr/smallweb:latest for dockerhub
+          tags: ghcr.io/${{ github.repository_owner }}/smallweb:${{ steps.tag.outputs.name }}, ghcr.io/${{ github.repository_owner }}/smallweb:latest # Include pomdtr/smallweb:${{ steps.tag.outputs.name }}, pomdtr/smallweb:latest for dockerhub
