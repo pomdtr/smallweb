@@ -3,16 +3,20 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/tailscale/hujson"
+)
+
+var (
+	ErrAppNotFound = errors.New("app not found")
 )
 
 type AppConfig struct {
@@ -59,8 +63,6 @@ func (me *App) Root() string {
 	return me.Dir
 }
 
-var APP_REGEX = regexp.MustCompile(`^[a-z0-9][a-z0-9-]+$`)
-
 func ListApps(rootDir string) ([]string, error) {
 	entries, err := os.ReadDir(rootDir)
 	if err != nil {
@@ -77,10 +79,6 @@ func ListApps(rootDir string) ([]string, error) {
 			continue
 		}
 
-		if !APP_REGEX.MatchString(entry.Name()) {
-			continue
-		}
-
 		apps = append(apps, entry.Name())
 	}
 
@@ -88,13 +86,9 @@ func ListApps(rootDir string) ([]string, error) {
 }
 
 func NewApp(appname string, rootDir string, domain string) (App, error) {
-	if !APP_REGEX.MatchString(appname) {
-		return App{}, fmt.Errorf("invalid app name: %s", appname)
-	}
-
 	appDir := filepath.Join(rootDir, appname)
 	if !utils.FileExists(filepath.Join(rootDir, appname)) {
-		return App{}, fmt.Errorf("app does not exist: %s", appname)
+		return App{}, ErrAppNotFound
 	}
 
 	app := App{

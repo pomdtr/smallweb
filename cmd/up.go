@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -15,6 +16,7 @@ import (
 
 	_ "embed"
 
+	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
 	"gopkg.in/natefinch/lumberjack.v2"
 
@@ -183,6 +185,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	wk, err := me.GetWorker(appname, rootDir, k.String("domain"))
 	if err != nil {
+		if errors.Is(err, app.ErrAppNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "failed to get worker: %v", err)
 		return
@@ -203,7 +210,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 
 	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start worker: %v", err)
+		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}
 
 	me.workers[appname] = wk
