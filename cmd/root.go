@@ -31,13 +31,34 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		"domain": "localhost",
 	}, "")
 
-	envProvider := env.Provider("SMALLWEB_", ".", func(s string) string {
-		if s == "SMALLWEB_DIR" {
-			return ""
+	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
+		switch s {
+		case "SMALLWEB_DIR":
+			return "dir", v
+		case "SMALLWEB_ADDR":
+			return "addr", v
+		case "SMALLWEB_DOMAIN":
+			return "domain", v
+		case "SMALLWEB_CERT":
+			return "cert", v
+		case "SMALLWEB_KEY":
+			return "key", v
+		case "SMALLWEB_CUSTOM_DOMAINS":
+			entries := strings.Split(v, ";")
+			customDomains := make(map[string]string)
+			for _, entry := range entries {
+				parts := strings.Split(entry, "=")
+				if len(parts) != 2 {
+					continue
+				}
+
+				customDomains[parts[0]] = parts[1]
+			}
+
+			return "customDomains", customDomains
 		}
 
-		key := strings.TrimPrefix(s, "SMALLWEB_")
-		return strings.Replace(strings.ToLower(key), "_", ".", -1)
+		return "", nil
 	})
 
 	rootDir := utils.RootDir
