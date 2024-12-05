@@ -204,5 +204,5 @@ func (me App) Entrypoint() string {
 		}
 	}
 
-	return "jsr:@smallweb/file-server@0.5.5"
+	return "jsr:@smallweb/file-server@0.5.7"
 }
