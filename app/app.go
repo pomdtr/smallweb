@@ -41,26 +41,33 @@ type App struct {
 }
 
 func (me *App) Root() string {
-	if me.Config.Root != "" {
-		return filepath.Join(me.Dir, me.Config.Root)
-	}
-
-	if me.Config.Entrypoint != "" {
-		return me.Dir
-	}
-
-	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(me.Dir, candidate)
-		if utils.FileExists(path) {
-			return me.Dir
+	dir := me.Dir
+	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		if root, err := os.Readlink(dir); err == nil {
+			dir = filepath.Join(filepath.Dir(dir), root)
 		}
 	}
 
-	if utils.FileExists(filepath.Join(me.Dir, "dist", "index.html")) {
-		return filepath.Join(me.Dir, "dist")
+	if me.Config.Root != "" {
+		return filepath.Join(dir, me.Config.Root)
 	}
 
-	return me.Dir
+	if me.Config.Entrypoint != "" {
+		return dir
+	}
+
+	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
+		path := filepath.Join(dir, candidate)
+		if utils.FileExists(path) {
+			return dir
+		}
+	}
+
+	if utils.FileExists(filepath.Join(dir, "dist", "index.html")) {
+		return filepath.Join(dir, "dist")
+	}
+
+	return dir
 }
 
 func ListApps(rootDir string) ([]string, error) {
