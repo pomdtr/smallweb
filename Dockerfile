@@ -1,32 +1,31 @@
-FROM denoland/deno:2.1.1
+FROM golang:1.23-alpine AS builder
 
-# install curl
-RUN apt-get update \
-    && apt-get install -y curl \
-    && rm -rf /var/lib/apt/lists /var/cache/apt/archives
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+ARG SMALLWEB_VERSION=dev
+RUN go build -ldflags="-s -w -X github.com/pomdtr/smallweb/build.Version=${SMALLWEB_VERSION}" -o smallweb
+
+FROM denoland/deno:2.1.2
 
 # Use a non-root user for better security
 RUN useradd --create-home --user-group --shell $(which bash) smallweb
 
-ARG SMALLWEB_VERSION=0.17.10
+COPY --from=builder /build/smallweb /usr/local/bin/smallweb
 
-# Combine RUN commands to reduce layers and use curl instead of apt-get for installation
-RUN curl -fsSL "https://install.smallweb.run?v=${SMALLWEB_VERSION}&target_dir=/usr/local/bin" | sh \
-    && chmod +x /usr/local/bin/smallweb
+ENV SMALLWEB_DIR=/smallweb
+RUN mkdir -p $SMALLWEB_DIR && chown -R smallweb:smallweb $SMALLWEB_DIR
 
 # Switch to non-root user
 USER smallweb
-WORKDIR /home/smallweb
+ENV HOME=/home/smallweb
+WORKDIR $HOME
 
-# Set environment variables
-ENV HOME=/home/smallweb \
-    SMALLWEB_DIR=/home/smallweb/smallweb \
-    SMALLWEB_ADDR=0.0.0.0:7777
-
+EXPOSE 7777
 VOLUME ["$SMALLWEB_DIR"]
 
-# Expose port
-EXPOSE 7777
-
 # Set entrypoint
+ENV SMALLWEB_ADDR=0.0.0.0:7777
 ENTRYPOINT ["/usr/local/bin/smallweb", "up"]

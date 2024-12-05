@@ -9,8 +9,7 @@
                 "up",
             ],
             "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
-                "SMALLWEB_DOMAIN": "localhost",
+                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run"
             },
         },
         {
@@ -20,11 +19,10 @@
             "program": "${workspaceFolder}/main.go",
             "console": "integratedTerminal",
             "args": [
-                "doctor"
+                "logs"
             ],
             "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
-                "SMALLWEB_DOMAIN": "localhost",
+                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run"
             },
         }
     ]

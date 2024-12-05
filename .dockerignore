@@ -1,0 +1,11 @@
+.git
+.vscode
+completions
+dist
+
+.envrc
+Dockerfile
+LICENSE.md
+.gitignore
+README.md
+goreleaser.yml
