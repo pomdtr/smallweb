@@ -44,9 +44,8 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		case "SMALLWEB_KEY":
 			return "key", v
 		case "SMALLWEB_CUSTOM_DOMAINS":
-			entries := strings.Split(v, ";")
 			customDomains := make(map[string]string)
-			for _, entry := range entries {
+			for _, entry := range strings.Split(v, ";") {
 				parts := strings.Split(entry, "=")
 				if len(parts) != 2 {
 					continue
