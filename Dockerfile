@@ -9,11 +9,13 @@ ARG SMALLWEB_VERSION=dev
 RUN go build -ldflags="-s -w -X github.com/pomdtr/smallweb/build.Version=${SMALLWEB_VERSION}" -o smallweb
 
 FROM denoland/deno:2.1.2
-
-# Use a non-root user for better security
-RUN useradd --create-home --user-group --shell $(which bash) smallweb
-
 COPY --from=builder /build/smallweb /usr/local/bin/smallweb
+
+ARG UNAME=smallweb
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID -o $UNAME
+RUN useradd --create-home -u $UID -g $GID --shell $(which bash) $UNAME
 
 ENV SMALLWEB_DIR=/smallweb
 RUN mkdir -p $SMALLWEB_DIR && chown -R smallweb:smallweb $SMALLWEB_DIR
