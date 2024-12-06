@@ -28,4 +28,4 @@ VOLUME ["$SMALLWEB_DIR"]
 
 # Set entrypoint
 ENV SMALLWEB_ADDR=0.0.0.0:7777
-ENTRYPOINT ["/usr/local/bin/smallweb", "up"]
+ENTRYPOINT ["/usr/local/bin/smallweb", "up", "--cron"]
