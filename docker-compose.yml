@@ -1,0 +1,11 @@
+services:
+  smallweb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - SMALLWEB_DOMAIN=localhost
+    ports:
+      - "7777:7777"
+    volumes:
+      - ./example:/smallweb
