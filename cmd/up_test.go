@@ -6,8 +6,9 @@ import (
 
 func TestLookupApp(t *testing.T) {
 	type TestCaseWant struct {
-		app string
-		ok  bool
+		app      string
+		redirect bool
+		ok       bool
 	}
 	type TestCase struct {
 		name          string
@@ -28,8 +29,9 @@ func TestLookupApp(t *testing.T) {
 				"pomdtr.me":           "*",
 			},
 			want: TestCaseWant{
-				app: "www",
-				ok:  true,
+				app:      "www",
+				redirect: true,
+				ok:       true,
 			},
 		},
 		{
@@ -42,8 +44,9 @@ func TestLookupApp(t *testing.T) {
 				"pomdtr.me":           "*",
 			},
 			want: TestCaseWant{
-				app: "example",
-				ok:  true,
+				app:      "example",
+				redirect: false,
+				ok:       true,
 			},
 		},
 		{
@@ -56,8 +59,9 @@ func TestLookupApp(t *testing.T) {
 				"pomdtr.me":           "*",
 			},
 			want: TestCaseWant{
-				app: "www",
-				ok:  true,
+				app:      "www",
+				redirect: false,
+				ok:       true,
 			},
 		},
 		{
@@ -70,8 +74,9 @@ func TestLookupApp(t *testing.T) {
 				"pomdtr.me":           "*",
 			},
 			want: TestCaseWant{
-				app: "cloud",
-				ok:  true,
+				app:      "cloud",
+				redirect: false,
+				ok:       true,
 			},
 		},
 		{
@@ -84,8 +89,9 @@ func TestLookupApp(t *testing.T) {
 				"pomdtr.me":           "*",
 			},
 			want: TestCaseWant{
-				app: "www",
-				ok:  true,
+				app:      "www",
+				redirect: true,
+				ok:       true,
 			},
 		},
 		{
@@ -98,17 +104,18 @@ func TestLookupApp(t *testing.T) {
 				"pomdtr.me":           "*",
 			},
 			want: TestCaseWant{
-				app: "example",
-				ok:  true,
+				app:      "example",
+				redirect: false,
+				ok:       true,
 			},
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			app, ok := lookupApp(c.host, c.domain, c.customDomains)
-			if app != c.want.app || ok != c.want.ok {
-				t.Errorf("lookupApp() = %v, %v, want %v, %v", app, ok, c.want.app, c.want.ok)
+			app, redirect, ok := lookupApp(c.host, c.domain, c.customDomains)
+			if app != c.want.app || redirect != c.want.redirect || ok != c.want.ok {
+				t.Errorf("lookupApp() = %v, %v, %v; want %v, %v, %v", app, redirect, ok, c.want.app, c.want.redirect, c.want.ok)
 			}
 		})
 	}

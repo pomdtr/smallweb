@@ -153,20 +153,20 @@ type Handler struct {
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rootDir := utils.RootDir
 
-	appname, ok := lookupApp(r.Host, k.String("domain"), k.StringMap("customDomains"))
+	appname, redirect, ok := lookupApp(r.Host, k.String("domain"), k.StringMap("customDomains"))
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	if appname == "www" && !strings.HasPrefix(r.Host, "www.") {
+	if redirect {
 		target := r.URL
 		target.Scheme = r.Header.Get("X-Forwarded-Proto")
 		if target.Scheme == "" {
 			target.Scheme = "http"
 		}
 
-		target.Host = "www." + k.String("domain")
+		target.Host = fmt.Sprintf("%s.%s", appname, r.Host)
 		http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 		return
 	}
@@ -186,7 +186,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 
-func lookupApp(host string, domain string, customDomains map[string]string) (string, bool) {
+func lookupApp(host string, domain string, customDomains map[string]string) (app string, redirect bool, found bool) {
 	// check exact matches first
 	for key, value := range customDomains {
 		if value == "*" {
@@ -194,12 +194,12 @@ func lookupApp(host string, domain string, customDomains map[string]string) (str
 		}
 
 		if key == host {
-			return value, true
+			return value, false, true
 		}
 	}
 
 	if host == domain {
-		return "www", true
+		return "www", true, true
 	}
 
 	// check for subdomains
@@ -209,19 +209,19 @@ func lookupApp(host string, domain string, customDomains map[string]string) (str
 		}
 
 		if key == host {
-			return "www", true
+			return "www", true, true
 		}
 
 		if strings.HasSuffix(host, "."+key) {
-			return strings.TrimSuffix(host, "."+key), true
+			return strings.TrimSuffix(host, "."+key), false, true
 		}
 	}
 
 	if strings.HasSuffix(host, "."+domain) {
-		return strings.TrimSuffix(host, "."+domain), true
+		return strings.TrimSuffix(host, "."+domain), false, true
 	}
 
-	return "", false
+	return "", false, false
 }
 
 func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, error) {
