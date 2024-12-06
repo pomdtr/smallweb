@@ -153,65 +153,21 @@ type Handler struct {
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rootDir := utils.RootDir
 
-	var appname string
-	// check for custom domains
-	for domain, target := range k.StringMap("customDomains") {
-		if target != "*" {
-			if r.Host == target {
-				appname = target
-				break
-			}
-			continue
-		}
-
-		if strings.HasSuffix(r.Host, "."+domain) {
-			appname = strings.TrimSuffix(r.Host, "."+domain)
-			break
-		}
-
-		if r.Host == domain {
-			if _, err := os.Stat(filepath.Join(rootDir, "www")); err == nil {
-				target := r.URL
-				target.Scheme = r.Header.Get("X-Forwarded-Proto")
-				if target.Scheme == "" {
-					target.Scheme = "http"
-				}
-
-				target.Host = "www." + domain
-				http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
-				return
-			}
-
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-	}
-
-	// check for subdomains
-	if appname == "" && strings.HasSuffix(r.Host, "."+k.String("domain")) {
-		appname = strings.TrimSuffix(r.Host, "."+k.String("domain"))
-	}
-
-	if r.Host == k.String("domain") {
-		// if we are on the apex domain and www exists, redirect to www
-		if _, err := os.Stat(filepath.Join(rootDir, "www")); err == nil {
-			target := r.URL
-			target.Scheme = r.Header.Get("X-Forwarded-Proto")
-			if target.Scheme == "" {
-				target.Scheme = "http"
-			}
-
-			target.Host = "www." + k.String("domain")
-			http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
-			return
-		}
-
+	appname, ok := lookupApp(r.Host, k.String("domain"), k.StringMap("customDomains"))
+	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	if appname == "" {
-		w.WriteHeader(http.StatusNotFound)
+	if appname == "www" && !strings.HasPrefix(r.Host, "www.") {
+		target := r.URL
+		target.Scheme = r.Header.Get("X-Forwarded-Proto")
+		if target.Scheme == "" {
+			target.Scheme = "http"
+		}
+
+		target.Host = "www." + k.String("domain")
+		http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -228,6 +184,44 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wk.ServeHTTP(w, r)
+}
+
+func lookupApp(host string, domain string, customDomains map[string]string) (string, bool) {
+	// check exact matches first
+	for key, value := range customDomains {
+		if value == "*" {
+			continue
+		}
+
+		if key == host {
+			return value, true
+		}
+	}
+
+	if host == domain {
+		return "www", true
+	}
+
+	// check for subdomains
+	for key, value := range customDomains {
+		if value != "*" {
+			continue
+		}
+
+		if key == host {
+			return "www", true
+		}
+
+		if strings.HasSuffix(host, "."+key) {
+			return strings.TrimSuffix(host, "."+key), true
+		}
+	}
+
+	if strings.HasSuffix(host, "."+domain) {
+		return strings.TrimSuffix(host, "."+domain), true
+	}
+
+	return "", false
 }
 
 func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, error) {
