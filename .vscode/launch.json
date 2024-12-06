@@ -9,7 +9,7 @@
                 "up",
             ],
             "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run"
+                "SMALLWEB_DIR": "${workspaceFolder}/example"
             },
         },
         {
@@ -22,7 +22,7 @@
                 "logs"
             ],
             "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run"
+                "SMALLWEB_DIR": "${workspaceFolder}/example"
             },
         }
     ]
