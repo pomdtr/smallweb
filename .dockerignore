@@ -4,8 +4,9 @@ completions
 dist
 
 .envrc
-Dockerfile
-LICENSE.md
 .gitignore
-README.md
+docker-compose.yml
+Dockerfile
 goreleaser.yml
+LICENSE.md
+README.md
