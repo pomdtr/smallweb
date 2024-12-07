@@ -77,6 +77,7 @@ type Worker struct {
 	AppName   string
 	RootDir   string
 	Domain    string
+	Admin     bool
 	Env       map[string]string
 	StartedAt time.Time
 
@@ -116,11 +117,12 @@ func commandEnv(a app.App, rootDir string, domain string) []string {
 	return env
 }
 
-func NewWorker(appname string, rootDir string, domain string) *Worker {
+func NewWorker(appname string, rootDir string, domain string, admin bool) *Worker {
 	worker := &Worker{
 		AppName: appname,
 		RootDir: rootDir,
 		Domain:  domain,
+		Admin:   admin,
 	}
 
 	return worker
@@ -197,6 +199,9 @@ func (me *Worker) Start() error {
 	a, err := app.NewApp(me.AppName, me.RootDir, me.Domain)
 	if err != nil {
 		return fmt.Errorf("could not load app: %w", err)
+	}
+	if me.Admin {
+		a.Config.Admin = true
 	}
 
 	port, err := GetFreePort()
@@ -519,6 +524,10 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	a, err := app.NewApp(me.AppName, me.RootDir, me.Domain)
 	if err != nil {
 		return nil, fmt.Errorf("could not load app: %w", err)
+	}
+
+	if me.Admin {
+		a.Config.Admin = true
 	}
 
 	deno, err := DenoExecutable()

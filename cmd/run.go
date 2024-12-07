@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -24,7 +25,7 @@ func NewCmdRun() *cobra.Command {
 				return cmd.Help()
 			}
 
-			wk := worker.NewWorker(args[0], utils.RootDir, k.String("domain"))
+			wk := worker.NewWorker(args[0], utils.RootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
 			command, err := wk.Command(args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

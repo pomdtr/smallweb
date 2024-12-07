@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -143,7 +144,7 @@ func CronRunner() *cron.Cron {
 					continue
 				}
 
-				wk := worker.NewWorker(a.Name, rootDir, k.String("domain"))
+				wk := worker.NewWorker(a.Name, rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), a.Name))
 
 				command, err := wk.Command(job.Args...)
 				if err != nil {

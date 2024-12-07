@@ -24,6 +24,13 @@
             "additionalProperties": {
                 "type": "string"
             }
+        },
+        "adminApps": {
+            "description": "Admin apps",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
         }
     }
 }

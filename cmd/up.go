@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -232,7 +233,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 	me.mu.Lock()
 	defer me.mu.Unlock()
 
-	wk := worker.NewWorker(appname, rootDir, domain)
+	wk := worker.NewWorker(appname, rootDir, domain, slices.Contains(k.Strings("adminApps"), appname))
 
 	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {

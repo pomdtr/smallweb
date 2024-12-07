@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/pomdtr/smallweb/utils"
@@ -51,7 +52,7 @@ func NewCmdFetch() *cobra.Command {
 
 			req.Host = fmt.Sprintf("%s.%s", args[0], k.String("domain"))
 
-			wk := worker.NewWorker(args[0], utils.RootDir, k.String("domain"))
+			wk := worker.NewWorker(args[0], utils.RootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
 			_ = wk.Start()
 
 			//nolint:errcheck
