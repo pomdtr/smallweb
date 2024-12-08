@@ -1,3 +1,83 @@
+import { accepts } from "jsr:@std/http@1.0.12/negotiation"
+import { escape } from "jsr:@std/html@1.0.3"
+
+function cleanStack(str?: string) {
+    if (!str) return undefined;
+    return str
+        .split("\n")
+        .filter(
+            (line) =>
+                !line.includes(import.meta.url) &&
+                !line.includes("deno_http/00_serve.ts")
+        )
+        .join("\n");
+}
+
+function serializeError(e: Error) {
+    return { name: e.name, message: e.message, stack: cleanStack(e.stack) };
+};
+
+function respondWithError(request: Request, error: Error) {
+    const e = serializeError(error);
+    if (accepts(request, "text/html")) {
+        return new Response(`
+    <html>
+      <head>
+        <title>Error</title>
+        <style>
+          * { box-sizing: border-box }
+          body {
+            margin: 0;
+            padding: 8px;
+            font-family: system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: black;
+            background-color: white;
+          }
+          div {
+            padding: 0 16px;
+            margin: auto;
+            width: 100%;
+            max-width: 768px;
+            border-left: 3px solid #dc2626;
+          }
+          h1 {
+            color: #dc2626;
+            font-size: 24px;
+            line-height: 1;
+            margin: 0;
+          }
+          pre {
+            margin: 0;
+            padding: 16px 0;
+            font-size: 12px;
+            line-height: 1.5;
+            overflow: auto;
+            white-space: pre-wrap;
+            width: 100%;
+          }
+        </style>
+      </head>
+      <body>
+        <div>
+          <h1>
+            ${escape(e.name)}
+          </h1>
+          <pre data-linkify>${escape(e.stack ?? e.message)}</pre>
+          <script type="module" src="https://esm.town/v/std/linkify"></script>
+        </div>
+      </body>
+    </html>`, { status: 500, headers: { 'Content-Type': 'text/html' } });
+    }
+
+    return Response.json(
+        { error: e },
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
+}
+
 const input = JSON.parse(Deno.args[0]);
 
 if (input.command === "fetch") {
@@ -47,16 +127,12 @@ if (input.command === "fetch") {
                     body: req.body,
                 }));
                 if (!(resp instanceof Response)) {
-                    return new Response("Fetch handler must return a Response object.", { status: 500 });
+                    throw new Error("Fetch handler must return a Response object.");
                 }
 
                 return resp;
             } catch (e) {
-                if (e instanceof Error) {
-                    return new Response(e.stack, { status: 500 });
-                }
-
-                return new Response("Unknown error", { status: 500 });
+                return respondWithError(req, e as Error);
             }
         },
     );
