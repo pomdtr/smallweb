@@ -9,7 +9,7 @@
                 "up",
             ],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/example"
+                "SMALLWEB_DIR": "${workspaceFolder}/examples"
             },
         },
         {
@@ -22,7 +22,7 @@
                 "logs"
             ],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/example"
+                "SMALLWEB_DIR": "${workspaceFolder}/examples"
             },
         }
     ]
