@@ -233,8 +233,12 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 	me.mu.Lock()
 	defer me.mu.Unlock()
 
-	wk := worker.NewWorker(appname, rootDir, domain, slices.Contains(k.Strings("adminApps"), appname))
+	a, err := app.NewApp(appname, rootDir, domain, slices.Contains(k.Strings("adminApps"), appname))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load app: %w", err)
+	}
 
+	wk := worker.NewWorker(a, rootDir, domain)
 	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)

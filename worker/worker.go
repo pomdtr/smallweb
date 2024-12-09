@@ -74,10 +74,9 @@ SMALLWEB_DISABLE_PLUGINS=1 SMALLWEB_DISABLED_COMMANDS=upgrade,up,service,sync,se
 }
 
 type Worker struct {
-	AppName   string
+	App       app.App
 	RootDir   string
 	Domain    string
-	Admin     bool
 	Env       map[string]string
 	StartedAt time.Time
 
@@ -109,7 +108,7 @@ func commandEnv(a app.App, rootDir string, domain string) []string {
 		env = append(env, fmt.Sprintf("DENO_EXEC_PATH=%s", deno))
 	}
 
-	if a.Config.Admin {
+	if a.Admin {
 		env = append(env, "SMALLWEB_ADMIN=1")
 		env = append(env, fmt.Sprintf("SMALLWEB_CLI_PATH=%s", cliPath))
 	}
@@ -117,12 +116,11 @@ func commandEnv(a app.App, rootDir string, domain string) []string {
 	return env
 }
 
-func NewWorker(appname string, rootDir string, domain string, admin bool) *Worker {
+func NewWorker(app app.App, rootDir string, domain string) *Worker {
 	worker := &Worker{
-		AppName: appname,
+		App:     app,
 		RootDir: rootDir,
 		Domain:  domain,
-		Admin:   admin,
 	}
 
 	return worker
@@ -142,7 +140,7 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 		"--quiet",
 	}
 
-	if a.Config.Admin {
+	if a.Admin {
 		flags = append(
 			flags,
 			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir, me.RootDir, sandboxPath, deno),
@@ -196,14 +194,6 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 }
 
 func (me *Worker) Start() error {
-	a, err := app.NewApp(me.AppName, me.RootDir, me.Domain)
-	if err != nil {
-		return fmt.Errorf("could not load app: %w", err)
-	}
-	if me.Admin {
-		a.Config.Admin = true
-	}
-
 	port, err := GetFreePort()
 	if err != nil {
 		return fmt.Errorf("could not get free port: %w", err)
@@ -216,13 +206,13 @@ func (me *Worker) Start() error {
 	}
 
 	args := []string{"run"}
-	args = append(args, me.Flags(a, deno)...)
+	args = append(args, me.Flags(me.App, deno)...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
 		"command":    "fetch",
-		"entrypoint": a.Entrypoint(),
+		"entrypoint": me.App.Entrypoint(),
 		"port":       port,
 	}); err != nil {
 		return fmt.Errorf("could not encode input: %w", err)
@@ -231,8 +221,8 @@ func (me *Worker) Start() error {
 	args = append(args, sandboxPath, input.String())
 
 	command := exec.Command(deno, args...)
-	command.Dir = a.Root()
-	command.Env = commandEnv(a, me.RootDir, me.Domain)
+	command.Dir = me.App.Root()
+	command.Env = commandEnv(me.App, me.RootDir, me.Domain)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -285,7 +275,7 @@ func (me *Worker) Start() error {
 				slog.LevelInfo,
 				logType,
 				slog.String("type", logType),
-				slog.String("app", a.Name),
+				slog.String("app", me.App.Name),
 				slog.String("text", scanner.Text()),
 			)
 		}
@@ -521,15 +511,6 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 		args = []string{}
 	}
 
-	a, err := app.NewApp(me.AppName, me.RootDir, me.Domain)
-	if err != nil {
-		return nil, fmt.Errorf("could not load app: %w", err)
-	}
-
-	if me.Admin {
-		a.Config.Admin = true
-	}
-
 	deno, err := DenoExecutable()
 	if err != nil {
 		return nil, fmt.Errorf("could not find deno executable")
@@ -537,9 +518,9 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 
 	denoArgs := []string{"run"}
 	if runtime.GOOS == "darwin" {
-		denoArgs = append(denoArgs, me.Flags(a, deno, "open")...)
+		denoArgs = append(denoArgs, me.Flags(me.App, deno, "open")...)
 	} else {
-		denoArgs = append(denoArgs, me.Flags(a, deno, "xdg-open")...)
+		denoArgs = append(denoArgs, me.Flags(me.App, deno, "xdg-open")...)
 	}
 
 	input := strings.Builder{}
@@ -547,7 +528,7 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
 		"command":    "run",
-		"entrypoint": a.Entrypoint(),
+		"entrypoint": me.App.Entrypoint(),
 		"args":       args,
 	}); err != nil {
 		return nil, fmt.Errorf("could not encode input: %w", err)
@@ -556,9 +537,9 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 	denoArgs = append(denoArgs, sandboxPath, input.String())
 
 	command := exec.Command(deno, denoArgs...)
-	command.Dir = a.Root()
+	command.Dir = me.App.Root()
 
-	command.Env = commandEnv(a, me.RootDir, me.Domain)
+	command.Env = commandEnv(me.App, me.RootDir, me.Domain)
 
 	return command, nil
 }

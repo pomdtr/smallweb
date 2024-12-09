@@ -22,7 +22,6 @@ var (
 type AppConfig struct {
 	Entrypoint string    `json:"entrypoint,omitempty"`
 	Root       string    `json:"root,omitempty"`
-	Admin      bool      `json:"admin,omitempty"`
 	Crons      []CronJob `json:"crons,omitempty"`
 }
 
@@ -32,6 +31,7 @@ type CronJob struct {
 }
 
 type App struct {
+	Admin  bool              `json:"admin"`
 	Name   string            `json:"name"`
 	Dir    string            `json:"dir,omitempty"`
 	Domain string            `json:"-"`
@@ -92,7 +92,7 @@ func ListApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func NewApp(appname string, rootDir string, domain string) (App, error) {
+func NewApp(appname string, rootDir string, domain string, isAdmin bool) (App, error) {
 	appDir := filepath.Join(rootDir, appname)
 	if !utils.FileExists(filepath.Join(rootDir, appname)) {
 		return App{}, ErrAppNotFound
@@ -100,6 +100,7 @@ func NewApp(appname string, rootDir string, domain string) (App, error) {
 
 	app := App{
 		Name:   appname,
+		Admin:  isAdmin,
 		Dir:    filepath.Join(rootDir, appname),
 		Domain: fmt.Sprintf("%s.%s", appname, domain),
 		URL:    fmt.Sprintf("https://%s.%s/", appname, domain),

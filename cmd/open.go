@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/cli/browser"
 	"github.com/pomdtr/smallweb/app"
@@ -30,7 +31,7 @@ func NewCmdOpen() *cobra.Command {
 					return fmt.Errorf("no app specified and not in an app directory")
 				}
 
-				a, err := app.NewApp(filepath.Base(cwd), rootDir, k.String("domain"))
+				a, err := app.NewApp(filepath.Base(cwd), rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), filepath.Base(cwd)))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -42,7 +43,7 @@ func NewCmdOpen() *cobra.Command {
 				return nil
 			}
 
-			a, err := app.NewApp(args[0], rootDir, k.String("domain"))
+			a, err := app.NewApp(args[0], rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}

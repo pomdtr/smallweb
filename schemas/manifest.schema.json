@@ -10,10 +10,6 @@
             "description": "The root directory of the project",
             "type": "string"
         },
-        "admin": {
-            "description": "Whether the app has read/write access to the whole smallweb dir",
-            "type": "boolean"
-        },
         "crons": {
             "description": "An array of cron jobs",
             "type": "array",

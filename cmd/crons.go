@@ -48,7 +48,7 @@ func NewCmdCrons() *cobra.Command {
 					continue
 				}
 
-				app, err := app.NewApp(name, rootDir, k.String("domain"))
+				app, err := app.NewApp(name, rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -127,7 +127,7 @@ func CronRunner() *cron.Cron {
 		}
 
 		for _, name := range apps {
-			a, err := app.NewApp(name, rootDir, k.String("domain"))
+			a, err := app.NewApp(name, rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -144,7 +144,7 @@ func CronRunner() *cron.Cron {
 					continue
 				}
 
-				wk := worker.NewWorker(a.Name, rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), a.Name))
+				wk := worker.NewWorker(a, rootDir, k.String("domain"))
 
 				command, err := wk.Command(job.Args...)
 				if err != nil {
