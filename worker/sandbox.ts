@@ -8,7 +8,8 @@ function cleanStack(str?: string) {
         .filter(
             (line) =>
                 !line.includes(import.meta.url) &&
-                !line.includes("deno_http/00_serve.ts")
+                !line.includes("deno_http/00_serve.ts") &&
+                !line.includes("core/01_core.js")
         )
         .join("\n");
 }
@@ -20,7 +21,7 @@ function serializeError(e: Error) {
 function respondWithError(request: Request, error: Error) {
     const e = serializeError(error);
     if (accepts(request, "text/html")) {
-        return new Response(`
+        return new Response(/* html */`<!DOCTYPE html>
     <html>
       <head>
         <title>Error</title>
@@ -28,8 +29,7 @@ function respondWithError(request: Request, error: Error) {
           * { box-sizing: border-box }
           body {
             margin: 0;
-            padding: 8px;
-            font-family: system-ui, sans-serif;
+            font-family: monospace;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -38,20 +38,20 @@ function respondWithError(request: Request, error: Error) {
           }
           div {
             padding: 0 16px;
-            margin: auto;
             width: 100%;
+            margin: auto;
             max-width: 768px;
-            border-left: 3px solid #dc2626;
+            color: inherit;
+            border-left: 0.25em solid #3d444d;
+            border-color: #da3633;
           }
           h1 {
-            color: #dc2626;
-            font-size: 24px;
-            line-height: 1;
-            margin: 0;
+            font-weight: 500;
+            color: #f85149;
           }
           pre {
             margin: 0;
-            padding: 16px 0;
+            padding-bottom: 16px;
             font-size: 12px;
             line-height: 1.5;
             overflow: auto;
@@ -65,8 +65,7 @@ function respondWithError(request: Request, error: Error) {
           <h1>
             ${escape(e.name)}
           </h1>
-          <pre data-linkify>${escape(e.stack ?? e.message)}</pre>
-          <script type="module" src="https://esm.town/v/std/linkify"></script>
+          <pre>${escape(e.stack ?? e.message)}</pre>
         </div>
       </body>
     </html>`, { status: 500, headers: { 'Content-Type': 'text/html' } });
