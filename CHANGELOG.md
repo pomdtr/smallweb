@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.18.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.18>.
+
+- view console logs using `smallweb logs --console`
+- add pretty error pages
+- admin apps are set in the global config instead of the app config
+- fixed smallweb sync command
+- add ability to pass custom domains through an env var
+- add ability to set an additionals wildcard domains
+- return a 404 when the app is not found
+- add docker image, published on `ghcr.io/pomdtr/smallweb`
+
 ## 0.17.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.17>.
