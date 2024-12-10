@@ -70,25 +70,16 @@ func NewCmdUp() *cobra.Command {
 
 			certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 				DecisionFunc: func(ctx context.Context, name string) error {
-					if name == k.String("domain") {
-						return nil
+					appname, _, ok := lookupApp(name, k.String("domain"), k.StringMap("customDomains"))
+					if !ok {
+						return fmt.Errorf("failed to lookup app: %v", err)
 					}
 
-					if _, ok := k.StringMap("customDomains")[name]; ok {
-						return nil
+					if _, err := app.NewApp(appname, utils.RootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
+						return fmt.Errorf("failed to load app: %v", err)
 					}
 
-					parts := strings.Split(name, ".")
-					base := strings.Join(parts[1:], ".")
-					if base == k.String("domain") {
-						return nil
-					}
-
-					if v, ok := k.StringMap("customDomains")[base]; ok && v == "*" {
-						return nil
-					}
-
-					return fmt.Errorf("domain not allowed")
+					return nil
 				},
 			}
 
