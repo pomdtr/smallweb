@@ -2,18 +2,6 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
-        "addr": {
-            "description": "Server address",
-            "type": "string"
-        },
-        "cert": {
-            "description": "Path to certificate file",
-            "type": "string"
-        },
-        "key": {
-            "description": "Path to private key file",
-            "type": "string"
-        },
         "domain": {
             "description": "Domain name",
             "type": "string"

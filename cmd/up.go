@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -13,10 +14,10 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"time"
 
 	_ "embed"
 
+	"github.com/caddyserver/certmagic"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -28,7 +29,11 @@ import (
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
-		cron bool
+		cron        bool
+		addr        string
+		onDemandTLS bool
+		tlsCert     string
+		tlsKey      string
 	}
 
 	cmd := &cobra.Command{
@@ -69,23 +74,50 @@ func NewCmdUp() *cobra.Command {
 				MaxAge:     28,
 			}, nil))
 
-			httpServer := http.Server{
-				ReadHeaderTimeout: 5 * time.Second,
-				Handler: httpLogger.Middleware(&Handler{
-					logger:  consoleLogger,
-					watcher: watcher,
-					workers: make(map[string]*worker.Worker),
-				}),
-			}
+			handler := httpLogger.Middleware(&Handler{
+				logger:  consoleLogger,
+				watcher: watcher,
+				workers: make(map[string]*worker.Worker),
+			})
 
-			httpLn, err := getListener(k.String("addr"), utils.ExpandTilde(k.String("cert")), utils.ExpandTilde(k.String("key")))
-			if err != nil {
-				return fmt.Errorf("failed to listen: %v", err)
-			}
+			if flags.onDemandTLS {
+				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
+					DecisionFunc: func(ctx context.Context, name string) error {
+						appname, _, ok := lookupApp(name, k.String("domain"), k.StringMap("customDomains"))
+						if !ok {
+							return fmt.Errorf("failed to lookup app: %v", err)
+						}
 
-			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), utils.RootDir, k.String("addr"))
-			//nolint:errcheck
-			go httpServer.Serve(httpLn)
+						if _, err := app.NewApp(appname, utils.RootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
+							return fmt.Errorf("failed to load app: %v", err)
+						}
+
+						return nil
+					},
+				}
+
+				fmt.Fprintf(os.Stderr, "Serving *.%s using on-demand TLS...\n", k.String("domain"))
+				//nolint:errcheck
+				go certmagic.HTTPS(nil, handler)
+			} else {
+				addr := flags.addr
+				if addr == "" {
+					if flags.tlsCert != "" || flags.tlsKey != "" {
+						addr = "0.0.0.0:443"
+					} else {
+						addr = "localhost:7777"
+					}
+				}
+
+				listener, err := getListener(addr, flags.tlsCert, flags.tlsKey)
+				if err != nil {
+					return fmt.Errorf("failed to get listener: %v", err)
+				}
+
+				fmt.Fprintf(os.Stderr, "Serving *.%s on %s...\n", k.String("domain"), addr)
+				//nolint:errcheck
+				go http.Serve(listener, handler)
+			}
 
 			if flags.cron {
 				fmt.Fprintln(os.Stderr, "Starting cron jobs...")
@@ -100,12 +132,20 @@ func NewCmdUp() *cobra.Command {
 			<-sigint
 
 			fmt.Fprintln(os.Stderr, "Shutting down server...")
-			httpServer.Close()
 			return nil
 		},
 	}
 
-	cmd.Flags().BoolVar(&flags.cron, "cron", false, "run cron jobs")
+	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
+	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
+	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
+	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "key file")
+	cmd.Flags().BoolVar(&flags.cron, "cron", false, "tls run cron jobs")
+
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-key")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "addr")
+
 	return cmd
 }
 
@@ -239,6 +279,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 	}
 
 	wk := worker.NewWorker(a, rootDir, domain)
+
 	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)

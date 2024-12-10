@@ -8,7 +8,9 @@
         <array>
             <string>{{ .ExecPath }}</string>
             <string>up</string>
-            <string>--cron</string>
+            {{- range .Args }}
+            <string>{{ . }}</string>
+            {{- end }}
         </array>
         <key>EnvironmentVariables</key>
         <dict>
