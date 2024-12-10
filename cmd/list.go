@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -21,6 +22,7 @@ func NewCmdList() *cobra.Command {
 		template     string
 		templateFile string
 		json         bool
+		admin        bool
 	}
 
 	cmd := &cobra.Command{
@@ -36,10 +38,16 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
+				admin := slices.Contains(k.Strings("adminApps"), name)
+				if cmd.Flags().Changed("admin") && flags.admin != admin {
+					continue
+				}
+
 				apps = append(apps, app.App{
-					Name: name,
-					Dir:  filepath.Join(rootDir, name),
-					URL:  fmt.Sprintf("https://%s.%s", name, k.String("domain")),
+					Name:  name,
+					Dir:   filepath.Join(rootDir, name),
+					URL:   fmt.Sprintf("https://%s.%s", name, k.String("domain")),
+					Admin: admin,
 				})
 			}
 
@@ -112,11 +120,17 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(os.Stdout, false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir", "Url"})
+			printer.AddHeader([]string{"Name", "Dir", "Url", "Admin"})
 			for _, a := range apps {
 				printer.AddField(a.Name)
 				printer.AddField(strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1))
 				printer.AddField(a.URL)
+
+				if a.Admin {
+					printer.AddField("Yes")
+				} else {
+					printer.AddField("No")
+				}
 
 				printer.EndRow()
 			}
@@ -128,6 +142,7 @@ func NewCmdList() *cobra.Command {
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
 	cmd.Flags().StringVar(&flags.template, "template", "", "template to use")
 	cmd.Flags().StringVar(&flags.templateFile, "template-file", "", "template file to use")
+	cmd.Flags().BoolVar(&flags.admin, "admin", false, "filter by admin")
 
 	return cmd
 }
