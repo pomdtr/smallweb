@@ -14,7 +14,5 @@ COPY --from=builder /build/smallweb /usr/local/bin/smallweb
 ENV SMALLWEB_DIR=/smallweb
 VOLUME ["$SMALLWEB_DIR"]
 
-# Set entrypoint
-ENV SMALLWEB_ADDR=0.0.0.0:7777
 EXPOSE 7777
-ENTRYPOINT ["/usr/local/bin/smallweb", "up", "--cron"]
+ENTRYPOINT ["/usr/local/bin/smallweb", "up", "--cron", "--addr", "0.0.0.0:7777"]

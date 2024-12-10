@@ -19,7 +19,7 @@ var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 var servicePath = filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
 
-func InstallService() error {
+func InstallService(args []string) error {
 	if utils.FileExists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
@@ -42,6 +42,7 @@ func InstallService() error {
 	if err := serviceConfig.Execute(f, map[string]any{
 		"SmallwebDir": utils.RootDir,
 		"ExecPath":    execPath,
+		"Args":        args,
 		"HomeDir":     os.Getenv("HOME"),
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)

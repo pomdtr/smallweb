@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/glamour"
-	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
@@ -26,23 +25,12 @@ var (
 )
 
 func NewCmdRoot(changelog string) *cobra.Command {
-	defaultProvider := confmap.Provider(map[string]interface{}{
-		"addr":   ":7777",
-		"domain": "localhost",
-	}, "")
-
 	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
 		switch s {
 		case "SMALLWEB_DIR":
 			return "dir", v
-		case "SMALLWEB_ADDR":
-			return "addr", v
 		case "SMALLWEB_DOMAIN":
 			return "domain", v
-		case "SMALLWEB_CERT":
-			return "cert", v
-		case "SMALLWEB_KEY":
-			return "key", v
 		case "SMALLWEB_CUSTOM_DOMAINS":
 			customDomains := make(map[string]string)
 			for _, entry := range strings.Split(v, ";") {
@@ -65,12 +53,10 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	fileProvider := file.Provider(configPath)
 	_ = fileProvider.Watch(func(event interface{}, err error) {
 		k = koanf.New(".")
-		_ = k.Load(defaultProvider, nil)
 		_ = k.Load(fileProvider, utils.ConfigParser())
 		_ = k.Load(envProvider, nil)
 	})
 
-	_ = k.Load(defaultProvider, nil)
 	_ = k.Load(fileProvider, utils.ConfigParser())
 	_ = k.Load(envProvider, nil)
 

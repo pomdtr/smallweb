@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -27,7 +29,11 @@ import (
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
-		cron bool
+		cron        bool
+		addr        string
+		onDemandTLS bool
+		tlsCert     string
+		tlsKey      string
 	}
 
 	cmd := &cobra.Command{
@@ -68,27 +74,48 @@ func NewCmdUp() *cobra.Command {
 				MaxAge:     28,
 			}, nil))
 
-			certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
-				DecisionFunc: func(ctx context.Context, name string) error {
-					appname, _, ok := lookupApp(name, k.String("domain"), k.StringMap("customDomains"))
-					if !ok {
-						return fmt.Errorf("failed to lookup app: %v", err)
-					}
-
-					if _, err := app.NewApp(appname, utils.RootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
-						return fmt.Errorf("failed to load app: %v", err)
-					}
-
-					return nil
-				},
-			}
-
-			//nolint:errcheck
-			go certmagic.HTTPS(nil, httpLogger.Middleware(&Handler{
+			handler := httpLogger.Middleware(&Handler{
 				logger:  consoleLogger,
 				watcher: watcher,
 				workers: make(map[string]*worker.Worker),
-			}))
+			})
+
+			if flags.onDemandTLS {
+				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
+					DecisionFunc: func(ctx context.Context, name string) error {
+						appname, _, ok := lookupApp(name, k.String("domain"), k.StringMap("customDomains"))
+						if !ok {
+							return fmt.Errorf("failed to lookup app: %v", err)
+						}
+
+						if _, err := app.NewApp(appname, utils.RootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
+							return fmt.Errorf("failed to load app: %v", err)
+						}
+
+						return nil
+					},
+				}
+
+				fmt.Fprintf(os.Stderr, "Serving *.%s using on-demand TLS...\n", k.String("domain"))
+				go certmagic.HTTPS(nil, handler)
+			} else {
+				addr := flags.addr
+				if addr == "" {
+					if flags.tlsCert != "" || flags.tlsKey != "" {
+						addr = "0.0.0.0:443"
+					} else {
+						addr = "localhost:7777"
+					}
+				}
+
+				listener, err := getListener(addr, flags.tlsCert, flags.tlsKey)
+				if err != nil {
+					return fmt.Errorf("failed to get listener: %v", err)
+				}
+
+				fmt.Fprintf(os.Stderr, "Serving *.%s on %s...\n", k.String("domain"), addr)
+				go http.Serve(listener, handler)
+			}
 
 			if flags.cron {
 				fmt.Fprintln(os.Stderr, "Starting cron jobs...")
@@ -107,8 +134,52 @@ func NewCmdUp() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&flags.cron, "cron", false, "run cron jobs")
+	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
+	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
+	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
+	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "key file")
+	cmd.Flags().BoolVar(&flags.cron, "cron", false, "tls run cron jobs")
+
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-key")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "addr")
+
 	return cmd
+}
+
+func getListener(addr, cert, key string) (net.Listener, error) {
+	var config *tls.Config
+	if cert != "" && key != "" {
+		cert, err := tls.LoadX509KeyPair(cert, key)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load cert: %v", err)
+		}
+
+		config = &tls.Config{Certificates: []tls.Certificate{cert}}
+	}
+
+	if strings.HasPrefix(addr, "unix/") {
+		socketPath := strings.TrimPrefix(addr, "unix/")
+
+		if utils.FileExists(socketPath) {
+			if err := os.Remove(socketPath); err != nil {
+				return nil, fmt.Errorf("failed to remove existing socket: %v", err)
+			}
+		}
+
+		if config != nil {
+			return tls.Listen("unix", utils.ExpandTilde(socketPath), config)
+		}
+
+		return net.Listen("unix", utils.ExpandTilde(socketPath))
+	}
+
+	addr = strings.TrimPrefix(addr, "tcp/")
+	if config != nil {
+		return tls.Listen("tcp", addr, config)
+	}
+
+	return net.Listen("tcp", addr)
 }
 
 type Handler struct {

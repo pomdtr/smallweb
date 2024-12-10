@@ -18,7 +18,7 @@ var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 var servicePath = filepath.Join(os.Getenv("HOME"), ".config", "systemd", "user", "smallweb.service")
 
-func InstallService() error {
+func InstallService(args []string) error {
 	if utils.FileExists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
@@ -38,9 +38,10 @@ func InstallService() error {
 	}
 	defer f.Close()
 
-	if err := serviceConfig.Execute(f, map[string]string{
+	if err := serviceConfig.Execute(f, map[string]any{
 		"ExecPath":    execPath,
 		"SmallwebDir": utils.RootDir,
+		"Args":        args,
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)
 	}
