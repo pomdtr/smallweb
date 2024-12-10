@@ -97,6 +97,7 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				fmt.Fprintf(os.Stderr, "Serving *.%s using on-demand TLS...\n", k.String("domain"))
+				//nolint:errcheck
 				go certmagic.HTTPS(nil, handler)
 			} else {
 				addr := flags.addr
@@ -114,6 +115,7 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				fmt.Fprintf(os.Stderr, "Serving *.%s on %s...\n", k.String("domain"), addr)
+				//nolint:errcheck
 				go http.Serve(listener, handler)
 			}
 
