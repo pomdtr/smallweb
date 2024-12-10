@@ -5,7 +5,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart={{ .ExecPath }} up {{ .Args | join " " }}
+ExecStart={{ .ExecPath }} up {{ .Args }}
 Restart=always
 RestartSec=10
 Environment="SMALLWEB_DIR={{ .SmallwebDir }}"

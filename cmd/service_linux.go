@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/pomdtr/smallweb/utils"
@@ -41,7 +42,7 @@ func InstallService(args []string) error {
 	if err := serviceConfig.Execute(f, map[string]any{
 		"ExecPath":    execPath,
 		"SmallwebDir": utils.RootDir,
-		"Args":        args,
+		"Args":        strings.Join(args, " "),
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)
 	}
