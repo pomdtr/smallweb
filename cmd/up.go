@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	"crypto/tls"
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,10 +12,10 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"time"
 
 	_ "embed"
 
+	"github.com/caddyserver/certmagic"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -69,23 +68,36 @@ func NewCmdUp() *cobra.Command {
 				MaxAge:     28,
 			}, nil))
 
-			httpServer := http.Server{
-				ReadHeaderTimeout: 5 * time.Second,
-				Handler: httpLogger.Middleware(&Handler{
-					logger:  consoleLogger,
-					watcher: watcher,
-					workers: make(map[string]*worker.Worker),
-				}),
+			certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
+				DecisionFunc: func(ctx context.Context, name string) error {
+					if name == k.String("domain") {
+						return nil
+					}
+
+					if _, ok := k.StringMap("customDomains")[name]; ok {
+						return nil
+					}
+
+					parts := strings.Split(name, ".")
+					base := strings.Join(parts[1:], ".")
+					if base == k.String("domain") {
+						return nil
+					}
+
+					if v, ok := k.StringMap("customDomains")[base]; ok && v == "*" {
+						return nil
+					}
+
+					return fmt.Errorf("domain not allowed")
+				},
 			}
 
-			httpLn, err := getListener(k.String("addr"), utils.ExpandTilde(k.String("cert")), utils.ExpandTilde(k.String("key")))
-			if err != nil {
-				return fmt.Errorf("failed to listen: %v", err)
-			}
-
-			fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s\n", k.String("domain"), utils.RootDir, k.String("addr"))
 			//nolint:errcheck
-			go httpServer.Serve(httpLn)
+			go certmagic.HTTPS(nil, httpLogger.Middleware(&Handler{
+				logger:  consoleLogger,
+				watcher: watcher,
+				workers: make(map[string]*worker.Worker),
+			}))
 
 			if flags.cron {
 				fmt.Fprintln(os.Stderr, "Starting cron jobs...")
@@ -100,48 +112,12 @@ func NewCmdUp() *cobra.Command {
 			<-sigint
 
 			fmt.Fprintln(os.Stderr, "Shutting down server...")
-			httpServer.Close()
 			return nil
 		},
 	}
 
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "run cron jobs")
 	return cmd
-}
-
-func getListener(addr, cert, key string) (net.Listener, error) {
-	var config *tls.Config
-	if cert != "" && key != "" {
-		cert, err := tls.LoadX509KeyPair(cert, key)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load cert: %v", err)
-		}
-
-		config = &tls.Config{Certificates: []tls.Certificate{cert}}
-	}
-
-	if strings.HasPrefix(addr, "unix/") {
-		socketPath := strings.TrimPrefix(addr, "unix/")
-
-		if utils.FileExists(socketPath) {
-			if err := os.Remove(socketPath); err != nil {
-				return nil, fmt.Errorf("failed to remove existing socket: %v", err)
-			}
-		}
-
-		if config != nil {
-			return tls.Listen("unix", utils.ExpandTilde(socketPath), config)
-		}
-
-		return net.Listen("unix", utils.ExpandTilde(socketPath))
-	}
-
-	addr = strings.TrimPrefix(addr, "tcp/")
-	if config != nil {
-		return tls.Listen("tcp", addr, config)
-	}
-
-	return net.Listen("tcp", addr)
 }
 
 type Handler struct {
@@ -239,6 +215,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 	}
 
 	wk := worker.NewWorker(a, rootDir, domain)
+
 	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
