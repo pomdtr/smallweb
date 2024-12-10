@@ -27,8 +27,7 @@ var (
 
 func NewCmdRoot(changelog string) *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
-		"addr":   ":7777",
-		"domain": "localhost",
+		"addr": ":7777",
 	}, "")
 
 	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
