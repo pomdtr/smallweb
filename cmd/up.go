@@ -58,7 +58,7 @@ func NewCmdUp() *cobra.Command {
 				MaxAge:     28,
 			})
 
-			watcher, err := watcher.NewWatcher(utils.RootDir)
+			watcher, err := watcher.NewWatcher(rootDir)
 			if err != nil {
 				return fmt.Errorf("failed to create watcher: %v", err)
 			}
@@ -88,7 +88,7 @@ func NewCmdUp() *cobra.Command {
 							return fmt.Errorf("failed to lookup app: %v", err)
 						}
 
-						if _, err := app.NewApp(appname, utils.RootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
+						if _, err := app.NewApp(appname, rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
 							return fmt.Errorf("failed to load app: %v", err)
 						}
 
@@ -192,7 +192,7 @@ type Handler struct {
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rootDir := utils.RootDir
+	rootDir := rootDir
 
 	appname, redirect, ok := lookupApp(r.Host, k.String("domain"), k.StringMap("customDomains"))
 	if !ok {

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -195,7 +194,7 @@ func NewCmdLogs() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.template, "template", "", "output logs using a Go template")
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
-	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(utils.RootDir))
+	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(rootDir))
 	cmd.Flags().BoolVar(&flags.console, "console", false, "output console logs")
 
 	return cmd

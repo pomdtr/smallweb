@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +22,7 @@ func NewCmdSecrets() *cobra.Command {
 		Short:             "Manage app secrets",
 		Aliases:           []string{"secret"},
 		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp(utils.RootDir),
+		ValidArgsFunction: completeApp(rootDir),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if err := checkSOPS(); err != nil {
 				return err
@@ -44,7 +43,7 @@ func NewCmdSecrets() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.RootDir
+			rootDir := rootDir
 			if flags.updateKeys {
 				globalSecretsPath := filepath.Join(rootDir, ".smallweb", "secrets.enc.env")
 				if stat, err := os.Stat(globalSecretsPath); err == nil && !stat.IsDir() {
@@ -100,7 +99,7 @@ func NewCmdSecrets() *cobra.Command {
 			}
 
 			if len(args) == 1 {
-				secretsPath := filepath.Join(utils.RootDir, args[0], "secrets.enc.env")
+				secretsPath := filepath.Join(rootDir, args[0], "secrets.enc.env")
 				c := exec.Command("sops", secretsPath)
 				c.Dir = rootDir
 				c.Stdin = os.Stdin

@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +15,7 @@ func NewCmdRun() *cobra.Command {
 		Use:                "run <app> [args...]",
 		Short:              "Run an app cli",
 		DisableFlagParsing: true,
-		ValidArgsFunction:  completeApp(utils.RootDir),
+		ValidArgsFunction:  completeApp(rootDir),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -26,12 +25,12 @@ func NewCmdRun() *cobra.Command {
 				return cmd.Help()
 			}
 
-			a, err := app.NewApp(args[0], utils.RootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
+			a, err := app.NewApp(args[0], rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a, utils.RootDir, k.String("domain"))
+			wk := worker.NewWorker(a, rootDir, k.String("domain"))
 			command, err := wk.Command(args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

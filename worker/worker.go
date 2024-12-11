@@ -143,7 +143,7 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 	if a.Admin {
 		flags = append(
 			flags,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir, me.RootDir, sandboxPath, deno),
+			fmt.Sprintf("--allow-read=%s,%s,%s", me.RootDir, sandboxPath, deno),
 			fmt.Sprintf("--allow-write=%s", me.RootDir),
 		)
 		if len(allowRun) > 0 {
@@ -167,13 +167,13 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 
 			flags = append(
 				flags,
-				fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", utils.DenoDir, root, target, sandboxPath, deno),
+				fmt.Sprintf("--allow-read=%s,%s,%s,%s", root, target, sandboxPath, deno),
 				fmt.Sprintf("--allow-write=%s,%s", filepath.Join(root, "data"), filepath.Join(target, "data")),
 			)
 		} else {
 			flags = append(
 				flags,
-				fmt.Sprintf("--allow-read=%s,%s,%s,%s", utils.DenoDir, root, sandboxPath, deno),
+				fmt.Sprintf("--allow-read=%s,%s,%s", root, sandboxPath, deno),
 				fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
 			)
 		}

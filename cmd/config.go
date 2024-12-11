@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +13,7 @@ func NewCmdConfig() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if args[0] == "dir" {
-				fmt.Println(utils.RootDir)
+				fmt.Println(rootDir)
 				return nil
 			}
 

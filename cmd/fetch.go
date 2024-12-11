@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
@@ -25,7 +24,7 @@ func NewCmdFetch() *cobra.Command {
 		Use:               "fetch <app> [path]",
 		Short:             "Fetch a path from an app",
 		Args:              cobra.RangeArgs(1, 2),
-		ValidArgsFunction: completeApp(utils.RootDir),
+		ValidArgsFunction: completeApp(rootDir),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var body io.Reader
 			if flags.data != "" {
@@ -53,12 +52,12 @@ func NewCmdFetch() *cobra.Command {
 
 			req.Host = fmt.Sprintf("%s.%s", args[0], k.String("domain"))
 
-			a, err := app.NewApp(args[0], utils.RootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
+			a, err := app.NewApp(args[0], rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a, utils.RootDir, k.String("domain"))
+			wk := worker.NewWorker(a, rootDir, k.String("domain"))
 			_ = wk.Start()
 
 			//nolint:errcheck

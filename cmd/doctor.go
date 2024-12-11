@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +16,7 @@ func NewCmdDoctor() *cobra.Command {
 		Short: "Check the system for potential problems 🩺",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Fprintln(os.Stderr, "🔍 Checking smallweb directory...")
-			if _, err := os.Stat(utils.RootDir); os.IsNotExist(err) {
+			if _, err := os.Stat(rootDir); os.IsNotExist(err) {
 				fmt.Fprintln(os.Stderr, "❌ Smallweb directory not found")
 				fmt.Fprintln(os.Stderr, "💡 Run `smallweb init` to initialize the workspace")
 				return nil

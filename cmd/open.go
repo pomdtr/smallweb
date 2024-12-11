@@ -8,7 +8,6 @@ import (
 
 	"github.com/cli/browser"
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -17,9 +16,9 @@ func NewCmdOpen() *cobra.Command {
 		Use:               "open [app]",
 		Short:             "Open an app in the browser",
 		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp(utils.RootDir),
+		ValidArgsFunction: completeApp(rootDir),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.RootDir
+			rootDir := rootDir
 
 			if len(args) == 0 {
 				cwd, err := os.Getwd()

@@ -12,7 +12,6 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -30,7 +29,7 @@ func NewCmdList() *cobra.Command {
 		Short:   "List all smallweb apps",
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := utils.RootDir
+			rootDir := rootDir
 			names, err := app.ListApps(rootDir)
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)

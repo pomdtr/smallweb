@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +18,7 @@ func NewCmdInstall() *cobra.Command {
 		Use:               "install [app]",
 		Short:             "Install an app to your shell",
 		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: completeApp(utils.RootDir),
+		ValidArgsFunction: completeApp(rootDir),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			binDir := path.Join(os.Getenv("HOME"), ".local", "bin")
 			if err := os.MkdirAll(binDir, 0755); err != nil {

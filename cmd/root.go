@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adrg/xdg"
 	"github.com/charmbracelet/glamour"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -21,8 +22,17 @@ import (
 )
 
 var (
-	k = koanf.New(".")
+	k       = koanf.New(".")
+	rootDir string
 )
+
+func init() {
+	rootDir = os.Getenv("SMALLWEB_DIR")
+	if rootDir == "" {
+		rootDir = filepath.Join(os.Getenv("HOME"), "smallweb")
+	}
+
+}
 
 func NewCmdRoot(changelog string) *cobra.Command {
 	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
@@ -48,7 +58,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		return "", nil
 	})
 
-	rootDir := utils.RootDir
+	rootDir := rootDir
 	configPath := filepath.Join(rootDir, ".smallweb", "config.json")
 	fileProvider := file.Provider(configPath)
 	_ = fileProvider.Watch(func(event interface{}, err error) {
@@ -118,7 +128,10 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		}
 	}
 
-	for _, pluginDir := range utils.PluginDirs {
+	for _, pluginDir := range []string{
+		filepath.Join(rootDir, ".smallweb", "plugins"),
+		filepath.Join(xdg.DataHome, "smallweb", "plugins"),
+	} {
 		entries, err := os.ReadDir(pluginDir)
 		if err != nil {
 			continue
