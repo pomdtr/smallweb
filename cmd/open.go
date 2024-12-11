@@ -16,7 +16,7 @@ func NewCmdOpen() *cobra.Command {
 		Use:               "open [app]",
 		Short:             "Open an app in the browser",
 		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp(k.String("dir")),
+		ValidArgsFunction: completeApp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				cwd, err := os.Getwd()

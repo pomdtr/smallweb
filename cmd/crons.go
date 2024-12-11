@@ -108,7 +108,7 @@ func NewCmdCrons() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(k.String("dir")))
+	_ = cmd.RegisterFlagCompletionFunc("app", completeApp)
 
 	return cmd
 }

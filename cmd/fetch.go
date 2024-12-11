@@ -24,7 +24,7 @@ func NewCmdFetch() *cobra.Command {
 		Use:               "fetch <app> [path]",
 		Short:             "Fetch a path from an app",
 		Args:              cobra.RangeArgs(1, 2),
-		ValidArgsFunction: completeApp(k.String("dir")),
+		ValidArgsFunction: completeApp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var body io.Reader
 			if flags.data != "" {

@@ -22,7 +22,7 @@ func NewCmdSecrets() *cobra.Command {
 		Short:             "Manage app secrets",
 		Aliases:           []string{"secret"},
 		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp(k.String("dir")),
+		ValidArgsFunction: completeApp,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if err := checkSOPS(); err != nil {
 				return err

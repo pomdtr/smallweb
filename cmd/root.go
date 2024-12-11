@@ -62,8 +62,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		Short:   "Host websites from your internet folder",
 		Version: build.Version,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			rootCmd := cmd.Root()
-			flagProvider := posflag.Provider(rootCmd.PersistentFlags(), ".", k)
+			flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 			_ = k.Load(flagProvider, nil)
 
 			configPath := filepath.Join(k.String("dir"), ".smallweb", "config.json")
@@ -202,17 +201,18 @@ func isExecutable(path string) (bool, error) {
 	return fileInfo.Mode().Perm()&0111 != 0, nil
 }
 
-func completeApp(rootDir string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		if len(args) > 0 {
-			return nil, cobra.ShellCompDirectiveDefault
-		}
+func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
+	_ = k.Load(flagProvider, nil)
 
-		apps, err := app.ListApps(rootDir)
-		if err != nil {
-			return nil, cobra.ShellCompDirectiveDefault
-		}
-
-		return apps, cobra.ShellCompDirectiveDefault
+	if len(args) > 0 {
+		return nil, cobra.ShellCompDirectiveDefault
 	}
+
+	apps, err := app.ListApps(k.String("dir"))
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+
+	return apps, cobra.ShellCompDirectiveDefault
 }
