@@ -10,7 +10,7 @@ import (
 
 var script = `#!/bin/sh
 
-exec smallweb run %s -- "$@"
+exec smallweb --dir=%s run %s -- "$@"
 `
 
 func NewCmdInstall() *cobra.Command {
@@ -26,7 +26,7 @@ func NewCmdInstall() *cobra.Command {
 			}
 
 			binPath := path.Join(binDir, fmt.Sprintf("%s.%s", args[0], k.String("domain")))
-			if err := os.WriteFile(binPath, []byte(fmt.Sprintf(script, args[0])), 0755); err != nil {
+			if err := os.WriteFile(binPath, []byte(fmt.Sprintf(script, k.String("dir"), args[0])), 0755); err != nil {
 				return fmt.Errorf("failed to write script: %w", err)
 			}
 
