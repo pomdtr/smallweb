@@ -10,7 +10,7 @@ import (
 
 var script = `#!/bin/sh
 
-exec smallweb run %s "$@"
+exec smallweb run %s -- "$@"
 `
 
 func NewCmdInstall() *cobra.Command {
