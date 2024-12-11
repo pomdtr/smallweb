@@ -32,8 +32,8 @@ func NewCmdUp() *cobra.Command {
 		cron        bool
 		addr        string
 		onDemandTLS bool
-		tlsCert     string
-		tlsKey      string
+		cert        string
+		key         string
 	}
 
 	cmd := &cobra.Command{
@@ -102,14 +102,14 @@ func NewCmdUp() *cobra.Command {
 			} else {
 				addr := flags.addr
 				if addr == "" {
-					if flags.tlsCert != "" || flags.tlsKey != "" {
+					if flags.cert != "" || flags.key != "" {
 						addr = "0.0.0.0:443"
 					} else {
 						addr = "localhost:7777"
 					}
 				}
 
-				listener, err := getListener(addr, flags.tlsCert, flags.tlsKey)
+				listener, err := getListener(addr, flags.cert, flags.key)
 				if err != nil {
 					return fmt.Errorf("failed to get listener: %v", err)
 				}
@@ -138,12 +138,12 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
-	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
-	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "key file")
-	cmd.Flags().BoolVar(&flags.cron, "cron", false, "tls run cron jobs")
+	cmd.Flags().StringVar(&flags.cert, "cert", "", "tls certificate file")
+	cmd.Flags().StringVar(&flags.key, "key", "", "key file")
+	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
 
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-key")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "cert")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "key")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "addr")
 
 	return cmd
