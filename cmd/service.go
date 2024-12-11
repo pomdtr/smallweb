@@ -25,9 +25,8 @@ func NewCmdService() *cobra.Command {
 
 func NewCmdServiceInstall() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:                "install [args...]",
-		Short:              "Install smallweb as a service",
-		DisableFlagParsing: true,
+		Use:   "install [args...]",
+		Short: "Install smallweb as a service",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := InstallService(args); err != nil {
 				return err
@@ -37,6 +36,7 @@ func NewCmdServiceInstall() *cobra.Command {
 			return nil
 		},
 	}
+
 	return cmd
 }
 

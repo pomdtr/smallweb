@@ -29,8 +29,7 @@ func NewCmdList() *cobra.Command {
 		Short:   "List all smallweb apps",
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := rootDir
-			names, err := app.ListApps(rootDir)
+			names, err := app.ListApps(k.String("dir"))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
@@ -44,7 +43,7 @@ func NewCmdList() *cobra.Command {
 
 				apps = append(apps, app.App{
 					Name:  name,
-					Dir:   filepath.Join(rootDir, name),
+					Dir:   filepath.Join(k.String("dir"), name),
 					URL:   fmt.Sprintf("https://%s.%s", name, k.String("domain")),
 					Admin: admin,
 				})

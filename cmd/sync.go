@@ -19,7 +19,7 @@ func NewCmdSync() *cobra.Command {
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			remote, remoteDir := args[0], args[1]
-			beta := rootDir
+			beta := k.String("dir")
 			syncName := strings.Replace(k.String("domain"), ".", "-", -1)
 			command := exec.Command("mutagen", "sync", "create", fmt.Sprintf("--name=%s", syncName), "--ignore=node_modules,.DS_Store", "--ignore-vcs", "--mode=two-way-resolved", fmt.Sprintf("%s:%s", remote, remoteDir), beta)
 

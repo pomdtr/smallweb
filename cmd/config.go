@@ -13,7 +13,7 @@ func NewCmdConfig() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if args[0] == "dir" {
-				fmt.Println(rootDir)
+				fmt.Println(k.String("dir"))
 				return nil
 			}
 

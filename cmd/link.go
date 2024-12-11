@@ -25,7 +25,7 @@ func NewCmdLink() *cobra.Command {
 				return fmt.Errorf("source does not exist: %w", err)
 			}
 
-			if !strings.HasPrefix(source, rootDir) {
+			if !strings.HasPrefix(source, k.String("dir")) {
 				return fmt.Errorf("source must be inside the smallweb directory")
 			}
 
@@ -39,7 +39,7 @@ func NewCmdLink() *cobra.Command {
 			}
 
 			// if target is inside the smallweb directory, create a relative symlink
-			if strings.HasPrefix(target, rootDir) {
+			if strings.HasPrefix(target, k.String("dir")) {
 				relative, err := filepath.Rel(filepath.Dir(target), source)
 				if err != nil {
 					return fmt.Errorf("failed to get relative path: %w", err)

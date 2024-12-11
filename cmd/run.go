@@ -12,10 +12,9 @@ import (
 
 func NewCmdRun() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:                "run <app> [args...]",
-		Short:              "Run an app cli",
-		DisableFlagParsing: true,
-		ValidArgsFunction:  completeApp(rootDir),
+		Use:               "run <app> [args...]",
+		Short:             "Run an app cli",
+		ValidArgsFunction: completeApp(k.String("dir")),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
@@ -25,12 +24,12 @@ func NewCmdRun() *cobra.Command {
 				return cmd.Help()
 			}
 
-			a, err := app.NewApp(args[0], rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
+			a, err := app.NewApp(args[0], k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a, rootDir, k.String("domain"))
+			wk := worker.NewWorker(a, k.String("dir"), k.String("domain"))
 			command, err := wk.Command(args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

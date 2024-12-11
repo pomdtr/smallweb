@@ -58,7 +58,7 @@ func NewCmdUp() *cobra.Command {
 				MaxAge:     28,
 			})
 
-			watcher, err := watcher.NewWatcher(rootDir)
+			watcher, err := watcher.NewWatcher(k.String("dir"))
 			if err != nil {
 				return fmt.Errorf("failed to create watcher: %v", err)
 			}
@@ -88,7 +88,7 @@ func NewCmdUp() *cobra.Command {
 							return fmt.Errorf("failed to lookup app: %v", err)
 						}
 
-						if _, err := app.NewApp(appname, rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
+						if _, err := app.NewApp(appname, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
 							return fmt.Errorf("failed to load app: %v", err)
 						}
 
@@ -192,8 +192,6 @@ type Handler struct {
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rootDir := rootDir
-
 	appname, redirect, ok := lookupApp(r.Host, k.String("domain"), k.StringMap("customDomains"))
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
@@ -212,7 +210,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wk, err := me.GetWorker(appname, rootDir, k.String("domain"))
+	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
 	if err != nil {
 		if errors.Is(err, app.ErrAppNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -278,7 +276,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a, rootDir, domain)
+	wk := worker.NewWorker(a, k.String("dir"), domain)
 
 	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {

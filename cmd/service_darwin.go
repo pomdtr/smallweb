@@ -40,7 +40,7 @@ func InstallService(args []string) error {
 	defer f.Close()
 
 	if err := serviceConfig.Execute(f, map[string]any{
-		"SmallwebDir": rootDir,
+		"SmallwebDir": k.String("dir"),
 		"ExecPath":    execPath,
 		"Args":        args,
 		"HomeDir":     os.Getenv("HOME"),

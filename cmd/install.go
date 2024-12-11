@@ -18,7 +18,7 @@ func NewCmdInstall() *cobra.Command {
 		Use:               "install [app]",
 		Short:             "Install an app to your shell",
 		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: completeApp(rootDir),
+		ValidArgsFunction: completeApp(k.String("dir")),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			binDir := path.Join(os.Getenv("HOME"), ".local", "bin")
 			if err := os.MkdirAll(binDir, 0755); err != nil {

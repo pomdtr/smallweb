@@ -22,7 +22,7 @@ func NewCmdSecrets() *cobra.Command {
 		Short:             "Manage app secrets",
 		Aliases:           []string{"secret"},
 		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp(rootDir),
+		ValidArgsFunction: completeApp(k.String("dir")),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if err := checkSOPS(); err != nil {
 				return err
@@ -43,28 +43,27 @@ func NewCmdSecrets() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := rootDir
 			if flags.updateKeys {
-				globalSecretsPath := filepath.Join(rootDir, ".smallweb", "secrets.enc.env")
+				globalSecretsPath := filepath.Join(k.String("dir"), ".smallweb", "secrets.enc.env")
 				if stat, err := os.Stat(globalSecretsPath); err == nil && !stat.IsDir() {
 					c := exec.Command("sops", "updatekeys", globalSecretsPath)
-					c.Dir = rootDir
+					c.Dir = k.String("dir")
 
 					if err := c.Run(); err != nil {
 						return fmt.Errorf("failed to update keys: %w", err)
 					}
 				}
 
-				apps, err := app.ListApps(rootDir)
+				apps, err := app.ListApps(k.String("dir"))
 				if err != nil {
 					return fmt.Errorf("failed to list apps: %w", err)
 				}
 
 				for _, a := range apps {
-					secretsPath := filepath.Join(rootDir, a, "secrets.enc.env")
+					secretsPath := filepath.Join(k.String("dir"), a, "secrets.enc.env")
 					if stat, err := os.Stat(secretsPath); err == nil && !stat.IsDir() {
 						c := exec.Command("sops", "updatekeys", secretsPath)
-						c.Dir = rootDir
+						c.Dir = k.String("dir")
 
 						if err := c.Run(); err != nil {
 							return fmt.Errorf("failed to update keys: %w", err)
@@ -78,10 +77,10 @@ func NewCmdSecrets() *cobra.Command {
 			}
 
 			if flags.global {
-				globalSecretsPath := filepath.Join(rootDir, ".smallweb", "secrets.enc.env")
+				globalSecretsPath := filepath.Join(k.String("dir"), ".smallweb", "secrets.enc.env")
 
 				c := exec.Command("sops", globalSecretsPath)
-				c.Dir = rootDir
+				c.Dir = k.String("dir")
 				c.Stdin = os.Stdin
 				c.Stdout = os.Stdout
 				c.Stderr = os.Stderr
@@ -99,9 +98,9 @@ func NewCmdSecrets() *cobra.Command {
 			}
 
 			if len(args) == 1 {
-				secretsPath := filepath.Join(rootDir, args[0], "secrets.enc.env")
+				secretsPath := filepath.Join(k.String("dir"), args[0], "secrets.enc.env")
 				c := exec.Command("sops", secretsPath)
-				c.Dir = rootDir
+				c.Dir = k.String("dir")
 				c.Stdin = os.Stdin
 				c.Stdout = os.Stdout
 				c.Stderr = os.Stderr
@@ -123,13 +122,13 @@ func NewCmdSecrets() *cobra.Command {
 				return fmt.Errorf("failed to get current directory: %w", err)
 			}
 
-			if filepath.Dir(wd) != rootDir {
+			if filepath.Dir(wd) != k.String("dir") {
 				return fmt.Errorf("no app specified and not in an app directory")
 			}
 
 			secretPath := filepath.Join(wd, "secrets.enc.env")
 			c := exec.Command("sops", secretPath)
-			c.Dir = rootDir
+			c.Dir = k.String("dir")
 			c.Stdin = os.Stdin
 			c.Stdout = os.Stdout
 			c.Stderr = os.Stderr

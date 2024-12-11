@@ -194,7 +194,7 @@ func NewCmdLogs() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.template, "template", "", "output logs using a Go template")
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
-	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(rootDir))
+	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(k.String("dir")))
 	cmd.Flags().BoolVar(&flags.console, "console", false, "output console logs")
 
 	return cmd

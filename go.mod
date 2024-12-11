@@ -25,6 +25,8 @@ require (
 	github.com/carapace-sh/carapace v1.5.0
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/getsops/sops/v3 v3.9.1
+	github.com/knadh/koanf/providers/confmap v0.1.0
+	github.com/knadh/koanf/providers/posflag v0.1.0
 	github.com/robfig/cron/v3 v3.0.1
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )

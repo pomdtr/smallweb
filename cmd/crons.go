@@ -12,7 +12,6 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
@@ -36,8 +35,7 @@ func NewCmdCrons() *cobra.Command {
 		Args:    cobra.NoArgs,
 		Short:   "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			rootDir := rootDir
-			apps, err := app.ListApps(rootDir)
+			apps, err := app.ListApps(k.String("dir"))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
@@ -48,7 +46,7 @@ func NewCmdCrons() *cobra.Command {
 					continue
 				}
 
-				app, err := app.NewApp(name, rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
+				app, err := app.NewApp(name, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -110,7 +108,7 @@ func NewCmdCrons() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(rootDir))
+	_ = cmd.RegisterFlagCompletionFunc("app", completeApp(k.String("dir")))
 
 	return cmd
 }
@@ -120,14 +118,13 @@ func CronRunner() *cron.Cron {
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
 		rounded := time.Now().Truncate(time.Minute)
-		rootDir := utils.ExpandTilde(k.String("dir"))
-		apps, err := app.ListApps(rootDir)
+		apps, err := app.ListApps(k.String("dir"))
 		if err != nil {
 			fmt.Println(err)
 		}
 
 		for _, name := range apps {
-			a, err := app.NewApp(name, rootDir, k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
+			a, err := app.NewApp(name, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -144,7 +141,7 @@ func CronRunner() *cron.Cron {
 					continue
 				}
 
-				wk := worker.NewWorker(a, rootDir, k.String("domain"))
+				wk := worker.NewWorker(a, k.String("dir"), k.String("domain"))
 
 				command, err := wk.Command(job.Args...)
 				if err != nil {

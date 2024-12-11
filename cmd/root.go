@@ -10,8 +10,10 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/charmbracelet/glamour"
+	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 	"github.com/mattn/go-isatty"
 
@@ -22,19 +24,13 @@ import (
 )
 
 var (
-	k       = koanf.New(".")
-	rootDir string
+	k = koanf.New(".")
 )
 
-func init() {
-	rootDir = os.Getenv("SMALLWEB_DIR")
-	if rootDir == "" {
-		rootDir = filepath.Join(os.Getenv("HOME"), "smallweb")
-	}
-
-}
-
 func NewCmdRoot(changelog string) *cobra.Command {
+	defaultProvider := confmap.Provider(map[string]interface{}{
+		"dir": filepath.Join(os.Getenv("HOME"), "smallweb"),
+	}, ".")
 	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
 		switch s {
 		case "SMALLWEB_DIR":
@@ -58,43 +54,53 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		return "", nil
 	})
 
-	rootDir := rootDir
-	configPath := filepath.Join(rootDir, ".smallweb", "config.json")
-	fileProvider := file.Provider(configPath)
-	_ = fileProvider.Watch(func(event interface{}, err error) {
-		k = koanf.New(".")
-		_ = k.Load(fileProvider, utils.ConfigParser())
-		_ = k.Load(envProvider, nil)
-	})
-
-	_ = k.Load(fileProvider, utils.ConfigParser())
+	_ = k.Load(defaultProvider, nil)
 	_ = k.Load(envProvider, nil)
 
-	cmd := &cobra.Command{
-		Use:          "smallweb",
-		Short:        "Host websites from your internet folder",
-		Version:      build.Version,
+	rootCmd := &cobra.Command{
+		Use:     "smallweb",
+		Short:   "Host websites from your internet folder",
+		Version: build.Version,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			rootCmd := cmd.Root()
+			flagProvider := posflag.Provider(rootCmd.PersistentFlags(), ".", k)
+			_ = k.Load(flagProvider, nil)
+
+			configPath := filepath.Join(k.String("dir"), ".smallweb", "config.json")
+			fileProvider := file.Provider(configPath)
+			_ = k.Load(fileProvider, utils.ConfigParser())
+
+			_ = fileProvider.Watch(func(event interface{}, err error) {
+				k = koanf.New(".")
+				_ = k.Load(defaultProvider, nil)
+				_ = k.Load(envProvider, nil)
+				_ = k.Load(posflag.Provider(cmd.PersistentFlags(), ".", k), nil)
+				_ = k.Load(fileProvider, utils.ConfigParser())
+			})
+		},
 		SilenceUsage: true,
 	}
 
-	cmd.AddCommand(NewCmdRun())
-	cmd.AddCommand(NewCmdDocs())
-	cmd.AddCommand(NewCmdUpgrade())
-	cmd.AddCommand(NewCmdUp())
-	cmd.AddCommand(NewCmdService())
-	cmd.AddCommand(NewCmdConfig())
-	cmd.AddCommand(NewCmdDoctor())
-	cmd.AddCommand(NewCmdOpen())
-	cmd.AddCommand(NewCmdList())
-	cmd.AddCommand(NewCmdFetch())
-	cmd.AddCommand(NewCmdCrons())
-	cmd.AddCommand(NewCmdInstall())
-	cmd.AddCommand(NewCmdLogs())
-	cmd.AddCommand(NewCmdSync())
-	cmd.AddCommand(NewCmdSecrets())
-	cmd.AddCommand(NewCmdLink())
+	rootCmd.PersistentFlags().String("dir", "", "The root directory for smallweb")
 
-	cmd.AddCommand(&cobra.Command{
+	rootCmd.AddCommand(NewCmdRun())
+	rootCmd.AddCommand(NewCmdDocs())
+	rootCmd.AddCommand(NewCmdUpgrade())
+	rootCmd.AddCommand(NewCmdUp())
+	rootCmd.AddCommand(NewCmdService())
+	rootCmd.AddCommand(NewCmdConfig())
+	rootCmd.AddCommand(NewCmdDoctor())
+	rootCmd.AddCommand(NewCmdOpen())
+	rootCmd.AddCommand(NewCmdList())
+	rootCmd.AddCommand(NewCmdFetch())
+	rootCmd.AddCommand(NewCmdCrons())
+	rootCmd.AddCommand(NewCmdInstall())
+	rootCmd.AddCommand(NewCmdLogs())
+	rootCmd.AddCommand(NewCmdSync())
+	rootCmd.AddCommand(NewCmdSecrets())
+	rootCmd.AddCommand(NewCmdLink())
+
+	rootCmd.AddCommand(&cobra.Command{
 		Use:   "changelog",
 		Short: "Show the changelog",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -116,20 +122,20 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
 		disabledCommands := strings.Split(env, ",")
 		for _, commandName := range disabledCommands {
-			if command, ok := GetCommand(cmd, commandName); ok {
-				cmd.RemoveCommand(command)
+			if command, ok := GetCommand(rootCmd, commandName); ok {
+				rootCmd.RemoveCommand(command)
 			}
 		}
 	}
 
 	if env, ok := os.LookupEnv("SMALLWEB_DISABLE_PLUGINS"); ok {
 		if disablePlugins, _ := strconv.ParseBool(env); disablePlugins {
-			return cmd
+			return rootCmd
 		}
 	}
 
 	for _, pluginDir := range []string{
-		filepath.Join(rootDir, ".smallweb", "plugins"),
+		filepath.Join(k.String("dir"), ".smallweb", "plugins"),
 		filepath.Join(xdg.DataHome, "smallweb", "plugins"),
 	} {
 		entries, err := os.ReadDir(pluginDir)
@@ -143,10 +149,9 @@ func NewCmdRoot(changelog string) *cobra.Command {
 			}
 
 			plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-			cmd.AddCommand(&cobra.Command{
-				Use:                strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name())),
-				Short:              fmt.Sprintf("Run the %s plugin", plugin),
-				DisableFlagParsing: true,
+			rootCmd.AddCommand(&cobra.Command{
+				Use:   strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name())),
+				Short: fmt.Sprintf("Run the %s plugin", plugin),
 				RunE: func(cmd *cobra.Command, args []string) error {
 					entrypoint := filepath.Join(pluginDir, entry.Name())
 
@@ -161,7 +166,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 					command := exec.Command(entrypoint, args...)
 					command.Env = os.Environ()
 					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
+					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", k.String("dir")))
 					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
 
 					command.Stdin = os.Stdin
@@ -176,7 +181,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		}
 	}
 
-	return cmd
+	return rootCmd
 }
 
 func GetCommand(cmd *cobra.Command, name string) (*cobra.Command, bool) {
