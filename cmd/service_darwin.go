@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -48,8 +49,14 @@ func InstallService(args []string) error {
 	}
 	defer f.Close()
 
+	user, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("failed to get current user: %v", err)
+	}
+
 	if err := serviceConfig.Execute(f, map[string]any{
 		"SmallwebDir": k.String("dir"),
+		"User":        user.Username,
 		"ExecPath":    execPath,
 		"Args":        args,
 		"HomeDir":     os.Getenv("HOME"),
