@@ -81,6 +81,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		},
 		ValidArgsFunction: completePlugins,
 		SilenceUsage:      true,
+		Args:              cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
