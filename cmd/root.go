@@ -68,13 +68,15 @@ func NewCmdRoot(changelog string) *cobra.Command {
 			configPath := filepath.Join(k.String("dir"), ".smallweb", "config.json")
 			fileProvider := file.Provider(configPath)
 			_ = k.Load(fileProvider, utils.ConfigParser())
+			_ = k.Load(envProvider, nil)
+			_ = k.Load(flagProvider, nil)
 
 			_ = fileProvider.Watch(func(event interface{}, err error) {
 				k = koanf.New(".")
 				_ = k.Load(defaultProvider, nil)
-				_ = k.Load(envProvider, nil)
-				_ = k.Load(posflag.Provider(cmd.PersistentFlags(), ".", k), nil)
 				_ = k.Load(fileProvider, utils.ConfigParser())
+				_ = k.Load(envProvider, nil)
+				_ = k.Load(flagProvider, nil)
 			})
 
 			return nil
