@@ -80,7 +80,6 @@ func NewCmdRoot(changelog string) *cobra.Command {
 			return nil
 		},
 		ValidArgsFunction: completePlugins,
-		Args:              cobra.MaximumNArgs(1),
 		SilenceUsage:      true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
