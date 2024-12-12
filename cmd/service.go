@@ -2,9 +2,18 @@ package cmd
 
 import (
 	_ "embed"
+	"slices"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
+
+func getServiceName(domain string) string {
+	parts := strings.Split(domain, ".")
+	slices.Reverse(parts)
+	parts = append(parts, "server")
+	return strings.Join(parts, ".")
+}
 
 func NewCmdService() *cobra.Command {
 	cmd := &cobra.Command{

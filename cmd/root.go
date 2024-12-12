@@ -61,13 +61,17 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		Use:     "smallweb",
 		Short:   "Host websites from your internet folder",
 		Version: build.Version,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 			_ = k.Load(flagProvider, nil)
 
 			configPath := filepath.Join(k.String("dir"), ".smallweb", "config.json")
 			fileProvider := file.Provider(configPath)
 			_ = k.Load(fileProvider, utils.ConfigParser())
+
+			if k.String("domain") == "" {
+				return fmt.Errorf("domain is required")
+			}
 
 			_ = fileProvider.Watch(func(event interface{}, err error) {
 				k = koanf.New(".")
@@ -76,6 +80,8 @@ func NewCmdRoot(changelog string) *cobra.Command {
 				_ = k.Load(posflag.Provider(cmd.PersistentFlags(), ".", k), nil)
 				_ = k.Load(fileProvider, utils.ConfigParser())
 			})
+
+			return nil
 		},
 		ValidArgsFunction: completePlugins,
 		Args:              cobra.MinimumNArgs(1),

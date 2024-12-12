@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -17,9 +18,13 @@ import (
 //go:embed embed/smallweb.service
 var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
-var servicePath = filepath.Join(os.Getenv("HOME"), ".config", "systemd", "user", "smallweb.service")
+
+func getServicePath(domain string) string {
+	return path.Join(os.Getenv("HOME"), ".config", "systemd", "user", getServiceName(domain)+".service")
+}
 
 func InstallService(args []string) error {
+	servicePath := getServicePath(k.String("domain"))
 	if utils.FileExists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
@@ -66,6 +71,7 @@ func InstallService(args []string) error {
 }
 
 func StartService() error {
+	servicePath := getServicePath(k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -78,6 +84,7 @@ func StartService() error {
 }
 
 func StopService() error {
+	servicePath := getServicePath(k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -90,6 +97,7 @@ func StopService() error {
 }
 
 func RestartService() error {
+	servicePath := getServicePath(k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -102,6 +110,7 @@ func RestartService() error {
 }
 
 func UninstallService() error {
+	servicePath := getServicePath(k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -129,6 +138,7 @@ func UninstallService() error {
 }
 
 func PrintServiceLogs(follow bool) error {
+	servicePath := getServicePath(k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
