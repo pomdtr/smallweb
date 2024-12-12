@@ -50,14 +50,14 @@ func InstallService(args []string) error {
 	}
 	defer f.Close()
 
-	username, err := user.Current()
+	user, err := user.Current()
 	if err != nil {
 		return fmt.Errorf("failed to get current user: %v", err)
 	}
 
 	if err := serviceConfig.Execute(f, map[string]any{
 		"ExecPath":    execPath,
-		"User":        username,
+		"User":        user.Username,
 		"SmallwebDir": k.String("dir"),
 		"Args":        strings.Join(args, " "),
 	}); err != nil {
@@ -215,15 +215,6 @@ func UninstallService() error {
 
 func PrintServiceLogs(follow bool) error {
 	uid := os.Getuid()
-	if uid == 0 {
-		return fmt.Errorf("`smallweb service logs` is not supported on Linux")
-	}
-
-	servicePath := getServicePath(uid, k.String("domain"))
-	if !utils.FileExists(servicePath) {
-		return fmt.Errorf("service not installed")
-	}
-
 	if uid == 0 {
 		logCmdArg := []string{getServiceName(k.String("domain"))}
 		if follow {

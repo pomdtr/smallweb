@@ -80,9 +80,13 @@ func NewCmdRoot(changelog string) *cobra.Command {
 			return nil
 		},
 		ValidArgsFunction: completePlugins,
-		Args:              cobra.MinimumNArgs(1),
+		Args:              cobra.MaximumNArgs(1),
 		SilenceUsage:      true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+
 			if env, ok := os.LookupEnv("SMALLWEB_DISABLE_PLUGINS"); ok {
 				if disablePlugins, _ := strconv.ParseBool(env); disablePlugins {
 					return cmd.Help()
