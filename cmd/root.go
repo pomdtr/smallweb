@@ -77,7 +77,62 @@ func NewCmdRoot(changelog string) *cobra.Command {
 				_ = k.Load(fileProvider, utils.ConfigParser())
 			})
 		},
-		SilenceUsage: true,
+		ValidArgsFunction: completePlugins,
+		Args:              cobra.MinimumNArgs(1),
+		SilenceUsage:      true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if env, ok := os.LookupEnv("SMALLWEB_DISABLE_PLUGINS"); ok {
+				if disablePlugins, _ := strconv.ParseBool(env); disablePlugins {
+					return cmd.Help()
+				}
+			}
+
+			for _, pluginDir := range []string{
+				filepath.Join(k.String("dir"), ".smallweb", "plugins"),
+				filepath.Join(xdg.DataHome, "smallweb", "plugins"),
+			} {
+				entries, err := os.ReadDir(pluginDir)
+				if err != nil {
+					continue
+				}
+
+				for _, entry := range entries {
+					if entry.IsDir() {
+						continue
+					}
+
+					plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+					if plugin != args[0] {
+						continue
+					}
+
+					entrypoint := filepath.Join(pluginDir, entry.Name())
+
+					if ok, err := isExecutable(entrypoint); err != nil {
+						return fmt.Errorf("failed to check if plugin is executable: %w", err)
+					} else if !ok {
+						if err := os.Chmod(entrypoint, 0755); err != nil {
+							return fmt.Errorf("failed to make plugin executable: %w", err)
+						}
+					}
+
+					command := exec.Command(entrypoint, args...)
+					command.Env = os.Environ()
+					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
+					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", k.String("dir")))
+					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
+
+					command.Stdin = os.Stdin
+					command.Stdout = os.Stdout
+					command.Stderr = os.Stderr
+
+					cmd.SilenceErrors = true
+					return command.Run()
+				}
+			}
+
+			return fmt.Errorf("unknown command \"%s\" for \"smallweb\"", args[0])
+		},
 	}
 
 	rootCmd.PersistentFlags().String("dir", "", "The root directory for smallweb")
@@ -127,59 +182,6 @@ func NewCmdRoot(changelog string) *cobra.Command {
 		}
 	}
 
-	if env, ok := os.LookupEnv("SMALLWEB_DISABLE_PLUGINS"); ok {
-		if disablePlugins, _ := strconv.ParseBool(env); disablePlugins {
-			return rootCmd
-		}
-	}
-
-	for _, pluginDir := range []string{
-		filepath.Join(k.String("dir"), ".smallweb", "plugins"),
-		filepath.Join(xdg.DataHome, "smallweb", "plugins"),
-	} {
-		entries, err := os.ReadDir(pluginDir)
-		if err != nil {
-			continue
-		}
-
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-
-			plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-			rootCmd.AddCommand(&cobra.Command{
-				Use:   strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name())),
-				Short: fmt.Sprintf("Run the %s plugin", plugin),
-				RunE: func(cmd *cobra.Command, args []string) error {
-					entrypoint := filepath.Join(pluginDir, entry.Name())
-
-					if ok, err := isExecutable(entrypoint); err != nil {
-						return fmt.Errorf("failed to check if plugin is executable: %w", err)
-					} else if !ok {
-						if err := os.Chmod(entrypoint, 0755); err != nil {
-							return fmt.Errorf("failed to make plugin executable: %w", err)
-						}
-					}
-
-					command := exec.Command(entrypoint, args...)
-					command.Env = os.Environ()
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", k.String("dir")))
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
-
-					command.Stdin = os.Stdin
-					command.Stdout = os.Stdout
-					command.Stderr = os.Stderr
-
-					cmd.SilenceErrors = true
-					return command.Run()
-				},
-			})
-
-		}
-	}
-
 	return rootCmd
 }
 
@@ -199,6 +201,38 @@ func isExecutable(path string) (bool, error) {
 		return false, err
 	}
 	return fileInfo.Mode().Perm()&0111 != 0, nil
+}
+
+func completePlugins(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
+	_ = k.Load(flagProvider, nil)
+
+	if len(args) > 0 {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+
+	var plugins []string
+	for _, pluginDir := range []string{
+		filepath.Join(k.String("dir"), ".smallweb", "plugins"),
+		filepath.Join(xdg.DataHome, "smallweb", "plugins"),
+	} {
+
+		entries, err := os.ReadDir(pluginDir)
+		if err != nil {
+			continue
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+
+			plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+			plugins = append(plugins, plugin)
+		}
+	}
+
+	return plugins, cobra.ShellCompDirectiveDefault
 }
 
 func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
