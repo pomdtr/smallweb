@@ -116,7 +116,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 						}
 					}
 
-					command := exec.Command(entrypoint, args...)
+					command := exec.Command(entrypoint, args[1:]...)
 					command.Env = os.Environ()
 					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
 					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", k.String("dir")))
@@ -228,7 +228,7 @@ func completePlugins(cmd *cobra.Command, args []string, toComplete string) ([]st
 			}
 
 			plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-			plugins = append(plugins, plugin)
+			plugins = append(plugins, fmt.Sprintf("%s\tPlugin %s", plugin, plugin))
 		}
 	}
 
