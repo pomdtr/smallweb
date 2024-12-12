@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"path"
 	"path/filepath"
 	"strings"
@@ -19,12 +20,17 @@ import (
 var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 
-func getServicePath(domain string) string {
+func getServicePath(uid int, domain string) string {
+	if uid == 0 {
+		return path.Join("/etc", "systemd", "system", getServiceName(domain)+".service")
+	}
+
 	return path.Join(os.Getenv("HOME"), ".config", "systemd", "user", getServiceName(domain)+".service")
 }
 
 func InstallService(args []string) error {
-	servicePath := getServicePath(k.String("domain"))
+	uid := os.Getuid()
+	servicePath := getServicePath(uid, k.String("domain"))
 	if utils.FileExists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
@@ -44,12 +50,34 @@ func InstallService(args []string) error {
 	}
 	defer f.Close()
 
+	username, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("failed to get current user: %v", err)
+	}
+
 	if err := serviceConfig.Execute(f, map[string]any{
 		"ExecPath":    execPath,
+		"User":        username,
 		"SmallwebDir": k.String("dir"),
 		"Args":        strings.Join(args, " "),
 	}); err != nil {
 		return fmt.Errorf("failed to write service file: %v", err)
+	}
+
+	if uid == 0 {
+		if err := exec.Command("systemctl", "daemon-reload").Run(); err != nil {
+			return fmt.Errorf("failed to reload systemd manager configuration: %v", err)
+		}
+
+		if err := exec.Command("systemctl", "enable", getServiceName(k.String("domain"))).Run(); err != nil {
+			return fmt.Errorf("failed to enable service: %v", err)
+		}
+
+		if err := exec.Command("systemctl", "start", getServiceName(k.String("domain"))).Run(); err != nil {
+			return fmt.Errorf("failed to start service: %v", err)
+		}
+
+		return nil
 	}
 
 	// Reload the systemd manager configuration
@@ -58,12 +86,12 @@ func InstallService(args []string) error {
 	}
 
 	// Enable the service to start on boot
-	if err := exec.Command("systemctl", "--user", "enable", "smallweb.service").Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "enable", getServiceName(k.String("domain"))).Run(); err != nil {
 		return fmt.Errorf("failed to enable service: %v", err)
 	}
 
 	// Start the service immediately
-	if err := exec.Command("systemctl", "--user", "start", "smallweb.service").Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "start", getServiceName(k.String("domain"))).Run(); err != nil {
 		return fmt.Errorf("failed to start service: %v", err)
 	}
 
@@ -71,12 +99,21 @@ func InstallService(args []string) error {
 }
 
 func StartService() error {
-	servicePath := getServicePath(k.String("domain"))
+	uid := os.Getuid()
+	servicePath := getServicePath(uid, k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
-	if err := exec.Command("systemctl", "--user", "start", "smallweb.service").Run(); err != nil {
+	if uid == 0 {
+		if err := exec.Command("systemctl", "start", getServiceName(k.String("domain"))).Run(); err != nil {
+			return fmt.Errorf("failed to start service: %v", err)
+		}
+
+		return nil
+	}
+
+	if err := exec.Command("systemctl", "--user", "start", getServiceName(k.String("domain"))).Run(); err != nil {
 		return fmt.Errorf("failed to start service: %v", err)
 	}
 
@@ -84,12 +121,21 @@ func StartService() error {
 }
 
 func StopService() error {
-	servicePath := getServicePath(k.String("domain"))
+	uid := os.Getuid()
+	servicePath := getServicePath(uid, k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
-	if err := exec.Command("systemctl", "--user", "stop", "smallweb.service").Run(); err != nil {
+	if uid == 0 {
+		if err := exec.Command("systemctl", "stop", getServiceName(k.String("domain"))).Run(); err != nil {
+			return fmt.Errorf("failed to stop service: %v", err)
+		}
+
+		return nil
+	}
+
+	if err := exec.Command("systemctl", "--user", "stop", getServiceName(k.String("domain"))).Run(); err != nil {
 		return fmt.Errorf("failed to stop service: %v", err)
 	}
 
@@ -97,12 +143,21 @@ func StopService() error {
 }
 
 func RestartService() error {
-	servicePath := getServicePath(k.String("domain"))
+	uid := os.Getuid()
+	servicePath := getServicePath(uid, k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
-	if err := exec.Command("systemctl", "--user", "restart", "smallweb.service").Run(); err != nil {
+	if uid == 0 {
+		if err := exec.Command("systemctl", "restart", getServiceName(k.String("domain"))).Run(); err != nil {
+			return fmt.Errorf("failed to restart service: %v", err)
+		}
+
+		return nil
+	}
+
+	if err := exec.Command("systemctl", "--user", "restart", getServiceName(k.String("domain"))).Run(); err != nil {
 		return fmt.Errorf("failed to restart service: %v", err)
 	}
 
@@ -110,18 +165,39 @@ func RestartService() error {
 }
 
 func UninstallService() error {
-	servicePath := getServicePath(k.String("domain"))
+	uid := os.Getuid()
+	servicePath := getServicePath(uid, k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
+	if uid == 0 {
+		if err := exec.Command("systemctl", "stop", getServiceName(k.String("domain"))).Run(); err != nil {
+			return fmt.Errorf("failed to stop service: %v", err)
+		}
+
+		if err := exec.Command("systemctl", "disable", getServiceName(k.String("domain"))).Run(); err != nil {
+			return fmt.Errorf("failed to disable service: %v", err)
+		}
+
+		if err := os.Remove(servicePath); err != nil {
+			return fmt.Errorf("failed to remove service file: %v", err)
+		}
+
+		if err := exec.Command("systemctl", "daemon-reload").Run(); err != nil {
+			return fmt.Errorf("failed to reload systemd manager configuration: %v", err)
+		}
+
+		return nil
+	}
+
 	// Stop the service if it is running
-	if err := exec.Command("systemctl", "--user", "stop", "smallweb.service").Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "stop", getServiceName(k.String("domain"))).Run(); err != nil {
 		return fmt.Errorf("failed to stop service: %v", err)
 	}
 
 	// Disable the service so it doesn't start on boot
-	if err := exec.Command("systemctl", "--user", "disable", "smallweb.service").Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "disable", getServiceName(k.String("domain"))).Run(); err != nil {
 		return fmt.Errorf("failed to disable service: %v", err)
 	}
 
@@ -138,12 +214,33 @@ func UninstallService() error {
 }
 
 func PrintServiceLogs(follow bool) error {
-	servicePath := getServicePath(k.String("domain"))
+	uid := os.Getuid()
+	if uid == 0 {
+		return fmt.Errorf("`smallweb service logs` is not supported on Linux")
+	}
+
+	servicePath := getServicePath(uid, k.String("domain"))
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
-	logCmdArgs := []string{"--user", "--user-unit", "smallweb.service"}
+	if uid == 0 {
+		logCmdArg := []string{getServiceName(k.String("domain"))}
+		if follow {
+			logCmdArg = append(logCmdArg, "-f")
+		}
+
+		logCmd := exec.Command("journalctl", logCmdArg...)
+		logCmd.Stdout = os.Stdout
+		logCmd.Stderr = os.Stderr
+		if err := logCmd.Run(); err != nil {
+			return fmt.Errorf("failed to execute journalctl: %v", err)
+		}
+
+		return nil
+	}
+
+	logCmdArgs := []string{"--user", "--user-unit", getServiceName(k.String("domain"))}
 	if follow {
 		logCmdArgs = append(logCmdArgs, "-f")
 	}
@@ -159,7 +256,19 @@ func PrintServiceLogs(follow bool) error {
 }
 
 func ViewServiceStatus() error {
-	statusCmd := exec.Command("systemctl", "--user", "status", "smallweb.service")
+	uid := os.Getuid()
+
+	if uid == 0 {
+		statusCmd := exec.Command("systemctl", "status", getServiceName(k.String("domain")))
+		statusCmd.Stdout = os.Stdout
+		statusCmd.Stderr = os.Stderr
+		if err := statusCmd.Run(); err != nil {
+			return fmt.Errorf("failed to get service status: %v", err)
+		}
+		return nil
+	}
+
+	statusCmd := exec.Command("systemctl", "--user", "status", getServiceName(k.String("domain")))
 	statusCmd.Stdout = os.Stdout
 	statusCmd.Stderr = os.Stderr
 	if err := statusCmd.Run(); err != nil {

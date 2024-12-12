@@ -5,6 +5,7 @@ After=network.target
 
 [Service]
 Type=simple
+User={{ .User }}
 ExecStart={{ .ExecPath }} up {{ .Args }}
 Restart=always
 RestartSec=10
