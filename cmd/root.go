@@ -69,10 +69,6 @@ func NewCmdRoot(changelog string) *cobra.Command {
 			fileProvider := file.Provider(configPath)
 			_ = k.Load(fileProvider, utils.ConfigParser())
 
-			if k.String("domain") == "" {
-				return fmt.Errorf("domain is required")
-			}
-
 			_ = fileProvider.Watch(func(event interface{}, err error) {
 				k = koanf.New(".")
 				_ = k.Load(defaultProvider, nil)

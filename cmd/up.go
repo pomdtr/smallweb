@@ -41,6 +41,7 @@ func NewCmdUp() *cobra.Command {
 		Short:   "Start the smallweb evaluation server",
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
+		PreRunE: requireDomain,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if k.String("domain") == "" {
 				return fmt.Errorf("domain cannot be empty")
