@@ -19,7 +19,7 @@ var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 
 func getServicePath() string {
-	return filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", "com.github.pomdtr.smallweb.plist")
+	return filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", "com.pomdtr.smallweb.plist")
 }
 
 func InstallService(args []string) error {
@@ -65,7 +65,7 @@ func StartService() error {
 		return fmt.Errorf("service not installed")
 	}
 
-	if err := exec.Command("launchctl", "start", "com.github.pomdtr.smallweb").Run(); err != nil {
+	if err := exec.Command("launchctl", "start", "com.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to start service: %v", err)
 	}
 
@@ -78,7 +78,7 @@ func StopService() error {
 		return fmt.Errorf("service not installed")
 	}
 
-	if err := exec.Command("launchctl", "stop", "com.github.pomdtr.smallweb").Run(); err != nil {
+	if err := exec.Command("launchctl", "stop", "com.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to stop service: %v", err)
 	}
 
@@ -143,7 +143,7 @@ func PrintServiceLogs(follow bool) error {
 }
 
 func ViewServiceStatus() error {
-	cmd := exec.Command("launchctl", "list", "com.github.pomdtr.smallweb")
+	cmd := exec.Command("launchctl", "list", "com.pomdtr.smallweb")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
