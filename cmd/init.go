@@ -58,7 +58,7 @@ func NewCmdInit() *cobra.Command {
 			}
 
 			if err := godotenv.Write(map[string]string{
-				"VSCODE_TOKEN": uuid.NewString(),
+				"VSCODE_PASSWORD": uuid.NewString(),
 			}, path.Join(workspaceDir, "vscode", ".env")); err != nil {
 				return fmt.Errorf("failed to write .env file: %w", err)
 			}
