@@ -156,6 +156,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	rootCmd.AddCommand(NewCmdList())
 	rootCmd.AddCommand(NewCmdFetch())
 	rootCmd.AddCommand(NewCmdCrons())
+	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdInstall())
 	rootCmd.AddCommand(NewCmdLogs())
 	rootCmd.AddCommand(NewCmdSync())
