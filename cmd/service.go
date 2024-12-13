@@ -2,19 +2,9 @@ package cmd
 
 import (
 	_ "embed"
-	"errors"
-	"slices"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
-
-func getServiceName(domain string) string {
-	parts := strings.Split(domain, ".")
-	slices.Reverse(parts)
-	parts = append(parts, "server")
-	return strings.Join(parts, ".")
-}
 
 func NewCmdService() *cobra.Command {
 	cmd := &cobra.Command{
@@ -35,9 +25,8 @@ func NewCmdService() *cobra.Command {
 
 func NewCmdServiceInstall() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "install [args...]",
-		Short:   "Install smallweb as a service",
-		PreRunE: requireDomain,
+		Use:   "install [args...]",
+		Short: "Install smallweb as a service",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := InstallService(args); err != nil {
 				return err
@@ -53,9 +42,8 @@ func NewCmdServiceInstall() *cobra.Command {
 
 func NewCmdServiceUninstall() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "uninstall",
-		Short:   "Uninstall smallweb service",
-		PreRunE: requireDomain,
+		Use:   "uninstall",
+		Short: "Uninstall smallweb service",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := UninstallService(); err != nil {
 				return err
@@ -70,9 +58,8 @@ func NewCmdServiceUninstall() *cobra.Command {
 
 func NewCmdServiceStart() *cobra.Command {
 	return &cobra.Command{
-		Use:     "start",
-		Short:   "Start smallweb service",
-		PreRunE: requireDomain,
+		Use:   "start",
+		Short: "Start smallweb service",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := StartService(); err != nil {
 				return err
@@ -86,9 +73,8 @@ func NewCmdServiceStart() *cobra.Command {
 
 func NewCmdServiceStop() *cobra.Command {
 	return &cobra.Command{
-		Use:     "stop",
-		Short:   "Stop smallweb service",
-		PreRunE: requireDomain,
+		Use:   "stop",
+		Short: "Stop smallweb service",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := StopService(); err != nil {
 				return err
@@ -101,9 +87,8 @@ func NewCmdServiceStop() *cobra.Command {
 
 func NewCmdServiceRestart() *cobra.Command {
 	return &cobra.Command{
-		Use:     "restart",
-		Short:   "Restart smallweb service",
-		PreRunE: requireDomain,
+		Use:   "restart",
+		Short: "Restart smallweb service",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := RestartService(); err != nil {
 				return err
@@ -123,7 +108,6 @@ func NewCmdServiceLogs() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "logs",
 		Short:   "Print service logs",
-		PreRunE: requireDomain,
 		Aliases: []string{"log"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return PrintServiceLogs(flags.follow)
@@ -136,18 +120,10 @@ func NewCmdServiceLogs() *cobra.Command {
 
 func NewCmdServiceStatus() *cobra.Command {
 	return &cobra.Command{
-		Use:     "status",
-		Short:   "View service status",
-		PreRunE: requireDomain,
+		Use:   "status",
+		Short: "View service status",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return ViewServiceStatus()
 		},
 	}
-}
-
-func requireDomain(cmd *cobra.Command, args []string) error {
-	if k.String("domain") == "" {
-		return errors.New("missing domain")
-	}
-	return nil
 }

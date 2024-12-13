@@ -20,17 +20,17 @@ import (
 var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 
-func getServicePath(uid int, domain string) string {
+func getServicePath(uid int) string {
 	if uid == 0 {
-		return path.Join("/etc", "systemd", "system", getServiceName(domain)+".service")
+		return path.Join("/etc", "systemd", "system", "com.github.pomdtr.smallweb.service")
 	}
 
-	return path.Join(os.Getenv("HOME"), ".config", "systemd", "user", getServiceName(domain)+".service")
+	return path.Join(os.Getenv("HOME"), ".config", "systemd", "user", "com.github.pomdtr.smallweb.service")
 }
 
 func InstallService(args []string) error {
 	uid := os.Getuid()
-	servicePath := getServicePath(uid, k.String("domain"))
+	servicePath := getServicePath(uid)
 	if utils.FileExists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
@@ -69,11 +69,11 @@ func InstallService(args []string) error {
 			return fmt.Errorf("failed to reload systemd manager configuration: %v", err)
 		}
 
-		if err := exec.Command("systemctl", "enable", getServiceName(k.String("domain"))).Run(); err != nil {
+		if err := exec.Command("systemctl", "enable", "com.github.pomdtr.smallweb").Run(); err != nil {
 			return fmt.Errorf("failed to enable service: %v", err)
 		}
 
-		if err := exec.Command("systemctl", "start", getServiceName(k.String("domain"))).Run(); err != nil {
+		if err := exec.Command("systemctl", "start", "com.github.pomdtr.smallweb").Run(); err != nil {
 			return fmt.Errorf("failed to start service: %v", err)
 		}
 
@@ -86,12 +86,12 @@ func InstallService(args []string) error {
 	}
 
 	// Enable the service to start on boot
-	if err := exec.Command("systemctl", "--user", "enable", getServiceName(k.String("domain"))).Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "enable", "com.github.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to enable service: %v", err)
 	}
 
 	// Start the service immediately
-	if err := exec.Command("systemctl", "--user", "start", getServiceName(k.String("domain"))).Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "start", "com.github.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to start service: %v", err)
 	}
 
@@ -100,20 +100,20 @@ func InstallService(args []string) error {
 
 func StartService() error {
 	uid := os.Getuid()
-	servicePath := getServicePath(uid, k.String("domain"))
+	servicePath := getServicePath(uid)
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
 	if uid == 0 {
-		if err := exec.Command("systemctl", "start", getServiceName(k.String("domain"))).Run(); err != nil {
+		if err := exec.Command("systemctl", "start", "com.github.pomdtr.smallweb").Run(); err != nil {
 			return fmt.Errorf("failed to start service: %v", err)
 		}
 
 		return nil
 	}
 
-	if err := exec.Command("systemctl", "--user", "start", getServiceName(k.String("domain"))).Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "start", "com.github.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to start service: %v", err)
 	}
 
@@ -122,20 +122,20 @@ func StartService() error {
 
 func StopService() error {
 	uid := os.Getuid()
-	servicePath := getServicePath(uid, k.String("domain"))
+	servicePath := getServicePath(uid)
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
 	if uid == 0 {
-		if err := exec.Command("systemctl", "stop", getServiceName(k.String("domain"))).Run(); err != nil {
+		if err := exec.Command("systemctl", "stop", "com.github.pomdtr.smallweb").Run(); err != nil {
 			return fmt.Errorf("failed to stop service: %v", err)
 		}
 
 		return nil
 	}
 
-	if err := exec.Command("systemctl", "--user", "stop", getServiceName(k.String("domain"))).Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "stop", "com.github.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to stop service: %v", err)
 	}
 
@@ -144,20 +144,20 @@ func StopService() error {
 
 func RestartService() error {
 	uid := os.Getuid()
-	servicePath := getServicePath(uid, k.String("domain"))
+	servicePath := getServicePath(uid)
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
 	if uid == 0 {
-		if err := exec.Command("systemctl", "restart", getServiceName(k.String("domain"))).Run(); err != nil {
+		if err := exec.Command("systemctl", "restart", "com.github.pomdtr.smallweb").Run(); err != nil {
 			return fmt.Errorf("failed to restart service: %v", err)
 		}
 
 		return nil
 	}
 
-	if err := exec.Command("systemctl", "--user", "restart", getServiceName(k.String("domain"))).Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "restart", "com.github.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to restart service: %v", err)
 	}
 
@@ -166,17 +166,17 @@ func RestartService() error {
 
 func UninstallService() error {
 	uid := os.Getuid()
-	servicePath := getServicePath(uid, k.String("domain"))
+	servicePath := getServicePath(uid)
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
 	if uid == 0 {
-		if err := exec.Command("systemctl", "stop", getServiceName(k.String("domain"))).Run(); err != nil {
+		if err := exec.Command("systemctl", "stop", "com.github.pomdtr.smallweb").Run(); err != nil {
 			return fmt.Errorf("failed to stop service: %v", err)
 		}
 
-		if err := exec.Command("systemctl", "disable", getServiceName(k.String("domain"))).Run(); err != nil {
+		if err := exec.Command("systemctl", "disable", "com.github.pomdtr.smallweb").Run(); err != nil {
 			return fmt.Errorf("failed to disable service: %v", err)
 		}
 
@@ -192,12 +192,12 @@ func UninstallService() error {
 	}
 
 	// Stop the service if it is running
-	if err := exec.Command("systemctl", "--user", "stop", getServiceName(k.String("domain"))).Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "stop", "com.github.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to stop service: %v", err)
 	}
 
 	// Disable the service so it doesn't start on boot
-	if err := exec.Command("systemctl", "--user", "disable", getServiceName(k.String("domain"))).Run(); err != nil {
+	if err := exec.Command("systemctl", "--user", "disable", "com.github.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to disable service: %v", err)
 	}
 
@@ -216,7 +216,7 @@ func UninstallService() error {
 func PrintServiceLogs(follow bool) error {
 	uid := os.Getuid()
 	if uid == 0 {
-		logCmdArg := []string{getServiceName(k.String("domain"))}
+		logCmdArg := []string{"com.github.pomdtr.smallweb"}
 		if follow {
 			logCmdArg = append(logCmdArg, "-f")
 		}
@@ -231,7 +231,7 @@ func PrintServiceLogs(follow bool) error {
 		return nil
 	}
 
-	logCmdArgs := []string{"--user", "--user-unit", getServiceName(k.String("domain"))}
+	logCmdArgs := []string{"--user", "--user-unit", "com.github.pomdtr.smallweb"}
 	if follow {
 		logCmdArgs = append(logCmdArgs, "-f")
 	}
@@ -250,7 +250,7 @@ func ViewServiceStatus() error {
 	uid := os.Getuid()
 
 	if uid == 0 {
-		statusCmd := exec.Command("systemctl", "status", getServiceName(k.String("domain")))
+		statusCmd := exec.Command("systemctl", "status", "com.github.pomdtr.smallweb")
 		statusCmd.Stdout = os.Stdout
 		statusCmd.Stderr = os.Stderr
 		if err := statusCmd.Run(); err != nil {
@@ -259,7 +259,7 @@ func ViewServiceStatus() error {
 		return nil
 	}
 
-	statusCmd := exec.Command("systemctl", "--user", "status", getServiceName(k.String("domain")))
+	statusCmd := exec.Command("systemctl", "--user", "status", "com.github.pomdtr.smallweb")
 	statusCmd.Stdout = os.Stdout
 	statusCmd.Stderr = os.Stderr
 	if err := statusCmd.Run(); err != nil {

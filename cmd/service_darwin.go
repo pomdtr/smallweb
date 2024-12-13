@@ -9,8 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
-	"strings"
 	"text/template"
 
 	"github.com/pomdtr/smallweb/utils"
@@ -20,15 +18,12 @@ import (
 var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 
-func getServicePath(domain string) string {
-	parts := strings.Split(domain, ".")
-	slices.Reverse(parts)
-
-	return filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", getServiceName(domain)+".plist")
+func getServicePath() string {
+	return filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", "com.github.pomdtr.smallweb.plist")
 }
 
 func InstallService(args []string) error {
-	servicePath := getServicePath(k.String("domain"))
+	servicePath := getServicePath()
 	if utils.FileExists(servicePath) {
 		return fmt.Errorf("service already installed")
 	}
@@ -65,12 +60,12 @@ func InstallService(args []string) error {
 }
 
 func StartService() error {
-	servicePath := getServicePath(k.String("domain"))
+	servicePath := getServicePath()
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
-	if err := exec.Command("launchctl", "start", getServiceName(k.String("domain"))).Run(); err != nil {
+	if err := exec.Command("launchctl", "start", "com.github.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to start service: %v", err)
 	}
 
@@ -78,12 +73,12 @@ func StartService() error {
 }
 
 func StopService() error {
-	servicePath := getServicePath(k.String("domain"))
+	servicePath := getServicePath()
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
 
-	if err := exec.Command("launchctl", "stop", getServiceName(k.String("domain"))).Run(); err != nil {
+	if err := exec.Command("launchctl", "stop", "com.github.pomdtr.smallweb").Run(); err != nil {
 		return fmt.Errorf("failed to stop service: %v", err)
 	}
 
@@ -95,7 +90,7 @@ func RestartService() error {
 }
 
 func UninstallService() error {
-	servicePath := getServicePath(k.String("domain"))
+	servicePath := getServicePath()
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -113,7 +108,7 @@ func UninstallService() error {
 }
 
 func PrintServiceLogs(follow bool) error {
-	servicePath := getServicePath(k.String("domain"))
+	servicePath := getServicePath()
 	if !utils.FileExists(servicePath) {
 		return fmt.Errorf("service not installed")
 	}
@@ -148,7 +143,7 @@ func PrintServiceLogs(follow bool) error {
 }
 
 func ViewServiceStatus() error {
-	cmd := exec.Command("launchctl", "list", getServiceName(k.String("domain")))
+	cmd := exec.Command("launchctl", "list", "com.github.pomdtr.smallweb")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

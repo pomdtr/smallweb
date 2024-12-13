@@ -287,3 +287,10 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 	me.workers[appname] = wk
 	return wk, nil
 }
+
+func requireDomain(cmd *cobra.Command, args []string) error {
+	if k.String("domain") == "" {
+		return errors.New("missing domain")
+	}
+	return nil
+}
