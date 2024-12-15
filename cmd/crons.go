@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -26,15 +27,39 @@ type CronItem struct {
 func NewCmdCrons() *cobra.Command {
 	var flags struct {
 		json bool
-		app  string
+		all  bool
 	}
 
 	cmd := &cobra.Command{
-		Use:     "crons",
-		Aliases: []string{"cron"},
-		Args:    cobra.NoArgs,
-		Short:   "List cron jobs",
+		Use:               "crons [app]",
+		Aliases:           []string{"cron"},
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: completeApp,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 && flags.all {
+				return fmt.Errorf("cannot set both --all and specify an app")
+			}
+
+			return nil
+		},
+		Short: "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var appName string
+			if len(args) > 0 {
+				appName = args[0]
+			} else if !flags.all {
+				cwd, err := os.Getwd()
+				if err != nil {
+					return fmt.Errorf("failed to get current directory: %w", err)
+				}
+
+				if filepath.Dir(cwd) != k.String("dir") {
+					return fmt.Errorf("no app specified and not in an app directory")
+				}
+
+				appName = filepath.Base(cwd)
+			}
+
 			apps, err := app.ListApps(k.String("dir"))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
@@ -42,7 +67,7 @@ func NewCmdCrons() *cobra.Command {
 
 			crons := make([]CronItem, 0)
 			for _, name := range apps {
-				if cmd.Flags().Changed("app") && flags.app != name {
+				if appName != "" && name != appName {
 					continue
 				}
 
@@ -106,9 +131,8 @@ func NewCmdCrons() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	_ = cmd.RegisterFlagCompletionFunc("app", completeApp)
+	cmd.Flags().BoolVar(&flags.all, "all", false, "show all cron jobs")
 
 	return cmd
 }
