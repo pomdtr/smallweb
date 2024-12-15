@@ -51,6 +51,7 @@ func GetLogFilename(domain string, logType string) string {
 func NewCmdLogs() *cobra.Command {
 	var flags struct {
 		template string
+		all      bool
 		remote   string
 		logType  string
 	}
@@ -62,13 +63,19 @@ func NewCmdLogs() *cobra.Command {
 		Short:             "View app logs",
 		Args:              cobra.MaximumNArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 && flags.all {
+				return fmt.Errorf("cannot set both --all and specify an app")
+			}
+
 			flagProvider := posflag.Provider(cmd.Flags(), ".", k)
 			_ = k.Load(flagProvider, nil)
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var appName string
-			if len(args) == 0 {
+			if len(args) > 0 {
+				appName = args[0]
+			} else if !flags.all {
 				cwd, err := os.Getwd()
 				if err != nil {
 					return fmt.Errorf("failed to get current directory: %w", err)
@@ -79,13 +86,17 @@ func NewCmdLogs() *cobra.Command {
 				}
 
 				appName = filepath.Base(cwd)
-			} else {
-				appName = args[0]
 			}
 
 			if remote := k.String("remote"); remote != "" {
-				cmd := exec.Command("ssh", remote, "smallweb", "logs", appName)
-				cmd.Args = append(cmd.Args, args...)
+				cmd := exec.Command("ssh", remote, "smallweb", "logs")
+				if appName != "" {
+					cmd.Args = append(cmd.Args, appName)
+				}
+
+				if flags.all {
+					cmd.Args = append(cmd.Args, "--all")
+				}
 
 				if flags.logType != "" {
 					cmd.Args = append(cmd.Args, "--type", flags.logType)
@@ -112,6 +123,7 @@ func NewCmdLogs() *cobra.Command {
 			} else {
 				logFilename = GetLogFilename(k.String("domain"), "http")
 			}
+
 			if _, err := os.Stat(logFilename); err != nil {
 				if err := os.MkdirAll(filepath.Dir(logFilename), 0755); err != nil {
 					return fmt.Errorf("failed to create log directory: %v", err)
@@ -136,7 +148,6 @@ func NewCmdLogs() *cobra.Command {
 			_, _ = f.Seek(0, io.SeekEnd)
 
 			if flags.logType == "console" {
-
 				reader := bufio.NewReader(f)
 				for {
 					line, err := reader.ReadString('\n')
@@ -152,7 +163,7 @@ func NewCmdLogs() *cobra.Command {
 						return fmt.Errorf("failed to unmarshal log line: %w", err)
 					}
 
-					if log.App != appName {
+					if appName != "" && log.App != appName {
 						continue
 					}
 
@@ -183,7 +194,7 @@ func NewCmdLogs() *cobra.Command {
 			hosts[fmt.Sprintf("%s.%s", appName, k.String("domain"))] = struct{}{}
 
 			for domain, app := range k.StringMap("customDomains") {
-				if app != appName {
+				if appName != "" && app != appName {
 					continue
 				}
 
@@ -207,7 +218,7 @@ func NewCmdLogs() *cobra.Command {
 					return fmt.Errorf("failed to unmarshal log line: %w", err)
 				}
 
-				if _, ok := hosts[log.Request.Host]; !ok {
+				if _, ok := hosts[log.Request.Host]; !flags.all && !ok {
 					continue
 				}
 
@@ -240,6 +251,7 @@ func NewCmdLogs() *cobra.Command {
 	_ = cmd.RegisterFlagCompletionFunc("app", completeApp)
 	cmd.Flags().StringVar(&flags.logType, "type", "http", "log type")
 	_ = cmd.RegisterFlagCompletionFunc("type", cobra.FixedCompletions([]string{"http", "console"}, cobra.ShellCompDirectiveNoFileComp))
+	cmd.Flags().BoolVar(&flags.all, "all", false, "show all logs")
 
 	return cmd
 }
