@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"text/template"
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/knadh/koanf/providers/posflag"
 	"github.com/spf13/cobra"
 )
 
@@ -50,6 +52,7 @@ func NewCmdLogs() *cobra.Command {
 	var flags struct {
 		app      string
 		template string
+		remote   string
 		console  bool
 	}
 
@@ -59,7 +62,37 @@ func NewCmdLogs() *cobra.Command {
 		ValidArgsFunction: cobra.FixedCompletions([]string{"http", "console"}, cobra.ShellCompDirectiveNoFileComp),
 		Short:             "View app logs",
 		Args:              cobra.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			flagProvider := posflag.Provider(cmd.Flags(), ".", k)
+			_ = k.Load(flagProvider, nil)
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if remote := k.String("remote"); remote != "" {
+				cmd := exec.Command("ssh", remote, "smallweb", "logs")
+				if flags.app != "" {
+					cmd.Args = append(cmd.Args, "--app", flags.app)
+				}
+
+				if flags.console {
+					cmd.Args = append(cmd.Args, "--console")
+				}
+
+				if flags.template != "" {
+					cmd.Args = append(cmd.Args, "--template", flags.template)
+				}
+
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				cmd.Stdin = os.Stdin
+
+				if err := cmd.Run(); err != nil {
+					return fmt.Errorf("failed to run remote command: %w", err)
+				}
+
+				return nil
+			}
+
 			var logFilename string
 			if flags.console {
 				logFilename = GetLogFilename(k.String("domain"), "console")
@@ -193,6 +226,7 @@ func NewCmdLogs() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&flags.template, "template", "", "output logs using a Go template")
+	cmd.Flags().StringVar(&flags.remote, "remote", "", "ssh remote")
 	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app")
 	_ = cmd.RegisterFlagCompletionFunc("app", completeApp)
 	cmd.Flags().BoolVar(&flags.console, "console", false, "output console logs")
