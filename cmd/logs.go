@@ -84,7 +84,7 @@ func NewCmdLogs() *cobra.Command {
 			}
 
 			if remote := k.String("remote"); remote != "" {
-				cmd := exec.Command("ssh", remote, "smallweb", "logs")
+				cmd := exec.Command("ssh", remote, "smallweb", "logs", appName)
 				cmd.Args = append(cmd.Args, args...)
 
 				if flags.logType != "" {
@@ -239,6 +239,7 @@ func NewCmdLogs() *cobra.Command {
 	cmd.Flags().StringVar(&flags.remote, "remote", "", "ssh remote")
 	_ = cmd.RegisterFlagCompletionFunc("app", completeApp)
 	cmd.Flags().StringVar(&flags.logType, "type", "http", "log type")
+	_ = cmd.RegisterFlagCompletionFunc("type", cobra.FixedCompletions([]string{"http", "console"}, cobra.ShellCompDirectiveNoFileComp))
 
 	return cmd
 }
