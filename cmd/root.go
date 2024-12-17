@@ -67,7 +67,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 			flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 			_ = k.Load(flagProvider, nil)
 
-			configPath := filepath.Join(k.String("dir"), ".smallweb", "config.json")
+			configPath := findConfigPath(k.String("dir"))
 			fileProvider := file.Provider(configPath)
 			_ = k.Load(fileProvider, utils.ConfigParser())
 			_ = k.Load(envProvider, nil)
