@@ -11,16 +11,23 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/adrg/xdg"
 	"github.com/knadh/koanf/providers/posflag"
+	"github.com/pomdtr/smallweb/utils"
 	"github.com/spf13/cobra"
 )
 
 type (
+	Log struct {
+		Time  time.Time `json:"time"`
+		Level string    `json:"level"`
+		Msg   string    `json:"msg"`
+		Type  string    `json:"type"`
+	}
 	HttpLog struct {
 		Time    time.Time `json:"time"`
 		Level   string    `json:"level"`
 		Msg     string    `json:"msg"`
+		Type    string    `json:"type"`
 		Request struct {
 			Url     string            `json:"url"`
 			Host    string            `json:"host"`
@@ -39,14 +46,11 @@ type (
 		Level string    `json:"level"`
 		Msg   string    `json:"msg"`
 		Type  string    `json:"type"`
+		Json  string    `json:"json"`
 		App   string    `json:"app"`
 		Text  string    `json:"text"`
 	}
 )
-
-func GetLogFilename(domain string, logType string) string {
-	return filepath.Join(xdg.CacheHome, "smallweb", "logs", domain, fmt.Sprintf("%s.json", logType))
-}
 
 func NewCmdLogs() *cobra.Command {
 	var flags struct {
@@ -117,12 +121,7 @@ func NewCmdLogs() *cobra.Command {
 				return nil
 			}
 
-			var logFilename string
-			if flags.logType == "console" {
-				logFilename = GetLogFilename(k.String("domain"), "console")
-			} else {
-				logFilename = GetLogFilename(k.String("domain"), "http")
-			}
+			logFilename := utils.GetLogFilename(k.String("domain"))
 
 			if _, err := os.Stat(logFilename); err != nil {
 				if err := os.MkdirAll(filepath.Dir(logFilename), 0755); err != nil {
@@ -158,6 +157,15 @@ func NewCmdLogs() *cobra.Command {
 						}
 						return err
 					}
+					var l Log
+					if err := json.Unmarshal([]byte(line), &l); err != nil {
+						return fmt.Errorf("failed to unmarshal log line: %w", err)
+					}
+
+					if l.Type != "console" {
+						continue
+					}
+
 					var log ConsoleLog
 					if err := json.Unmarshal([]byte(line), &log); err != nil {
 						return fmt.Errorf("failed to unmarshal log line: %w", err)
@@ -211,6 +219,15 @@ func NewCmdLogs() *cobra.Command {
 						continue
 					}
 					return err
+				}
+
+				var l Log
+				if err := json.Unmarshal([]byte(line), &l); err != nil {
+					return fmt.Errorf("failed to unmarshal log line: %w", err)
+				}
+
+				if l.Type != "http" {
+					continue
 				}
 
 				var log HttpLog

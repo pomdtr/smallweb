@@ -47,7 +47,7 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			logFilename := GetLogFilename(k.String("domain"), "http")
+			logFilename := utils.GetLogFilename(k.String("domain"))
 			if err := os.MkdirAll(filepath.Dir(logFilename), 0755); err != nil {
 				return fmt.Errorf("failed to create log directory: %v", err)
 			}
@@ -69,7 +69,7 @@ func NewCmdUp() *cobra.Command {
 			defer watcher.Stop()
 
 			consoleLogger := slog.New(slog.NewJSONHandler(&lumberjack.Logger{
-				Filename:   GetLogFilename(k.String("domain"), "console"),
+				Filename:   logFilename,
 				MaxSize:    100,
 				MaxBackups: 3,
 				MaxAge:     28,
@@ -97,7 +97,7 @@ func NewCmdUp() *cobra.Command {
 					},
 				}
 
-				fmt.Fprintf(os.Stderr, "Serving *.%s using on-demand TLS...\n", k.String("domain"))
+				fmt.Fprintf(os.Stderr, "Serving *.%s from %s with on-demand TLS...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
 				//nolint:errcheck
 				go certmagic.HTTPS(nil, handler)
 			} else {
@@ -115,7 +115,7 @@ func NewCmdUp() *cobra.Command {
 					return fmt.Errorf("failed to get listener: %v", err)
 				}
 
-				fmt.Fprintf(os.Stderr, "Serving *.%s on %s...\n", k.String("domain"), addr)
+				fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
 				//nolint:errcheck
 				go http.Serve(listener, handler)
 			}

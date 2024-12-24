@@ -6,9 +6,12 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"log/slog"
+
+	"github.com/adrg/xdg"
 )
 
 type (
@@ -96,8 +99,13 @@ func (l *Logger) Middleware(h http.Handler) http.Handler {
 
 		// Use slog to log the entry
 		l.LogAttrs(r.Context(), slog.LevelInfo, fmt.Sprintf("Response: %d %s", lrw.Status, http.StatusText(lrw.Status)),
+			slog.String("type", "http"),
 			slog.Group("request", slog.String("url", fmt.Sprintf("https://%s%s", r.Host, r.URL.String())), slog.String("host", r.Host), slog.String("method", r.Method), slog.String("path", r.URL.Path), slog.Group("headers", headers...)),
 			slog.Group("response", slog.Int("status", lrw.Status), slog.Int("bytes", lrw.Size), slog.Float64("elapsed", duration.Seconds())),
 		)
 	})
+}
+
+func GetLogFilename(domain string) string {
+	return filepath.Join(xdg.CacheHome, "smallweb", "domains", domain, "logs.json")
 }

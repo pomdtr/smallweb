@@ -111,6 +111,7 @@ func commandEnv(a app.App, rootDir string, domain string) []string {
 	if a.Admin {
 		env = append(env, "SMALLWEB_ADMIN=1")
 		env = append(env, fmt.Sprintf("SMALLWEB_CLI_PATH=%s", cliPath))
+		env = append(env, "SMALLWEB_LOG_PATH=%s", utils.GetLogFilename(domain))
 	}
 
 	return env
@@ -263,7 +264,7 @@ func (me *Worker) Start() error {
 	}
 
 	// Function to handle logging for both stdout and stderr
-	logPipe := func(pipe io.ReadCloser, logType string) {
+	logPipe := func(pipe io.ReadCloser, stream string) {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
 			if me.Logger == nil {
@@ -273,8 +274,9 @@ func (me *Worker) Start() error {
 			me.Logger.LogAttrs(
 				context.Background(),
 				slog.LevelInfo,
-				logType,
-				slog.String("type", logType),
+				stream,
+				slog.String("type", "console"),
+				slog.String("stream", stream),
 				slog.String("app", me.App.Name),
 				slog.String("text", scanner.Text()),
 			)
