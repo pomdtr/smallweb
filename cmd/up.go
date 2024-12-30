@@ -195,6 +195,7 @@ type Handler struct {
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	appname, redirect, ok := lookupApp(r.Host, k.String("domain"), k.StringMap("customDomains"))
 	if !ok {
+		w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -214,6 +215,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
 	if err != nil {
 		if errors.Is(err, app.ErrAppNotFound) {
+			w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
