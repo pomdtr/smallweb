@@ -169,6 +169,7 @@ func NewCmdUp() *cobra.Command {
 						}
 
 						go func() {
+							//nolint:errcheck
 							io.Copy(stdin, sess)
 						}()
 
@@ -178,11 +179,13 @@ func NewCmdUp() *cobra.Command {
 						if err := cmd.Run(); err != nil {
 							var exitErr *exec.ExitError
 							if errors.As(err, &exitErr) {
+								//nolint:errcheck
 								sess.Exit(exitErr.ExitCode())
 								return
 							}
 
 							fmt.Fprintf(sess, "failed to run command: %v", err)
+							//nolint:errcheck
 							sess.Exit(1)
 							return
 						}
@@ -190,6 +193,7 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				if flags.sshHostKey != "" {
+					//nolint:errcheck
 					server.SetOption(ssh.HostKeyFile(flags.sshHostKey))
 				}
 
@@ -199,6 +203,7 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				fmt.Fprintf(os.Stderr, "Starting SSH server on %s...\n", flags.sshAddr)
+				//nolint:errcheck
 				go server.Serve(listener)
 				defer server.Close()
 			}
@@ -272,6 +277,7 @@ type Handler struct {
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	appname, redirect, ok := lookupApp(r.Host, k.String("domain"), k.StringMap("customDomains"))
 	if !ok {
+		//nolint:errcheck
 		w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -292,6 +298,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
 	if err != nil {
 		if errors.Is(err, app.ErrAppNotFound) {
+			//nolint:errcheck
 			w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
 			w.WriteHeader(http.StatusNotFound)
 			return
