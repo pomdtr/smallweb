@@ -21,6 +21,7 @@ import (
 	_ "embed"
 
 	"github.com/caddyserver/certmagic"
+	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
@@ -201,8 +202,20 @@ func NewCmdUp() *cobra.Command {
 					},
 				}
 
+				hostKeyPath := utils.ExpandTilde(flags.sshHostKey)
+				if !cmd.Flags().Changed("ssh-host-key") && !utils.FileExists(utils.ExpandTilde(hostKeyPath)) {
+					kp, err := keygen.New(hostKeyPath, keygen.WithKeyType(keygen.Ed25519))
+					if err != nil {
+						return fmt.Errorf("failed to generate ssh key: %v", err)
+					}
+
+					if err := kp.WriteKeys(); err != nil {
+						return fmt.Errorf("failed to write ssh key: %v", err)
+					}
+				}
+
 				//nolint:errcheck
-				server.SetOption(ssh.HostKeyFile(flags.sshHostKey))
+				server.SetOption(ssh.HostKeyFile(hostKeyPath))
 
 				listener, err := getListener(flags.sshAddr, "", "")
 				if err != nil {
@@ -226,7 +239,7 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
-	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "/etc/ssh/ssh_host_rsa_key", "ssh host key file")
+	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/smallweb", "ssh host key")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
 	cmd.Flags().StringVar(&flags.cert, "cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.key, "key", "", "key file")
