@@ -141,18 +141,27 @@ func NewCmdUp() *cobra.Command {
 						"sftp": NewSftpHandler(k.String("dir")),
 					},
 					PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
-						authorizedKeysPath := filepath.Join(k.String("dir"), ".smallweb", "authorized_keys")
-						ok, err := validatePublicKey(authorizedKeysPath, key)
-						if err != nil {
-							if errors.Is(err, os.ErrNotExist) {
-								return false
+						for _, authorizedKeysPath := range []string{
+							filepath.Join(os.Getenv("HOME"), ".ssh", "authorized_keys"),
+							filepath.Join(k.String("dir"), ".smallweb", "authorized_keys"),
+						} {
+							ok, err := validatePublicKey(authorizedKeysPath, key)
+							if err != nil {
+								if errors.Is(err, os.ErrNotExist) {
+									continue
+								}
+
+								fmt.Fprintf(os.Stderr, "%s\n", err)
+								continue
 							}
 
-							fmt.Fprintf(os.Stderr, "%s\n", err)
-							return false
+							if ok {
+								return true
+							}
+
 						}
 
-						return ok
+						return false
 					},
 					Handler: func(sess ssh.Session) {
 						execPath, err := os.Executable()
