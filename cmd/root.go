@@ -93,7 +93,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 
 			if env, ok := os.LookupEnv("SMALLWEB_DISABLE_PLUGINS"); ok {
 				if disablePlugins, _ := strconv.ParseBool(env); disablePlugins {
-					return cmd.Help()
+					return fmt.Errorf("unknown command \"%s\" for \"smallweb\"", args[0])
 				}
 			}
 
