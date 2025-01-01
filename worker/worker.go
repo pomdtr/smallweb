@@ -32,7 +32,6 @@ import (
 //go:embed sandbox.ts
 var sandboxBytes []byte
 var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%s.ts", hash(sandboxBytes)))
-var cliPath string
 
 func hash(b []byte) string {
 	sha := crypto.SHA256.New()
@@ -47,27 +46,6 @@ func init() {
 		}
 
 		if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
-			log.Fatalf("could not write file: %v", err)
-		}
-	}
-
-	executable, err := os.Executable()
-	if err != nil {
-		log.Fatalf("could not get executable path: %v", err)
-	}
-
-	cli := fmt.Sprintf(`#!/bin/sh
-
-SMALLWEB_DISABLE_PLUGINS=1 SMALLWEB_DISABLED_COMMANDS=upgrade,up,service,sync,secrets,doctor,open,completion,init exec %s "$@"
-`, executable)
-
-	cliPath = filepath.Join(xdg.CacheHome, "smallweb", "cli", hash([]byte(cli)))
-	if !utils.FileExists(cliPath) {
-		if err := os.MkdirAll(filepath.Dir(cliPath), 0755); err != nil {
-			log.Fatalf("could not create directory: %v", err)
-		}
-
-		if err := os.WriteFile(cliPath, []byte(cli), 0755); err != nil {
 			log.Fatalf("could not write file: %v", err)
 		}
 	}
@@ -110,7 +88,6 @@ func commandEnv(a app.App, rootDir string, domain string) []string {
 
 	if a.Admin {
 		env = append(env, "SMALLWEB_ADMIN=1")
-		env = append(env, fmt.Sprintf("SMALLWEB_CLI_PATH=%s", cliPath))
 		env = append(env, "SMALLWEB_LOG_PATH=%s", utils.GetLogFilename(domain))
 	}
 
@@ -148,9 +125,7 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 			fmt.Sprintf("--allow-write=%s", me.RootDir),
 		)
 		if len(allowRun) > 0 {
-			flags = append(flags, fmt.Sprintf("--allow-run=%s,%s", cliPath, strings.Join(allowRun, ",")))
-		} else {
-			flags = append(flags, fmt.Sprintf("--allow-run=%s", cliPath))
+			flags = append(flags, fmt.Sprintf("--allow-run=%s", strings.Join(allowRun, ",")))
 		}
 
 	} else {
