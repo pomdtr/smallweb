@@ -5,10 +5,13 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"slices"
@@ -18,8 +21,11 @@ import (
 	_ "embed"
 
 	"github.com/caddyserver/certmagic"
+	"github.com/charmbracelet/ssh"
+	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
+	gossh "golang.org/x/crypto/ssh"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/pomdtr/smallweb/utils"
@@ -31,6 +37,8 @@ func NewCmdUp() *cobra.Command {
 	var flags struct {
 		cron        bool
 		addr        string
+		sshAddr     string
+		sshHostKey  string
 		onDemandTLS bool
 		cert        string
 		key         string
@@ -127,17 +135,86 @@ func NewCmdUp() *cobra.Command {
 				defer crons.Stop()
 			}
 
+			if flags.sshAddr != "" {
+				server := ssh.Server{
+					SubsystemHandlers: map[string]ssh.SubsystemHandler{
+						"sftp": NewSftpHandler(k.String("dir")),
+					},
+					PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
+						authorizedKeysPath := filepath.Join(k.String("dir"), ".smallweb", "authorized_keys")
+						ok, err := validatePublicKey(authorizedKeysPath, key)
+						if err != nil {
+							if errors.Is(err, os.ErrNotExist) {
+								return false
+							}
+
+							fmt.Fprintf(os.Stderr, "%s\n", err)
+							return false
+						}
+
+						return ok
+					},
+					Handler: func(sess ssh.Session) {
+						execPath, err := os.Executable()
+						if err != nil {
+							fmt.Fprintf(sess, "failed to get executable path: %v", err)
+							return
+						}
+
+						cmd := exec.Command(execPath, sess.Command()...)
+						stdin, err := cmd.StdinPipe()
+						if err != nil {
+							fmt.Fprintf(sess, "failed to get stdin pipe: %v", err)
+							return
+						}
+
+						go func() {
+							io.Copy(stdin, sess)
+						}()
+
+						cmd.Stdout = sess
+						cmd.Stderr = sess.Stderr()
+
+						if err := cmd.Run(); err != nil {
+							var exitErr *exec.ExitError
+							if errors.As(err, &exitErr) {
+								sess.Exit(exitErr.ExitCode())
+								return
+							}
+
+							fmt.Fprintf(sess, "failed to run command: %v", err)
+							sess.Exit(1)
+							return
+						}
+					},
+				}
+
+				if flags.sshHostKey != "" {
+					server.SetOption(ssh.HostKeyFile(flags.sshHostKey))
+				}
+
+				listener, err := getListener(flags.sshAddr, "", "")
+				if err != nil {
+					return fmt.Errorf("failed to get ssh listener: %v", err)
+				}
+
+				fmt.Fprintf(os.Stderr, "Starting SSH server on %s...\n", flags.sshAddr)
+				go server.Serve(listener)
+				defer server.Close()
+			}
+
 			// sigint handling
 			sigint := make(chan os.Signal, 1)
 			signal.Notify(sigint, os.Interrupt)
 			<-sigint
 
-			fmt.Fprintln(os.Stderr, "Shutting down server...")
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
+	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
+	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "", "ssh host key file")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
 	cmd.Flags().StringVar(&flags.cert, "cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.key, "key", "", "key file")
@@ -295,4 +372,46 @@ func requireDomain(cmd *cobra.Command, args []string) error {
 		return errors.New("missing domain")
 	}
 	return nil
+}
+
+// SftpHandler handler for SFTP subsystem
+func NewSftpHandler(rootDir string) func(sess ssh.Session) {
+	return func(sess ssh.Session) {
+		server, err := sftp.NewServer(
+			sess,
+			sftp.WithServerWorkingDirectory(rootDir),
+		)
+		if err != nil {
+			log.Printf("sftp server init error: %s\n", err)
+			return
+		}
+		if err := server.Serve(); err == io.EOF {
+			server.Close()
+			fmt.Println("sftp client exited session.")
+		} else if err != nil {
+			fmt.Println("sftp server completed with error:", err)
+		}
+	}
+}
+
+func validatePublicKey(authorizedKeysPath string, pubKey ssh.PublicKey) (bool, error) {
+	authorizedKeysBytes, err := os.ReadFile(authorizedKeysPath)
+	if err != nil {
+		return false, err
+	}
+
+	for len(authorizedKeysBytes) > 0 {
+		k, _, _, rest, err := gossh.ParseAuthorizedKey(authorizedKeysBytes)
+		if err != nil {
+			return false, err
+		}
+
+		if ssh.KeysEqual(k, pubKey) {
+			return true, nil
+		}
+
+		authorizedKeysBytes = rest
+	}
+
+	return false, nil
 }
