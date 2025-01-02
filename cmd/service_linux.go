@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path"
 	"path/filepath"
 	"strings"
@@ -45,14 +44,8 @@ func InstallService(args []string) error {
 	}
 	defer f.Close()
 
-	user, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("failed to get current user: %v", err)
-	}
-
 	if err := serviceConfig.Execute(f, map[string]any{
 		"ExecPath":    execPath,
-		"User":        user.Username,
 		"SmallwebDir": k.String("dir"),
 		"Args":        strings.Join(args, " "),
 	}); err != nil {
