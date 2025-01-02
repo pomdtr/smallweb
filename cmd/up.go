@@ -171,7 +171,7 @@ func NewCmdUp() *cobra.Command {
 							return
 						}
 
-						cmd := exec.Command(execPath, sess.Command()...)
+						cmd := exec.CommandContext(sess.Context(), execPath, sess.Command()...)
 						stdin, err := cmd.StdinPipe()
 						if err != nil {
 							fmt.Fprintf(sess, "failed to get stdin pipe: %v", err)
