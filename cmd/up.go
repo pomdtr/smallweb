@@ -21,12 +21,10 @@ import (
 	_ "embed"
 
 	"github.com/caddyserver/certmagic"
-	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
-	gossh "golang.org/x/crypto/ssh"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/pomdtr/smallweb/utils"
@@ -39,7 +37,6 @@ func NewCmdUp() *cobra.Command {
 		cron        bool
 		addr        string
 		sshAddr     string
-		sshHostKey  string
 		onDemandTLS bool
 		cert        string
 		key         string
@@ -141,29 +138,6 @@ func NewCmdUp() *cobra.Command {
 					SubsystemHandlers: map[string]ssh.SubsystemHandler{
 						"sftp": NewSftpHandler(k.String("dir")),
 					},
-					PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
-						for _, authorizedKeysPath := range []string{
-							filepath.Join(os.Getenv("HOME"), ".ssh", "authorized_keys"),
-							filepath.Join(k.String("dir"), ".smallweb", "authorized_keys"),
-						} {
-							ok, err := validatePublicKey(authorizedKeysPath, key)
-							if err != nil {
-								if errors.Is(err, os.ErrNotExist) {
-									continue
-								}
-
-								fmt.Fprintf(os.Stderr, "%s\n", err)
-								continue
-							}
-
-							if ok {
-								return true
-							}
-
-						}
-
-						return false
-					},
 					Handler: func(sess ssh.Session) {
 						execPath, err := os.Executable()
 						if err != nil {
@@ -202,21 +176,6 @@ func NewCmdUp() *cobra.Command {
 					},
 				}
 
-				hostKeyPath := utils.ExpandTilde(flags.sshHostKey)
-				if !cmd.Flags().Changed("ssh-host-key") && !utils.FileExists(utils.ExpandTilde(hostKeyPath)) {
-					kp, err := keygen.New(hostKeyPath, keygen.WithKeyType(keygen.Ed25519))
-					if err != nil {
-						return fmt.Errorf("failed to generate ssh key: %v", err)
-					}
-
-					if err := kp.WriteKeys(); err != nil {
-						return fmt.Errorf("failed to write ssh key: %v", err)
-					}
-				}
-
-				//nolint:errcheck
-				server.SetOption(ssh.HostKeyFile(hostKeyPath))
-
 				listener, err := getListener(flags.sshAddr, "", "")
 				if err != nil {
 					return fmt.Errorf("failed to get ssh listener: %v", err)
@@ -239,12 +198,12 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
-	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/smallweb", "ssh host key")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
 	cmd.Flags().StringVar(&flags.cert, "cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.key, "key", "", "key file")
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
 
+	cmd.Flags().MarkHidden("ssh-addr")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "cert")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "key")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "addr")
@@ -419,26 +378,4 @@ func NewSftpHandler(rootDir string) func(sess ssh.Session) {
 			fmt.Println("sftp server completed with error:", err)
 		}
 	}
-}
-
-func validatePublicKey(authorizedKeysPath string, pubKey ssh.PublicKey) (bool, error) {
-	authorizedKeysBytes, err := os.ReadFile(authorizedKeysPath)
-	if err != nil {
-		return false, err
-	}
-
-	for len(authorizedKeysBytes) > 0 {
-		k, _, _, rest, err := gossh.ParseAuthorizedKey(authorizedKeysBytes)
-		if err != nil {
-			return false, err
-		}
-
-		if ssh.KeysEqual(k, pubKey) {
-			return true, nil
-		}
-
-		authorizedKeysBytes = rest
-	}
-
-	return false, nil
 }
