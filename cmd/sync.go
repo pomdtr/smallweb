@@ -11,17 +11,24 @@ import (
 
 func NewCmdSync() *cobra.Command {
 	return &cobra.Command{
-		Use:   "sync <remote>",
+		Use:   "sync <remote> [remote-dir]",
 		Short: "Sync the smallweb config with the filesystem",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return checkMutagen()
 		},
-		Args: cobra.MaximumNArgs(1),
+		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			remote := args[0]
-			localDir := k.String("dir")
+			var alpha string
+			if len(args) == 1 {
+				alpha = fmt.Sprintf("%s:smallweb", args[0])
+			} else {
+				alpha = fmt.Sprintf("%s:%s", args[0], args[1])
+			}
+
+			beta := k.String("dir")
+
 			syncName := strings.Replace(k.String("domain"), ".", "-", -1)
-			command := exec.Command("mutagen", "sync", "create", fmt.Sprintf("--name=%s", syncName), "--ignore=node_modules,.DS_Store", "--ignore-vcs", "--mode=two-way-resolved", remote, localDir)
+			command := exec.Command("mutagen", "sync", "create", fmt.Sprintf("--name=%s", syncName), "--ignore=node_modules,.DS_Store", "--ignore-vcs", "--mode=two-way-resolved", alpha, beta)
 
 			command.Stdout = os.Stdout
 			command.Stderr = os.Stderr

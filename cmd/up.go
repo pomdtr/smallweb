@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -23,7 +22,6 @@ import (
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
-	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
 	gossh "golang.org/x/crypto/ssh"
@@ -138,9 +136,6 @@ func NewCmdUp() *cobra.Command {
 
 			if flags.sshAddr != "" {
 				server := ssh.Server{
-					SubsystemHandlers: map[string]ssh.SubsystemHandler{
-						"sftp": NewSftpHandler(k.String("dir")),
-					},
 					PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
 						for _, authorizedKeysPath := range []string{
 							filepath.Join(os.Getenv("HOME"), ".ssh", "authorized_keys"),
@@ -399,26 +394,6 @@ func requireDomain(cmd *cobra.Command, args []string) error {
 		return errors.New("missing domain")
 	}
 	return nil
-}
-
-// SftpHandler handler for SFTP subsystem
-func NewSftpHandler(rootDir string) func(sess ssh.Session) {
-	return func(sess ssh.Session) {
-		server, err := sftp.NewServer(
-			sess,
-			sftp.WithServerWorkingDirectory(rootDir),
-		)
-		if err != nil {
-			log.Printf("sftp server init error: %s\n", err)
-			return
-		}
-		if err := server.Serve(); err == io.EOF {
-			server.Close()
-			fmt.Println("sftp client exited session.")
-		} else if err != nil {
-			fmt.Println("sftp server completed with error:", err)
-		}
-	}
 }
 
 func validatePublicKey(authorizedKeysPath string, pubKey ssh.PublicKey) (bool, error) {
