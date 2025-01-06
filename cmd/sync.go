@@ -20,7 +20,7 @@ func NewCmdSync() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var alpha string
 			if len(args) == 1 {
-				alpha = fmt.Sprintf("%s:smallweb", args[0])
+				alpha = fmt.Sprintf("./%s:smallweb", args[0])
 			} else {
 				alpha = fmt.Sprintf("%s:%s", args[0], args[1])
 			}

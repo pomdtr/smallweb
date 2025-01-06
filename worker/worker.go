@@ -483,7 +483,7 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
+func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error) {
 	if args == nil {
 		args = []string{}
 	}
@@ -513,7 +513,7 @@ func (me *Worker) Command(args ...string) (*exec.Cmd, error) {
 
 	denoArgs = append(denoArgs, sandboxPath, input.String())
 
-	command := exec.Command(deno, denoArgs...)
+	command := exec.CommandContext(ctx, deno, denoArgs...)
 	command.Dir = me.App.Root()
 
 	command.Env = commandEnv(me.App, me.RootDir, me.Domain)

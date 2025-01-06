@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -167,7 +168,7 @@ func CronRunner() *cron.Cron {
 
 				wk := worker.NewWorker(a, k.String("dir"), k.String("domain"))
 
-				command, err := wk.Command(job.Args...)
+				command, err := wk.Command(context.Background(), job.Args...)
 				if err != nil {
 					fmt.Println(err)
 					continue
