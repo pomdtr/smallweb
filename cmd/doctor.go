@@ -34,6 +34,15 @@ func NewCmdDoctor() *cobra.Command {
 			fmt.Fprintf(os.Stderr, "✅ Deno version is compatible (%s)\n", version)
 			fmt.Fprintln(os.Stderr)
 
+			fmt.Fprintln(os.Stderr, "🔍 Checking domain...")
+			if k.String("domain") == "" {
+				fmt.Fprintln(os.Stderr, "❌ Domain not set")
+				fmt.Fprintf(os.Stderr, "💡 Set it using the $SMALLWEB_DOMAIN env var or the `domain` field in your smallweb config")
+				return nil
+			}
+			fmt.Fprintln(os.Stderr, "✅ Domain is set")
+			fmt.Fprintln(os.Stderr)
+
 			fmt.Fprintln(os.Stderr, "🎉 smallweb is healthy")
 			return nil
 		},
