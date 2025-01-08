@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
+	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
 	gossh "golang.org/x/crypto/ssh"
@@ -158,6 +160,9 @@ func NewCmdUp() *cobra.Command {
 						}
 
 						return false
+					},
+					SubsystemHandlers: map[string]ssh.SubsystemHandler{
+						"sftp": sftpHandler(sftp.WithServerWorkingDirectory(k.String("dir"))),
 					},
 					Handler: func(sess ssh.Session) {
 						execPath, err := os.Executable()
@@ -416,4 +421,24 @@ func validatePublicKey(authorizedKeysPath string, pubKey ssh.PublicKey) (bool, e
 	}
 
 	return false, nil
+}
+
+// SftpHandler handler for SFTP subsystem
+func sftpHandler(options ...sftp.ServerOption) func(sess ssh.Session) {
+	return func(sess ssh.Session) {
+		server, err := sftp.NewServer(
+			sess,
+			options...,
+		)
+		if err != nil {
+			log.Printf("sftp server init error: %s\n", err)
+			return
+		}
+		if err := server.Serve(); err == io.EOF {
+			server.Close()
+			fmt.Println("sftp client exited session.")
+		} else if err != nil {
+			fmt.Println("sftp server completed with error:", err)
+		}
+	}
 }
