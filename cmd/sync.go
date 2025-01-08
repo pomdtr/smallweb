@@ -11,20 +11,14 @@ import (
 
 func NewCmdSync() *cobra.Command {
 	return &cobra.Command{
-		Use:   "sync <remote> [remote-dir]",
+		Use:   "sync <remote>",
 		Short: "Sync the smallweb config with the filesystem",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return checkMutagen()
 		},
-		Args: cobra.RangeArgs(1, 2),
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var alpha string
-			if len(args) == 1 {
-				alpha = fmt.Sprintf("./%s:smallweb", args[0])
-			} else {
-				alpha = fmt.Sprintf("%s:%s", args[0], args[1])
-			}
-
+			alpha := args[0]
 			beta := k.String("dir")
 
 			syncName := strings.Replace(k.String("domain"), ".", "-", -1)
