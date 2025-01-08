@@ -23,6 +23,7 @@ type AppConfig struct {
 	Entrypoint string    `json:"entrypoint,omitempty"`
 	Root       string    `json:"root,omitempty"`
 	Crons      []CronJob `json:"crons,omitempty"`
+	DenoArgs   []string  `json:"deno_args,omitempty"`
 }
 
 type CronJob struct {

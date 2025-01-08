@@ -106,8 +106,8 @@ func NewWorker(app app.App, rootDir string, domain string) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
-	flags := []string{
+func (me *Worker) DenoArgs(a app.App, deno string, allowRun ...string) []string {
+	args := []string{
 		"--allow-net",
 		"--allow-import",
 		"--allow-env",
@@ -118,14 +118,16 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 		"--quiet",
 	}
 
+	args = append(args, a.Config.DenoArgs...)
+
 	if a.Admin {
-		flags = append(
-			flags,
+		args = append(
+			args,
 			fmt.Sprintf("--allow-read=%s,%s,%s", me.RootDir, sandboxPath, deno),
 			fmt.Sprintf("--allow-write=%s", me.RootDir),
 		)
 		if len(allowRun) > 0 {
-			flags = append(flags, fmt.Sprintf("--allow-run=%s", strings.Join(allowRun, ",")))
+			args = append(args, fmt.Sprintf("--allow-run=%s", strings.Join(allowRun, ",")))
 		}
 
 	} else {
@@ -141,32 +143,32 @@ func (me *Worker) Flags(a app.App, deno string, allowRun ...string) []string {
 				target = filepath.Join(filepath.Dir(root), target)
 			}
 
-			flags = append(
-				flags,
+			args = append(
+				args,
 				fmt.Sprintf("--allow-read=%s,%s,%s,%s", root, target, sandboxPath, deno),
 				fmt.Sprintf("--allow-write=%s,%s", filepath.Join(root, "data"), filepath.Join(target, "data")),
 			)
 		} else {
-			flags = append(
-				flags,
+			args = append(
+				args,
 				fmt.Sprintf("--allow-read=%s,%s,%s", root, sandboxPath, deno),
 				fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
 			)
 		}
 
 		if len(allowRun) > 0 {
-			flags = append(flags, fmt.Sprintf("--allow-run=%s", strings.Join(allowRun, ",")))
+			args = append(args, fmt.Sprintf("--allow-run=%s", strings.Join(allowRun, ",")))
 		}
 
 	}
 
 	if configPath := filepath.Join(a.Dir, "deno.json"); utils.FileExists(configPath) {
-		flags = append(flags, "--config", configPath)
+		args = append(args, "--config", configPath)
 	} else if configPath := filepath.Join(a.Dir, "deno.jsonc"); utils.FileExists(configPath) {
-		flags = append(flags, "--config", configPath)
+		args = append(args, "--config", configPath)
 	}
 
-	return flags
+	return args
 }
 
 func (me *Worker) Start() error {
@@ -182,7 +184,7 @@ func (me *Worker) Start() error {
 	}
 
 	args := []string{"run"}
-	args = append(args, me.Flags(me.App, deno)...)
+	args = append(args, me.DenoArgs(me.App, deno)...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
@@ -495,9 +497,9 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 
 	denoArgs := []string{"run"}
 	if runtime.GOOS == "darwin" {
-		denoArgs = append(denoArgs, me.Flags(me.App, deno, "open")...)
+		denoArgs = append(denoArgs, me.DenoArgs(me.App, deno, "open")...)
 	} else {
-		denoArgs = append(denoArgs, me.Flags(me.App, deno, "xdg-open")...)
+		denoArgs = append(denoArgs, me.DenoArgs(me.App, deno, "xdg-open")...)
 	}
 
 	input := strings.Builder{}
