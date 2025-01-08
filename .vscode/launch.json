@@ -7,8 +7,7 @@
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "up",
-                "--ssh-addr",
-                ":2222"
+                "--ssh-addr=:2222",
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/examples"
@@ -20,9 +19,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "console": "integratedTerminal",
-            "args": [
-                "logs"
-            ],
+            "args": [],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/examples"
             },
