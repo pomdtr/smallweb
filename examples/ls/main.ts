@@ -47,6 +47,13 @@ async function handleRequest() {
     })
 }
 
+async function handleCommand() {
+    const { SMALLWEB_DIR } = Deno.env.toObject()
+    const entries = await Array.fromAsync(Deno.readDir(SMALLWEB_DIR))
+    console.log(entries.filter(entry => !entry.name.startsWith(".")).map(entry => entry.name).join("\n"))
+}
+
 export default {
-    fetch: handleRequest
+    fetch: handleRequest,
+    run: handleCommand,
 }
