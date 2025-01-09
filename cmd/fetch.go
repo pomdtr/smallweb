@@ -60,7 +60,6 @@ func NewCmdFetch() *cobra.Command {
 			wk := worker.NewWorker(a, k.String("dir"), k.String("domain"))
 			_ = wk.Start()
 
-			//nolint:errcheck
 			defer wk.Stop()
 
 			w := httptest.NewRecorder()
