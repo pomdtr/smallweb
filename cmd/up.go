@@ -17,12 +17,15 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"syscall"
+	"unsafe"
 
 	_ "embed"
 
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
+	"github.com/creack/pty"
 	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
@@ -162,42 +165,111 @@ func NewCmdUp() *cobra.Command {
 						return false
 					},
 					SubsystemHandlers: map[string]ssh.SubsystemHandler{
-						"sftp": sftpHandler(sftp.WithServerWorkingDirectory(k.String("dir"))),
+						"sftp": func(sess ssh.Session) {
+							var workDir string
+							if sess.User() == "_" {
+								workDir = k.String("dir")
+							} else {
+								app, err := app.NewApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
+								if err != nil {
+									fmt.Fprintf(sess, "failed to load app: %v\n", err)
+									return
+								}
+
+								workDir = app.Dir
+							}
+
+							server, err := sftp.NewServer(
+								sess,
+								sftp.WithServerWorkingDirectory(workDir),
+							)
+
+							if err != nil {
+								log.Printf("sftp server init error: %s\n", err)
+								return
+							}
+							if err := server.Serve(); err == io.EOF {
+								server.Close()
+								fmt.Println("sftp client exited session.")
+							} else if err != nil {
+								fmt.Println("sftp server completed with error:", err)
+							}
+						},
 					},
 					Handler: func(sess ssh.Session) {
-						execPath, err := os.Executable()
-						if err != nil {
-							fmt.Fprintf(sess, "failed to get executable path: %v", err)
-							return
-						}
-
-						cmd := exec.CommandContext(sess.Context(), execPath, sess.Command()...)
-						stdin, err := cmd.StdinPipe()
-						if err != nil {
-							fmt.Fprintf(sess, "failed to get stdin pipe: %v", err)
-							return
-						}
-
-						go func() {
-							//nolint:errcheck
-							io.Copy(stdin, sess)
-						}()
-
-						cmd.Stdout = sess
-						cmd.Stderr = sess.Stderr()
-
-						if err := cmd.Run(); err != nil {
-							var exitErr *exec.ExitError
-							if errors.As(err, &exitErr) {
-								//nolint:errcheck
-								sess.Exit(exitErr.ExitCode())
+						var cmd *exec.Cmd
+						if sess.User() == "_" {
+							execPath, err := os.Executable()
+							if err != nil {
+								fmt.Fprintf(sess, "failed to get executable path: %v\n", err)
+								return
+							}
+							cmd = exec.Command(execPath, sess.Command()...)
+							cmd.Env = os.Environ()
+						} else {
+							app, err := app.NewApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
+							if err != nil {
+								fmt.Fprintf(sess, "failed to load app: %v\n", err)
 								return
 							}
 
-							fmt.Fprintf(sess, "failed to run command: %v", err)
-							//nolint:errcheck
-							sess.Exit(1)
+							wk := worker.NewWorker(app, k.String("dir"), k.String("domain"))
+							command, err := wk.Command(sess.Context(), sess.Command()...)
+							if err != nil {
+								fmt.Fprintf(sess, "failed to get command: %v\n", err)
+								return
+							}
+
+							cmd = command
+						}
+
+						ptyReq, winCh, isPty := sess.Pty()
+						if isPty {
+							cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
+							f, err := pty.Start(cmd)
+							if err != nil {
+								panic(err)
+							}
+							go func() {
+								for win := range winCh {
+									syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), uintptr(syscall.TIOCSWINSZ),
+										uintptr(unsafe.Pointer(&struct{ h, w, x, y uint16 }{uint16(win.Height), uint16(win.Width), 0, 0})))
+								}
+							}()
+							go func() {
+								io.Copy(f, sess)
+							}()
+							io.Copy(sess, f)
+							cmd.Wait()
 							return
+						} else {
+							stdin, err := cmd.StdinPipe()
+							if err != nil {
+								fmt.Fprintf(sess, "failed to get stdin pipe: %v", err)
+								return
+							}
+
+							go func() {
+								//nolint:errcheck
+								io.Copy(stdin, sess)
+							}()
+
+							cmd.Stdout = sess
+							cmd.Stderr = sess.Stderr()
+
+							if err := cmd.Run(); err != nil {
+								var exitErr *exec.ExitError
+								if errors.As(err, &exitErr) {
+									//nolint:errcheck
+									sess.Exit(exitErr.ExitCode())
+									return
+								}
+
+								fmt.Fprintf(sess, "failed to run command: %v", err)
+								//nolint:errcheck
+								sess.Exit(1)
+								return
+							}
 						}
 					},
 				}
@@ -421,24 +493,4 @@ func validatePublicKey(authorizedKeysPath string, pubKey ssh.PublicKey) (bool, e
 	}
 
 	return false, nil
-}
-
-// SftpHandler handler for SFTP subsystem
-func sftpHandler(options ...sftp.ServerOption) func(sess ssh.Session) {
-	return func(sess ssh.Session) {
-		server, err := sftp.NewServer(
-			sess,
-			options...,
-		)
-		if err != nil {
-			log.Printf("sftp server init error: %s\n", err)
-			return
-		}
-		if err := server.Serve(); err == io.EOF {
-			server.Close()
-			fmt.Println("sftp client exited session.")
-		} else if err != nil {
-			fmt.Println("sftp server completed with error:", err)
-		}
-	}
 }
