@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"text/template"
 	"time"
@@ -56,7 +55,6 @@ func NewCmdLogs() *cobra.Command {
 	var flags struct {
 		template string
 		all      bool
-		remote   string
 		logType  string
 	}
 
@@ -90,35 +88,6 @@ func NewCmdLogs() *cobra.Command {
 				}
 
 				appName = filepath.Base(cwd)
-			}
-
-			if remote := k.String("remote"); remote != "" {
-				cmd := exec.Command("ssh", remote, "smallweb", "logs")
-				if appName != "" {
-					cmd.Args = append(cmd.Args, appName)
-				}
-
-				if flags.all {
-					cmd.Args = append(cmd.Args, "--all")
-				}
-
-				if flags.logType != "" {
-					cmd.Args = append(cmd.Args, "--type", flags.logType)
-				}
-
-				if flags.template != "" {
-					cmd.Args = append(cmd.Args, "--template", flags.template)
-				}
-
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				cmd.Stdin = os.Stdin
-
-				if err := cmd.Run(); err != nil {
-					return fmt.Errorf("failed to run remote command: %w", err)
-				}
-
-				return nil
 			}
 
 			logFilename := utils.GetLogFilename(k.String("domain"))
@@ -264,7 +233,6 @@ func NewCmdLogs() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&flags.template, "template", "", "output logs using a Go template")
-	cmd.Flags().StringVar(&flags.remote, "remote", "", "ssh remote")
 	_ = cmd.RegisterFlagCompletionFunc("app", completeApp)
 	cmd.Flags().StringVar(&flags.logType, "type", "http", "log type (http, console)")
 	_ = cmd.RegisterFlagCompletionFunc("type", cobra.FixedCompletions([]string{"http", "console"}, cobra.ShellCompDirectiveNoFileComp))
