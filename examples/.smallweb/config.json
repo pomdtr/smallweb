@@ -1,3 +1,6 @@
 {
-    "domain": "smallweb.localhost"
+    "domain": "smallweb.localhost",
+    "adminApps": [
+        "ls"
+    ]
 }
