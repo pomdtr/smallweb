@@ -120,6 +120,7 @@ func (me *Worker) DenoArgs(a app.App, deno string, allowRun ...string) []string 
 	}
 
 	args = append(args, a.Config.DenoArgs...)
+	npmCache := filepath.Join(xdg.CacheHome, "smallweb", "deno", "npm", "registry.npmjs.org")
 
 	if a.Admin {
 		args = append(
@@ -146,13 +147,13 @@ func (me *Worker) DenoArgs(a app.App, deno string, allowRun ...string) []string 
 
 			args = append(
 				args,
-				fmt.Sprintf("--allow-read=%s,%s,%s,%s", root, target, sandboxPath, deno),
+				fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", root, target, sandboxPath, deno, npmCache),
 				fmt.Sprintf("--allow-write=%s,%s", filepath.Join(root, "data"), filepath.Join(target, "data")),
 			)
 		} else {
 			args = append(
 				args,
-				fmt.Sprintf("--allow-read=%s,%s,%s", root, sandboxPath, deno),
+				fmt.Sprintf("--allow-read=%s,%s,%s,%s", root, sandboxPath, deno, npmCache),
 				fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
 			)
 		}
