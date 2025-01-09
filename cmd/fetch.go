@@ -58,7 +58,9 @@ func NewCmdFetch() *cobra.Command {
 			}
 
 			wk := worker.NewWorker(a, k.String("dir"), k.String("domain"))
-			_ = wk.Start()
+			if err := wk.Start(); err != nil {
+				return fmt.Errorf("failed to start worker: %w", err)
+			}
 
 			defer wk.Stop()
 
