@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 func NewCmdSync() *cobra.Command {
-	return &cobra.Command{
+	var flags struct {
+		name string
+	}
+
+	cmd := &cobra.Command{
 		Use:   "sync <remote>",
 		Short: "Sync the smallweb config with the filesystem",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -21,8 +24,11 @@ func NewCmdSync() *cobra.Command {
 			alpha := args[0]
 			beta := k.String("dir")
 
-			syncName := strings.Replace(k.String("domain"), ".", "-", -1)
-			command := exec.Command("mutagen", "sync", "create", fmt.Sprintf("--name=%s", syncName), "--ignore=node_modules,.DS_Store", "--ignore-vcs", "--mode=two-way-resolved", alpha, beta)
+			command := exec.Command("mutagen", "sync", "create", "--ignore=node_modules,.DS_Store", "--ignore-vcs", "--mode=two-way-resolved", alpha, beta)
+
+			if flags.name != "" {
+				command.Args = append(command.Args, "--name", flags.name)
+			}
 
 			command.Stdout = os.Stdout
 			command.Stderr = os.Stderr
@@ -34,6 +40,9 @@ func NewCmdSync() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&flags.name, "name", "", "The name of the sync session")
+	return cmd
 }
 
 func checkMutagen() error {
