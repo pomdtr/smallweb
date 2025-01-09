@@ -1,10 +1,12 @@
 # Changelog
 
+## 0.20.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.20>.
+
 ## 0.19.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.19>.
-
--
 
 ## 0.18.0
 
