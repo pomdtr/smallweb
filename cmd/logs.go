@@ -266,9 +266,9 @@ func NewCmdLogs() *cobra.Command {
 	cmd.Flags().StringVar(&flags.template, "template", "", "output logs using a Go template")
 	cmd.Flags().StringVar(&flags.remote, "remote", "", "ssh remote")
 	_ = cmd.RegisterFlagCompletionFunc("app", completeApp)
-	cmd.Flags().StringVar(&flags.logType, "type", "http", "log type")
+	cmd.Flags().StringVar(&flags.logType, "type", "http", "log type (http, console)")
 	_ = cmd.RegisterFlagCompletionFunc("type", cobra.FixedCompletions([]string{"http", "console"}, cobra.ShellCompDirectiveNoFileComp))
-	cmd.Flags().BoolVar(&flags.all, "all", false, "show all logs")
+	cmd.Flags().BoolVar(&flags.all, "all", false, "show logs for all apps")
 
 	return cmd
 }
