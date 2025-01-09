@@ -4,9 +4,21 @@
 
 Full release notes at <https://blog.smallweb.run/posts/v0.20>.
 
+- access the smallweb cli and apps cli entrypoint using ssh
+- 404 pages and `_redirects` file for the static server
+- support for passing additional deno args in the app config
+
 ## 0.19.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.19>.
+
+- new install script to bootstrap smallweb on a new VPS
+- `--dir` global flag to specify the smallweb directory
+- `smallweb init` command to create a new smallweb directory
+- `smallweb logs` api updates
+- removal of the default domain
+- `addr`, `cert` and `key` are now specified as flags of the `up command`
+- clean urls and custom head elements for the static server
 
 ## 0.18.0
 
