@@ -25,6 +25,7 @@ require (
 	github.com/carapace-sh/carapace v1.5.0
 	github.com/charmbracelet/keygen v0.5.1
 	github.com/charmbracelet/ssh v0.0.0-20241211182756-4fe22b0f1b7c
+	github.com/creack/pty v1.1.21
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/getsops/sops/v3 v3.9.1
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -90,7 +91,6 @@ require (
 	github.com/charmbracelet/x/termios v0.1.0 // indirect
 	github.com/cloudflare/circl v1.4.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
-	github.com/creack/pty v1.1.21 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/fatih/color v1.17.0 // indirect

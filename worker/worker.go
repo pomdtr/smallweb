@@ -118,7 +118,6 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 		"--quiet",
 	}
 
-	args = append(args, a.Config.DenoArgs...)
 	npmCache := filepath.Join(xdg.CacheHome, "smallweb", "deno", "npm", "registry.npmjs.org")
 
 	if a.Admin {

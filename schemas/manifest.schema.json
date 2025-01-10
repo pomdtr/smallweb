@@ -33,13 +33,6 @@
                     }
                 }
             }
-        },
-        "denoArgs": {
-            "description": "An array of additional arguments to pass to the deno run/serve command",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
         }
     }
 }
