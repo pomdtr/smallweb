@@ -118,47 +118,49 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 		"--quiet",
 	}
 
-	npmCache := filepath.Join(xdg.CacheHome, "smallweb", "deno", "npm", "registry.npmjs.org")
-
-	if a.Admin {
-		args = append(
-			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", me.RootDir, sandboxPath, deno),
-			fmt.Sprintf("--allow-write=%s", me.RootDir),
-		)
-	} else {
-		root := a.Root()
-		// check if root is a symlink
-		if fi, err := os.Lstat(root); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-			target, err := os.Readlink(root)
-			if err != nil {
-				log.Printf("could not read symlink: %v", err)
-			}
-
-			if !filepath.IsAbs(target) {
-				target = filepath.Join(filepath.Dir(root), target)
-			}
-
-			args = append(
-				args,
-				fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", root, target, sandboxPath, deno, npmCache),
-				fmt.Sprintf("--allow-write=%s,%s", filepath.Join(root, "data"), filepath.Join(target, "data")),
-			)
-		} else {
-			args = append(
-				args,
-				fmt.Sprintf("--allow-read=%s,%s,%s,%s", root, sandboxPath, deno, npmCache),
-				fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
-			)
-		}
-	}
-
 	if configPath := filepath.Join(a.Dir, "deno.json"); utils.FileExists(configPath) {
 		args = append(args, "--config", configPath)
 	} else if configPath := filepath.Join(a.Dir, "deno.jsonc"); utils.FileExists(configPath) {
 		args = append(args, "--config", configPath)
 	}
 
+	npmCache := filepath.Join(xdg.CacheHome, "smallweb", "deno", "npm", "registry.npmjs.org")
+	if a.Admin {
+		args = append(
+			args,
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.RootDir, sandboxPath, deno, npmCache),
+			fmt.Sprintf("--allow-write=%s", me.RootDir),
+		)
+
+		return args
+	}
+
+	root := a.Root()
+	// if root is not a symlink
+	if fi, err := os.Lstat(root); err == nil && fi.Mode()&os.ModeSymlink == 0 {
+		args = append(
+			args,
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", root, sandboxPath, deno, npmCache),
+			fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
+		)
+
+		return args
+	}
+
+	target, err := os.Readlink(root)
+	if err != nil {
+		log.Printf("could not read symlink: %v", err)
+	}
+
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(filepath.Dir(root), target)
+	}
+
+	args = append(
+		args,
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", root, target, sandboxPath, deno, npmCache),
+		fmt.Sprintf("--allow-write=%s,%s", filepath.Join(root, "data"), filepath.Join(target, "data")),
+	)
 	return args
 }
 
