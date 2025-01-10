@@ -53,7 +53,7 @@ func NewCmdSecrets() *cobra.Command {
 			if flags.updateKeys {
 				globalSecretsPath := filepath.Join(k.String("dir"), ".smallweb", "secrets.enc.env")
 				if stat, err := os.Stat(globalSecretsPath); err == nil && !stat.IsDir() {
-					c := exec.Command("sops", "updatekeys", globalSecretsPath)
+					c := exec.Command("sops", "updatekeys", "--yes", globalSecretsPath)
 					c.Dir = k.String("dir")
 
 					if err := c.Run(); err != nil {
@@ -69,7 +69,7 @@ func NewCmdSecrets() *cobra.Command {
 				for _, a := range apps {
 					secretsPath := filepath.Join(k.String("dir"), a, "secrets.enc.env")
 					if stat, err := os.Stat(secretsPath); err == nil && !stat.IsDir() {
-						c := exec.Command("sops", "updatekeys", secretsPath)
+						c := exec.Command("sops", "updatekeys", "--yes", secretsPath)
 						c.Dir = k.String("dir")
 
 						if err := c.Run(); err != nil {
