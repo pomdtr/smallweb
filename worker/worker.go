@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -107,7 +106,7 @@ func NewWorker(app app.App, rootDir string, domain string) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) DenoArgs(a app.App, deno string, allowRun ...string) []string {
+func (me *Worker) DenoArgs(a app.App, deno string) []string {
 	args := []string{
 		"--allow-net",
 		"--allow-import",
@@ -128,10 +127,6 @@ func (me *Worker) DenoArgs(a app.App, deno string, allowRun ...string) []string 
 			fmt.Sprintf("--allow-read=%s,%s,%s", me.RootDir, sandboxPath, deno),
 			fmt.Sprintf("--allow-write=%s", me.RootDir),
 		)
-		if len(allowRun) > 0 {
-			args = append(args, fmt.Sprintf("--allow-run=%s", strings.Join(allowRun, ",")))
-		}
-
 	} else {
 		root := a.Root()
 		// check if root is a symlink
@@ -157,11 +152,6 @@ func (me *Worker) DenoArgs(a app.App, deno string, allowRun ...string) []string 
 				fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
 			)
 		}
-
-		if len(allowRun) > 0 {
-			args = append(args, fmt.Sprintf("--allow-run=%s", strings.Join(allowRun, ",")))
-		}
-
 	}
 
 	if configPath := filepath.Join(a.Dir, "deno.json"); utils.FileExists(configPath) {
@@ -498,11 +488,7 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	}
 
 	denoArgs := []string{"run"}
-	if runtime.GOOS == "darwin" {
-		denoArgs = append(denoArgs, me.DenoArgs(me.App, deno, "open")...)
-	} else {
-		denoArgs = append(denoArgs, me.DenoArgs(me.App, deno, "xdg-open")...)
-	}
+	denoArgs = append(denoArgs, me.DenoArgs(me.App, deno)...)
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
