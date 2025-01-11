@@ -160,7 +160,6 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	rootCmd.AddCommand(NewCmdCrons())
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdLogs())
-	rootCmd.AddCommand(NewCmdSync())
 	rootCmd.AddCommand(NewCmdSecrets())
 	rootCmd.AddCommand(NewCmdLink())
 
