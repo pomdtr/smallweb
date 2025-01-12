@@ -166,10 +166,20 @@ func NewCmdUp() *cobra.Command {
 							}
 						}
 
-						for _, authorizedKeysPath := range []string{
-							filepath.Join(os.Getenv("HOME"), ".ssh", "authorized_keys"),
+						authorizedKeysPaths := []string{
 							filepath.Join(k.String("dir"), ".smallweb", "authorized_keys"),
-						} {
+							filepath.Join(k.String("dir"), ".smallweb", "authorized_keys"),
+						}
+
+						if user := ctx.User(); user != "_" {
+							authorizedKeysPaths = append(authorizedKeysPaths, filepath.Join(k.String("dir"), user, "authorized_keys"))
+						}
+
+						for _, authorizedKeysPath := range authorizedKeysPaths {
+							if _, err := os.Stat(authorizedKeysPath); err != nil {
+								continue
+							}
+
 							ok, err := validatePublicKey(authorizedKeysPath, key)
 							if err != nil {
 								if errors.Is(err, os.ErrNotExist) {
