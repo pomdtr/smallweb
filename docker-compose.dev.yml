@@ -1,0 +1,14 @@
+services:
+  smallweb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./examples:/smallweb
+  caddy:
+    image: caddy:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
