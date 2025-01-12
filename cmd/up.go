@@ -139,6 +139,33 @@ func NewCmdUp() *cobra.Command {
 			if flags.sshAddr != "" {
 				server := ssh.Server{
 					PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
+						sshDir := filepath.Join(os.Getenv("HOME"), ".ssh")
+						entries, err := os.ReadDir(sshDir)
+						if err != nil && !errors.Is(err, os.ErrNotExist) {
+							fmt.Fprintf(os.Stderr, "failed to read ssh directory: %v\n", err)
+							return false
+						}
+
+						for _, entry := range entries {
+							if filepath.Ext(entry.Name()) != ".pub" {
+								continue
+							}
+
+							pubKeyBytes, err := os.ReadFile(filepath.Join(sshDir, entry.Name()))
+							if err != nil {
+								continue
+							}
+
+							pubKey, _, _, _, err := gossh.ParseAuthorizedKey(pubKeyBytes)
+							if err != nil {
+								continue
+							}
+
+							if ssh.KeysEqual(pubKey, key) {
+								return true
+							}
+						}
+
 						for _, authorizedKeysPath := range []string{
 							filepath.Join(os.Getenv("HOME"), ".ssh", "authorized_keys"),
 							filepath.Join(k.String("dir"), ".smallweb", "authorized_keys"),
