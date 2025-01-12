@@ -169,11 +169,15 @@ func NewCmdUp() *cobra.Command {
 							} else {
 								app, err := app.NewApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
 								if err != nil {
-									fmt.Fprintf(sess, "failed to load app: %v\n", err)
+									fmt.Fprintln(sess, "failed to load app:", err)
 									return
 								}
 
-								workDir = app.Dir
+								workDir = filepath.Join(app.Root(), "data")
+								if _, err := os.Stat(workDir); err != nil {
+									fmt.Fprintln(sess, "failed to get app data directory")
+									return
+								}
 							}
 
 							server, err := sftp.NewServer(
