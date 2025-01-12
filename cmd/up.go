@@ -139,19 +139,17 @@ func NewCmdUp() *cobra.Command {
 			if flags.sshAddr != "" {
 				server := ssh.Server{
 					PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
-						sshDir := filepath.Join(os.Getenv("HOME"), ".ssh")
-						entries, err := os.ReadDir(sshDir)
-						if err != nil && !errors.Is(err, os.ErrNotExist) {
-							fmt.Fprintf(os.Stderr, "failed to read ssh directory: %v\n", err)
-							return false
-						}
 
-						for _, entry := range entries {
-							if filepath.Ext(entry.Name()) != ".pub" {
+						for _, pubKeyName := range []string{
+							"id_ed25519.pub",
+							"id_rsa.pub",
+						} {
+							pubKeyPath := filepath.Join(os.Getenv("HOME"), ".ssh", pubKeyName)
+							if _, err := os.Stat(pubKeyPath); err != nil {
 								continue
 							}
 
-							pubKeyBytes, err := os.ReadFile(filepath.Join(sshDir, entry.Name()))
+							pubKeyBytes, err := os.ReadFile(pubKeyPath)
 							if err != nil {
 								continue
 							}
