@@ -14,6 +14,7 @@
 	"features": {
 		"ghcr.io/devcontainers/features/go:1": {},
 		"ghcr.io/devcontainers-community/features/deno:1": {},
-		"ghcr.io/devcontainers-extra/features/caddy:1": {}
+		"ghcr.io/devcontainers-extra/features/caddy:1": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
 	}
 }
