@@ -10,7 +10,7 @@
 		"SMALLWEB_DOMAIN": "smallweb.localhost",
 		"SMALLWEB_DIR": "${containerWorkspaceFolder}/examples"
 	},
-	"postCreateCommand": "go mod download",
+	"postCreateCommand": "go install",
 	"features": {
 		"ghcr.io/devcontainers/features/go:1": {},
 		"ghcr.io/devcontainers-community/features/deno:1": {},
