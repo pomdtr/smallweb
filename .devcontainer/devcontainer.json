@@ -1,5 +1,16 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
 	"image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu",
+	"forwardPorts": [
+		7777,
+		2222
+	],
+	"remoteEnv": {
+		"SMALLWEB_DOMAIN": "smallweb.localhost",
+		"SMALLWEB_DIR": "${containerWorkspaceFolder}/examples"
+	},
+	"postCreateCommand": "go mod download",
 	"features": {
 		"ghcr.io/devcontainers/features/go:1": {},
 		"ghcr.io/devcontainers-community/features/deno:1": {},
