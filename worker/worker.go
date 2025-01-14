@@ -124,42 +124,43 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 		args = append(args, "--config", configPath)
 	}
 
+	authorizedKeysPath := filepath.Join(me.RootDir, ".smallweb", "authorized_keys")
 	npmCache := filepath.Join(xdg.CacheHome, "smallweb", "deno", "npm", "registry.npmjs.org")
 	if a.Admin {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.RootDir, sandboxPath, deno, npmCache),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", me.RootDir, sandboxPath, deno, npmCache, authorizedKeysPath),
 			fmt.Sprintf("--allow-write=%s", me.RootDir),
 		)
 
 		return args
 	}
 
-	root := a.Root()
+	appRoot := a.Root()
 	// if root is not a symlink
-	if fi, err := os.Lstat(root); err == nil && fi.Mode()&os.ModeSymlink == 0 {
+	if fi, err := os.Lstat(appRoot); err == nil && fi.Mode()&os.ModeSymlink == 0 {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", root, sandboxPath, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", filepath.Join(root, "data")),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appRoot, sandboxPath, deno, npmCache, authorizedKeysPath),
+			fmt.Sprintf("--allow-write=%s", filepath.Join(appRoot, "data")),
 		)
 
 		return args
 	}
 
-	target, err := os.Readlink(root)
+	target, err := os.Readlink(appRoot)
 	if err != nil {
 		log.Printf("could not read symlink: %v", err)
 	}
 
 	if !filepath.IsAbs(target) {
-		target = filepath.Join(filepath.Dir(root), target)
+		target = filepath.Join(filepath.Dir(appRoot), target)
 	}
 
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", root, target, sandboxPath, deno, npmCache),
-		fmt.Sprintf("--allow-write=%s,%s", filepath.Join(root, "data"), filepath.Join(target, "data")),
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s,%s", appRoot, target, sandboxPath, deno, npmCache, authorizedKeysPath),
+		fmt.Sprintf("--allow-write=%s,%s", filepath.Join(appRoot, "data"), filepath.Join(target, "data")),
 	)
 	return args
 }
