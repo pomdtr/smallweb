@@ -1,5 +1,5 @@
 ---
-title: Welcome to Smallweb
+title: Welcome to Smallweb!
 ---
 
 # Welcome to Smallweb
