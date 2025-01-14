@@ -139,36 +139,31 @@ func NewCmdUp() *cobra.Command {
 			if flags.sshAddr != "" {
 				server := ssh.Server{
 					PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
-						authorizedKeysPaths := []string{
-							filepath.Join(k.String("dir"), ".smallweb", "authorized_keys"),
+						authorizedKeysPath := filepath.Join(k.String("dir"), ".smallweb", "authorized_keys")
+						if _, err := os.Stat(authorizedKeysPath); err != nil {
+							return false
 						}
 
-						if user := ctx.User(); user != "_" {
-							authorizedKeysPaths = append(authorizedKeysPaths, filepath.Join(k.String("dir"), user, "authorized_keys"))
+						authorizedKeysBytes, err := os.ReadFile(authorizedKeysPath)
+						if err != nil {
+							return false
 						}
 
-						for _, authorizedKeysPath := range authorizedKeysPaths {
-							if _, err := os.Stat(authorizedKeysPath); err != nil {
-								continue
-							}
-
-							ok, err := validatePublicKey(authorizedKeysPath, key)
+						for len(authorizedKeysBytes) > 0 {
+							k, _, _, rest, err := gossh.ParseAuthorizedKey(authorizedKeysBytes)
 							if err != nil {
-								if errors.Is(err, os.ErrNotExist) {
-									continue
-								}
-
-								fmt.Fprintf(os.Stderr, "%s\n", err)
-								continue
+								return false
 							}
 
-							if ok {
+							if ssh.KeysEqual(k, key) {
 								return true
 							}
 
+							authorizedKeysBytes = rest
 						}
 
 						return false
+
 					},
 					SubsystemHandlers: map[string]ssh.SubsystemHandler{
 						"sftp": func(sess ssh.Session) {
@@ -474,26 +469,4 @@ func requireDomain(cmd *cobra.Command, args []string) error {
 		return errors.New("missing domain")
 	}
 	return nil
-}
-
-func validatePublicKey(authorizedKeysPath string, pubKey ssh.PublicKey) (bool, error) {
-	authorizedKeysBytes, err := os.ReadFile(authorizedKeysPath)
-	if err != nil {
-		return false, err
-	}
-
-	for len(authorizedKeysBytes) > 0 {
-		k, _, _, rest, err := gossh.ParseAuthorizedKey(authorizedKeysBytes)
-		if err != nil {
-			return false, err
-		}
-
-		if ssh.KeysEqual(k, pubKey) {
-			return true, nil
-		}
-
-		authorizedKeysBytes = rest
-	}
-
-	return false, nil
 }
