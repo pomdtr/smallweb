@@ -124,12 +124,11 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 		args = append(args, "--config", configPath)
 	}
 
-	authorizedKeysPath := filepath.Join(me.RootDir, ".smallweb", "authorized_keys")
 	npmCache := filepath.Join(xdg.CacheHome, "smallweb", "deno", "npm", "registry.npmjs.org")
 	if a.Admin {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", me.RootDir, sandboxPath, deno, npmCache, authorizedKeysPath),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.RootDir, sandboxPath, deno, npmCache),
 			fmt.Sprintf("--allow-write=%s", me.RootDir),
 		)
 
@@ -141,7 +140,7 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 	if fi, err := os.Lstat(appRoot); err == nil && fi.Mode()&os.ModeSymlink == 0 {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appRoot, sandboxPath, deno, npmCache, authorizedKeysPath),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", appRoot, sandboxPath, deno, npmCache),
 			fmt.Sprintf("--allow-write=%s", filepath.Join(appRoot, "data")),
 		)
 
@@ -159,7 +158,7 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s,%s", appRoot, target, sandboxPath, deno, npmCache, authorizedKeysPath),
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appRoot, target, sandboxPath, deno, npmCache),
 		fmt.Sprintf("--allow-write=%s,%s", filepath.Join(appRoot, "data"), filepath.Join(target, "data")),
 	)
 	return args
