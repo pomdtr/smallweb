@@ -92,7 +92,7 @@ func ListApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func NewApp(appname string, rootDir string, domain string, isAdmin bool) (App, error) {
+func LoadApp(appname string, rootDir string, domain string, isAdmin bool) (App, error) {
 	appDir := filepath.Join(rootDir, appname)
 	if !utils.FileExists(filepath.Join(rootDir, appname)) {
 		return App{}, ErrAppNotFound

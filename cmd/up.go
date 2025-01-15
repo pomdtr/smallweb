@@ -99,7 +99,7 @@ func NewCmdUp() *cobra.Command {
 							return fmt.Errorf("failed to lookup app: %v", err)
 						}
 
-						if _, err := app.NewApp(appname, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
+						if _, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
 							return fmt.Errorf("failed to load app: %v", err)
 						}
 
@@ -170,7 +170,7 @@ func NewCmdUp() *cobra.Command {
 							if sess.User() == "_" {
 								workDir = k.String("dir")
 							} else {
-								app, err := app.NewApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
+								app, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
 								if err != nil {
 									fmt.Fprintln(sess, "failed to load app:", err)
 									return
@@ -211,7 +211,7 @@ func NewCmdUp() *cobra.Command {
 							cmd = exec.Command(execPath, sess.Command()...)
 							cmd.Env = os.Environ()
 						} else {
-							app, err := app.NewApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
+							app, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
 							if err != nil {
 								fmt.Fprintf(sess, "failed to load app: %v\n", err)
 								return
@@ -437,7 +437,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 	me.mu.Lock()
 	defer me.mu.Unlock()
 
-	a, err := app.NewApp(appname, rootDir, domain, slices.Contains(k.Strings("adminApps"), appname))
+	a, err := app.LoadApp(appname, rootDir, domain, slices.Contains(k.Strings("adminApps"), appname))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}

@@ -162,6 +162,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	rootCmd.AddCommand(NewCmdLogs())
 	rootCmd.AddCommand(NewCmdSecrets())
 	rootCmd.AddCommand(NewCmdLink())
+	rootCmd.AddCommand(NewCmdEmail())
 
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "changelog",

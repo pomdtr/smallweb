@@ -72,7 +72,7 @@ func NewCmdCrons() *cobra.Command {
 					continue
 				}
 
-				app, err := app.NewApp(name, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
+				app, err := app.LoadApp(name, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -149,7 +149,7 @@ func CronRunner() *cron.Cron {
 		}
 
 		for _, name := range apps {
-			a, err := app.NewApp(name, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
+			a, err := app.LoadApp(name, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), name))
 			if err != nil {
 				fmt.Println(err)
 				continue
