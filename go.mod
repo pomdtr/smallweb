@@ -23,7 +23,6 @@ require (
 require (
 	github.com/caddyserver/certmagic v0.21.4
 	github.com/carapace-sh/carapace v1.5.0
-	github.com/charmbracelet/keygen v0.5.1
 	github.com/charmbracelet/ssh v0.0.0-20241211182756-4fe22b0f1b7c
 	github.com/creack/pty v1.1.21
 	github.com/fsnotify/fsnotify v1.8.0
