@@ -512,6 +512,45 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	return command, nil
 }
 
+func (me *Worker) SendEmail(ctx context.Context, message io.Reader) error {
+	deno, err := DenoExecutable()
+	if err != nil {
+		return fmt.Errorf("could not find deno executable")
+	}
+
+	denoArgs := []string{"run"}
+	denoArgs = append(denoArgs, me.DenoArgs(me.App, deno)...)
+
+	input := strings.Builder{}
+	encoder := json.NewEncoder(&input)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(map[string]any{
+		"command":    "email",
+		"entrypoint": me.App.Entrypoint(),
+	}); err != nil {
+		return fmt.Errorf("could not encode input: %w", err)
+	}
+
+	denoArgs = append(denoArgs, sandboxPath, input.String())
+
+	command := exec.CommandContext(ctx, deno, denoArgs...)
+	command.Dir = me.App.Root()
+	command.Stderr = os.Stderr
+	command.Env = commandEnv(me.App, me.RootDir, me.Domain)
+
+	stdin, err := command.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("could not get stdin pipe: %w", err)
+	}
+
+	go func() {
+		defer stdin.Close()
+		io.Copy(stdin, message)
+	}()
+
+	return command.Run()
+}
+
 // GetFreePort asks the kernel for a free open port that is ready to use.
 func GetFreePort() (int, error) {
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")

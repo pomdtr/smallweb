@@ -80,10 +80,9 @@ function respondWithError(request: Request, error: Error) {
 const input = JSON.parse(Deno.args[0]);
 
 if (input.command === "fetch") {
-    const { entrypoint, port } = input;
     Deno.serve(
         {
-            port: parseInt(port),
+            port: parseInt(input.port),
             onListen: () => {
                 // This line will signal that the server is ready to the go
                 console.error("READY");
@@ -91,7 +90,7 @@ if (input.command === "fetch") {
         },
         async (req) => {
             try {
-                const mod = await import(entrypoint);
+                const mod = await import(input.entrypoint);
                 if (!mod.default) {
                     return new Response("The app does not provide a default export.", { status: 500 });
                 }
@@ -136,8 +135,7 @@ if (input.command === "fetch") {
         },
     );
 } else if (input.command === "run") {
-    const { entrypoint, args } = input;
-    const mod = await import(entrypoint);
+    const mod = await import(input.entrypoint);
     if (!mod.default || typeof mod.default !== "object") {
         console.error(
             "The mod does not provide an object as it's default export.",
@@ -156,7 +154,29 @@ if (input.command === "fetch") {
         Deno.exit(1);
     }
 
-    await handler.run(args);
+    await handler.run(input.args);
+} else if (input.command == "email") {
+    const { entrypoint } = input;
+    const mod = await import(entrypoint);
+    if (!mod.default || typeof mod.default !== "object") {
+        console.error(
+            "The mod does not provide an object as it's default export.",
+        );
+        Deno.exit(1);
+    }
+
+    const handler = mod.default;
+    if (!("email" in handler)) {
+        console.error("The mod default export does not have a email function.");
+        Deno.exit(1);
+    }
+
+    if (!(typeof handler.email === "function")) {
+        console.error("The mod default export email property must be a function.");
+        Deno.exit(1);
+    }
+
+    await handler.email(Deno.stdin.readable);
 } else {
     console.error("Unknown command");
     Deno.exit(1);
