@@ -84,7 +84,7 @@ func NewCmdEmail() *cobra.Command {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a, k.String("dir"), k.String("domain"))
+			wk := worker.NewWorker(a)
 
 			if err := wk.SendEmail(cmd.Context(), strings.NewReader(message.String())); err != nil {
 				return fmt.Errorf("failed to send email: %w", err)

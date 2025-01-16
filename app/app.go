@@ -31,16 +31,18 @@ type CronJob struct {
 }
 
 type App struct {
-	Admin  bool              `json:"admin"`
-	Name   string            `json:"name"`
-	Dir    string            `json:"dir,omitempty"`
-	Domain string            `json:"-"`
-	URL    string            `json:"url"`
-	Env    map[string]string `json:"-"`
-	Config AppConfig         `json:"-"`
+	Admin      bool              `json:"admin"`
+	Name       string            `json:"name"`
+	RootDir    string            `json:"-"`
+	RootDomain string            `json:"-"`
+	Dir        string            `json:"dir,omitempty"`
+	Domain     string            `json:"-"`
+	URL        string            `json:"url"`
+	Env        map[string]string `json:"-"`
+	Config     AppConfig         `json:"-"`
 }
 
-func (me *App) Root() string {
+func (me *App) DataDir() string {
 	dir := me.Dir
 	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
 		if root, err := os.Readlink(dir); err == nil {
@@ -99,12 +101,14 @@ func LoadApp(appname string, rootDir string, domain string, isAdmin bool) (App, 
 	}
 
 	app := App{
-		Name:   appname,
-		Admin:  isAdmin,
-		Dir:    filepath.Join(rootDir, appname),
-		Domain: fmt.Sprintf("%s.%s", appname, domain),
-		URL:    fmt.Sprintf("https://%s.%s/", appname, domain),
-		Env:    make(map[string]string),
+		Name:       appname,
+		Admin:      isAdmin,
+		RootDir:    rootDir,
+		RootDomain: domain,
+		Dir:        filepath.Join(rootDir, appname),
+		Domain:     fmt.Sprintf("%s.%s", appname, domain),
+		URL:        fmt.Sprintf("https://%s.%s/", appname, domain),
+		Env:        make(map[string]string),
 	}
 
 	for _, dotenvPath := range []string{
@@ -202,11 +206,11 @@ func (me App) Entrypoint() string {
 	}
 
 	if me.Config.Entrypoint != "" {
-		return filepath.Join(me.Root(), me.Config.Entrypoint)
+		return filepath.Join(me.DataDir(), me.Config.Entrypoint)
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(me.Root(), candidate)
+		path := filepath.Join(me.DataDir(), candidate)
 		if utils.FileExists(path) {
 			return path
 		}

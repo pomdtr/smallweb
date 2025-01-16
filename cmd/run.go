@@ -29,7 +29,7 @@ func NewCmdRun() *cobra.Command {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a, k.String("dir"), k.String("domain"))
+			wk := worker.NewWorker(a)
 			command, err := wk.Command(cmd.Context(), args[1:]...)
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

@@ -25,6 +25,7 @@ import (
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/ssh"
 	"github.com/creack/pty"
+	"github.com/mhale/smtpd"
 	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
@@ -39,7 +40,8 @@ import (
 func NewCmdUp() *cobra.Command {
 	var flags struct {
 		cron        bool
-		addr        string
+		httpAddr    string
+		smtpAddr    string
 		sshAddr     string
 		sshHostKey  string
 		onDemandTLS bool
@@ -110,7 +112,7 @@ func NewCmdUp() *cobra.Command {
 				fmt.Fprintf(os.Stderr, "Serving *.%s from %s with on-demand TLS...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
 				go certmagic.HTTPS(nil, handler)
 			} else {
-				addr := flags.addr
+				addr := flags.httpAddr
 				if addr == "" {
 					if flags.cert != "" || flags.key != "" {
 						addr = "0.0.0.0:443"
@@ -166,26 +168,14 @@ func NewCmdUp() *cobra.Command {
 					},
 					SubsystemHandlers: map[string]ssh.SubsystemHandler{
 						"sftp": func(sess ssh.Session) {
-							var workDir string
-							if sess.User() == "_" {
-								workDir = k.String("dir")
-							} else {
-								app, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
-								if err != nil {
-									fmt.Fprintln(sess, "failed to load app:", err)
-									return
-								}
-
-								workDir = filepath.Join(app.Root(), "data")
-								if _, err := os.Stat(workDir); err != nil {
-									fmt.Fprintln(sess, "failed to get app data directory")
-									return
-								}
+							if sess.User() != "_" {
+								fmt.Fprintln(sess, "sftp is only allowed for the _ user")
+								return
 							}
 
 							server, err := sftp.NewServer(
 								sess,
-								sftp.WithServerWorkingDirectory(workDir),
+								sftp.WithServerWorkingDirectory(utils.AddTilde(k.String("dir"))),
 							)
 
 							if err != nil {
@@ -211,13 +201,13 @@ func NewCmdUp() *cobra.Command {
 							cmd = exec.Command(execPath, sess.Command()...)
 							cmd.Env = os.Environ()
 						} else {
-							app, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
+							a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
 							if err != nil {
 								fmt.Fprintf(sess, "failed to load app: %v\n", err)
 								return
 							}
 
-							wk := worker.NewWorker(app, k.String("dir"), k.String("domain"))
+							wk := worker.NewWorker(a)
 							command, err := wk.Command(sess.Context(), sess.Command()...)
 							if err != nil {
 								fmt.Fprintf(sess, "failed to get command: %v\n", err)
@@ -289,6 +279,35 @@ func NewCmdUp() *cobra.Command {
 				defer server.Close()
 			}
 
+			if flags.smtpAddr != "" {
+				fmt.Fprintf(os.Stderr, "Starting SFTP server on %s...\n", flags.smtpAddr)
+				go smtpd.ListenAndServe(flags.smtpAddr, func(remoteAddr net.Addr, from string, to []string, data []byte) error {
+					for _, recipient := range to {
+						parts := strings.SplitN(recipient, "@", 2)
+						appname, domain := parts[0], parts[1]
+						if domain != k.String("domain") {
+							continue
+						}
+
+						a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), appname))
+						if err != nil {
+							if errors.Is(err, app.ErrAppNotFound) {
+								continue
+							}
+
+							return fmt.Errorf("failed to load app: %v", err)
+						}
+
+						wk := worker.NewWorker(a)
+						if err := wk.SendEmail(context.Background(), strings.NewReader(string(data))); err != nil {
+							return fmt.Errorf("failed to send email: %v", err)
+						}
+					}
+
+					return nil
+				}, "Smallweb", k.String("domain"))
+			}
+
 			// sigint handling
 			sigint := make(chan os.Signal, 1)
 			signal.Notify(sigint, os.Interrupt)
@@ -298,8 +317,9 @@ func NewCmdUp() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
+	cmd.Flags().StringVar(&flags.httpAddr, "http-addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
+	cmd.Flags().StringVar(&flags.smtpAddr, "smtp-addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/id_ed25519", "ssh host key")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
 	cmd.Flags().StringVar(&flags.cert, "cert", "", "tls certificate file")
@@ -308,7 +328,7 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "cert")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "key")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "addr")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "http-addr")
 
 	return cmd
 }
@@ -442,7 +462,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a, k.String("dir"), domain)
+	wk := worker.NewWorker(a)
 
 	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {

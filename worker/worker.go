@@ -52,8 +52,6 @@ func init() {
 
 type Worker struct {
 	App       app.App
-	RootDir   string
-	Domain    string
 	Env       map[string]string
 	StartedAt time.Time
 
@@ -64,7 +62,7 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func commandEnv(a app.App, rootDir string, domain string) []string {
+func commandEnv(a app.App) []string {
 	env := []string{}
 
 	for k, v := range a.Env {
@@ -76,8 +74,8 @@ func commandEnv(a app.App, rootDir string, domain string) []string {
 	env = append(env, fmt.Sprintf("DENO_DIR=%s", filepath.Join(xdg.CacheHome, "smallweb", "deno")))
 
 	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
-	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", rootDir))
-	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", domain))
+	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", a.RootDir))
+	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", a.RootDomain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_NAME=%s", a.Name))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DOMAIN=%s", a.Domain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_URL=%s", a.URL))
@@ -88,17 +86,15 @@ func commandEnv(a app.App, rootDir string, domain string) []string {
 
 	if a.Admin {
 		env = append(env, "SMALLWEB_ADMIN=1")
-		env = append(env, "SMALLWEB_LOG_PATH=%s", utils.GetLogFilename(domain))
+		env = append(env, "SMALLWEB_LOG_PATH=%s", utils.GetLogFilename(a.RootDomain))
 	}
 
 	return env
 }
 
-func NewWorker(app app.App, rootDir string, domain string) *Worker {
+func NewWorker(app app.App) *Worker {
 	worker := &Worker{
-		App:     app,
-		RootDir: rootDir,
-		Domain:  domain,
+		App: app,
 	}
 
 	return worker
@@ -128,14 +124,14 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 	if a.Admin {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.RootDir, sandboxPath, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.RootDir),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.RootDir, sandboxPath, deno, npmCache),
+			fmt.Sprintf("--allow-write=%s", me.App.RootDir),
 		)
 
 		return args
 	}
 
-	appRoot := a.Root()
+	appRoot := a.DataDir()
 	// if root is not a symlink
 	if fi, err := os.Lstat(appRoot); err == nil && fi.Mode()&os.ModeSymlink == 0 {
 		args = append(
@@ -192,8 +188,8 @@ func (me *Worker) Start() error {
 	args = append(args, sandboxPath, input.String())
 
 	command := exec.Command(deno, args...)
-	command.Dir = me.App.Root()
-	command.Env = commandEnv(me.App, me.RootDir, me.Domain)
+	command.Dir = me.App.DataDir()
+	command.Env = commandEnv(me.App)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -505,9 +501,9 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	denoArgs = append(denoArgs, sandboxPath, input.String())
 
 	command := exec.CommandContext(ctx, deno, denoArgs...)
-	command.Dir = me.App.Root()
+	command.Dir = me.App.DataDir()
 
-	command.Env = commandEnv(me.App, me.RootDir, me.Domain)
+	command.Env = commandEnv(me.App)
 
 	return command, nil
 }
@@ -534,9 +530,9 @@ func (me *Worker) SendEmail(ctx context.Context, message io.Reader) error {
 	denoArgs = append(denoArgs, sandboxPath, input.String())
 
 	command := exec.CommandContext(ctx, deno, denoArgs...)
-	command.Dir = me.App.Root()
+	command.Dir = me.App.DataDir()
 	command.Stderr = os.Stderr
-	command.Env = commandEnv(me.App, me.RootDir, me.Domain)
+	command.Env = commandEnv(me.App)
 
 	stdin, err := command.StdinPipe()
 	if err != nil {

@@ -4,7 +4,7 @@
         {
             "label": "Go: Generate",
             "type": "shell",
-            "command": "go generate ./...",
+            "command": "go generate ./..."
         }
     ]
 }
