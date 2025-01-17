@@ -54,7 +54,21 @@ func NewCmdUp() *cobra.Command {
 		Short:   "Start the smallweb evaluation server",
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
-		PreRunE: requireDomain,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if k.String("domain") == "" {
+				return fmt.Errorf("domain cannot be empty")
+			}
+
+			if flags.cert != "" && flags.key == "" {
+				return fmt.Errorf("missing key")
+			}
+
+			if flags.cert == "" && flags.key != "" {
+				return fmt.Errorf("missing cert")
+			}
+
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if k.String("domain") == "" {
 				return fmt.Errorf("domain cannot be empty")
@@ -281,7 +295,8 @@ func NewCmdUp() *cobra.Command {
 
 			if flags.smtpAddr != "" {
 				fmt.Fprintf(os.Stderr, "Starting SFTP server on %s...\n", flags.smtpAddr)
-				go smtpd.ListenAndServe(flags.smtpAddr, func(remoteAddr net.Addr, from string, to []string, data []byte) error {
+
+				handler := func(remoteAddr net.Addr, from string, to []string, data []byte) error {
 					for _, recipient := range to {
 						parts := strings.SplitN(recipient, "@", 2)
 						appname, domain := parts[0], parts[1]
@@ -305,7 +320,13 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					return nil
-				}, "Smallweb", k.String("domain"))
+				}
+
+				if flags.cert != "" && flags.key != "" {
+					go smtpd.ListenAndServeTLS(flags.smtpAddr, flags.cert, flags.key, handler, "Smallweb", k.String("domain"))
+				} else {
+					go smtpd.ListenAndServe(flags.smtpAddr, handler, "Smallweb", k.String("domain"))
+				}
 			}
 
 			// sigint handling
@@ -471,11 +492,4 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 
 	me.workers[appname] = wk
 	return wk, nil
-}
-
-func requireDomain(cmd *cobra.Command, args []string) error {
-	if k.String("domain") == "" {
-		return errors.New("missing domain")
-	}
-	return nil
 }
