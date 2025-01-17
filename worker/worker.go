@@ -114,9 +114,10 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 		"--quiet",
 	}
 
-	if configPath := filepath.Join(a.Dir, "deno.json"); utils.FileExists(configPath) {
+	appDir := a.Dir()
+	if configPath := filepath.Join(appDir, "deno.json"); utils.FileExists(configPath) {
 		args = append(args, "--config", configPath)
-	} else if configPath := filepath.Join(a.Dir, "deno.jsonc"); utils.FileExists(configPath) {
+	} else if configPath := filepath.Join(appDir, "deno.jsonc"); utils.FileExists(configPath) {
 		args = append(args, "--config", configPath)
 	}
 
@@ -131,31 +132,30 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 		return args
 	}
 
-	appRoot := a.DataDir()
 	// if root is not a symlink
-	if fi, err := os.Lstat(appRoot); err == nil && fi.Mode()&os.ModeSymlink == 0 {
+	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", appRoot, sandboxPath, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", filepath.Join(appRoot, "data")),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, sandboxPath, deno, npmCache),
+			fmt.Sprintf("--allow-write=%s", a.DataDir()),
 		)
 
 		return args
 	}
 
-	target, err := os.Readlink(appRoot)
+	target, err := os.Readlink(appDir)
 	if err != nil {
 		log.Printf("could not read symlink: %v", err)
 	}
 
 	if !filepath.IsAbs(target) {
-		target = filepath.Join(filepath.Dir(appRoot), target)
+		target = filepath.Join(filepath.Dir(appDir), target)
 	}
 
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appRoot, target, sandboxPath, deno, npmCache),
-		fmt.Sprintf("--allow-write=%s,%s", filepath.Join(appRoot, "data"), filepath.Join(target, "data")),
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appDir, target, sandboxPath, deno, npmCache),
+		fmt.Sprintf("--allow-write=%s,%s", a.DataDir(), filepath.Join(target, "data")),
 	)
 	return args
 }
@@ -188,7 +188,7 @@ func (me *Worker) Start() error {
 	args = append(args, sandboxPath, input.String())
 
 	command := exec.Command(deno, args...)
-	command.Dir = me.App.DataDir()
+	command.Dir = me.App.Dir()
 	command.Env = commandEnv(me.App)
 
 	stdoutPipe, err := command.StdoutPipe()
@@ -501,7 +501,7 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	denoArgs = append(denoArgs, sandboxPath, input.String())
 
 	command := exec.CommandContext(ctx, deno, denoArgs...)
-	command.Dir = me.App.DataDir()
+	command.Dir = me.App.Dir()
 
 	command.Env = commandEnv(me.App)
 
@@ -530,7 +530,7 @@ func (me *Worker) SendEmail(ctx context.Context, message io.Reader) error {
 	denoArgs = append(denoArgs, sandboxPath, input.String())
 
 	command := exec.CommandContext(ctx, deno, denoArgs...)
-	command.Dir = me.App.DataDir()
+	command.Dir = me.App.Dir()
 	command.Stderr = os.Stderr
 	command.Env = commandEnv(me.App)
 

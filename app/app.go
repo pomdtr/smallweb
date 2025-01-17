@@ -35,15 +35,15 @@ type App struct {
 	Name       string            `json:"name"`
 	RootDir    string            `json:"-"`
 	RootDomain string            `json:"-"`
-	Dir        string            `json:"dir,omitempty"`
+	BaseDir    string            `json:"dir,omitempty"`
 	Domain     string            `json:"-"`
 	URL        string            `json:"url"`
 	Env        map[string]string `json:"-"`
 	Config     AppConfig         `json:"-"`
 }
 
-func (me *App) DataDir() string {
-	dir := me.Dir
+func (me *App) Dir() string {
+	dir := me.BaseDir
 	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
 		if root, err := os.Readlink(dir); err == nil {
 			dir = filepath.Join(filepath.Dir(dir), root)
@@ -67,6 +67,17 @@ func (me *App) DataDir() string {
 
 	if utils.FileExists(filepath.Join(dir, "dist", "index.html")) {
 		return filepath.Join(dir, "dist")
+	}
+
+	return dir
+}
+
+func (me *App) DataDir() string {
+	dir := filepath.Join(me.Dir(), "data")
+	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		if root, err := os.Readlink(dir); err == nil {
+			dir = filepath.Join(filepath.Dir(dir), root)
+		}
 	}
 
 	return dir
@@ -105,7 +116,7 @@ func LoadApp(appname string, rootDir string, domain string, isAdmin bool) (App, 
 		Admin:      isAdmin,
 		RootDir:    rootDir,
 		RootDomain: domain,
-		Dir:        filepath.Join(rootDir, appname),
+		BaseDir:    filepath.Join(rootDir, appname),
 		Domain:     fmt.Sprintf("%s.%s", appname, domain),
 		URL:        fmt.Sprintf("https://%s.%s/", appname, domain),
 		Env:        make(map[string]string),
@@ -206,11 +217,11 @@ func (me App) Entrypoint() string {
 	}
 
 	if me.Config.Entrypoint != "" {
-		return filepath.Join(me.DataDir(), me.Config.Entrypoint)
+		return filepath.Join(me.Dir(), me.Config.Entrypoint)
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(me.DataDir(), candidate)
+		path := filepath.Join(me.Dir(), candidate)
 		if utils.FileExists(path) {
 			return path
 		}
