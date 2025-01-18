@@ -146,6 +146,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	}
 
 	rootCmd.PersistentFlags().String("dir", "", "The root directory for smallweb")
+	rootCmd.PersistentFlags().String("domain", "", "The domain for smallweb")
 
 	rootCmd.AddCommand(NewCmdRun())
 	rootCmd.AddCommand(NewCmdDocs())
