@@ -11,8 +11,9 @@ func NewCmdService() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "service",
 		Short: "Generate service file",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			service, err := GetService(args)
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			service, err := GetService()
 			if err != nil {
 				return fmt.Errorf("failed to get service file: %v", err)
 			}

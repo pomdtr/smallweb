@@ -14,7 +14,7 @@ import (
 var serviceConfigBytes []byte
 var serviceConfig = template.Must(template.New("service").Parse(string(serviceConfigBytes)))
 
-func GetService(args []string) (string, error) {
+func GetService() (string, error) {
 	execPath, err := os.Executable()
 	if err != nil {
 		return "", fmt.Errorf("failed to get executable path: %v", err)
@@ -25,7 +25,6 @@ func GetService(args []string) (string, error) {
 	if err := serviceConfig.Execute(writer, map[string]any{
 		"ExecPath":    execPath,
 		"SmallwebDir": k.String("dir"),
-		"Args":        strings.Join(args, " "),
 	}); err != nil {
 		return "", fmt.Errorf("failed to write service file: %v", err)
 	}
