@@ -3,7 +3,7 @@
 <plist version="1.0">
     <dict>
         <key>Label</key>
-        <string>com.pomdtr.smallweb</string>
+        <string>com.github.pomdtr.smallweb</string>
         <key>ProgramArguments</key>
         <array>
             <string>{{ .ExecPath }}</string>

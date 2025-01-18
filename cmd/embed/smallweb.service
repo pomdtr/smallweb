@@ -2,7 +2,6 @@
 Description=Smallweb
 After=network.target
 
-
 [Service]
 Type=simple
 ExecStart={{ .ExecPath }} up {{ .Args }}
