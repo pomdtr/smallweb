@@ -23,6 +23,7 @@ import (
 	_ "embed"
 
 	"github.com/caddyserver/certmagic"
+	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/creack/pty"
 	"github.com/mhale/smtpd"
@@ -280,6 +281,12 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				hostKeyPath := utils.ExpandTilde(flags.sshHostKey)
+				if !utils.FileExists(hostKeyPath) {
+					_, err := keygen.New(flags.sshHostKey)
+					if err != nil {
+						return fmt.Errorf("failed to generate host key: %v", err)
+					}
+				}
 
 				server.SetOption(ssh.HostKeyFile(hostKeyPath))
 
