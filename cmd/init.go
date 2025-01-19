@@ -8,12 +8,10 @@ import (
 	"os"
 	"path"
 
-	"github.com/google/uuid"
-	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
 
-//go:embed embed/workspace
+//go:embed embed/workspace/*
 var embedFS embed.FS
 
 func NewCmdInit() *cobra.Command {
@@ -48,19 +46,8 @@ func NewCmdInit() *cobra.Command {
 
 			encoder := json.NewEncoder(configFile)
 			encoder.SetIndent("", "  ")
-			if err := encoder.Encode(map[string]interface{}{
-				"domain": args[0],
-				"adminApps": []string{
-					"vscode",
-				},
-			}); err != nil {
+			if err := encoder.Encode(map[string]interface{}{"domain": args[0]}); err != nil {
 				return fmt.Errorf("failed to write config file: %w", err)
-			}
-
-			if err := godotenv.Write(map[string]string{
-				"VSCODE_PASSWORD": uuid.NewString(),
-			}, path.Join(workspaceDir, "vscode", ".env")); err != nil {
-				return fmt.Errorf("failed to write .env file: %w", err)
 			}
 
 			fmt.Fprintf(os.Stderr, "Workspace initialized at %s\n", workspaceDir)
