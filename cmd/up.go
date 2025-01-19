@@ -301,7 +301,7 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			if flags.smtpAddr != "" {
-				fmt.Fprintf(os.Stderr, "Starting SFTP server on %s...\n", flags.smtpAddr)
+				fmt.Fprintf(os.Stderr, "Starting SMTP server on %s...\n", flags.smtpAddr)
 
 				handler := func(remoteAddr net.Addr, from string, to []string, data []byte) error {
 					for _, recipient := range to {
