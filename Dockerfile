@@ -14,5 +14,5 @@ COPY --from=builder /build/smallweb /usr/local/bin/smallweb
 ENV SMALLWEB_DIR=/smallweb
 VOLUME ["$SMALLWEB_DIR"]
 
-EXPOSE 7777
-ENTRYPOINT ["/usr/local/bin/smallweb", "up", "--cron", "--addr", "0.0.0.0:7777"]
+EXPOSE 7777 2222 2525
+ENTRYPOINT ["/usr/local/bin/smallweb", "up", "--cron", "--http-addr", "0.0.0.0:7777", "--ssh-addr", "0.0.0.0:2222", "--smtp-addr", ":2525"]

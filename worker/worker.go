@@ -508,7 +508,7 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	return command, nil
 }
 
-func (me *Worker) SendEmail(ctx context.Context, message io.Reader) error {
+func (me *Worker) SendEmail(ctx context.Context, data io.Reader) error {
 	deno, err := DenoExecutable()
 	if err != nil {
 		return fmt.Errorf("could not find deno executable")
@@ -541,7 +541,7 @@ func (me *Worker) SendEmail(ctx context.Context, message io.Reader) error {
 
 	go func() {
 		defer stdin.Close()
-		io.Copy(stdin, message)
+		io.Copy(stdin, data)
 	}()
 
 	return command.Run()

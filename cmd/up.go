@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/mail"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -26,7 +28,7 @@ import (
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/creack/pty"
-	"github.com/mhale/smtpd"
+	"github.com/emersion/go-smtp"
 	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
@@ -303,36 +305,25 @@ func NewCmdUp() *cobra.Command {
 			if flags.smtpAddr != "" {
 				fmt.Fprintf(os.Stderr, "Starting SMTP server on %s...\n", flags.smtpAddr)
 
-				handler := func(remoteAddr net.Addr, from string, to []string, data []byte) error {
-					for _, recipient := range to {
-						parts := strings.SplitN(recipient, "@", 2)
-						appname, domain := parts[0], parts[1]
-						if domain != k.String("domain") {
-							continue
-						}
+				server := smtp.NewServer(smtp.BackendFunc(func(c *smtp.Conn) (smtp.Session, error) {
+					return &SmtpSession{
+						conn: c,
+					}, nil
+				}))
 
-						a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), appname))
-						if err != nil {
-							if errors.Is(err, app.ErrAppNotFound) {
-								continue
-							}
-
-							return fmt.Errorf("failed to load app: %v", err)
-						}
-
-						wk := worker.NewWorker(a)
-						if err := wk.SendEmail(context.Background(), strings.NewReader(string(data))); err != nil {
-							return fmt.Errorf("failed to send email: %v", err)
-						}
-					}
-
-					return nil
-				}
+				server.Addr = flags.smtpAddr
+				server.Domain = k.String("domain")
 
 				if flags.cert != "" && flags.key != "" {
-					go smtpd.ListenAndServeTLS(flags.smtpAddr, flags.cert, flags.key, handler, "Smallweb", k.String("domain"))
+					cert, err := tls.LoadX509KeyPair(flags.cert, flags.key)
+					if err != nil {
+						return fmt.Errorf("failed to load cert: %v", err)
+					}
+
+					server.TLSConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
+					go server.ListenAndServeTLS()
 				} else {
-					go smtpd.ListenAndServe(flags.smtpAddr, handler, "Smallweb", k.String("domain"))
+					go server.ListenAndServe()
 				}
 			}
 
@@ -499,4 +490,122 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 
 	me.workers[appname] = wk
 	return wk, nil
+}
+
+type SmtpSession struct {
+	conn       *smtp.Conn
+	sender     string
+	recipients []string
+}
+
+func (s *SmtpSession) Reset() {
+	s.sender = ""
+	s.recipients = nil
+}
+
+func (s *SmtpSession) Mail(from string, opts *smtp.MailOptions) error {
+	s.sender = from
+
+	parts := strings.Split(from, "@")
+	if len(parts) != 2 {
+		return fmt.Errorf("invalid email format: %s", from)
+	}
+	senderDomain := parts[1]
+
+	clientAddr := s.conn.Conn().RemoteAddr().String()
+	clientIp, _, err := net.SplitHostPort(clientAddr)
+	if err != nil {
+		return fmt.Errorf("failed to parse client IP: %w", err)
+	}
+
+	// if client is localhost, allow
+	if clientIp == "::1" {
+		return nil
+	}
+
+	// Check A/AAAA records for the sender domain
+	domainIps, err := net.LookupIP(senderDomain)
+	if err == nil {
+		for _, ip := range domainIps {
+			if ip.String() == clientIp {
+				return nil
+			}
+		}
+	}
+
+	// Check MX records and resolve their IPs
+	mxRecords, err := net.LookupMX(senderDomain)
+	if err == nil {
+		for _, mx := range mxRecords {
+			mxIps, err := net.LookupIP(mx.Host)
+			if err != nil {
+				continue
+			}
+			for _, ip := range mxIps {
+				if ip.String() == clientIp {
+					return nil
+				}
+			}
+		}
+	}
+
+	return fmt.Errorf("invalid sender domain: %s", senderDomain)
+}
+func (s *SmtpSession) Rcpt(to string, opts *smtp.RcptOptions) error {
+	parts := strings.Split(to, "@")
+	if parts[1] != k.String("domain") {
+		return fmt.Errorf("invalid sender domain: %s", parts[1])
+	}
+
+	s.recipients = append(s.recipients, to)
+	return nil
+}
+
+func (s *SmtpSession) Data(r io.Reader) error {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("failed to read data: %w", err)
+	}
+
+	msg, err := mail.ReadMessage(bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("failed to read message: %w", err)
+	}
+
+	from := msg.Header.Get("From")
+	if fromAddr, err := mail.ParseAddress(from); err != nil || fromAddr.Address != s.sender {
+		return fmt.Errorf("invalid sender: %s", s.sender)
+	}
+
+	toAddrs, err := msg.Header.AddressList("To")
+	if err != nil {
+		return fmt.Errorf("failed to parse To header: %w", err)
+	}
+
+	for _, recipient := range s.recipients {
+		if !slices.ContainsFunc(toAddrs, func(toAddr *mail.Address) bool {
+			return recipient == toAddr.Address
+		}) {
+			return fmt.Errorf("invalid recipient: %s", recipient)
+		}
+
+		parts := strings.Split(recipient, "@")
+		if parts[1] != k.String("domain") {
+			return fmt.Errorf("invalid recipient domain: %s", parts[1])
+		}
+
+		a, err := app.LoadApp(parts[0], k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), parts[0]))
+		if err != nil {
+			return fmt.Errorf("failed to load app: %w", err)
+		}
+
+		wk := worker.NewWorker(a)
+		wk.SendEmail(context.Background(), bytes.NewReader(data))
+	}
+
+	return nil
+}
+
+func (s *SmtpSession) Logout() error {
+	return nil
 }

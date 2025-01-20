@@ -4,5 +4,6 @@ services:
     ports:
       - 7777:7777
       - 2222:2222
+      - 2525:2525
     volumes:
       - ./examples:/smallweb
