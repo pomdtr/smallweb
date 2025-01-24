@@ -26,6 +26,7 @@ import (
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/creack/pty"
+	"github.com/libdns/acmedns"
 	"github.com/mhale/smtpd"
 	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
@@ -40,14 +41,18 @@ import (
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
-		cron        bool
-		httpAddr    string
-		smtpAddr    string
-		sshAddr     string
-		sshHostKey  string
-		onDemandTLS bool
-		cert        string
-		key         string
+		cron             bool
+		httpAddr         string
+		smtpAddr         string
+		sshAddr          string
+		sshHostKey       string
+		onDemandTLS      bool
+		certFile         string
+		keyFile          string
+		acmednsUsername  string
+		acmednsPassword  string
+		acmednsSubdomain string
+		acmednsServerURL string
 	}
 
 	cmd := &cobra.Command{
@@ -60,11 +65,11 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			if flags.cert != "" && flags.key == "" {
+			if flags.certFile != "" && flags.keyFile == "" {
 				return fmt.Errorf("missing key")
 			}
 
-			if flags.cert == "" && flags.key != "" {
+			if flags.certFile == "" && flags.keyFile != "" {
 				return fmt.Errorf("missing cert")
 			}
 
@@ -126,17 +131,31 @@ func NewCmdUp() *cobra.Command {
 
 				fmt.Fprintf(os.Stderr, "Serving *.%s from %s with on-demand TLS...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
 				go certmagic.HTTPS(nil, handler)
+			} else if flags.acmednsUsername != "" {
+				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+					DNSManager: certmagic.DNSManager{
+						DNSProvider: &acmedns.Provider{
+							Username:  flags.acmednsUsername,
+							Password:  flags.acmednsPassword,
+							Subdomain: flags.acmednsSubdomain,
+							ServerURL: flags.acmednsServerURL,
+						},
+					},
+				}
+
+				fmt.Fprintf(os.Stderr, "Serving *.%s from %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
+				go certmagic.HTTPS(nil, handler)
 			} else {
 				addr := flags.httpAddr
 				if addr == "" {
-					if flags.cert != "" || flags.key != "" {
+					if flags.certFile != "" || flags.keyFile != "" {
 						addr = "0.0.0.0:443"
 					} else {
 						addr = "localhost:7777"
 					}
 				}
 
-				listener, err := getListener(addr, flags.cert, flags.key)
+				listener, err := getListener(addr, flags.certFile, flags.keyFile)
 				if err != nil {
 					return fmt.Errorf("failed to get listener: %v", err)
 				}
@@ -329,8 +348,8 @@ func NewCmdUp() *cobra.Command {
 					return nil
 				}
 
-				if flags.cert != "" && flags.key != "" {
-					go smtpd.ListenAndServeTLS(flags.smtpAddr, flags.cert, flags.key, handler, "Smallweb", k.String("domain"))
+				if flags.certFile != "" && flags.keyFile != "" {
+					go smtpd.ListenAndServeTLS(flags.smtpAddr, flags.certFile, flags.keyFile, handler, "Smallweb", k.String("domain"))
 				} else {
 					go smtpd.ListenAndServe(flags.smtpAddr, handler, "Smallweb", k.String("domain"))
 				}
@@ -350,13 +369,31 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.smtpAddr, "smtp-addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/id_ed25519", "ssh host key")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
-	cmd.Flags().StringVar(&flags.cert, "cert", "", "tls certificate file")
-	cmd.Flags().StringVar(&flags.key, "key", "", "key file")
+	cmd.Flags().StringVar(&flags.certFile, "cert-file", "", "tls certificate file")
+	cmd.Flags().StringVar(&flags.keyFile, "key-file", "", "key file")
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
+	cmd.Flags().StringVar(&flags.acmednsUsername, "acmedns-username", "", "acme-dns username")
+	cmd.Flags().StringVar(&flags.acmednsPassword, "acmedns-password", "", "acme-dns password")
+	cmd.Flags().StringVar(&flags.acmednsSubdomain, "acmedns-subdomain", "", "acme-dns subdomain")
+	cmd.Flags().StringVar(&flags.acmednsServerURL, "acmedns-base-url", "https://auth.acme-dns.io", "acme-dns base url")
 
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "cert")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "key")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "cert-file")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "key-file")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "http-addr")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-username")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-password")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-subdomain")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-base-url")
+	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-username")
+	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-password")
+	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-subdomain")
+	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-base-url")
+	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-username")
+	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-password")
+	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-subdomain")
+	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-base-url")
+	cmd.MarkFlagsRequiredTogether("cert-file", "key-file")
+	cmd.MarkFlagsRequiredTogether("acmedns-username", "acmedns-password", "acmedns-subdomain")
 
 	return cmd
 }
