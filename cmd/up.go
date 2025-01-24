@@ -148,7 +148,10 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				fmt.Fprintf(os.Stderr, "Serving *.%s from %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
-				go certmagic.HTTPS(nil, handler)
+				go certmagic.HTTPS([]string{
+					k.String("domain"),
+					fmt.Sprintf("*.%s", k.String("domain")),
+				}, handler)
 			} else {
 				if email := k.String("email"); email != "" {
 					certmagic.DefaultACME.Email = email

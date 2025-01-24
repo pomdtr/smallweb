@@ -39,6 +39,8 @@ func NewCmdRoot(changelog string) *cobra.Command {
 			return "domain", v
 		case "SMALLWEB_REMOTE":
 			return "remote", v
+		case "SMALLWEB_EMAIL":
+			return "email", v
 		case "SMALLWEB_CUSTOM_DOMAINS":
 			customDomains := make(map[string]string)
 			for _, entry := range strings.Split(v, ";") {

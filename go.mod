@@ -31,6 +31,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/knadh/koanf/providers/confmap v0.1.0
 	github.com/knadh/koanf/providers/posflag v0.1.0
+	github.com/libdns/acmedns v0.2.0
 	github.com/mhale/smtpd v0.8.3
 	github.com/pkg/sftp v1.13.7
 	github.com/robfig/cron/v3 v3.0.1
@@ -126,7 +127,6 @@ require (
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
-	github.com/libdns/acmedns v0.2.0 // indirect
 	github.com/libdns/libdns v0.2.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
