@@ -132,6 +132,10 @@ func NewCmdUp() *cobra.Command {
 				fmt.Fprintf(os.Stderr, "Serving *.%s from %s with on-demand TLS...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
 				go certmagic.HTTPS(nil, handler)
 			} else if flags.acmednsUsername != "" {
+				if email := k.String("email"); email != "" {
+					certmagic.DefaultACME.Email = email
+				}
+
 				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
 					DNSManager: certmagic.DNSManager{
 						DNSProvider: &acmedns.Provider{
@@ -146,6 +150,10 @@ func NewCmdUp() *cobra.Command {
 				fmt.Fprintf(os.Stderr, "Serving *.%s from %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
 				go certmagic.HTTPS(nil, handler)
 			} else {
+				if email := k.String("email"); email != "" {
+					certmagic.DefaultACME.Email = email
+				}
+
 				addr := flags.httpAddr
 				if addr == "" {
 					if flags.certFile != "" || flags.keyFile != "" {
