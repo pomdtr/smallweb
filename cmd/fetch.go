@@ -57,7 +57,7 @@ func NewCmdFetch() *cobra.Command {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a)
+			wk := worker.NewWorker(a, k.String("email"))
 			if err := wk.Start(); err != nil {
 				return fmt.Errorf("failed to start worker: %w", err)
 			}

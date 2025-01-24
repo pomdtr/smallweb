@@ -249,7 +249,7 @@ func NewCmdUp() *cobra.Command {
 								return
 							}
 
-							wk := worker.NewWorker(a)
+							wk := worker.NewWorker(a, k.String("email"))
 							command, err := wk.Command(sess.Context(), sess.Command()...)
 							if err != nil {
 								fmt.Fprintf(sess, "failed to get command: %v\n", err)
@@ -347,7 +347,7 @@ func NewCmdUp() *cobra.Command {
 							return fmt.Errorf("failed to load app: %v", err)
 						}
 
-						wk := worker.NewWorker(a)
+						wk := worker.NewWorker(a, k.String("email"))
 						if err := wk.SendEmail(context.Background(), strings.NewReader(string(data))); err != nil {
 							return fmt.Errorf("failed to send email: %v", err)
 						}
@@ -535,7 +535,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a)
+	wk := worker.NewWorker(a, k.String("email"))
 
 	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {
