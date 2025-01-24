@@ -13,11 +13,6 @@
                 "type": "string"
             }
         },
-        "email": {
-            "description": "Admin email, used for certificate registration",
-            "type": "string",
-            "format": "email"
-        },
         "adminApps": {
             "description": "Admin apps",
             "type": "array",

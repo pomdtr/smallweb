@@ -54,7 +54,6 @@ type Worker struct {
 	App       app.App
 	Env       map[string]string
 	StartedAt time.Time
-	Email     string
 
 	port      int
 	idleTimer *time.Timer
@@ -63,7 +62,7 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func commandEnv(a app.App, email string) []string {
+func commandEnv(a app.App) []string {
 	env := []string{}
 
 	for k, v := range a.Env {
@@ -80,7 +79,6 @@ func commandEnv(a app.App, email string) []string {
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_NAME=%s", a.Name))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DOMAIN=%s", a.Domain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_URL=%s", a.URL))
-	env = append(env, fmt.Sprintf("SMALLWEB_EMAIL=%s", email))
 
 	if deno, ok := os.LookupEnv("DENO_EXEC_PATH"); ok {
 		env = append(env, fmt.Sprintf("DENO_EXEC_PATH=%s", deno))
@@ -94,10 +92,9 @@ func commandEnv(a app.App, email string) []string {
 	return env
 }
 
-func NewWorker(app app.App, email string) *Worker {
+func NewWorker(app app.App) *Worker {
 	worker := &Worker{
-		App:   app,
-		Email: email,
+		App: app,
 	}
 
 	return worker
@@ -192,7 +189,7 @@ func (me *Worker) Start() error {
 
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Dir()
-	command.Env = commandEnv(me.App, me.Email)
+	command.Env = commandEnv(me.App)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -506,7 +503,7 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	command := exec.CommandContext(ctx, deno, denoArgs...)
 	command.Dir = me.App.Dir()
 
-	command.Env = commandEnv(me.App, me.Email)
+	command.Env = commandEnv(me.App)
 
 	return command, nil
 }
@@ -535,7 +532,7 @@ func (me *Worker) SendEmail(ctx context.Context, message io.Reader) error {
 	command := exec.CommandContext(ctx, deno, denoArgs...)
 	command.Dir = me.App.Dir()
 	command.Stderr = os.Stderr
-	command.Env = commandEnv(me.App, me.Email)
+	command.Env = commandEnv(me.App)
 
 	stdin, err := command.StdinPipe()
 	if err != nil {

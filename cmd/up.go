@@ -53,6 +53,7 @@ func NewCmdUp() *cobra.Command {
 		acmednsPassword  string
 		acmednsSubdomain string
 		acmednsServerURL string
+		email            string
 	}
 
 	cmd := &cobra.Command{
@@ -132,9 +133,7 @@ func NewCmdUp() *cobra.Command {
 				fmt.Fprintf(os.Stderr, "Serving *.%s from %s with on-demand TLS...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
 				go certmagic.HTTPS(nil, handler)
 			} else if flags.acmednsUsername != "" {
-				if email := k.String("email"); email != "" {
-					certmagic.DefaultACME.Email = email
-				}
+				certmagic.DefaultACME.Email = flags.email
 
 				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
 					DNSManager: certmagic.DNSManager{
@@ -252,7 +251,7 @@ func NewCmdUp() *cobra.Command {
 								return
 							}
 
-							wk := worker.NewWorker(a, k.String("email"))
+							wk := worker.NewWorker(a)
 							command, err := wk.Command(sess.Context(), sess.Command()...)
 							if err != nil {
 								fmt.Fprintf(sess, "failed to get command: %v\n", err)
@@ -350,7 +349,7 @@ func NewCmdUp() *cobra.Command {
 							return fmt.Errorf("failed to load app: %v", err)
 						}
 
-						wk := worker.NewWorker(a, k.String("email"))
+						wk := worker.NewWorker(a)
 						if err := wk.SendEmail(context.Background(), strings.NewReader(string(data))); err != nil {
 							return fmt.Errorf("failed to send email: %v", err)
 						}
@@ -386,7 +385,8 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.acmednsUsername, "acmedns-username", "", "acme-dns username")
 	cmd.Flags().StringVar(&flags.acmednsPassword, "acmedns-password", "", "acme-dns password")
 	cmd.Flags().StringVar(&flags.acmednsSubdomain, "acmedns-subdomain", "", "acme-dns subdomain")
-	cmd.Flags().StringVar(&flags.acmednsServerURL, "acmedns-base-url", "https://auth.acme-dns.io", "acme-dns base url")
+	cmd.Flags().StringVar(&flags.acmednsServerURL, "acmedns-server-url", "https://auth.acme-dns.io", "acme-dns server url")
+	cmd.Flags().StringVar(&flags.email, "email", "", "email address for acme challenges")
 
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "cert-file")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "key-file")
@@ -394,17 +394,20 @@ func NewCmdUp() *cobra.Command {
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-username")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-password")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-subdomain")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-base-url")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-server-url")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "email")
 	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-username")
 	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-password")
 	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-subdomain")
-	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-base-url")
+	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-server-url")
+	cmd.MarkFlagsMutuallyExclusive("cert-file", "email")
 	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-username")
 	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-password")
 	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-subdomain")
-	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-base-url")
+	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-server-url")
+	cmd.MarkFlagsMutuallyExclusive("key-file", "email")
 	cmd.MarkFlagsRequiredTogether("cert-file", "key-file")
-	cmd.MarkFlagsRequiredTogether("acmedns-username", "acmedns-password", "acmedns-subdomain")
+	cmd.MarkFlagsRequiredTogether("acmedns-username", "acmedns-password", "acmedns-subdomain", "email")
 
 	return cmd
 }
@@ -538,7 +541,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a, k.String("email"))
+	wk := worker.NewWorker(a)
 
 	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {

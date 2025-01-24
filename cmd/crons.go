@@ -166,7 +166,7 @@ func CronRunner() *cron.Cron {
 					continue
 				}
 
-				wk := worker.NewWorker(a, k.String("email"))
+				wk := worker.NewWorker(a)
 
 				command, err := wk.Command(context.Background(), job.Args...)
 				if err != nil {
