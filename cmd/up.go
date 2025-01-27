@@ -27,7 +27,6 @@ import (
 	"github.com/charmbracelet/ssh"
 	"github.com/creack/pty"
 	"github.com/libdns/acmedns"
-	"github.com/mhale/smtpd"
 	"github.com/pkg/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
@@ -43,7 +42,6 @@ func NewCmdUp() *cobra.Command {
 	var flags struct {
 		cron             bool
 		httpAddr         string
-		smtpAddr         string
 		sshAddr          string
 		sshHostKey       string
 		onDemandTLS      bool
@@ -329,42 +327,6 @@ func NewCmdUp() *cobra.Command {
 				defer server.Close()
 			}
 
-			if flags.smtpAddr != "" {
-				fmt.Fprintf(os.Stderr, "Starting SMTP server on %s...\n", flags.smtpAddr)
-
-				handler := func(remoteAddr net.Addr, from string, to []string, data []byte) error {
-					for _, recipient := range to {
-						parts := strings.SplitN(recipient, "@", 2)
-						appname, domain := parts[0], parts[1]
-						if domain != k.String("domain") {
-							continue
-						}
-
-						a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), appname))
-						if err != nil {
-							if errors.Is(err, app.ErrAppNotFound) {
-								continue
-							}
-
-							return fmt.Errorf("failed to load app: %v", err)
-						}
-
-						wk := worker.NewWorker(a)
-						if err := wk.SendEmail(context.Background(), strings.NewReader(string(data))); err != nil {
-							return fmt.Errorf("failed to send email: %v", err)
-						}
-					}
-
-					return nil
-				}
-
-				if flags.certFile != "" && flags.keyFile != "" {
-					go smtpd.ListenAndServeTLS(flags.smtpAddr, flags.certFile, flags.keyFile, handler, "Smallweb", k.String("domain"))
-				} else {
-					go smtpd.ListenAndServe(flags.smtpAddr, handler, "Smallweb", k.String("domain"))
-				}
-			}
-
 			// sigint handling
 			sigint := make(chan os.Signal, 1)
 			signal.Notify(sigint, os.Interrupt)
@@ -376,7 +338,6 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.httpAddr, "http-addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
-	cmd.Flags().StringVar(&flags.smtpAddr, "smtp-addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/id_ed25519", "ssh host key")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
 	cmd.Flags().StringVar(&flags.certFile, "cert-file", "", "tls certificate file")

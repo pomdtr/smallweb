@@ -32,7 +32,6 @@ require (
 	github.com/knadh/koanf/providers/confmap v0.1.0
 	github.com/knadh/koanf/providers/posflag v0.1.0
 	github.com/libdns/acmedns v0.2.0
-	github.com/mhale/smtpd v0.8.3
 	github.com/pkg/sftp v1.13.7
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/crypto v0.31.0
