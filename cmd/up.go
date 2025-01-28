@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -40,18 +41,19 @@ import (
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
-		cron             bool
-		httpAddr         string
-		sshAddr          string
-		sshHostKey       string
-		onDemandTLS      bool
-		certFile         string
-		keyFile          string
-		acmednsUsername  string
-		acmednsPassword  string
-		acmednsSubdomain string
-		acmednsServerURL string
-		email            string
+		cron               bool
+		httpAddr           string
+		sshAddr            string
+		sshHostKey         string
+		onDemandTLS        bool
+		certFile           string
+		keyFile            string
+		acmednsUsername    string
+		acmednsPassword    string
+		acmednsSubdomain   string
+		acmednsServerURL   string
+		acmednsCredentials string
+		email              string
 	}
 
 	cmd := &cobra.Command{
@@ -130,7 +132,25 @@ func NewCmdUp() *cobra.Command {
 
 				fmt.Fprintf(os.Stderr, "Serving *.%s from %s with on-demand TLS...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
 				go certmagic.HTTPS(nil, handler)
-			} else if flags.acmednsUsername != "" {
+			} else if flags.acmednsUsername != "" || flags.acmednsCredentials != "" {
+				var creds AcmeDnsCredentials
+				if flags.acmednsCredentials != "" {
+					credsBytes, err := os.ReadFile(flags.acmednsCredentials)
+					if err != nil {
+						return fmt.Errorf("failed to read acme-dns credentials: %v", err)
+					}
+
+					if err := json.Unmarshal(credsBytes, &creds); err != nil {
+						return fmt.Errorf("failed to unmarshal acme-dns credentials: %v", err)
+					}
+				} else {
+					creds = AcmeDnsCredentials{
+						Username:  flags.acmednsUsername,
+						Password:  flags.acmednsPassword,
+						Subdomain: flags.acmednsSubdomain,
+					}
+				}
+
 				certmagic.DefaultACME.Email = flags.email
 
 				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
@@ -347,30 +367,47 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.acmednsPassword, "acmedns-password", "", "acme-dns password")
 	cmd.Flags().StringVar(&flags.acmednsSubdomain, "acmedns-subdomain", "", "acme-dns subdomain")
 	cmd.Flags().StringVar(&flags.acmednsServerURL, "acmedns-server-url", "https://auth.acme-dns.io", "acme-dns server url")
+	cmd.Flags().StringVar(&flags.acmednsCredentials, "acmedns-credentials", "", "acme-dns credentials file")
 	cmd.Flags().StringVar(&flags.email, "email", "", "email address for acme challenges")
 
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "cert-file")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "key-file")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "http-addr")
+
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-username")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-password")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-subdomain")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-credentials")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-server-url")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "email")
+
 	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-username")
 	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-password")
 	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-subdomain")
+	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-credentials")
 	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-server-url")
 	cmd.MarkFlagsMutuallyExclusive("cert-file", "email")
 	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-username")
 	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-password")
 	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-subdomain")
+	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-credentials")
 	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-server-url")
 	cmd.MarkFlagsMutuallyExclusive("key-file", "email")
+	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "acmedns-username")
+	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "acmedns-password")
+	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "acmedns-subdomain")
+
 	cmd.MarkFlagsRequiredTogether("cert-file", "key-file")
 	cmd.MarkFlagsRequiredTogether("acmedns-username", "acmedns-password", "acmedns-subdomain", "email")
+	cmd.MarkFlagsRequiredTogether("acmedns-credentials", "email")
 
 	return cmd
+}
+
+type AcmeDnsCredentials struct {
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Subdomain string `json:"subdomain"`
 }
 
 func getListener(addr, cert, key string) (net.Listener, error) {

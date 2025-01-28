@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.21.0
+
+- add support for acmedns
+- add support for SPA in the static server
+- remove `smallweb services` command
+- remove `smallweb sync` command
+- `--domain` global flag
+
 ## 0.20.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.20>.
