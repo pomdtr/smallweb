@@ -59,9 +59,14 @@ func (me *App) Dir() string {
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(dir, candidate)
-		if utils.FileExists(path) {
+		if utils.FileExists(filepath.Join(dir, candidate)) {
 			return dir
+		}
+	}
+
+	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
+		if utils.FileExists(filepath.Join(dir, "dist", candidate)) {
+			return filepath.Join(dir, "dist")
 		}
 	}
 
