@@ -338,7 +338,7 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.httpAddr, "http-addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
-	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/id_ed25519", "ssh host key")
+	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/smallweb", "ssh host key")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
 	cmd.Flags().StringVar(&flags.certFile, "cert-file", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.keyFile, "key-file", "", "key file")
