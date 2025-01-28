@@ -54,6 +54,12 @@ brews:
     repository:
       owner: pomdtr
       name: homebrew-tap
+    service: |
+      run [ opt_bin/"smallweb" ]
+      keep_alive true
+      working_dir HOMEBREW_PREFIX
+      log_path var/"log/smallweb.log"
+      error_log_path var/"log/smallweb.log"
     skip_upload: auto
     install: |-
       bin.install "smallweb"
