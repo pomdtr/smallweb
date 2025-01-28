@@ -66,12 +66,8 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			if flags.certFile != "" && flags.keyFile == "" {
-				return fmt.Errorf("missing key")
-			}
-
-			if flags.certFile == "" && flags.keyFile != "" {
-				return fmt.Errorf("missing cert")
+			if (flags.acmednsUsername != "" || flags.acmednsCredentials != "") && flags.email == "" {
+				return fmt.Errorf("--email flag is required with when using acme-dns")
 			}
 
 			return nil
@@ -156,9 +152,9 @@ func NewCmdUp() *cobra.Command {
 				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
 					DNSManager: certmagic.DNSManager{
 						DNSProvider: &acmedns.Provider{
-							Username:  flags.acmednsUsername,
-							Password:  flags.acmednsPassword,
-							Subdomain: flags.acmednsSubdomain,
+							Username:  creds.Username,
+							Password:  creds.Password,
+							Subdomain: creds.Subdomain,
 							ServerURL: flags.acmednsServerURL,
 						},
 					},
@@ -396,10 +392,9 @@ func NewCmdUp() *cobra.Command {
 	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "acmedns-username")
 	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "acmedns-password")
 	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "acmedns-subdomain")
+	cmd.MarkFlagsRequiredTogether("acmedns-username", "acmedns-password", "acmedns-subdomain")
 
 	cmd.MarkFlagsRequiredTogether("cert-file", "key-file")
-	cmd.MarkFlagsRequiredTogether("acmedns-username", "acmedns-password", "acmedns-subdomain", "email")
-	cmd.MarkFlagsRequiredTogether("acmedns-credentials", "email")
 
 	return cmd
 }
