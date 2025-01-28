@@ -79,6 +79,11 @@ function respondWithError(request: Request, error: Error) {
 
 const input = JSON.parse(Deno.args[0]);
 
+if (!input || !input.command) {
+    console.error("Invalid input.");
+    Deno.exit(1);
+}
+
 if (input.command === "fetch") {
     Deno.serve(
         {
@@ -155,29 +160,7 @@ if (input.command === "fetch") {
     }
 
     await handler.run(input.args);
-} else if (input.command == "email") {
-    const { entrypoint } = input;
-    const mod = await import(entrypoint);
-    if (!mod.default || typeof mod.default !== "object") {
-        console.error(
-            "The mod does not provide an object as it's default export.",
-        );
-        Deno.exit(1);
-    }
-
-    const handler = mod.default;
-    if (!("email" in handler)) {
-        console.error("The mod default export does not have a email function.");
-        Deno.exit(1);
-    }
-
-    if (!(typeof handler.email === "function")) {
-        console.error("The mod default export email property must be a function.");
-        Deno.exit(1);
-    }
-
-    await handler.email(Deno.stdin.readable);
 } else {
-    console.error("Unknown command");
+    console.error("Unknown command: ", input.command);
     Deno.exit(1);
 }
