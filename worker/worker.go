@@ -86,7 +86,6 @@ func commandEnv(a app.App) []string {
 
 	if a.Admin {
 		env = append(env, "SMALLWEB_ADMIN=1")
-		env = append(env, "SMALLWEB_LOG_PATH=%s", utils.GetLogFilename(a.RootDomain))
 	}
 
 	return env
