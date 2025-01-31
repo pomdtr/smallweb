@@ -7,8 +7,8 @@
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "up",
-                "--http-addr=:8080",
-                "--ssh-addr=:2222",
+                "--domain=test.smallweb.live",
+                "--acme-dns",
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/examples"
@@ -20,7 +20,11 @@
             "request": "launch",
             "program": "${workspaceFolder}/main.go",
             "console": "integratedTerminal",
-            "args": [],
+            "args": [
+                "acmedns",
+                "register",
+                "test.smallweb.live"
+            ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/examples"
             },

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -23,6 +22,7 @@ import (
 
 	_ "embed"
 
+	"github.com/adrg/xdg"
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
@@ -41,19 +41,13 @@ import (
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
-		cron               bool
-		httpAddr           string
-		sshAddr            string
-		sshHostKey         string
-		onDemandTLS        bool
-		certFile           string
-		keyFile            string
-		acmednsUsername    string
-		acmednsPassword    string
-		acmednsSubdomain   string
-		acmednsServerURL   string
-		acmednsCredentials string
-		email              string
+		cron        bool
+		httpAddr    string
+		sshAddr     string
+		sshHostKey  string
+		certFile    string
+		keyFile     string
+		acmdnsCreds string
 	}
 
 	cmd := &cobra.Command{
@@ -64,10 +58,6 @@ func NewCmdUp() *cobra.Command {
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if k.String("domain") == "" {
 				return fmt.Errorf("domain cannot be empty")
-			}
-
-			if (flags.acmednsUsername != "" || flags.acmednsCredentials != "") && flags.email == "" {
-				return fmt.Errorf("--email flag is required with when using acme-dns")
 			}
 
 			return nil
@@ -110,54 +100,44 @@ func NewCmdUp() *cobra.Command {
 				workers: make(map[string]*worker.Worker),
 			})
 
-			if flags.onDemandTLS {
-				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
-					DecisionFunc: func(ctx context.Context, name string) error {
-						appname, _, ok := lookupApp(name, k.String("domain"), k.StringMap("customDomains"))
-						if !ok {
-							return fmt.Errorf("failed to lookup app: %v", err)
-						}
-
-						if _, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), appname)); err != nil {
-							return fmt.Errorf("failed to load app: %v", err)
-						}
-
-						return nil
-					},
+			if flags.acmdnsCreds != "" {
+				credentialPath := filepath.Join(xdg.DataHome, "smallweb", "acmedns", "credentials.json")
+				if _, err := os.Stat(credentialPath); err != nil {
+					return fmt.Errorf("acme-dns file not found: %s", credentialPath)
 				}
 
-				fmt.Fprintf(os.Stderr, "Serving *.%s from %s with on-demand TLS...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
-				go certmagic.HTTPS(nil, handler)
-			} else if flags.acmednsUsername != "" || flags.acmednsCredentials != "" {
-				var creds AcmeDnsCredentials
-				if flags.acmednsCredentials != "" {
-					credsBytes, err := os.ReadFile(flags.acmednsCredentials)
-					if err != nil {
-						return fmt.Errorf("failed to read acme-dns credentials: %v", err)
-					}
-
-					if err := json.Unmarshal(credsBytes, &creds); err != nil {
-						return fmt.Errorf("failed to unmarshal acme-dns credentials: %v", err)
-					}
-				} else {
-					creds = AcmeDnsCredentials{
-						Username:  flags.acmednsUsername,
-						Password:  flags.acmednsPassword,
-						Subdomain: flags.acmednsSubdomain,
-					}
+				configBytes, err := os.ReadFile(credentialPath)
+				if err != nil {
+					return fmt.Errorf("failed to read acme-dns file: %v", err)
 				}
 
-				certmagic.DefaultACME.Email = flags.email
+				var configs map[string]acmedns.DomainConfig
+				if err := json.Unmarshal(configBytes, &configs); err != nil {
+					return fmt.Errorf("failed to unmarshal acme-dns file: %v", err)
+				}
 
 				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
 					DNSManager: certmagic.DNSManager{
 						DNSProvider: &acmedns.Provider{
-							Username:  creds.Username,
-							Password:  creds.Password,
-							Subdomain: creds.Subdomain,
-							ServerURL: flags.acmednsServerURL,
+							Configs: configs,
 						},
 					},
+				}
+
+				if k.String("email") != "" {
+					certmagic.DefaultACME.Email = k.String("email")
+				} else {
+					certmagic.DefaultACME.Email = fmt.Sprintf("smallweb@%s", k.String("domain"))
+				}
+
+				domains := []string{k.String("domain"), fmt.Sprintf("*.%s", k.String("domain"))}
+				for customDomain, target := range k.StringMap("customDomains") {
+					if target == "*" {
+						domains = append(domains, customDomain, fmt.Sprintf("*.%s", customDomain))
+						continue
+					}
+
+					domains = append(domains, customDomain)
 				}
 
 				fmt.Fprintf(os.Stderr, "Serving *.%s from %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
@@ -323,7 +303,7 @@ func NewCmdUp() *cobra.Command {
 					},
 				}
 
-				hostKeyPath := utils.ExpandTilde(flags.sshHostKey)
+				hostKeyPath := flags.sshHostKey
 				if !utils.FileExists(hostKeyPath) {
 					_, err := keygen.New(flags.sshHostKey)
 					if err != nil {
@@ -355,54 +335,17 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.httpAddr, "http-addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
 	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/smallweb", "ssh host key")
-	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand TLS")
 	cmd.Flags().StringVar(&flags.certFile, "cert-file", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.keyFile, "key-file", "", "key file")
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
-	cmd.Flags().StringVar(&flags.acmednsUsername, "acmedns-username", "", "acme-dns username")
-	cmd.Flags().StringVar(&flags.acmednsPassword, "acmedns-password", "", "acme-dns password")
-	cmd.Flags().StringVar(&flags.acmednsSubdomain, "acmedns-subdomain", "", "acme-dns subdomain")
-	cmd.Flags().StringVar(&flags.acmednsServerURL, "acmedns-server-url", "https://auth.acme-dns.io", "acme-dns server url")
-	cmd.Flags().StringVar(&flags.acmednsCredentials, "acmedns-credentials", "", "acme-dns credentials file")
-	cmd.Flags().StringVar(&flags.email, "email", "", "email address for acme challenges")
-
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "cert-file")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "key-file")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "http-addr")
-
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-username")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-password")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-subdomain")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-credentials")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-server-url")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "email")
-
-	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-username")
-	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-password")
-	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-subdomain")
-	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-credentials")
-	cmd.MarkFlagsMutuallyExclusive("cert-file", "acmedns-server-url")
-	cmd.MarkFlagsMutuallyExclusive("cert-file", "email")
-	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-username")
-	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-password")
-	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-subdomain")
-	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-credentials")
-	cmd.MarkFlagsMutuallyExclusive("key-file", "acmedns-server-url")
-	cmd.MarkFlagsMutuallyExclusive("key-file", "email")
-	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "acmedns-username")
-	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "acmedns-password")
-	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "acmedns-subdomain")
-	cmd.MarkFlagsRequiredTogether("acmedns-username", "acmedns-password", "acmedns-subdomain")
+	cmd.Flags().StringVar(&flags.acmdnsCreds, "acmedns-credentials", "", "acme dns credentials")
 
 	cmd.MarkFlagsRequiredTogether("cert-file", "key-file")
+	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "http-addr")
+	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "cert-file")
+	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "key-file")
 
 	return cmd
-}
-
-type AcmeDnsCredentials struct {
-	Username  string `json:"username"`
-	Password  string `json:"password"`
-	Subdomain string `json:"subdomain"`
 }
 
 func getListener(addr, cert, key string) (net.Listener, error) {
@@ -426,10 +369,10 @@ func getListener(addr, cert, key string) (net.Listener, error) {
 		}
 
 		if config != nil {
-			return tls.Listen("unix", utils.ExpandTilde(socketPath), config)
+			return tls.Listen("unix", socketPath, config)
 		}
 
-		return net.Listen("unix", utils.ExpandTilde(socketPath))
+		return net.Listen("unix", socketPath)
 	}
 
 	addr = strings.TrimPrefix(addr, "tcp/")

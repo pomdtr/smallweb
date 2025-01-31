@@ -39,6 +39,8 @@ func NewCmdRoot(changelog string) *cobra.Command {
 			return "domain", v
 		case "SMALLWEB_REMOTE":
 			return "remote", v
+		case "SMALLWEB_EMAIL":
+			return "email", v
 		case "SMALLWEB_CUSTOM_DOMAINS":
 			customDomains := make(map[string]string)
 			for _, entry := range strings.Split(v, ";") {
@@ -160,7 +162,6 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	rootCmd.AddCommand(NewCmdCrons())
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdLogs())
-	rootCmd.AddCommand(NewCmdSecrets())
 	rootCmd.AddCommand(NewCmdLink())
 
 	rootCmd.AddCommand(&cobra.Command{

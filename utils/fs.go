@@ -10,13 +10,6 @@ func FileExists(p string) bool {
 	return err == nil
 }
 
-func ExpandTilde(p string) string {
-	if p == "~" || strings.HasPrefix(p, "~/") {
-		return strings.Replace(p, "~", os.Getenv("HOME"), 1)
-	}
-	return p
-}
-
 func AddTilde(p string) string {
 	home := os.Getenv("HOME")
 	if strings.HasPrefix(p, home) {
