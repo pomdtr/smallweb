@@ -28,7 +28,6 @@ require (
 	github.com/creack/pty v1.1.21
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/getsops/sops/v3 v3.9.1
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/knadh/koanf/providers/confmap v0.1.0
 	github.com/knadh/koanf/providers/posflag v0.1.0
 	github.com/libdns/acmedns v0.2.0

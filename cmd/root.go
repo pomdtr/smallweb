@@ -152,9 +152,7 @@ func NewCmdRoot(changelog string) *cobra.Command {
 
 	rootCmd.AddCommand(NewCmdRun())
 	rootCmd.AddCommand(NewCmdDocs())
-	rootCmd.AddCommand(NewCmdUpgrade())
 	rootCmd.AddCommand(NewCmdUp())
-	rootCmd.AddCommand(NewCmdConfig())
 	rootCmd.AddCommand(NewCmdDoctor())
 	rootCmd.AddCommand(NewCmdOpen())
 	rootCmd.AddCommand(NewCmdList())
@@ -259,4 +257,15 @@ func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string
 	}
 
 	return apps, cobra.ShellCompDirectiveDefault
+}
+
+func findConfigPath(rootDir string) string {
+	for _, candidate := range []string{".smallweb/config.jsonc", ".smallweb/config.json"} {
+		configPath := filepath.Join(rootDir, candidate)
+		if _, err := os.Stat(configPath); err == nil {
+			return configPath
+		}
+	}
+
+	return filepath.Join(rootDir, ".smallweb/config.json")
 }
