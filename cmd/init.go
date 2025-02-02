@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
-	"path"
 
 	"github.com/spf13/cobra"
 )
@@ -16,9 +14,9 @@ var embedFS embed.FS
 
 func NewCmdInit() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init <domain>",
+		Use:   "init",
 		Short: "Initialize a new workspace",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			workspaceFS, err := fs.Sub(embedFS, "embed/workspace")
 			if err != nil {
@@ -32,22 +30,6 @@ func NewCmdInit() *cobra.Command {
 
 			if err := os.CopyFS(workspaceDir, workspaceFS); err != nil {
 				return fmt.Errorf("failed to copy workspace embed: %w", err)
-			}
-
-			configPath := path.Join(workspaceDir, ".smallweb", "config.json")
-			if err := os.MkdirAll(path.Dir(configPath), 0755); err != nil {
-				return fmt.Errorf("failed to create config directory: %w", err)
-			}
-
-			configFile, err := os.Create(configPath)
-			if err != nil {
-				return fmt.Errorf("failed to create config file: %w", err)
-			}
-
-			encoder := json.NewEncoder(configFile)
-			encoder.SetIndent("", "  ")
-			if err := encoder.Encode(map[string]interface{}{"domain": args[0]}); err != nil {
-				return fmt.Errorf("failed to write config file: %w", err)
 			}
 
 			fmt.Fprintf(os.Stderr, "Workspace initialized at %s\n", workspaceDir)
