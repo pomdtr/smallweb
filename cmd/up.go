@@ -303,15 +303,14 @@ func NewCmdUp() *cobra.Command {
 					},
 				}
 
-				hostKeyPath := flags.sshHostKey
-				if !utils.FileExists(hostKeyPath) {
-					_, err := keygen.New(flags.sshHostKey)
+				if !utils.FileExists(flags.sshHostKey) {
+					_, err := keygen.New(flags.sshHostKey, keygen.WithWrite())
 					if err != nil {
 						return fmt.Errorf("failed to generate host key: %v", err)
 					}
 				}
 
-				server.SetOption(ssh.HostKeyFile(hostKeyPath))
+				server.SetOption(ssh.HostKeyFile(flags.sshHostKey))
 
 				listener, err := getListener(flags.sshAddr, "", "")
 				if err != nil {
