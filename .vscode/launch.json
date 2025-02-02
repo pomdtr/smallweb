@@ -7,11 +7,10 @@
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "up",
-                "--domain=test.smallweb.live",
-                "--acme-dns",
             ],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/examples"
+                "SMALLWEB_DIR": "${workspaceFolder}/examples",
+                "SMALLWEB_DOMAIN": "smallweb.localhost"
             },
         },
         {
@@ -21,25 +20,10 @@
             "program": "${workspaceFolder}/main.go",
             "console": "integratedTerminal",
             "args": [
-                "acmedns",
-                "register",
-                "test.smallweb.live"
+                // your args here
             ],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/examples"
-            },
-        },
-        {
-            "name": "smallweb.run up",
-            "type": "go",
-            "request": "launch",
-            "program": "${workspaceFolder}/main.go",
-            "args": [
-                "up",
-                "--ssh-addr=:2222",
-            ],
-            "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
+                "SMALLWEB_DIR": "${workspaceFolder}/examples",
                 "SMALLWEB_DOMAIN": "smallweb.localhost"
             },
         }
