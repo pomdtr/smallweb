@@ -5,8 +5,6 @@ go 1.23
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/adrg/xdg v0.4.0
-	github.com/charmbracelet/glamour v0.8.0
-	github.com/cli/browser v1.3.0
 	github.com/cli/go-gh/v2 v2.9.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
@@ -54,7 +52,6 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v1.0.1 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 // indirect
 	github.com/ProtonMail/go-crypto v1.1.0-beta.0-proton // indirect
-	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/aws/aws-sdk-go-v2 v1.31.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.5 // indirect
@@ -77,7 +74,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.31.3 // indirect
 	github.com/aws/smithy-go v1.21.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/carapace-sh/carapace-shlex v1.0.1 // indirect
@@ -86,12 +82,10 @@ require (
 	github.com/charmbracelet/x/ansi v0.2.3 // indirect
 	github.com/charmbracelet/x/conpty v0.1.0 // indirect
 	github.com/charmbracelet/x/errors v0.0.0-20240508181413-e8d8b6e2de86 // indirect
-	github.com/charmbracelet/x/exp/golden v0.0.0-20240815200342-61de596daa2b // indirect
 	github.com/charmbracelet/x/termios v0.1.0 // indirect
 	github.com/cloudflare/circl v1.4.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/getsops/gopgagent v0.0.0-20240527072608-0c14999532fe // indirect
@@ -107,7 +101,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.13.0 // indirect
-	github.com/gorilla/css v1.0.1 // indirect
 	github.com/goware/prefixer v0.0.0-20160118172347-395022866408 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -130,7 +123,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mholt/acmez/v2 v2.0.3 // indirect
-	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/miekg/dns v1.1.62 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -148,8 +140,6 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/urfave/cli v1.22.15 // indirect
-	github.com/yuin/goldmark v1.7.4 // indirect
-	github.com/yuin/goldmark-emoji v1.0.3 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.55.0 // indirect

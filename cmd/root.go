@@ -9,13 +9,11 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
-	"github.com/charmbracelet/glamour"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
-	"github.com/mattn/go-isatty"
 
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/build"
@@ -27,7 +25,7 @@ var (
 	k = koanf.New(".")
 )
 
-func NewCmdRoot(changelog string) *cobra.Command {
+func NewCmdRoot() *cobra.Command {
 	defaultProvider := confmap.Provider(map[string]interface{}{
 		"dir": filepath.Join(os.Getenv("HOME"), "smallweb"),
 	}, ".")
@@ -159,25 +157,6 @@ func NewCmdRoot(changelog string) *cobra.Command {
 	rootCmd.AddCommand(NewCmdLogs())
 	rootCmd.AddCommand(NewCmdLink())
 	rootCmd.AddCommand(NewCmdConfig())
-
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "changelog",
-		Short: "Show the changelog",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if !isatty.IsTerminal(os.Stdout.Fd()) {
-				fmt.Println(changelog)
-				return nil
-			}
-
-			out, err := glamour.Render(changelog, "dark")
-			if err != nil {
-				return fmt.Errorf("failed to render changelog: %w", err)
-			}
-
-			fmt.Println(out)
-			return nil
-		},
-	})
 
 	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
 		disabledCommands := strings.Split(env, ",")
