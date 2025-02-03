@@ -178,42 +178,48 @@ func NewCmdUp() *cobra.Command {
 			if flags.sshAddr != "" {
 				server := ssh.Server{
 					PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
-						authorizedKeysPath := filepath.Join(k.String("dir"), ".smallweb", "authorized_keys")
-						if _, err := os.Stat(authorizedKeysPath); err != nil {
-							return false
+						authorizedKeyPaths := []string{filepath.Join(k.String("dir"), ".smallweb", "authorized_keys")}
+
+						if ctx.User() != "_" {
+							authorizedKeyPaths = append(authorizedKeyPaths, filepath.Join(k.String("dir"), ctx.User(), "authorized_keys"))
 						}
 
-						authorizedKeysBytes, err := os.ReadFile(authorizedKeysPath)
-						if err != nil {
-							return false
-						}
+						for _, authorizedKeysPath := range authorizedKeyPaths {
+							if _, err := os.Stat(authorizedKeysPath); err != nil {
+								return false
+							}
 
-						for len(authorizedKeysBytes) > 0 {
-							k, _, _, rest, err := gossh.ParseAuthorizedKey(authorizedKeysBytes)
+							authorizedKeysBytes, err := os.ReadFile(authorizedKeysPath)
 							if err != nil {
 								return false
 							}
 
-							if ssh.KeysEqual(k, key) {
-								return true
-							}
+							for len(authorizedKeysBytes) > 0 {
+								k, _, _, rest, err := gossh.ParseAuthorizedKey(authorizedKeysBytes)
+								if err != nil {
+									return false
+								}
 
-							authorizedKeysBytes = rest
+								if ssh.KeysEqual(k, key) {
+									return true
+								}
+
+								authorizedKeysBytes = rest
+							}
 						}
 
 						return false
-
 					},
 					SubsystemHandlers: map[string]ssh.SubsystemHandler{
 						"sftp": func(sess ssh.Session) {
+							workingDir := utils.AddTilde(k.String("dir"))
 							if sess.User() != "_" {
-								fmt.Fprintln(sess, "sftp is only allowed for the _ user")
-								return
+								workingDir = filepath.Join(workingDir, sess.User())
 							}
 
 							server, err := sftp.NewServer(
 								sess,
-								sftp.WithServerWorkingDirectory(utils.AddTilde(k.String("dir"))),
+								sftp.WithServerWorkingDirectory(workingDir),
 							)
 
 							if err != nil {
