@@ -101,7 +101,7 @@ func NewWorker(app app.App) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) DenoArgs(a app.App, deno string) []string {
+func (me *Worker) DenoArgs(deno string) []string {
 	args := []string{
 		"--allow-net",
 		"--allow-import",
@@ -113,7 +113,7 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 		"--quiet",
 	}
 
-	appDir := a.Dir()
+	appDir := me.App.Dir()
 	if configPath := filepath.Join(appDir, "deno.json"); utils.FileExists(configPath) {
 		args = append(args, "--config", configPath)
 	} else if configPath := filepath.Join(appDir, "deno.jsonc"); utils.FileExists(configPath) {
@@ -121,7 +121,7 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "smallweb", "deno", "npm", "registry.npmjs.org")
-	if a.Admin {
+	if me.App.Admin {
 		args = append(
 			args,
 			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.RootDir, sandboxPath, deno, npmCache),
@@ -131,12 +131,14 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 		return args
 	}
 
+	authorizedKeysPath := filepath.Join(me.App.RootDir, ".smallweb", "authorized_keys")
+
 	// if root is not a symlink
 	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, sandboxPath, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", a.DataDir()),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appDir, authorizedKeysPath, sandboxPath, deno, npmCache),
+			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
 		)
 
 		return args
@@ -153,8 +155,8 @@ func (me *Worker) DenoArgs(a app.App, deno string) []string {
 
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appDir, target, sandboxPath, deno, npmCache),
-		fmt.Sprintf("--allow-write=%s,%s", a.DataDir(), filepath.Join(target, "data")),
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s,%s", appDir, authorizedKeysPath, target, sandboxPath, deno, npmCache),
+		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
 	)
 	return args
 }
@@ -172,7 +174,7 @@ func (me *Worker) Start() error {
 	}
 
 	args := []string{"run"}
-	args = append(args, me.DenoArgs(me.App, deno)...)
+	args = append(args, me.DenoArgs(deno)...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
@@ -484,7 +486,7 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	}
 
 	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.DenoArgs(me.App, deno)...)
+	denoArgs = append(denoArgs, me.DenoArgs(deno)...)
 
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
