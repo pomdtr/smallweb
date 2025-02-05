@@ -45,8 +45,8 @@ func NewCmdUp() *cobra.Command {
 		httpAddr    string
 		sshAddr     string
 		sshHostKey  string
-		certFile    string
-		keyFile     string
+		tlsCert     string
+		tlsKey      string
 		acmdnsCreds string
 	}
 
@@ -152,14 +152,14 @@ func NewCmdUp() *cobra.Command {
 
 				addr := flags.httpAddr
 				if addr == "" {
-					if flags.certFile != "" || flags.keyFile != "" {
+					if flags.tlsCert != "" || flags.tlsKey != "" {
 						addr = "0.0.0.0:443"
 					} else {
 						addr = "localhost:7777"
 					}
 				}
 
-				listener, err := getListener(addr, flags.certFile, flags.keyFile)
+				listener, err := getListener(addr, flags.tlsCert, flags.tlsKey)
 				if err != nil {
 					return fmt.Errorf("failed to get listener: %v", err)
 				}
@@ -340,8 +340,8 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.httpAddr, "http-addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
 	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/smallweb", "ssh host key")
-	cmd.Flags().StringVar(&flags.certFile, "cert-file", "", "tls certificate file")
-	cmd.Flags().StringVar(&flags.keyFile, "key-file", "", "key file")
+	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
+	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
 	cmd.Flags().StringVar(&flags.acmdnsCreds, "acmedns-credentials", "", "acme dns credentials")
 
