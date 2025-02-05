@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -17,8 +16,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"syscall"
-	"unsafe"
 
 	_ "embed"
 
@@ -26,9 +23,12 @@ import (
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
-	"github.com/creack/pty"
+	"github.com/charmbracelet/wish"
 	"github.com/libdns/acmedns"
-	"github.com/pkg/sftp"
+	"github.com/picosh/pobj"
+	"github.com/pomdtr/smallweb/storage"
+
+	"github.com/picosh/send/protocols/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
 	gossh "golang.org/x/crypto/ssh"
@@ -140,7 +140,7 @@ func NewCmdUp() *cobra.Command {
 					domains = append(domains, customDomain)
 				}
 
-				fmt.Fprintf(os.Stderr, "Serving *.%s from %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
+				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
 				go certmagic.HTTPS([]string{
 					k.String("domain"),
 					fmt.Sprintf("*.%s", k.String("domain")),
@@ -164,20 +164,41 @@ func NewCmdUp() *cobra.Command {
 					return fmt.Errorf("failed to get listener: %v", err)
 				}
 
-				fmt.Fprintf(os.Stderr, "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
+				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
 				go http.Serve(listener, handler)
 			}
 
 			if flags.cron {
-				fmt.Fprintln(os.Stderr, "Starting cron jobs...")
-				crons := CronRunner()
+				fmt.Fprintln(cmd.ErrOrStderr(), "Starting cron jobs...")
+				crons := CronRunner(cmd.OutOrStdout(), cmd.ErrOrStderr())
 				crons.Start()
 				defer crons.Stop()
 			}
 
 			if flags.sshAddr != "" {
-				server := ssh.Server{
-					PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
+				if !utils.FileExists(flags.sshHostKey) {
+					_, err := keygen.New(flags.sshHostKey, keygen.WithWrite())
+					if err != nil {
+						return fmt.Errorf("failed to generate host key: %v", err)
+					}
+				}
+
+				st := storage.StorageFS{
+					Dir:    k.String("dir"),
+					Logger: consoleLogger,
+				}
+
+				cfg := pobj.Config{
+					Storage: &st,
+					Logger:  consoleLogger,
+				}
+
+				handler := pobj.NewUploadAssetHandler(&cfg)
+
+				srv, err := wish.NewServer(
+					wish.WithAddress(flags.sshAddr),
+					wish.WithHostKeyPath(flags.sshHostKey),
+					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
 						authorizedKeyPaths := []string{filepath.Join(k.String("dir"), ".smallweb", "authorized_keys")}
 
 						if ctx.User() != "_" {
@@ -209,42 +230,27 @@ func NewCmdUp() *cobra.Command {
 						}
 
 						return false
-					},
-					SubsystemHandlers: map[string]ssh.SubsystemHandler{
-						"sftp": func(sess ssh.Session) {
-							workingDir := utils.AddTilde(k.String("dir"))
-							if sess.User() != "_" {
-								workingDir = filepath.Join(workingDir, sess.User())
-							}
+					}),
+					sftp.SSHOption(handler),
+					wish.WithMiddleware(func(next ssh.Handler) ssh.Handler {
+						return func(sess ssh.Session) {
+							if sess.User() == "_" {
+								rootCmd := NewCmdRoot()
+								args := make([]string, 0)
+								args = append(args, sess.Command()...)
+								rootCmd.SetArgs(args)
+								rootCmd.SetIn(sess)
+								rootCmd.SetOut(sess)
+								rootCmd.SetErr(sess.Stderr())
+								rootCmd.CompletionOptions.DisableDefaultCmd = true
+								if err := rootCmd.Execute(); err != nil {
+									_ = sess.Exit(1)
+									return
+								}
 
-							server, err := sftp.NewServer(
-								sess,
-								sftp.WithServerWorkingDirectory(workingDir),
-							)
-
-							if err != nil {
-								log.Printf("sftp server init error: %s\n", err)
 								return
 							}
-							if err := server.Serve(); err == io.EOF {
-								server.Close()
-								fmt.Println("sftp client exited session.")
-							} else if err != nil {
-								fmt.Println("sftp server completed with error:", err)
-							}
-						},
-					},
-					Handler: func(sess ssh.Session) {
-						var cmd *exec.Cmd
-						if sess.User() == "_" {
-							execPath, err := os.Executable()
-							if err != nil {
-								fmt.Fprintf(sess, "failed to get executable path: %v\n", err)
-								return
-							}
-							cmd = exec.Command(execPath, sess.Command()...)
-							cmd.Env = os.Environ()
-						} else {
+
 							a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
 							if err != nil {
 								fmt.Fprintf(sess, "failed to load app: %v\n", err)
@@ -258,43 +264,20 @@ func NewCmdUp() *cobra.Command {
 								return
 							}
 
-							cmd = command
-						}
-
-						ptyReq, winCh, isPty := sess.Pty()
-						if isPty {
-							cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
-							f, err := pty.Start(cmd)
+							command.Stdout = sess
+							command.Stderr = sess.Stderr()
+							stdin, err := command.StdinPipe()
 							if err != nil {
-								panic(err)
-							}
-							go func() {
-								for win := range winCh {
-									syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), uintptr(syscall.TIOCSWINSZ),
-										uintptr(unsafe.Pointer(&struct{ h, w, x, y uint16 }{uint16(win.Height), uint16(win.Width), 0, 0})))
-								}
-							}()
-							go func() {
-								io.Copy(f, sess)
-							}()
-							io.Copy(sess, f)
-							cmd.Wait()
-							return
-						} else {
-							stdin, err := cmd.StdinPipe()
-							if err != nil {
-								fmt.Fprintf(sess, "failed to get stdin pipe: %v", err)
+								fmt.Fprintf(sess, "failed to get stdin: %v\n", err)
 								return
 							}
 
 							go func() {
+								defer stdin.Close()
 								io.Copy(stdin, sess)
 							}()
 
-							cmd.Stdout = sess
-							cmd.Stderr = sess.Stderr()
-
-							if err := cmd.Run(); err != nil {
+							if err := command.Run(); err != nil {
 								var exitErr *exec.ExitError
 								if errors.As(err, &exitErr) {
 									sess.Exit(exitErr.ExitCode())
@@ -306,26 +289,16 @@ func NewCmdUp() *cobra.Command {
 								return
 							}
 						}
-					},
-				}
+					}),
+				)
 
-				if !utils.FileExists(flags.sshHostKey) {
-					_, err := keygen.New(flags.sshHostKey, keygen.WithWrite())
-					if err != nil {
-						return fmt.Errorf("failed to generate host key: %v", err)
-					}
-				}
-
-				server.SetOption(ssh.HostKeyFile(flags.sshHostKey))
-
-				listener, err := getListener(flags.sshAddr, "", "")
 				if err != nil {
-					return fmt.Errorf("failed to get ssh listener: %v", err)
+					return fmt.Errorf("failed to create wish server: %v", err)
 				}
 
-				fmt.Fprintf(os.Stderr, "Starting SSH server on %s...\n", flags.sshAddr)
-				go server.Serve(listener)
-				defer server.Close()
+				if err = srv.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+					fmt.Fprintf(cmd.ErrOrStderr(), "failed to start wish server: %v\n", err)
+				}
 			}
 
 			// sigint handling
@@ -339,7 +312,7 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.httpAddr, "http-addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
-	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "~/.ssh/smallweb", "ssh host key")
+	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", fmt.Sprintf("%s/.ssh/smallweb", os.Getenv("HOME")), "ssh host key")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")

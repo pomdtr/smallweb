@@ -38,8 +38,8 @@ func NewCmdRun() *cobra.Command {
 			cmd.SilenceErrors = true
 
 			command.Stdin = os.Stdin
-			command.Stdout = os.Stdout
-			command.Stderr = os.Stderr
+			command.Stdout = cmd.OutOrStdout()
+			command.Stderr = cmd.ErrOrStderr()
 			return command.Run()
 		},
 	}

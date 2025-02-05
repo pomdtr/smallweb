@@ -155,7 +155,7 @@ func NewCmdLogs() *cobra.Command {
 							return fmt.Errorf("failed to parse template: %w", err)
 						}
 
-						if err := tmpl.Execute(os.Stdout, log); err != nil {
+						if err := tmpl.Execute(cmd.OutOrStdout(), log); err != nil {
 							return fmt.Errorf("failed to execute template: %w", err)
 						}
 						fmt.Println()
@@ -219,7 +219,7 @@ func NewCmdLogs() *cobra.Command {
 						return fmt.Errorf("failed to parse template: %w", err)
 					}
 
-					if err := tmpl.Execute(os.Stdout, log); err != nil {
+					if err := tmpl.Execute(cmd.OutOrStdout(), log); err != nil {
 						return fmt.Errorf("failed to execute template: %w", err)
 					}
 					fmt.Println()

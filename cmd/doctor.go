@@ -15,35 +15,35 @@ func NewCmdDoctor() *cobra.Command {
 		Use:   "doctor",
 		Short: "Check the system for potential problems",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Fprintln(os.Stderr, "🔍 Checking smallweb directory...")
+			fmt.Fprintln(cmd.ErrOrStderr(), "🔍 Checking smallweb directory...")
 			if _, err := os.Stat(k.String("dir")); os.IsNotExist(err) {
-				fmt.Fprintln(os.Stderr, "❌ Smallweb directory not found")
-				fmt.Fprintln(os.Stderr, "💡 Run `smallweb init` to initialize the workspace")
+				fmt.Fprintln(cmd.ErrOrStderr(), "❌ Smallweb directory not found")
+				fmt.Fprintln(cmd.ErrOrStderr(), "💡 Run `smallweb init` to initialize the workspace")
 				return nil
 			}
-			fmt.Fprintln(os.Stderr, "✅ Smallweb directory found")
-			fmt.Fprintln(os.Stderr)
+			fmt.Fprintln(cmd.ErrOrStderr(), "✅ Smallweb directory found")
+			fmt.Fprintln(cmd.ErrOrStderr())
 
-			fmt.Fprintln(os.Stderr, "🔍 Checking Deno version...")
+			fmt.Fprintln(cmd.ErrOrStderr(), "🔍 Checking Deno version...")
 			version, err := checkDenoVersion()
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "❌ Deno not found")
-				fmt.Fprintln(os.Stderr, "💡 Run `curl -fsSL https://deno.land/install.sh | sh` to install Deno")
+				fmt.Fprintln(cmd.ErrOrStderr(), "❌ Deno not found")
+				fmt.Fprintln(cmd.ErrOrStderr(), "💡 Run `curl -fsSL https://deno.land/install.sh | sh` to install Deno")
 				return nil
 			}
-			fmt.Fprintf(os.Stderr, "✅ Deno version is compatible (%s)\n", version)
-			fmt.Fprintln(os.Stderr)
+			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Deno version is compatible (%s)\n", version)
+			fmt.Fprintln(cmd.ErrOrStderr())
 
-			fmt.Fprintln(os.Stderr, "🔍 Checking domain...")
+			fmt.Fprintln(cmd.ErrOrStderr(), "🔍 Checking domain...")
 			if k.String("domain") == "" {
-				fmt.Fprintln(os.Stderr, "❌ Domain not set")
-				fmt.Fprintf(os.Stderr, "💡 Set it using the $SMALLWEB_DOMAIN env var or the `domain` field in your smallweb config")
+				fmt.Fprintln(cmd.ErrOrStderr(), "❌ Domain not set")
+				fmt.Fprintf(cmd.ErrOrStderr(), "💡 Set it using the $SMALLWEB_DOMAIN env var or the `domain` field in your smallweb config")
 				return nil
 			}
-			fmt.Fprintln(os.Stderr, "✅ Domain is set")
-			fmt.Fprintln(os.Stderr)
+			fmt.Fprintln(cmd.ErrOrStderr(), "✅ Domain is set")
+			fmt.Fprintln(cmd.ErrOrStderr())
 
-			fmt.Fprintln(os.Stderr, "🎉 smallweb is healthy")
+			fmt.Fprintln(cmd.ErrOrStderr(), "🎉 smallweb is healthy")
 			return nil
 		},
 	}
@@ -70,9 +70,7 @@ func checkDenoVersion() (string, error) {
 	}
 
 	if v.Major() < 2 {
-		fmt.Fprintln(os.Stderr, "Deno version 2 or higher is required")
-		fmt.Fprintln(os.Stderr, "Run `deno upgrade` to upgrade Deno")
-		return "", nil
+		return "", fmt.Errorf("deno version 2 or higher required")
 	}
 
 	return v.String(), nil

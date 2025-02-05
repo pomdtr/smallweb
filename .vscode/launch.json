@@ -7,6 +7,8 @@
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "up",
+                "--http-addr=:7778",
+                "--ssh-addr=:2222"
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/examples",

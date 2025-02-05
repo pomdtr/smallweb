@@ -50,7 +50,7 @@ func NewCmdList() *cobra.Command {
 			}
 
 			if flags.json {
-				encoder := json.NewEncoder(os.Stdout)
+				encoder := json.NewEncoder(cmd.OutOrStdout())
 				encoder.SetEscapeHTML(false)
 				if isatty.IsTerminal(os.Stdout.Fd()) {
 					encoder.SetIndent("", "  ")
@@ -76,7 +76,7 @@ func NewCmdList() *cobra.Command {
 					return fmt.Errorf("failed to parse template: %w", err)
 				}
 
-				if err := tmpl.Execute(os.Stdout, apps); err != nil {
+				if err := tmpl.Execute(cmd.OutOrStdout(), apps); err != nil {
 					return fmt.Errorf("failed to execute template: %w", err)
 				}
 
@@ -94,7 +94,7 @@ func NewCmdList() *cobra.Command {
 					return fmt.Errorf("failed to parse template file: %w", err)
 				}
 
-				if err := tmpl.Execute(os.Stdout, apps); err != nil {
+				if err := tmpl.Execute(cmd.OutOrStdout(), apps); err != nil {
 					return fmt.Errorf("failed to execute template: %w", err)
 				}
 
@@ -113,9 +113,9 @@ func NewCmdList() *cobra.Command {
 					return fmt.Errorf("failed to get terminal size: %w", err)
 				}
 
-				printer = tableprinter.New(os.Stdout, true, width)
+				printer = tableprinter.New(cmd.OutOrStdout(), true, width)
 			} else {
-				printer = tableprinter.New(os.Stdout, false, 0)
+				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
 			printer.AddHeader([]string{"Name", "Dir", "Url", "Admin"})

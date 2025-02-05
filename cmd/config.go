@@ -25,7 +25,7 @@ func NewCmdConfig() *cobra.Command {
 			}
 
 			if flags.json {
-				encoder := json.NewEncoder(os.Stdout)
+				encoder := json.NewEncoder(cmd.OutOrStdout())
 				encoder.SetEscapeHTML(false)
 				if isatty.IsTerminal(os.Stdout.Fd()) {
 					encoder.SetIndent("", "  ")

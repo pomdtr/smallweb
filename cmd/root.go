@@ -131,8 +131,8 @@ func NewCmdRoot() *cobra.Command {
 					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
 
 					command.Stdin = os.Stdin
-					command.Stdout = os.Stdout
-					command.Stderr = os.Stderr
+					command.Stdout = cmd.OutOrStdout()
+					command.Stderr = cmd.ErrOrStderr()
 
 					cmd.SilenceErrors = true
 					return command.Run()

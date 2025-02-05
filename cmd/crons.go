@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -86,7 +87,7 @@ func NewCmdCrons() *cobra.Command {
 			}
 
 			if flags.json {
-				encoder := json.NewEncoder(os.Stdout)
+				encoder := json.NewEncoder(cmd.OutOrStdout())
 				encoder.SetEscapeHTML(false)
 				if isatty.IsTerminal(os.Stdout.Fd()) {
 					encoder.SetIndent("", "  ")
@@ -110,9 +111,9 @@ func NewCmdCrons() *cobra.Command {
 					return fmt.Errorf("failed to get terminal size: %w", err)
 				}
 
-				printer = tableprinter.New(os.Stdout, true, width)
+				printer = tableprinter.New(cmd.OutOrStdout(), true, width)
 			} else {
-				printer = tableprinter.New(os.Stdout, false, 0)
+				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
 			printer.AddHeader([]string{"Schedule", "App", "Args"})
@@ -138,7 +139,7 @@ func NewCmdCrons() *cobra.Command {
 	return cmd
 }
 
-func CronRunner() *cron.Cron {
+func CronRunner(stdout, stderr io.Writer) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
@@ -173,8 +174,8 @@ func CronRunner() *cron.Cron {
 					fmt.Println(err)
 					continue
 				}
-				command.Stdout = os.Stdout
-				command.Stderr = os.Stderr
+				command.Stdout = stdout
+				command.Stderr = stderr
 
 				if err := command.Run(); err != nil {
 					log.Printf("failed to run command: %v", err)

@@ -66,7 +66,7 @@ func NewCmdFetch() *cobra.Command {
 
 			w := httptest.NewRecorder()
 			wk.ServeHTTP(w, req)
-			_, _ = io.Copy(os.Stdout, w.Body)
+			_, _ = io.Copy(cmd.OutOrStdout(), w.Body)
 			return nil
 		},
 	}

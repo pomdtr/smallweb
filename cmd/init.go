@@ -32,7 +32,7 @@ func NewCmdInit() *cobra.Command {
 				return fmt.Errorf("failed to copy workspace embed: %w", err)
 			}
 
-			fmt.Fprintf(os.Stderr, "Workspace initialized at %s\n", workspaceDir)
+			fmt.Fprintf(cmd.ErrOrStderr(), "Workspace initialized at %s\n", workspaceDir)
 			return nil
 		},
 	}
