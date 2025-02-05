@@ -345,10 +345,10 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
 	cmd.Flags().StringVar(&flags.acmdnsCreds, "acmedns-credentials", "", "acme dns credentials")
 
-	cmd.MarkFlagsRequiredTogether("cert-file", "key-file")
+	cmd.MarkFlagsRequiredTogether("tls-cert", "tls-key")
 	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "http-addr")
-	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "cert-file")
-	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "key-file")
+	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "tls-cert")
+	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "tls-key")
 
 	return cmd
 }
