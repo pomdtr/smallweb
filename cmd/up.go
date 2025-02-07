@@ -28,6 +28,8 @@ import (
 	"github.com/picosh/pobj"
 	"github.com/pomdtr/smallweb/storage"
 
+	"github.com/picosh/send/protocols/rsync"
+	"github.com/picosh/send/protocols/scp"
 	"github.com/picosh/send/protocols/sftp"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/watcher"
@@ -289,7 +291,10 @@ func NewCmdUp() *cobra.Command {
 								return
 							}
 						}
-					}),
+					},
+						rsync.Middleware(handler),
+						scp.Middleware(handler),
+					),
 				)
 
 				if err != nil {
