@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -44,12 +45,13 @@ import (
 func NewCmdUp() *cobra.Command {
 	var flags struct {
 		cron        bool
-		httpAddr    string
+		addr        string
 		sshAddr     string
 		sshHostKey  string
 		tlsCert     string
 		tlsKey      string
 		acmdnsCreds string
+		onDemandTLS bool
 	}
 
 	cmd := &cobra.Command{
@@ -102,6 +104,7 @@ func NewCmdUp() *cobra.Command {
 				workers: make(map[string]*worker.Worker),
 			})
 
+			var tlsConfig *tls.Config
 			if flags.acmdnsCreds != "" {
 				credentialPath := filepath.Join(xdg.DataHome, "smallweb", "acmedns", "credentials.json")
 				if _, err := os.Stat(credentialPath); err != nil {
@@ -134,41 +137,79 @@ func NewCmdUp() *cobra.Command {
 
 				domains := []string{k.String("domain"), fmt.Sprintf("*.%s", k.String("domain"))}
 				for customDomain, target := range k.StringMap("customDomains") {
-					if target == "*" {
-						domains = append(domains, customDomain, fmt.Sprintf("*.%s", customDomain))
-						continue
-					}
-
 					domains = append(domains, customDomain)
-				}
-
-				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")))
-				go certmagic.HTTPS([]string{
-					k.String("domain"),
-					fmt.Sprintf("*.%s", k.String("domain")),
-				}, handler)
-			} else {
-				if email := k.String("email"); email != "" {
-					certmagic.DefaultACME.Email = email
-				}
-
-				addr := flags.httpAddr
-				if addr == "" {
-					if flags.tlsCert != "" || flags.tlsKey != "" {
-						addr = "0.0.0.0:443"
-					} else {
-						addr = "localhost:7777"
+					if target == "*" {
+						domains = append(domains, fmt.Sprintf("*.%s", customDomain))
 					}
 				}
 
-				listener, err := getListener(addr, flags.tlsCert, flags.tlsKey)
+				c, err := certmagic.TLS(domains)
 				if err != nil {
-					return fmt.Errorf("failed to get listener: %v", err)
+					return fmt.Errorf("failed to get tls config: %v", err)
 				}
 
-				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
-				go http.Serve(listener, handler)
+				tlsConfig = c
+			} else if flags.onDemandTLS {
+				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
+					DecisionFunc: func(ctx context.Context, name string) error {
+						domain := k.String("domain")
+						if name == domain {
+							return nil
+						}
+
+						customDomains := k.StringMap("customDomains")
+						if _, ok := customDomains[name]; ok {
+							return nil
+						}
+
+						parts := strings.SplitN(name, ".", 2)
+						if len(parts) != 2 {
+							return fmt.Errorf("invalid domain: %s", name)
+						}
+
+						if parts[1] == domain {
+							return nil
+						}
+
+						if target, ok := customDomains[parts[1]]; ok && target == "*" {
+							return nil
+						}
+
+						return fmt.Errorf("domain not found: %s", name)
+					},
+				}
+
+				c, err := certmagic.TLS(nil)
+				if err != nil {
+					return fmt.Errorf("failed to get tls config: %v", err)
+				}
+
+				tlsConfig = c
+			} else if flags.tlsCert != "" && flags.tlsKey != "" {
+				cert, err := tls.LoadX509KeyPair(flags.tlsCert, flags.tlsKey)
+				if err != nil {
+					return fmt.Errorf("failed to load tls certificate: %v", err)
+				}
+
+				tlsConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
 			}
+
+			addr := flags.addr
+			if addr == "" {
+				if tlsConfig != nil {
+					addr = ":443"
+				} else {
+					addr = ":7777"
+				}
+			}
+
+			ln, err := getListener(addr, tlsConfig)
+			if err != nil {
+				return fmt.Errorf("failed to get listener: %v", err)
+			}
+
+			fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
+			go http.Serve(ln, handler)
 
 			if flags.cron {
 				fmt.Fprintln(cmd.ErrOrStderr(), "Starting cron jobs...")
@@ -185,17 +226,13 @@ func NewCmdUp() *cobra.Command {
 					}
 				}
 
-				st := storage.StorageFS{
-					Dir:    k.String("dir"),
+				handler := pobj.NewUploadAssetHandler(&pobj.Config{
+					Storage: &storage.StorageFS{
+						Dir:    k.String("dir"),
+						Logger: consoleLogger,
+					},
 					Logger: consoleLogger,
-				}
-
-				cfg := pobj.Config{
-					Storage: &st,
-					Logger:  consoleLogger,
-				}
-
-				handler := pobj.NewUploadAssetHandler(&cfg)
+				})
 
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
@@ -315,33 +352,26 @@ func NewCmdUp() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&flags.httpAddr, "http-addr", "", "address to listen on")
+	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
 	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", fmt.Sprintf("%s/.ssh/smallweb", os.Getenv("HOME")), "ssh host key")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
-	cmd.Flags().StringVar(&flags.acmdnsCreds, "acmedns-credentials", "", "acme dns credentials")
+	cmd.Flags().StringVar(&flags.acmdnsCreds, "acmedns-credentials", "", "acmedns credentials file")
+	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
 
 	cmd.MarkFlagsRequiredTogether("tls-cert", "tls-key")
-	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "http-addr")
 	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "tls-cert")
 	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "tls-key")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-key")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-credentials")
 
 	return cmd
 }
 
-func getListener(addr, cert, key string) (net.Listener, error) {
-	var config *tls.Config
-	if cert != "" && key != "" {
-		cert, err := tls.LoadX509KeyPair(cert, key)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load cert: %v", err)
-		}
-
-		config = &tls.Config{Certificates: []tls.Certificate{cert}}
-	}
-
+func getListener(addr string, config *tls.Config) (net.Listener, error) {
 	if strings.HasPrefix(addr, "unix/") {
 		socketPath := strings.TrimPrefix(addr, "unix/")
 
