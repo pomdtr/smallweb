@@ -79,6 +79,7 @@ func commandEnv(a app.App) []string {
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_NAME=%s", a.Name))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DOMAIN=%s", a.Domain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_URL=%s", a.URL))
+	env = append(env, fmt.Sprintf("SMALLWEB_APP_DIR=%s", a.BaseDir))
 
 	if deno, ok := os.LookupEnv("DENO_EXEC_PATH"); ok {
 		env = append(env, fmt.Sprintf("DENO_EXEC_PATH=%s", deno))
