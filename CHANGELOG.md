@@ -2,10 +2,13 @@
 
 ## 0.21.0
 
+- fix permissions of the built-in sftp server
 - add support for acmedns
 - add support for SPA in the static server
 - remove `smallweb services` command
 - remove `smallweb sync` command
+- remove `smallweb changelog` command
+- remove `smallweb upgrade` command
 - `--domain` global flag
 
 ## 0.20.0
