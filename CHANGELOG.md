@@ -6,6 +6,7 @@
 - add support for acmedns
 - add support for SPA in the static server
 - remove `smallweb services` command
+- remove `smallweb secrets` command
 - remove `smallweb sync` command
 - remove `smallweb changelog` command
 - remove `smallweb upgrade` command
