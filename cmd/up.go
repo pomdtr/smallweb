@@ -281,7 +281,9 @@ func NewCmdUp() *cobra.Command {
 							if sess.User() == "_" {
 								execPath, err := os.Executable()
 								if err != nil {
-
+									fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
+									sess.Exit(1)
+									return
 								}
 
 								cmd = exec.Command(execPath, sess.Command()...)
@@ -292,6 +294,7 @@ func NewCmdUp() *cobra.Command {
 								a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
 								if err != nil {
 									fmt.Fprintf(sess, "failed to load app: %v\n", err)
+									sess.Exit(1)
 									return
 								}
 
@@ -299,6 +302,7 @@ func NewCmdUp() *cobra.Command {
 								command, err := wk.Command(sess.Context(), sess.Command()...)
 								if err != nil {
 									fmt.Fprintf(sess, "failed to get command: %v\n", err)
+									sess.Exit(1)
 									return
 								}
 
@@ -310,7 +314,9 @@ func NewCmdUp() *cobra.Command {
 								cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
 								f, err := pty.Start(cmd)
 								if err != nil {
-									panic(err)
+									fmt.Fprintf(sess, "failed to start pty: %v\n", err)
+									sess.Exit(1)
+									return
 								}
 								go func() {
 									for win := range winCh {
@@ -338,6 +344,7 @@ func NewCmdUp() *cobra.Command {
 							stdin, err := cmd.StdinPipe()
 							if err != nil {
 								fmt.Fprintf(sess, "failed to get stdin: %v\n", err)
+								sess.Exit(1)
 								return
 							}
 
