@@ -17,6 +17,8 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"syscall"
+	"unsafe"
 
 	_ "embed"
 
@@ -25,6 +27,7 @@ import (
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
+	"github.com/creack/pty"
 	"github.com/libdns/acmedns"
 	"github.com/picosh/pobj"
 	"github.com/pomdtr/smallweb/storage"
@@ -273,39 +276,65 @@ func NewCmdUp() *cobra.Command {
 					sftp.SSHOption(handler),
 					wish.WithMiddleware(func(next ssh.Handler) ssh.Handler {
 						return func(sess ssh.Session) {
+							var cmd *exec.Cmd
 							if sess.User() == "_" {
-								rootCmd := NewCmdRoot()
-								args := make([]string, 0)
-								args = append(args, sess.Command()...)
-								rootCmd.SetArgs(args)
-								rootCmd.SetIn(sess)
-								rootCmd.SetOut(sess)
-								rootCmd.SetErr(sess.Stderr())
-								rootCmd.CompletionOptions.DisableDefaultCmd = true
-								if err := rootCmd.Execute(); err != nil {
-									_ = sess.Exit(1)
+								execPath, err := os.Executable()
+								if err != nil {
+
+								}
+
+								cmd = exec.Command(execPath, sess.Command()...)
+								cmd.Env = os.Environ()
+								cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_DIR=%s", k.String("dir")))
+								cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
+							} else {
+								a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
+								if err != nil {
+									fmt.Fprintf(sess, "failed to load app: %v\n", err)
 									return
 								}
 
+								wk := worker.NewWorker(a)
+								command, err := wk.Command(sess.Context(), sess.Command()...)
+								if err != nil {
+									fmt.Fprintf(sess, "failed to get command: %v\n", err)
+									return
+								}
+
+								cmd = command
+							}
+
+							ptyReq, winCh, isPty := sess.Pty()
+							if isPty {
+								cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
+								f, err := pty.Start(cmd)
+								if err != nil {
+									panic(err)
+								}
+								go func() {
+									for win := range winCh {
+										syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), uintptr(syscall.TIOCSWINSZ),
+											uintptr(unsafe.Pointer(&struct{ h, w, x, y uint16 }{uint16(win.Height), uint16(win.Width), 0, 0})))
+									}
+								}()
+								go func() {
+									io.Copy(f, sess)
+								}()
+								io.Copy(sess, f)
+
+								if err := cmd.Wait(); err != nil {
+									var exitErr *exec.ExitError
+									if errors.As(err, &exitErr) {
+										sess.Exit(exitErr.ExitCode())
+									}
+									sess.Exit(1)
+								}
 								return
 							}
 
-							a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
-							if err != nil {
-								fmt.Fprintf(sess, "failed to load app: %v\n", err)
-								return
-							}
-
-							wk := worker.NewWorker(a)
-							command, err := wk.Command(sess.Context(), sess.Command()...)
-							if err != nil {
-								fmt.Fprintf(sess, "failed to get command: %v\n", err)
-								return
-							}
-
-							command.Stdout = sess
-							command.Stderr = sess.Stderr()
-							stdin, err := command.StdinPipe()
+							cmd.Stdout = sess
+							cmd.Stderr = sess.Stderr()
+							stdin, err := cmd.StdinPipe()
 							if err != nil {
 								fmt.Fprintf(sess, "failed to get stdin: %v\n", err)
 								return
@@ -316,7 +345,7 @@ func NewCmdUp() *cobra.Command {
 								io.Copy(stdin, sess)
 							}()
 
-							if err := command.Run(); err != nil {
+							if err := cmd.Run(); err != nil {
 								var exitErr *exec.ExitError
 								if errors.As(err, &exitErr) {
 									sess.Exit(exitErr.ExitCode())
