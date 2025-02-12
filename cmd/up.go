@@ -206,7 +206,7 @@ func NewCmdUp() *cobra.Command {
 				}
 			}
 
-			tlsConfig.NextProtos = []string{"h2", "http/1.1"}
+			tlsConfig.NextProtos = append([]string{"h2", "http/1.1"}, tlsConfig.NextProtos...)
 			ln, err := getListener(addr, tlsConfig)
 			if err != nil {
 				return fmt.Errorf("failed to get listener: %v", err)
