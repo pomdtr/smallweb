@@ -107,7 +107,6 @@ func NewCmdUp() *cobra.Command {
 				workers: make(map[string]*worker.Worker),
 			})
 
-			var tlsConfig *tls.Config
 			if flags.acmdnsCreds != "" {
 				credentialPath := filepath.Join(xdg.DataHome, "smallweb", "acmedns", "credentials.json")
 				if _, err := os.Stat(credentialPath); err != nil {
@@ -146,12 +145,24 @@ func NewCmdUp() *cobra.Command {
 					}
 				}
 
-				c, err := certmagic.TLS(domains)
+				tlsConfig, err := certmagic.TLS(domains)
 				if err != nil {
 					return fmt.Errorf("failed to get tls config: %v", err)
 				}
+				tlsConfig.NextProtos = append([]string{"h2", "http/1.1"}, tlsConfig.NextProtos...)
 
-				tlsConfig = c
+				addr := flags.addr
+				if addr == "" {
+					addr = ":443"
+				}
+
+				ln, err := getListener(addr, tlsConfig)
+				if err != nil {
+					return fmt.Errorf("failed to get listener: %v", err)
+				}
+
+				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
+				go http.Serve(ln, handler)
 			} else if flags.onDemandTLS {
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 					DecisionFunc: func(ctx context.Context, name string) error {
@@ -182,38 +193,59 @@ func NewCmdUp() *cobra.Command {
 					},
 				}
 
-				c, err := certmagic.TLS(nil)
+				tlsConfig, err := certmagic.TLS(nil)
 				if err != nil {
 					return fmt.Errorf("failed to get tls config: %v", err)
 				}
+				tlsConfig.NextProtos = append([]string{"h2", "http/1.1"}, tlsConfig.NextProtos...)
 
-				tlsConfig = c
+				addr := flags.addr
+				if addr == "" {
+					addr = ":443"
+				}
+
+				ln, err := getListener(addr, tlsConfig)
+				if err != nil {
+					return fmt.Errorf("failed to get listener: %v", err)
+				}
+
+				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
+				go http.Serve(ln, handler)
 			} else if flags.tlsCert != "" && flags.tlsKey != "" {
 				cert, err := tls.LoadX509KeyPair(flags.tlsCert, flags.tlsKey)
 				if err != nil {
 					return fmt.Errorf("failed to load tls certificate: %v", err)
 				}
 
-				tlsConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
-			}
+				tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
+				tlsConfig.NextProtos = append([]string{"h2", "http/1.1"}, tlsConfig.NextProtos...)
 
-			addr := flags.addr
-			if addr == "" {
-				if tlsConfig != nil {
+				addr := flags.addr
+				if addr == "" {
 					addr = ":443"
-				} else {
+				}
+
+				ln, err := getListener(addr, tlsConfig)
+				if err != nil {
+					return fmt.Errorf("failed to get listener: %v", err)
+				}
+
+				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
+				go http.Serve(ln, handler)
+			} else {
+				addr := flags.addr
+				if addr == "" {
 					addr = ":7777"
 				}
-			}
 
-			tlsConfig.NextProtos = append([]string{"h2", "http/1.1"}, tlsConfig.NextProtos...)
-			ln, err := getListener(addr, tlsConfig)
-			if err != nil {
-				return fmt.Errorf("failed to get listener: %v", err)
-			}
+				ln, err := getListener(addr, nil)
+				if err != nil {
+					return fmt.Errorf("failed to get listener: %v", err)
+				}
 
-			fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
-			go http.Serve(ln, handler)
+				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
+				go http.Serve(ln, handler)
+			}
 
 			if flags.cron {
 				fmt.Fprintln(cmd.ErrOrStderr(), "Starting cron jobs...")
