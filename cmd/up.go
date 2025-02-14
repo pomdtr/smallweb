@@ -240,10 +240,10 @@ func NewCmdUp() *cobra.Command {
 									return
 								}
 
-								cmd = exec.Command(execPath, sess.Command()...)
+								cmd = exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
+								cmd.Args = append(cmd.Args, sess.Command()...)
 								cmd.Env = os.Environ()
-								cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_DIR=%s", k.String("dir")))
-								cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
+								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_PLUGINS=true")
 							} else {
 								a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
 								if err != nil {
