@@ -119,6 +119,15 @@ func (h *handler) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
 		return listerat(fileInfos), nil
 
 	case "Stat":
+		if r.Filepath == "/" {
+			stat, err := os.Stat(h.root.Name())
+			if err != nil {
+				return nil, err
+			}
+
+			return listerat([]os.FileInfo{stat}), nil
+		}
+
 		info, err := h.root.Stat(strings.TrimPrefix(r.Filepath, "/"))
 		if err != nil {
 			return nil, err
