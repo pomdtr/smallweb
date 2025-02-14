@@ -26,13 +26,9 @@ import (
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/creack/pty"
-	"github.com/picosh/pobj"
-	"github.com/pomdtr/smallweb/storage"
 
-	"github.com/picosh/send/protocols/rsync"
-	"github.com/picosh/send/protocols/scp"
-	"github.com/picosh/send/protocols/sftp"
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/sftp"
 	"github.com/pomdtr/smallweb/watcher"
 	gossh "golang.org/x/crypto/ssh"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -179,24 +175,32 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			if flags.sshAddr != "" {
-				if !utils.FileExists(flags.sshHostKey) {
-					_, err := keygen.New(flags.sshHostKey, keygen.WithWrite())
+				hostKey := flags.sshHostKey
+				if hostKey == "" {
+					homeDir, err := os.UserHomeDir()
+					if err != nil {
+						return fmt.Errorf("failed to get home directory: %v", err)
+					}
+					hostKey = filepath.Join(homeDir, ".ssh", "smallweb")
+				}
+
+				if !utils.FileExists(hostKey) {
+					_, err := keygen.New(hostKey, keygen.WithWrite())
 					if err != nil {
 						return fmt.Errorf("failed to generate host key: %v", err)
 					}
 				}
 
-				handler := pobj.NewUploadAssetHandler(&pobj.Config{
-					Storage: &storage.StorageFS{
-						Dir:    k.String("dir"),
-						Logger: consoleLogger,
-					},
-					Logger: consoleLogger,
-				})
+				root, err := os.OpenRoot(k.String("dir"))
+				if err != nil {
+					return fmt.Errorf("failed to open root: %v", err)
+				}
+
+				fmt.Fprintf(os.Stderr, root.Name())
 
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
-					wish.WithHostKeyPath(flags.sshHostKey),
+					wish.WithHostKeyPath(hostKey),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
 						authorizedKeyPaths := []string{filepath.Join(k.String("dir"), ".smallweb", "authorized_keys")}
 
@@ -230,7 +234,8 @@ func NewCmdUp() *cobra.Command {
 
 						return false
 					}),
-					sftp.SSHOption(handler),
+					// TODO: re-implement sftp
+					sftp.SSHOption(root, nil),
 					wish.WithMiddleware(func(next ssh.Handler) ssh.Handler {
 						return func(sess ssh.Session) {
 							var cmd *exec.Cmd
@@ -322,8 +327,6 @@ func NewCmdUp() *cobra.Command {
 							}
 						}
 					},
-						rsync.Middleware(handler),
-						scp.Middleware(handler),
 					),
 				)
 
@@ -331,7 +334,7 @@ func NewCmdUp() *cobra.Command {
 					return fmt.Errorf("failed to create ssh server: %v", err)
 				}
 
-				fmt.Fprintln(cmd.ErrOrStderr(), "Starting ssh server on", flags.sshAddr)
+				fmt.Fprintf(cmd.ErrOrStderr(), "Starting ssh server on %s...\n", flags.sshAddr)
 				if err = srv.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
 					fmt.Fprintf(cmd.ErrOrStderr(), "failed to start ssh server: %v\n", err)
 				}
@@ -348,7 +351,7 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
-	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", fmt.Sprintf("%s/.ssh/smallweb", os.Getenv("HOME")), "ssh host key")
+	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "", "ssh host key")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
