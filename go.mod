@@ -20,7 +20,6 @@ require (
 
 require (
 	github.com/caddyserver/certmagic v0.21.7
-	github.com/carapace-sh/carapace v1.5.0
 	github.com/charmbracelet/keygen v0.5.1
 	github.com/charmbracelet/ssh v0.0.0-20250128164007-98fd5ae11894
 	github.com/charmbracelet/wish v1.4.6
@@ -78,7 +77,6 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/caddyserver/zerossl v0.1.3 // indirect
-	github.com/carapace-sh/carapace-shlex v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/charmbracelet/bubbletea v1.2.4 // indirect
 	github.com/charmbracelet/lipgloss v1.0.0 // indirect
