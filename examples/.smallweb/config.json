@@ -1,5 +1,4 @@
 {
-    "domain": "smallweb.localhost",
     "adminApps": [
         "ls"
     ]
