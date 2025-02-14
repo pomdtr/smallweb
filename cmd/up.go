@@ -191,13 +191,6 @@ func NewCmdUp() *cobra.Command {
 					}
 				}
 
-				root, err := os.OpenRoot(k.String("dir"))
-				if err != nil {
-					return fmt.Errorf("failed to open root: %v", err)
-				}
-
-				fmt.Fprintf(os.Stderr, root.Name())
-
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(hostKey),
@@ -235,7 +228,7 @@ func NewCmdUp() *cobra.Command {
 						return false
 					}),
 					// TODO: re-implement sftp
-					sftp.SSHOption(root, nil),
+					sftp.SSHOption(k.String("dir"), nil),
 					wish.WithMiddleware(func(next ssh.Handler) ssh.Handler {
 						return func(sess ssh.Session) {
 							var cmd *exec.Cmd
