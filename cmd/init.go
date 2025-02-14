@@ -49,6 +49,7 @@ func NewCmdInit() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to marshal config: %w", err)
 			}
+			configBytes = append(configBytes, '\n')
 
 			if err := os.WriteFile(filepath.Join(workspaceDir, ".smallweb", "config.json"), configBytes, 0644); err != nil {
 				return fmt.Errorf("failed to write config: %w", err)
