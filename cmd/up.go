@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -22,13 +21,11 @@ import (
 
 	_ "embed"
 
-	"github.com/adrg/xdg"
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/creack/pty"
-	"github.com/libdns/acmedns"
 	"github.com/picosh/pobj"
 	"github.com/pomdtr/smallweb/storage"
 
@@ -53,7 +50,6 @@ func NewCmdUp() *cobra.Command {
 		sshHostKey  string
 		tlsCert     string
 		tlsKey      string
-		acmdnsCreds string
 		onDemandTLS bool
 	}
 
@@ -107,63 +103,7 @@ func NewCmdUp() *cobra.Command {
 				workers: make(map[string]*worker.Worker),
 			})
 
-			if flags.acmdnsCreds != "" {
-				credentialPath := filepath.Join(xdg.DataHome, "smallweb", "acmedns", "credentials.json")
-				if _, err := os.Stat(credentialPath); err != nil {
-					return fmt.Errorf("acme-dns file not found: %s", credentialPath)
-				}
-
-				configBytes, err := os.ReadFile(credentialPath)
-				if err != nil {
-					return fmt.Errorf("failed to read acme-dns file: %v", err)
-				}
-
-				var configs map[string]acmedns.DomainConfig
-				if err := json.Unmarshal(configBytes, &configs); err != nil {
-					return fmt.Errorf("failed to unmarshal acme-dns file: %v", err)
-				}
-
-				certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
-					DNSManager: certmagic.DNSManager{
-						DNSProvider: &acmedns.Provider{
-							Configs: configs,
-						},
-					},
-				}
-
-				if k.String("email") != "" {
-					certmagic.DefaultACME.Email = k.String("email")
-				} else {
-					certmagic.DefaultACME.Email = fmt.Sprintf("smallweb@%s", k.String("domain"))
-				}
-
-				domains := []string{k.String("domain"), fmt.Sprintf("*.%s", k.String("domain"))}
-				for customDomain, target := range k.StringMap("customDomains") {
-					domains = append(domains, customDomain)
-					if target == "*" {
-						domains = append(domains, fmt.Sprintf("*.%s", customDomain))
-					}
-				}
-
-				tlsConfig, err := certmagic.TLS(domains)
-				if err != nil {
-					return fmt.Errorf("failed to get tls config: %v", err)
-				}
-				tlsConfig.NextProtos = append([]string{"h2", "http/1.1"}, tlsConfig.NextProtos...)
-
-				addr := flags.addr
-				if addr == "" {
-					addr = ":443"
-				}
-
-				ln, err := getListener(addr, tlsConfig)
-				if err != nil {
-					return fmt.Errorf("failed to get listener: %v", err)
-				}
-
-				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
-				go http.Serve(ln, handler)
-			} else if flags.onDemandTLS {
+			if flags.onDemandTLS {
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 					DecisionFunc: func(ctx context.Context, name string) error {
 						domain := k.String("domain")
@@ -181,36 +121,20 @@ func NewCmdUp() *cobra.Command {
 							return fmt.Errorf("invalid domain: %s", name)
 						}
 
-						if parts[1] == domain {
+						base := parts[1]
+						if base == domain {
 							return nil
 						}
 
-						if target, ok := customDomains[parts[1]]; ok && target == "*" {
+						if target, ok := customDomains[base]; ok && target == "*" {
 							return nil
 						}
 
 						return fmt.Errorf("domain not found: %s", name)
 					},
 				}
-
-				tlsConfig, err := certmagic.TLS(nil)
-				if err != nil {
-					return fmt.Errorf("failed to get tls config: %v", err)
-				}
-				tlsConfig.NextProtos = append([]string{"h2", "http/1.1"}, tlsConfig.NextProtos...)
-
-				addr := flags.addr
-				if addr == "" {
-					addr = ":443"
-				}
-
-				ln, err := getListener(addr, tlsConfig)
-				if err != nil {
-					return fmt.Errorf("failed to get listener: %v", err)
-				}
-
-				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
-				go http.Serve(ln, handler)
+				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), ":443")
+				go certmagic.HTTPS(nil, handler)
 			} else if flags.tlsCert != "" && flags.tlsKey != "" {
 				cert, err := tls.LoadX509KeyPair(flags.tlsCert, flags.tlsKey)
 				if err != nil {
@@ -404,11 +328,12 @@ func NewCmdUp() *cobra.Command {
 				)
 
 				if err != nil {
-					return fmt.Errorf("failed to create wish server: %v", err)
+					return fmt.Errorf("failed to create ssh server: %v", err)
 				}
 
+				fmt.Fprintln(cmd.ErrOrStderr(), "Starting ssh server on", flags.sshAddr)
 				if err = srv.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-					fmt.Fprintf(cmd.ErrOrStderr(), "failed to start wish server: %v\n", err)
+					fmt.Fprintf(cmd.ErrOrStderr(), "failed to start ssh server: %v\n", err)
 				}
 			}
 
@@ -427,15 +352,12 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
-	cmd.Flags().StringVar(&flags.acmdnsCreds, "acmedns-credentials", "", "acmedns credentials file")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
 
 	cmd.MarkFlagsRequiredTogether("tls-cert", "tls-key")
-	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "tls-cert")
-	cmd.MarkFlagsMutuallyExclusive("acmedns-credentials", "tls-key")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-key")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "acmedns-credentials")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "addr")
 
 	return cmd
 }

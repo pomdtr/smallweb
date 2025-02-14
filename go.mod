@@ -24,11 +24,11 @@ require (
 	github.com/charmbracelet/keygen v0.5.1
 	github.com/charmbracelet/ssh v0.0.0-20250128164007-98fd5ae11894
 	github.com/charmbracelet/wish v1.4.6
+	github.com/creack/pty v1.1.21
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/getsops/sops/v3 v3.9.1
 	github.com/knadh/koanf/providers/confmap v0.1.0
 	github.com/knadh/koanf/providers/posflag v0.1.0
-	github.com/libdns/acmedns v0.2.0
 	github.com/picosh/pobj v0.0.0-20250115045405-73c816ed76c2
 	github.com/picosh/send v0.0.0-20250121195737-daab6db117d5
 	github.com/robfig/cron/v3 v3.0.1
@@ -90,7 +90,6 @@ require (
 	github.com/charmbracelet/x/termios v0.1.0 // indirect
 	github.com/cloudflare/circl v1.4.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
-	github.com/creack/pty v1.1.21 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect

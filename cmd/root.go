@@ -157,6 +157,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdLogs())
 	rootCmd.AddCommand(NewCmdLink())
 	rootCmd.AddCommand(NewCmdConfig())
+	rootCmd.AddCommand(NewCmdSecrets())
 
 	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
 		disabledCommands := strings.Split(env, ",")
