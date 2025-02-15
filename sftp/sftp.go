@@ -34,11 +34,14 @@ func SubsystemHandler(rootPath string, logger *slog.Logger) ssh.SubsystemHandler
 			}
 		}()
 
+		var workingDir string
 		if session.User() != "_" {
-			rootPath = filepath.Join(rootPath, session.User())
+			workingDir = filepath.Join(rootPath, session.User())
+		} else {
+			workingDir = rootPath
 		}
 
-		root, err := os.OpenRoot(rootPath)
+		root, err := os.OpenRoot(workingDir)
 		if err != nil {
 			if logger != nil {
 				logger.Error("Error opening root", "err", err)
