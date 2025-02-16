@@ -7,11 +7,12 @@
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "up",
-                "--dir=${workspaceFolder}/examples",
-                "--domain=smallweb-dev.localhost",
                 "--addr=:7777",
                 "--ssh-addr=:2222"
-            ]
+            ],
+            "env": {
+                "SMALLWEB_DIR": "${workspaceFolder}/examples",
+            },
         },
         {
             "name": "smallweb cli",
@@ -24,7 +25,6 @@
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/examples",
-                "SMALLWEB_DOMAIN": "smallweb.localhost"
             },
         }
     ]
