@@ -127,14 +127,7 @@ func LoadApp(appname string, rootDir string, domain string, isAdmin bool) (App, 
 		Env:        make(map[string]string),
 	}
 
-	for _, dotenvPath := range []string{
-		filepath.Join(rootDir, ".env"),
-		filepath.Join(appDir, ".env"),
-	} {
-		if !utils.FileExists(dotenvPath) {
-			continue
-		}
-
+	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {
 		dotenv, err := godotenv.Read(dotenvPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read .env: %v", err)
@@ -145,14 +138,7 @@ func LoadApp(appname string, rootDir string, domain string, isAdmin bool) (App, 
 		}
 	}
 
-	for _, secretPath := range []string{
-		filepath.Join(rootDir, ".smallweb", "secrets.enc.env"),
-		filepath.Join(appDir, "secrets.enc.env"),
-	} {
-		if !utils.FileExists(secretPath) {
-			continue
-		}
-
+	if secretPath := filepath.Join(appDir, "secrets.enc.env"); utils.FileExists(secretPath) {
 		rawBytes, err := os.ReadFile(secretPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read file: %v", err)
