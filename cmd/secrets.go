@@ -15,6 +15,11 @@ import (
 	"golang.org/x/term"
 )
 
+type Secret struct {
+	Env   string `json:"env"`
+	Value string `json:"value"`
+}
+
 func NewCmdSecrets() *cobra.Command {
 	var flags struct {
 		json   bool
@@ -48,16 +53,6 @@ func NewCmdSecrets() *cobra.Command {
 				return fmt.Errorf("could not parse %s: %v", secretPath, err)
 			}
 
-			if flags.json {
-				enc := json.NewEncoder(cmd.OutOrStdout())
-				enc.SetIndent("", "  ")
-				if err := enc.Encode(dotenv); err != nil {
-					return fmt.Errorf("could not encode %s: %v", secretPath, err)
-				}
-
-				return nil
-			}
-
 			if flags.dotenv {
 				dotenvBytes, err := godotenv.Marshal(dotenv)
 				if err != nil {
@@ -65,6 +60,21 @@ func NewCmdSecrets() *cobra.Command {
 				}
 
 				fmt.Fprintln(cmd.OutOrStdout(), string(dotenvBytes))
+				return nil
+			}
+
+			var secrets []Secret
+			for key, value := range dotenv {
+				secrets = append(secrets, Secret{Env: key, Value: value})
+			}
+
+			if flags.json {
+				enc := json.NewEncoder(cmd.OutOrStdout())
+				enc.SetIndent("", "  ")
+				if err := enc.Encode(secrets); err != nil {
+					return fmt.Errorf("could not encode %s: %v", secretPath, err)
+				}
+
 				return nil
 			}
 
@@ -81,10 +91,9 @@ func NewCmdSecrets() *cobra.Command {
 			}
 
 			printer.AddHeader([]string{"Env", "Value"})
-
-			for key, value := range dotenv {
-				printer.AddField(key)
-				printer.AddField(value)
+			for _, secret := range secrets {
+				printer.AddField(secret.Env)
+				printer.AddField(secret.Value)
 				printer.EndRow()
 			}
 
