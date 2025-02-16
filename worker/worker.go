@@ -127,6 +127,7 @@ func (me *Worker) DenoArgs(deno string) []string {
 			args,
 			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.RootDir, sandboxPath, deno, npmCache),
 			fmt.Sprintf("--allow-write=%s", me.App.RootDir),
+			fmt.Sprintf("--deny-write=%s", filepath.Join(me.App.RootDir, ".smallweb")),
 		)
 
 		return args
