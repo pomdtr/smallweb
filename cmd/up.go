@@ -181,7 +181,7 @@ func NewCmdUp() *cobra.Command {
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
 						authorizedKeys := k.Strings("authorizedKeys")
 						if ctx.User() != "_" {
-							authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("apps.%s.authorizedKeys"))...)
+							authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("apps.%s.authorizedKeys", ctx.User()))...)
 						}
 
 						for _, authorizedKey := range authorizedKeys {
@@ -416,7 +416,7 @@ func lookupApp(domain string) (app string, redirect bool, found bool) {
 	}
 
 	for _, app := range k.MapKeys("apps") {
-		if slices.Contains(k.Strings(fmt.Sprintf("apps.%s.additionalDomains")), domain) {
+		if slices.Contains(k.Strings(fmt.Sprintf("apps.%s.additionalDomains", app)), domain) {
 			return app, false, true
 		}
 	}
