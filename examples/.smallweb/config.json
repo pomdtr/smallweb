@@ -1,5 +1,10 @@
 {
-    "adminApps": [
-        "ls"
-    ]
+    "authorizedKeys": [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJW+GQk0KCvSreL+y3AZdtCu82+13E2eEled+sGRkIEv"
+    ],
+    "apps": {
+        "ls": {
+            "admin": true
+        }
+    }
 }

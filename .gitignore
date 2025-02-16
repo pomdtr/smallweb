@@ -7,3 +7,4 @@ authorized_keys
 
 __debug_bin*
 /smallweb
+/www

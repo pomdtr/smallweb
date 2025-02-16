@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http/httptest"
 	"os"
-	"slices"
 	"strings"
 
 	"github.com/pomdtr/smallweb/app"
@@ -52,7 +51,7 @@ func NewCmdFetch() *cobra.Command {
 
 			req.Host = fmt.Sprintf("%s.%s", args[0], k.String("domain"))
 
-			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
+			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", args[0])))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}

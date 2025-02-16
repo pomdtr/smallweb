@@ -133,13 +133,11 @@ func (me *Worker) DenoArgs(deno string) []string {
 		return args
 	}
 
-	authorizedKeysPath := filepath.Join(me.App.RootDir, ".smallweb", "authorized_keys")
-
 	// if root is not a symlink
 	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appDir, authorizedKeysPath, sandboxPath, deno, npmCache),
+			fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, sandboxPath, deno, npmCache),
 			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
 		)
 
@@ -157,7 +155,7 @@ func (me *Worker) DenoArgs(deno string) []string {
 
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s,%s", appDir, authorizedKeysPath, target, sandboxPath, deno, npmCache),
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appDir, target, sandboxPath, deno, npmCache),
 		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
 	)
 	return args

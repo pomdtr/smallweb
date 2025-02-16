@@ -102,31 +102,15 @@ func NewCmdUp() *cobra.Command {
 			if flags.onDemandTLS {
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 					DecisionFunc: func(ctx context.Context, name string) error {
-						domain := k.String("domain")
-						if name == domain {
+						if _, _, ok := lookupApp(name); ok {
 							return nil
 						}
 
-						customDomains := k.StringMap("customDomains")
-						if _, ok := customDomains[name]; ok {
+						if _, err := os.Stat(filepath.Join(k.String("dir"), name)); err == nil {
 							return nil
 						}
 
-						parts := strings.SplitN(name, ".", 2)
-						if len(parts) != 2 {
-							return fmt.Errorf("invalid domain: %s", name)
-						}
-
-						base := parts[1]
-						if base == domain {
-							return nil
-						}
-
-						if target, ok := customDomains[base]; ok && target == "*" {
-							return nil
-						}
-
-						return fmt.Errorf("domain not found: %s", name)
+						return fmt.Errorf("domain not found")
 					},
 				}
 				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), ":443")
@@ -195,39 +179,24 @@ func NewCmdUp() *cobra.Command {
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(hostKey),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
-						authorizedKeyPaths := []string{filepath.Join(k.String("dir"), ".smallweb", "authorized_keys")}
-
+						authorizedKeys := k.Strings("authorizedKeys")
 						if ctx.User() != "_" {
-							authorizedKeyPaths = append(authorizedKeyPaths, filepath.Join(k.String("dir"), ctx.User(), "authorized_keys"))
+							authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("apps.%s.authorizedKeys"))...)
 						}
 
-						for _, authorizedKeysPath := range authorizedKeyPaths {
-							if _, err := os.Stat(authorizedKeysPath); err != nil {
-								return false
-							}
-
-							authorizedKeysBytes, err := os.ReadFile(authorizedKeysPath)
+						for _, authorizedKey := range authorizedKeys {
+							k, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
 							if err != nil {
-								return false
+								continue
 							}
 
-							for len(authorizedKeysBytes) > 0 {
-								k, _, _, rest, err := gossh.ParseAuthorizedKey(authorizedKeysBytes)
-								if err != nil {
-									return false
-								}
-
-								if ssh.KeysEqual(k, key) {
-									return true
-								}
-
-								authorizedKeysBytes = rest
+							if ssh.KeysEqual(k, key) {
+								return true
 							}
 						}
 
 						return false
 					}),
-					// TODO: re-implement sftp
 					sftp.SSHOption(k.String("dir"), nil),
 					wish.WithMiddleware(func(next ssh.Handler) ssh.Handler {
 						return func(sess ssh.Session) {
@@ -245,7 +214,7 @@ func NewCmdUp() *cobra.Command {
 								cmd.Env = os.Environ()
 								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_PLUGINS=true")
 							} else {
-								a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), sess.User()))
+								a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", sess.User())))
 								if err != nil {
 									fmt.Fprintf(sess, "failed to load app: %v\n", err)
 									sess.Exit(1)
@@ -391,7 +360,7 @@ type Handler struct {
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	appname, redirect, ok := lookupApp(r.Host, k.String("domain"), k.StringMap("customDomains"))
+	appname, redirect, ok := lookupApp(r.Host)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
@@ -426,39 +395,30 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 
-func lookupApp(host string, domain string, customDomains map[string]string) (app string, redirect bool, found bool) {
+func lookupApp(domain string) (app string, redirect bool, found bool) {
 	// check exact matches first
-	for key, value := range customDomains {
-		if value == "*" {
-			continue
-		}
-
-		if key == host {
-			return value, false, true
-		}
-	}
-
-	if host == domain {
+	if domain == k.String("domain") {
 		return "www", true, true
 	}
 
-	// check for subdomains
-	for key, value := range customDomains {
-		if value != "*" {
-			continue
-		}
+	if strings.HasSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))) {
+		return strings.TrimSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))), false, true
+	}
 
-		if key == host {
+	for _, additionalDomain := range k.Strings("additionalDomains") {
+		if domain == additionalDomain {
 			return "www", true, true
 		}
 
-		if strings.HasSuffix(host, "."+key) {
-			return strings.TrimSuffix(host, "."+key), false, true
+		if strings.HasSuffix(domain, fmt.Sprintf(".%s", additionalDomain)) {
+			return strings.TrimSuffix(domain, fmt.Sprintf(".%s", additionalDomain)), false, true
 		}
 	}
 
-	if strings.HasSuffix(host, "."+domain) {
-		return strings.TrimSuffix(host, "."+domain), false, true
+	for _, app := range k.MapKeys("apps") {
+		if slices.Contains(k.Strings(fmt.Sprintf("apps.%s.additionalDomains")), domain) {
+			return app, false, true
+		}
 	}
 
 	return "", false, false
@@ -472,7 +432,7 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 	me.mu.Lock()
 	defer me.mu.Unlock()
 
-	a, err := app.LoadApp(appname, rootDir, domain, slices.Contains(k.Strings("adminApps"), appname))
+	a, err := app.LoadApp(appname, rootDir, domain, k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}

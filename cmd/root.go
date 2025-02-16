@@ -35,20 +35,9 @@ func NewCmdRoot() *cobra.Command {
 			return "dir", v
 		case "SMALLWEB_DOMAIN":
 			return "domain", v
-		case "SMALLWEB_REMOTE":
-			return "remote", v
-		case "SMALLWEB_CUSTOM_DOMAINS":
-			customDomains := make(map[string]string)
-			for _, entry := range strings.Split(v, ";") {
-				parts := strings.Split(entry, "=")
-				if len(parts) != 2 {
-					continue
-				}
-
-				customDomains[parts[0]] = parts[1]
-			}
-
-			return "customDomains", customDomains
+		case "SMALLWEB_ADDITIONAL_DOMAINS":
+			additionalDomains := strings.Split(v, ";")
+			return "additional_domains", additionalDomains
 		}
 
 		return "", nil

@@ -170,7 +170,7 @@ func NewCmdLogs() *cobra.Command {
 			hosts := make(map[string]struct{})
 			hosts[fmt.Sprintf("%s.%s", appName, k.String("domain"))] = struct{}{}
 
-			for domain, app := range k.StringMap("customDomains") {
+			for domain, app := range k.StringMap("additionalDomains") {
 				if appName != "" && app != appName {
 					continue
 				}
