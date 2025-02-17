@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.0
+
+- Updated config format
+- Removed support for global env vars and secrets
+- Admin apps no longer have access to the `.smallweb` dir
+
 ## 0.21.0
 
 - fix permissions of the built-in sftp server
