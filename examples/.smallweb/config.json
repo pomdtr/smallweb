@@ -1,12 +1,18 @@
 {
     "$schema": "../../schemas/config.schema.json",
     "domain": "smallweb-debug.localhost",
+    "additionalDomains": [
+        "custom-domain.localhost"
+    ],
     "authorizedKeys": [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJW+GQk0KCvSreL+y3AZdtCu82+13E2eEled+sGRkIEv"
     ],
     "apps": {
         "ls": {
-            "admin": true
+            "admin": true,
+            "additionalDomains": [
+                "yolo.custom-domain.localhost"
+            ]
         }
     }
 }

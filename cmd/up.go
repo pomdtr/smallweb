@@ -396,9 +396,14 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func lookupApp(domain string) (app string, redirect bool, found bool) {
-	// check exact matches first
 	if domain == k.String("domain") {
 		return "www", true, true
+	}
+
+	for _, app := range k.MapKeys("apps") {
+		if slices.Contains(k.Strings(fmt.Sprintf("apps.%s.additionalDomains", app)), domain) {
+			return app, false, true
+		}
 	}
 
 	if strings.HasSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))) {
@@ -412,12 +417,6 @@ func lookupApp(domain string) (app string, redirect bool, found bool) {
 
 		if strings.HasSuffix(domain, fmt.Sprintf(".%s", additionalDomain)) {
 			return strings.TrimSuffix(domain, fmt.Sprintf(".%s", additionalDomain)), false, true
-		}
-	}
-
-	for _, app := range k.MapKeys("apps") {
-		if slices.Contains(k.Strings(fmt.Sprintf("apps.%s.additionalDomains", app)), domain) {
-			return app, false, true
 		}
 	}
 
