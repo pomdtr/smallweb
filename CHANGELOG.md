@@ -2,11 +2,15 @@
 
 ## 0.22.0
 
+Full release notes at <https://blog.smallweb.run/posts/v0.22>.
+
 - Updated config format
 - Removed support for global env vars and secrets
 - Admin apps no longer have access to the `.smallweb` dir
 
 ## 0.21.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.21>.
 
 - fix permissions of the built-in sftp server
 - add support for acmedns
