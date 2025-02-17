@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"time"
+
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/pkg/sftp"
@@ -71,6 +73,39 @@ func (h *handler) Filecmd(r *sftp.Request) error {
 	case "Mkdir":
 		return h.root.Mkdir(strings.TrimPrefix(r.Filepath, "/"), 0777)
 	case "Setstat":
+		if _, err := h.root.Stat(strings.TrimPrefix(r.Filepath, "/")); err != nil {
+			return fmt.Errorf("file does not exist")
+		}
+
+		fp := filepath.Join(h.root.Name(), strings.TrimPrefix(r.Filepath, "/"))
+		attrs := r.Attributes()
+
+		if attrs.Size != 0 {
+			if err := os.Truncate(fp, int64(attrs.Size)); err != nil {
+				return err
+			}
+		}
+
+		if attrs.Mode != 0 {
+			if err := os.Chmod(fp, os.FileMode(attrs.Mode)); err != nil {
+				return err
+			}
+		}
+
+		if attrs.GID != 0 || attrs.UID != 0 {
+			if err := os.Chown(fp, int(attrs.UID), int(attrs.GID)); err != nil {
+				return err
+			}
+		}
+
+		if attrs.Atime != 0 && attrs.Mtime != 0 {
+			atime := time.Unix(int64(attrs.Atime), 0)
+			mtime := time.Unix(int64(attrs.Mtime), 0)
+			if err := os.Chtimes(fp, atime, mtime); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}
 	return errors.New("unsupported")
@@ -140,12 +175,36 @@ func (h *handler) Filelist(r *sftp.Request) (sftp.ListerAt, error) {
 }
 
 func (h *handler) Filewrite(r *sftp.Request) (io.WriterAt, error) {
-	f, err := h.root.OpenFile(strings.TrimPrefix(r.Filepath, "/"), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+	f, err := h.root.OpenFile(strings.TrimPrefix(r.Filepath, "/"), flag(r.Pflags()), 0644)
 	if err != nil {
 		return nil, err
 	}
 
 	return f, nil
+}
+
+func flag(pflags sftp.FileOpenFlags) int {
+	var flag int
+	if pflags.Creat {
+		flag |= os.O_CREATE
+	}
+	if pflags.Trunc {
+		flag |= os.O_TRUNC
+	}
+	if pflags.Excl {
+		flag |= os.O_EXCL
+	}
+	if pflags.Write {
+		flag |= os.O_WRONLY
+	}
+	if pflags.Read {
+		flag |= os.O_RDONLY
+	}
+	if pflags.Append {
+		flag |= os.O_APPEND
+	}
+
+	return flag
 }
 
 func (h *handler) Fileread(r *sftp.Request) (io.ReaderAt, error) {
