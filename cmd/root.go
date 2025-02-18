@@ -136,6 +136,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.PersistentFlags().String("domain", "", "The domain for smallweb")
 
 	rootCmd.AddCommand(NewCmdRun())
+	rootCmd.AddCommand(NewCmdOpen())
 	rootCmd.AddCommand(NewCmdDocs())
 	rootCmd.AddCommand(NewCmdUp())
 	rootCmd.AddCommand(NewCmdDoctor())

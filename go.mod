@@ -23,6 +23,7 @@ require (
 	github.com/charmbracelet/keygen v0.5.1
 	github.com/charmbracelet/ssh v0.0.0-20250128164007-98fd5ae11894
 	github.com/charmbracelet/wish v1.4.6
+	github.com/cli/browser v1.3.0
 	github.com/creack/pty v1.1.21
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/getsops/sops/v3 v3.9.1
