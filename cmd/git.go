@@ -45,7 +45,7 @@ func NewCmdGitReceivePack(baseDir string, reposDir string) *cobra.Command {
 
 			repoDir := filepath.Join(reposDir, filepath.Base(appDir))
 			if _, err := os.Stat(repoDir); os.IsNotExist(err) {
-				initCmd := exec.Command("git", "init", repoDir, "--bare")
+				initCmd := exec.Command("git", "init", repoDir, "--bare", "--initial-branch=main")
 				if err := initCmd.Run(); err != nil {
 					return err
 				}
