@@ -6,11 +6,10 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"
 )
 
-func NewCmdGit(baseDir string) *cobra.Command {
+func NewCmdGit(baseDir string, reposDir string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "git",
 		Short: "Git server",
@@ -23,13 +22,13 @@ func NewCmdGit(baseDir string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(NewCmdGitReceivePack(baseDir))
-	cmd.AddCommand(NewCmdGitUploadPack(baseDir))
+	cmd.AddCommand(NewCmdGitReceivePack(baseDir, reposDir))
+	cmd.AddCommand(NewCmdGitUploadPack(baseDir, reposDir))
 
 	return cmd
 }
 
-func NewCmdGitReceivePack(baseDir string) *cobra.Command {
+func NewCmdGitReceivePack(baseDir string, reposDir string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "git-receive-pack <git-dir>",
 		Short: "Git receive-pack",
@@ -40,12 +39,11 @@ func NewCmdGitReceivePack(baseDir string) *cobra.Command {
 				return fmt.Errorf("not in an app directory")
 			}
 
-			gitCacheDir := filepath.Join(xdg.CacheHome, "smallweb", "git", k.String("domain"))
-			if err := os.MkdirAll(gitCacheDir, 0755); err != nil {
+			if err := os.MkdirAll(reposDir, 0755); err != nil {
 				return err
 			}
 
-			repoDir := filepath.Join(gitCacheDir, filepath.Base(appDir))
+			repoDir := filepath.Join(reposDir, filepath.Base(appDir))
 			if _, err := os.Stat(repoDir); os.IsNotExist(err) {
 				initCmd := exec.Command("git", "init", repoDir, "--bare")
 				if err := initCmd.Run(); err != nil {
@@ -84,7 +82,7 @@ func NewCmdGitReceivePack(baseDir string) *cobra.Command {
 	return cmd
 }
 
-func NewCmdGitUploadPack(baseDir string) *cobra.Command {
+func NewCmdGitUploadPack(baseDir string, reposDir string) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "git-upload-pack <git-dir>",
@@ -92,9 +90,8 @@ func NewCmdGitUploadPack(baseDir string) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			appDir := filepath.Join(baseDir, args[0])
-			gitCacheDir := filepath.Join(xdg.CacheHome, "smallweb", "git")
 
-			repoDir := filepath.Join(gitCacheDir, filepath.Base(appDir))
+			repoDir := filepath.Join(reposDir, filepath.Base(appDir))
 			uploadCmd := exec.Command("git-upload-pack", repoDir)
 
 			uploadCmd.Stdin = cmd.InOrStdin()

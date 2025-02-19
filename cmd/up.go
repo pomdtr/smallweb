@@ -21,6 +21,7 @@ import (
 
 	_ "embed"
 
+	"github.com/adrg/xdg"
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
@@ -304,7 +305,7 @@ func NewCmdUp() *cobra.Command {
 									baseDir = filepath.Join(k.String("dir"), sess.User())
 								}
 
-								gitCmd := NewCmdGit(baseDir)
+								gitCmd := NewCmdGit(baseDir, filepath.Join(xdg.CacheHome, "smallweb", "repos", k.String("domain")))
 								gitCmd.SetArgs(args)
 
 								gitCmd.SetOut(sess)
