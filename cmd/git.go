@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,12 +35,16 @@ func NewCmdGitReceivePack(baseDir string) *cobra.Command {
 		Short: "Git receive-pack",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			gitCacheDir := filepath.Join(xdg.CacheHome, "smallweb", "git")
+			appDir := filepath.Join(baseDir, args[0])
+			if baseDir := filepath.Dir(appDir); baseDir != k.String("dir") {
+				return fmt.Errorf("not in an app directory")
+			}
+
+			gitCacheDir := filepath.Join(xdg.CacheHome, "smallweb", "git", k.String("domain"))
 			if err := os.MkdirAll(gitCacheDir, 0755); err != nil {
 				return err
 			}
 
-			appDir := filepath.Join(baseDir, args[0])
 			repoDir := filepath.Join(gitCacheDir, filepath.Base(appDir))
 			if _, err := os.Stat(repoDir); os.IsNotExist(err) {
 				initCmd := exec.Command("git", "init", repoDir, "--bare")
