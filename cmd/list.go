@@ -29,6 +29,10 @@ func NewCmdList() *cobra.Command {
 		Short:   "List all smallweb apps",
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if k.String("dir") == "" {
+				return fmt.Errorf("smallweb directory not set")
+			}
+
 			names, err := app.ListApps(k.String("dir"))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)

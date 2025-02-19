@@ -24,6 +24,23 @@ var (
 	k = koanf.New(".")
 )
 
+func findSmallwebDir() string {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	for filepath.Dir(currentDir) != currentDir {
+		if _, err := os.Stat(filepath.Join(currentDir, ".smallweb")); err == nil {
+			return currentDir
+		}
+
+		currentDir = filepath.Dir(currentDir)
+	}
+
+	return ""
+}
+
 func NewCmdRoot() *cobra.Command {
 	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
 		switch s {
@@ -55,10 +72,12 @@ func NewCmdRoot() *cobra.Command {
 			_ = k.Load(flagProvider, nil)
 
 			_ = fileProvider.Watch(func(event interface{}, err error) {
+				previousDir := k.String("dir")
 				k = koanf.New(".")
 				_ = k.Load(fileProvider, utils.ConfigParser())
 				_ = k.Load(envProvider, nil)
 				_ = k.Load(flagProvider, nil)
+				k.Set("dir", previousDir)
 			})
 
 			return nil
@@ -125,7 +144,7 @@ func NewCmdRoot() *cobra.Command {
 		},
 	}
 
-	rootCmd.PersistentFlags().String("dir", "", "The root directory for smallweb")
+	rootCmd.PersistentFlags().String("dir", findSmallwebDir(), "The root directory for smallweb")
 	rootCmd.PersistentFlags().String("domain", "", "The domain for smallweb")
 
 	rootCmd.AddCommand(NewCmdRun())
