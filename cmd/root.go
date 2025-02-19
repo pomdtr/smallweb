@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/adrg/xdg"
-	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
@@ -26,9 +25,6 @@ var (
 )
 
 func NewCmdRoot() *cobra.Command {
-	defaultProvider := confmap.Provider(map[string]interface{}{
-		"dir": filepath.Join(os.Getenv("HOME"), "smallweb"),
-	}, ".")
 	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
 		switch s {
 		case "SMALLWEB_DIR":
@@ -43,9 +39,7 @@ func NewCmdRoot() *cobra.Command {
 		return "", nil
 	})
 
-	_ = k.Load(defaultProvider, nil)
 	_ = k.Load(envProvider, nil)
-
 	rootCmd := &cobra.Command{
 		Use:     "smallweb",
 		Short:   "Host websites from your internet folder",
@@ -62,7 +56,6 @@ func NewCmdRoot() *cobra.Command {
 
 			_ = fileProvider.Watch(func(event interface{}, err error) {
 				k = koanf.New(".")
-				_ = k.Load(defaultProvider, nil)
 				_ = k.Load(fileProvider, utils.ConfigParser())
 				_ = k.Load(envProvider, nil)
 				_ = k.Load(flagProvider, nil)
