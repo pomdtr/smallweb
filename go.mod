@@ -27,7 +27,6 @@ require (
 	github.com/creack/pty v1.1.21
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/getsops/sops/v3 v3.9.1
-	github.com/knadh/koanf/providers/confmap v0.1.0
 	github.com/knadh/koanf/providers/posflag v0.1.0
 	github.com/pkg/sftp v1.13.7
 	github.com/robfig/cron/v3 v3.0.1
