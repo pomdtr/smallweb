@@ -58,8 +58,7 @@ func NewCmdGitReceivePack() *cobra.Command {
 				return err
 			}
 
-			cmd.PrintErrf("App %s updated\n", filepath.Base(appDir))
-			cmd.PrintErrf("Available at https://%s.%s\n", filepath.Base(appDir), k.String("domain"))
+			cmd.PrintErrf("\nYour app is available at https://%s.%s\n\n", filepath.Base(appDir), k.String("domain"))
 
 			return nil
 		},
