@@ -1,6 +1,6 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "domain": "smallweb-debug.localhost",
+    "domain": "smallweb.localhost",
     "additionalDomains": [
         "custom-domain.localhost"
     ],
@@ -11,7 +11,7 @@
         "ls": {
             "admin": true,
             "additionalDomains": [
-                "yolo.custom-domain.localhost"
+                "custom-domain.localhost"
             ]
         }
     }
