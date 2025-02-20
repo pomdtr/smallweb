@@ -288,38 +288,7 @@ func NewCmdUp() *cobra.Command {
 								return
 							}
 						}
-					},
-						func(next ssh.Handler) ssh.Handler {
-							return func(sess ssh.Session) {
-								args := sess.Command()
-								if len(args) == 0 || args[0] != "git-receive-pack" && args[0] != "git-upload-pack" {
-									next(sess)
-									return
-								}
-
-								var baseDir string
-								if sess.User() == "_" {
-									baseDir = k.String("dir")
-								} else {
-									baseDir = filepath.Join(k.String("dir"), sess.User())
-								}
-
-								gitCmd := NewCmdGit(baseDir, filepath.Join(k.String("dir"), ".smallweb", "repos"))
-								gitCmd.SetArgs(args)
-
-								gitCmd.SetOut(sess)
-								gitCmd.SetErr(sess.Stderr())
-								gitCmd.SetIn(sess)
-
-								if err := gitCmd.Execute(); err != nil {
-									fmt.Fprintf(sess, "failed to execute git command: %v\n", err)
-									sess.Exit(1)
-								}
-
-								sess.Exit(0)
-							}
-						},
-					),
+					}),
 				)
 
 				if err != nil {

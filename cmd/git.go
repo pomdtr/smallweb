@@ -9,36 +9,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCmdGit(baseDir string, reposDir string) *cobra.Command {
+func NewCmdGitReceivePack() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "git",
-		Short: "Git server",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if _, err := exec.LookPath("git"); err != nil {
-				return err
-			}
-
-			return nil
-		},
-	}
-
-	cmd.AddCommand(NewCmdGitReceivePack(baseDir, reposDir))
-	cmd.AddCommand(NewCmdGitUploadPack(baseDir, reposDir))
-
-	return cmd
-}
-
-func NewCmdGitReceivePack(baseDir string, reposDir string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "git-receive-pack <git-dir>",
-		Short: "Git receive-pack",
-		Args:  cobra.ExactArgs(1),
+		Use:    "git-receive-pack <git-dir>",
+		Short:  "Git receive-pack",
+		Hidden: true,
+		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			appDir := filepath.Join(baseDir, args[0])
+			appDir := filepath.Join(k.String("dir"), args[0])
 			if baseDir := filepath.Dir(appDir); baseDir != k.String("dir") {
 				return fmt.Errorf("not in an app directory")
 			}
 
+			reposDir := filepath.Join(k.String("dir"), ".smallweb", "repos")
 			if err := os.MkdirAll(reposDir, 0755); err != nil {
 				return err
 			}
@@ -85,15 +68,19 @@ func NewCmdGitReceivePack(baseDir string, reposDir string) *cobra.Command {
 	return cmd
 }
 
-func NewCmdGitUploadPack(baseDir string, reposDir string) *cobra.Command {
-
+func NewCmdGitUploadPack() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "git-upload-pack <git-dir>",
-		Short: "Git upload-pack",
-		Args:  cobra.ExactArgs(1),
+		Use:    "git-upload-pack <git-dir>",
+		Short:  "Git upload-pack",
+		Hidden: true,
+		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			appDir := filepath.Join(baseDir, args[0])
+			appDir := filepath.Join(k.String("dir"), args[0])
+			if baseDir := filepath.Dir(appDir); baseDir != k.String("dir") {
+				return fmt.Errorf("not in an app directory")
+			}
 
+			reposDir := filepath.Join(k.String("dir"), ".smallweb", "repos")
 			repoDir := filepath.Join(reposDir, filepath.Base(appDir))
 			uploadCmd := exec.Command("git-upload-pack", repoDir)
 
