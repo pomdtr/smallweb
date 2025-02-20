@@ -293,7 +293,7 @@ func NewCmdUp() *cobra.Command {
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
 								args := sess.Command()
-								if args[0] != "git-receive-pack" && args[0] != "git-upload-pack" {
+								if len(args) == 0 || args[0] != "git-receive-pack" && args[0] != "git-upload-pack" {
 									next(sess)
 									return
 								}
