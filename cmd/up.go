@@ -42,6 +42,7 @@ func NewCmdUp() *cobra.Command {
 	var flags struct {
 		cron        bool
 		addr        string
+		apiAddr     string
 		sshAddr     string
 		sshHostKey  string
 		tlsCert     string
@@ -156,6 +157,34 @@ func NewCmdUp() *cobra.Command {
 				crons := CronRunner(cmd.OutOrStdout(), cmd.ErrOrStderr())
 				crons.Start()
 				defer crons.Stop()
+			}
+
+			if flags.apiAddr != "" {
+				mux := http.NewServeMux()
+
+				mux.HandleFunc("GET /caddy/ask", func(w http.ResponseWriter, r *http.Request) {
+					domain := r.URL.Query().Get("domain")
+					if domain == "" {
+						http.Error(w, "domain parameter is required", http.StatusBadRequest)
+						return
+					}
+
+					_, _, found := lookupApp(domain)
+					if !found {
+						http.Error(w, "app not found", http.StatusNotFound)
+						return
+					}
+
+					w.Write([]byte("ok"))
+				})
+
+				ln, err := getListener(flags.apiAddr, nil)
+				if err != nil {
+					return fmt.Errorf("failed to get listener for api: %v", err)
+				}
+
+				fmt.Fprintf(cmd.ErrOrStderr(), "Starting api server on %s...\n", flags.apiAddr)
+				go http.Serve(ln, mux)
 			}
 
 			if flags.sshAddr != "" {
@@ -315,6 +344,7 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "", "ssh host key")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
+	cmd.Flags().StringVar(&flags.apiAddr, "api-addr", "", "address to listen on for api")
 	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
 
