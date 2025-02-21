@@ -48,8 +48,12 @@ func NewCmdGitReceivePack() *cobra.Command {
 
 			if _, err := os.Stat(appDir); os.IsNotExist(err) {
 				if err := os.MkdirAll(appDir, 0755); err != nil {
+					fmt.Fprintln(cmd.ErrOrStderr(), err)
 					return err
 				}
+			} else if err != nil {
+				fmt.Fprintln(cmd.ErrOrStderr(), err)
+				return err
 			}
 
 			gitCheckOutCmd := exec.Command("git", "--git-dir", repoDir, "--work-tree", appDir, "checkout", "HEAD", "--", ".")
