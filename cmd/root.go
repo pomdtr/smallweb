@@ -41,21 +41,21 @@ func findSmallwebDir() string {
 	return ""
 }
 
+var envProvider = env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
+	switch s {
+	case "SMALLWEB_DIR":
+		return "dir", v
+	case "SMALLWEB_DOMAIN":
+		return "domain", v
+	case "SMALLWEB_ADDITIONAL_DOMAINS":
+		additionalDomains := strings.Split(v, ";")
+		return "additional_domains", additionalDomains
+	}
+
+	return "", nil
+})
+
 func NewCmdRoot() *cobra.Command {
-	envProvider := env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
-		switch s {
-		case "SMALLWEB_DIR":
-			return "dir", v
-		case "SMALLWEB_DOMAIN":
-			return "domain", v
-		case "SMALLWEB_ADDITIONAL_DOMAINS":
-			additionalDomains := strings.Split(v, ";")
-			return "additional_domains", additionalDomains
-		}
-
-		return "", nil
-	})
-
 	_ = k.Load(envProvider, nil)
 	rootCmd := &cobra.Command{
 		Use:     "smallweb",
@@ -65,20 +65,11 @@ func NewCmdRoot() *cobra.Command {
 			flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 			_ = k.Load(flagProvider, nil)
 
-			configPath := findConfigPath(k.String("dir"))
+			configPath := utils.FindConfigPath(k.String("dir"))
 			fileProvider := file.Provider(configPath)
 			_ = k.Load(fileProvider, utils.ConfigParser())
 			_ = k.Load(envProvider, nil)
 			_ = k.Load(flagProvider, nil)
-
-			_ = fileProvider.Watch(func(event interface{}, err error) {
-				previousDir := k.String("dir")
-				k = koanf.New(".")
-				_ = k.Load(fileProvider, utils.ConfigParser())
-				_ = k.Load(envProvider, nil)
-				_ = k.Load(flagProvider, nil)
-				k.Set("dir", previousDir)
-			})
 
 			return nil
 		},
@@ -239,15 +230,4 @@ func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string
 	}
 
 	return apps, cobra.ShellCompDirectiveDefault
-}
-
-func findConfigPath(rootDir string) string {
-	for _, candidate := range []string{".smallweb/config.jsonc", ".smallweb/config.json"} {
-		configPath := filepath.Join(rootDir, candidate)
-		if _, err := os.Stat(configPath); err == nil {
-			return configPath
-		}
-	}
-
-	return filepath.Join(rootDir, ".smallweb/config.json")
 }

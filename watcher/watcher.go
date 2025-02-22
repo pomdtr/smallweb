@@ -11,19 +11,22 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/utils"
 )
 
 type Watcher struct {
-	watcher *fsnotify.Watcher
-	mu      sync.Mutex
-	mtimes  map[string]time.Time
-	root    string
+	watcher      *fsnotify.Watcher
+	mu           sync.Mutex
+	reloadConfig func()
+	mtimes       map[string]time.Time
+	root         string
 }
 
-func NewWatcher(rootDir string) (*Watcher, error) {
+func NewWatcher(rootDir string, reloadConfig func()) (*Watcher, error) {
 	me := &Watcher{
-		mtimes: make(map[string]time.Time),
-		root:   rootDir,
+		mtimes:       make(map[string]time.Time),
+		root:         rootDir,
+		reloadConfig: reloadConfig,
 	}
 
 	return me, nil
@@ -59,8 +62,9 @@ func (me *Watcher) Start() error {
 				continue
 			}
 
-			// if the event is originated from .smallweb, update all app mtimes
-			if event.Name == filepath.Join(me.root, ".env") || event.Name == filepath.Join(me.root, ".smallweb", "config.json") || event.Name == filepath.Join(me.root, ".smallweb", "secrets.enc.env") {
+			// if the event is originated from config file, reload the config and update all mtimes
+			if event.Name == utils.FindConfigPath(me.root) {
+				go me.reloadConfig()
 				apps, err := app.ListApps(me.root)
 				if err != nil {
 					continue

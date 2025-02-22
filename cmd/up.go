@@ -26,6 +26,9 @@ import (
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/creack/pty"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/posflag"
+	"github.com/knadh/koanf/v2"
 
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/sftp"
@@ -79,7 +82,15 @@ func NewCmdUp() *cobra.Command {
 				MaxAge:     28,
 			})
 
-			watcher, err := watcher.NewWatcher(k.String("dir"))
+			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
+				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
+				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
+
+				k = koanf.New(".")
+				_ = k.Load(fileProvider, utils.ConfigParser())
+				_ = k.Load(envProvider, nil)
+				_ = k.Load(flagProvider, nil)
+			})
 			if err != nil {
 				return fmt.Errorf("failed to create watcher: %v", err)
 			}
