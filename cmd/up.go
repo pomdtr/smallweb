@@ -400,10 +400,15 @@ type Handler struct {
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	appname, redirect, ok := lookupApp(r.Host)
+	hostname, _, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		hostname = r.Host
+	}
+
+	appname, redirect, ok := lookupApp(hostname)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
+		w.Write([]byte(fmt.Sprintf("No app found for hostname %s", hostname)))
 		return
 	}
 
