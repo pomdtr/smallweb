@@ -328,7 +328,44 @@ func NewCmdUp() *cobra.Command {
 								return
 							}
 						}
-					}),
+					},
+						func(next ssh.Handler) ssh.Handler {
+							return func(s ssh.Session) {
+								args := s.Command()
+								if len(args) == 0 {
+									next(s)
+									return
+								}
+
+								if args[0] != "git-receive-pack" && args[0] != "git-upload-pack" {
+									next(s)
+									return
+								}
+
+								if s.User() == "_" {
+									fmt.Fprintf(s.Stderr(), "git command not allowed for user _\n")
+									s.Exit(1)
+									return
+								}
+
+								appDir := filepath.Join(k.String("dir"), s.User())
+								gitCmd := NewCmdGit(appDir)
+								gitCmd.SetArgs(args)
+
+								gitCmd.SetIn(s)
+								gitCmd.SetOut(s)
+								gitCmd.SetErr(s.Stderr())
+
+								if err := gitCmd.Execute(); err != nil {
+									fmt.Fprintf(s.Stderr(), "failed to execute git command: %v\n", err)
+									s.Exit(1)
+									return
+								}
+
+								s.Exit(0)
+							}
+						},
+					),
 				)
 
 				if err != nil {
