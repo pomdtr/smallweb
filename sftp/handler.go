@@ -29,12 +29,6 @@ func (h *handler) Filecmd(r *sftp.Request) error {
 			return err
 		}
 
-		if _, err := h.root.Stat(strings.TrimPrefix(r.Target, "/")); err == nil {
-			return fmt.Errorf("target file exists")
-		} else if !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-
 		src := filepath.Join(h.root.Name(), strings.TrimPrefix(r.Filepath, "/"))
 		dst := filepath.Join(h.root.Name(), strings.TrimPrefix(r.Target, "/"))
 		return os.Rename(src, dst)
