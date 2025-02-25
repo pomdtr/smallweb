@@ -152,6 +152,10 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdConfig())
 	rootCmd.AddCommand(NewCmdSecrets())
 
+	if _, ok := os.LookupEnv("SMALLWEB_DISABLE_COMPLETIONS"); ok {
+		rootCmd.CompletionOptions.DisableDefaultCmd = true
+	}
+
 	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
 		disabledCommands := strings.Split(env, ",")
 		for _, commandName := range disabledCommands {
