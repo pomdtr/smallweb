@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.23.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.23>.
+
+- git integration (inspired by [dokku](https://dokku.com/))
+- automatic detection of smallweb directory
+- add back `smallweb open`
+- remove automatic typescript and tsx support in the static server
+
 ## 0.22.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.22>.
