@@ -8,8 +8,10 @@ COPY . .
 ARG SMALLWEB_VERSION=dev
 RUN go build -ldflags="-s -w -X github.com/pomdtr/smallweb/build.Version=${SMALLWEB_VERSION}" -o smallweb
 
-FROM denoland/deno:2.1.2
+FROM denoland/deno:2.2.2
 COPY --from=builder /build/smallweb /usr/local/bin/smallweb
+
+RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/*
 
 ENV SMALLWEB_DIR=/smallweb
 VOLUME ["$SMALLWEB_DIR"]
