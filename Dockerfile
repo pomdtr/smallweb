@@ -15,4 +15,5 @@ ENV SMALLWEB_DIR=/smallweb
 VOLUME ["$SMALLWEB_DIR"]
 
 EXPOSE 7777 2222
-ENTRYPOINT ["/usr/local/bin/smallweb", "up", "--cron", "--addr", ":7777", "--ssh-addr", ":2222"]
+ENTRYPOINT ["/usr/local/bin/smallweb"]
+CMD [  "up", "--cron", "--addr", ":7777", "--ssh-addr", ":2222" ]
