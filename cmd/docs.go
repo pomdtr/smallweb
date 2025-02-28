@@ -47,7 +47,11 @@ func buildDoc(command *cobra.Command) (string, error) {
 	}
 
 	for _, child := range command.Commands() {
-		if child.Name() == "help" {
+		if child.Hidden {
+			continue
+		}
+
+		if child.Name() == "help" || child.Name() == "completion" {
 			continue
 		}
 
