@@ -144,7 +144,6 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdUp())
 	rootCmd.AddCommand(NewCmdDoctor())
 	rootCmd.AddCommand(NewCmdList())
-	rootCmd.AddCommand(NewCmdFetch())
 	rootCmd.AddCommand(NewCmdCrons())
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdLogs())
