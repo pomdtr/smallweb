@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -80,13 +81,30 @@ func commandEnv(a app.App) []string {
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DOMAIN=%s", a.Domain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_URL=%s", a.URL))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DIR=%s", a.BaseDir))
-
-	if deno, ok := os.LookupEnv("DENO_EXEC_PATH"); ok {
-		env = append(env, fmt.Sprintf("DENO_EXEC_PATH=%s", deno))
-	}
-
 	if a.Admin {
 		env = append(env, "SMALLWEB_ADMIN=1")
+	}
+
+	authorizedEnvs := []string{"DENO_EXEC_PATH"}
+
+	if ok, _ := strconv.ParseBool(os.Getenv("OTEL_DENO")); ok {
+		authorizedEnvs = append(
+			authorizedEnvs,
+			"OTEL_DENO",
+			"OTEL_EXPORTER_OTLP_ENDPOINT",
+			"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+			"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT",
+			"OTEL_EXPORTER_OLT_LOGS_ENDPOINT",
+			"OTEL_EXPORTER_OTLP_HEADERS",
+		)
+
+		env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", a.Domain))
+	}
+
+	for _, k := range authorizedEnvs {
+		if v, ok := os.LookupEnv(k); ok {
+			env = append(env, fmt.Sprintf("%s=%s", k, v))
+		}
 	}
 
 	return env
