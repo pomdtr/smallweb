@@ -26,6 +26,21 @@
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/examples",
             },
+        },
+        {
+            "name": "opentelemetry",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.go",
+            "args": [
+                "up",
+                "--addr=:7777",
+                "--ssh-addr=:2222"
+            ],
+            "env": {
+                "SMALLWEB_DIR": "${workspaceFolder}/examples",
+                "OTEL_DENO": "true"
+            }
         }
     ]
 }
