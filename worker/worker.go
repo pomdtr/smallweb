@@ -56,10 +56,9 @@ type Worker struct {
 	Env       map[string]string
 	StartedAt time.Time
 
-	port      int
-	idleTimer *time.Timer
-	command   *exec.Cmd
-	*slog.Logger
+	port           int
+	idleTimer      *time.Timer
+	command        *exec.Cmd
 	activeRequests atomic.Int32
 }
 
@@ -248,15 +247,13 @@ func (me *Worker) Start() error {
 		return fmt.Errorf("server start timed out")
 	}
 
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
 	// Function to handle logging for both stdout and stderr
 	logPipe := func(pipe io.ReadCloser, stream string) {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
-			if me.Logger == nil {
-				continue
-			}
-
-			me.Logger.LogAttrs(
+			logger.LogAttrs(
 				context.Background(),
 				slog.LevelInfo,
 				stream,

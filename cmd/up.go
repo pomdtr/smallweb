@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -34,7 +33,6 @@ import (
 	"github.com/pomdtr/smallweb/sftp"
 	"github.com/pomdtr/smallweb/watcher"
 	gossh "golang.org/x/crypto/ssh"
-	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -70,18 +68,6 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			logFilename := utils.GetLogFilename(k.String("domain"))
-			if err := os.MkdirAll(filepath.Dir(logFilename), 0755); err != nil {
-				return fmt.Errorf("failed to create log directory: %v", err)
-			}
-
-			httpLogger := utils.NewLogger(&lumberjack.Logger{
-				Filename:   logFilename,
-				MaxSize:    100,
-				MaxBackups: 3,
-				MaxAge:     28,
-			})
-
 			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
 				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
 				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
@@ -98,18 +84,10 @@ func NewCmdUp() *cobra.Command {
 			go watcher.Start()
 			defer watcher.Stop()
 
-			consoleLogger := slog.New(slog.NewJSONHandler(&lumberjack.Logger{
-				Filename:   logFilename,
-				MaxSize:    100,
-				MaxBackups: 3,
-				MaxAge:     28,
-			}, nil))
-
-			handler := httpLogger.Middleware(&Handler{
-				logger:  consoleLogger,
+			handler := &Handler{
 				watcher: watcher,
 				workers: make(map[string]*worker.Worker),
-			})
+			}
 
 			if flags.onDemandTLS {
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
@@ -431,7 +409,6 @@ func getListener(addr string, config *tls.Config) (net.Listener, error) {
 
 type Handler struct {
 	watcher *watcher.Watcher
-	logger  *slog.Logger
 	mu      sync.Mutex
 	workers map[string]*worker.Worker
 }
@@ -520,7 +497,6 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 
 	wk := worker.NewWorker(a)
 
-	wk.Logger = me.logger
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}
