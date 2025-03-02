@@ -39,7 +39,7 @@
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/examples",
-                "OTEL_DENO": "true"
+                "OTEL_DENO": "true",
             }
         }
     ]
