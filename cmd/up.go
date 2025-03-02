@@ -43,7 +43,7 @@ import (
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
-		cron        bool
+		enableCrons bool
 		addr        string
 		apiAddr     string
 		sshAddr     string
@@ -163,7 +163,7 @@ func NewCmdUp() *cobra.Command {
 				go http.Serve(ln, handler)
 			}
 
-			if flags.cron {
+			if flags.enableCrons {
 				fmt.Fprintln(cmd.ErrOrStderr(), "Starting cron jobs...")
 				crons := CronRunner(cmd.OutOrStdout(), cmd.ErrOrStderr())
 				crons.Start()
@@ -393,7 +393,7 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().StringVar(&flags.apiAddr, "api-addr", "", "address to listen on for api")
-	cmd.Flags().BoolVar(&flags.cron, "cron", false, "enable cron jobs")
+	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
 
 	cmd.MarkFlagsRequiredTogether("tls-cert", "tls-key")
