@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -84,26 +83,13 @@ func commandEnv(a app.App) []string {
 		env = append(env, "SMALLWEB_ADMIN=1")
 	}
 
-	authorizedEnvs := []string{
-		"DENO_EXEC_PATH",
-		"OTEL_DENO",
-		"OTEL_EXPORTER_OTLP_ENDPOINT",
-		"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
-		"OTEL_EXPORTER_OTLP_METRICS_ENDPOINT",
-		"OTEL_EXPORTER_OLT_LOGS_ENDPOINT",
-		"OTEL_EXPORTER_OTLP_HEADERS",
-	}
-
-	if ok, _ := strconv.ParseBool(os.Getenv("OTEL_DENO")); ok {
-		env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", a.Name))
-		env = append(env, fmt.Sprintf("OTEL_METRIC_EXPORT_INTERVAL=%s", "5000"))
-	}
-
-	for _, k := range authorizedEnvs {
-		if v, ok := os.LookupEnv(k); ok {
-			env = append(env, fmt.Sprintf("%s=%s", k, v))
+	// open telemetry
+	for _, value := range os.Environ() {
+		if strings.HasPrefix(value, "OTEL_") {
+			env = append(env, value)
 		}
 	}
+	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", a.Domain))
 
 	return env
 }
