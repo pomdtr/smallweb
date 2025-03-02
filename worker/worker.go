@@ -126,6 +126,7 @@ func (me *Worker) DenoArgs(deno string) []string {
 		"--allow-env",
 		"--allow-sys",
 		"--unstable-kv",
+		"--unstable-otel",
 		"--unstable-temporal",
 		"--no-prompt",
 		"--quiet",
