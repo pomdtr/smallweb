@@ -5,27 +5,34 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-func NewCmdGit(appDir string) *cobra.Command {
+func NewCmdGit() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "git",
+		Use:    "git",
+		Short:  "Git commands",
+		Hidden: true,
 	}
 
-	cmd.AddCommand(NewCmdGitReceivePack(appDir))
-	cmd.AddCommand(NewCmdGitUploadPack(appDir))
+	cmd.AddCommand(NewCmdGitReceivePack())
+	cmd.AddCommand(NewCmdGitUploadPack())
 
 	return cmd
 }
 
-func NewCmdGitReceivePack(appDir string) *cobra.Command {
+func NewCmdGitReceivePack() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "git-receive-pack <git-dir>",
 		Short: "Git receive-pack",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if !strings.HasSuffix(args[0], ".git") {
+				return fmt.Errorf("invalid path")
+			}
+
 			if args[0] != "/" {
 				return fmt.Errorf("invalid path")
 			}
@@ -35,7 +42,11 @@ func NewCmdGitReceivePack(appDir string) *cobra.Command {
 				return err
 			}
 
-			repoDir := filepath.Join(reposDir, filepath.Base(appDir))
+			repoDir := filepath.Join(reposDir, args[0])
+			if filepath.Dir(repoDir) != reposDir {
+				return fmt.Errorf("invalid path")
+			}
+
 			if _, err := os.Stat(repoDir); os.IsNotExist(err) {
 				initCmd := exec.Command("git", "init", repoDir, "--bare", "--initial-branch=main")
 				if err := initCmd.Run(); err != nil {
@@ -55,6 +66,8 @@ func NewCmdGitReceivePack(appDir string) *cobra.Command {
 				return err
 			}
 
+			appName := strings.TrimSuffix(filepath.Base(repoDir), ".git")
+			appDir := filepath.Join(k.String("dir"), appName)
 			if _, err := os.Stat(appDir); os.IsNotExist(err) {
 				if err := os.MkdirAll(appDir, 0755); err != nil {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
@@ -80,7 +93,7 @@ func NewCmdGitReceivePack(appDir string) *cobra.Command {
 	return cmd
 }
 
-func NewCmdGitUploadPack(appDir string) *cobra.Command {
+func NewCmdGitUploadPack() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "git-upload-pack <git-dir>",
 		Short: "Git upload-pack",
@@ -90,8 +103,7 @@ func NewCmdGitUploadPack(appDir string) *cobra.Command {
 				return fmt.Errorf("invalid path")
 			}
 
-			reposDir := filepath.Join(k.String("dir"), ".smallweb", "repos")
-			repoDir := filepath.Join(reposDir, filepath.Base(appDir))
+			repoDir := filepath.Join(k.String("dir"), ".smallweb", "repos", args[0])
 			uploadCmd := exec.Command("git-upload-pack", repoDir)
 
 			uploadCmd.Stdin = cmd.InOrStdin()
