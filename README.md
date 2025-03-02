@@ -1,8 +1,8 @@
 # Smallweb
 
-What if your computer had an internet folder, where each subfolder would be mapped to a subdomains? That's what Smallweb is about.
+What if your computer had an internet folder, where each subfolder would be mapped to a subdomains?
 
-Creating a new website becomes as simple as running `mkdir` and creating a few files. Instead of learning with a clunky REST API, you can use the unix tools you already know and love to manage your websites.
+Smallweb makes creating a new website as simple as running `mkdir` and creating a few files. Instead of learning with a clunky REST API, you can use the unix tools you already know and love to manage your websites.
 
 ## Example
 
@@ -32,6 +32,42 @@ Leave me a message at [excalidraw.demo.smallweb.live](https://excalidraw.demo.sm
 If you want to self-host smallweb, just run `curl https://install.smallweb.run/vps.sh` on a fresh new debian-based server to get a fully working smallweb instance, with on-demand TLS certificates.
 
 Or alternatively, register at [https://cloud.smallweb.run](https://cloud.smallweb.run) to get an hosted instance.
+
+## Application structure
+
+Smallweb tries to keep it's api as simple as possible. The only requirement is to have a default export in a `main.ts` file at the root of your website folder
+
+```typescript
+// ~/smallweb/example/main.ts
+
+export default {
+    fetch: (request: Request) => {
+        return new Response("Example server!");
+    },
+    run: () => {
+        console.log("Example cli!");
+    }
+}
+```
+
+You can invoke:
+
+- the `fetch` function by send a request to `https://example.<your-domain>`
+- the `run` function by running `smallweb run example` or `ssh example@<your-domain>`
+
+Of course, it is super easy to hook these functions to a web framweork like [hono](https://hono.dev) or a cli framework like [commander](https://www.npmjs.com/package/commander).
+
+```typescript
+// ~/smallweb/hono/main.ts
+import { Hono } from 'npm:hono'
+const app = new Hono()
+
+app.get('/', (c) => c.text('Hono!'))
+
+export default app
+```
+
+And if your app folder does not contain a `main.ts` file, smallweb statically serves the content of the folder instead.
 
 ## How it works
 
