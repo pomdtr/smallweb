@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/worker"
@@ -36,7 +35,6 @@ func NewCmdRun() *cobra.Command {
 
 			cmd.SilenceErrors = true
 
-			command.Stdin = os.Stdin
 			command.Stdout = cmd.OutOrStdout()
 			command.Stderr = cmd.ErrOrStderr()
 			return command.Run()

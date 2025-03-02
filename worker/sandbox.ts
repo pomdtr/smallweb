@@ -77,17 +77,17 @@ function respondWithError(request: Request, error: Error) {
     );
 }
 
-const input = JSON.parse(Deno.args[0]);
+const payload = JSON.parse(Deno.args[0]);
 
-if (!input || !input.command) {
+if (!payload || !payload.command) {
     console.error("Invalid input.");
     Deno.exit(1);
 }
 
-if (input.command === "fetch") {
+if (payload.command === "fetch") {
     Deno.serve(
         {
-            port: parseInt(input.port),
+            port: parseInt(payload.port),
             onListen: () => {
                 // This line will signal that the server is ready to the go
                 console.error("READY");
@@ -95,7 +95,7 @@ if (input.command === "fetch") {
         },
         async (req) => {
             try {
-                const mod = await import(input.entrypoint);
+                const mod = await import(payload.entrypoint);
                 if (!mod.default) {
                     return new Response("The app does not provide a default export.", { status: 500 });
                 }
@@ -139,8 +139,8 @@ if (input.command === "fetch") {
             }
         },
     );
-} else if (input.command === "run") {
-    const mod = await import(input.entrypoint);
+} else if (payload.command === "run") {
+    const mod = await import(payload.entrypoint);
     if (!mod.default || typeof mod.default !== "object") {
         console.error(
             "The mod does not provide an object as it's default export.",
@@ -159,8 +159,8 @@ if (input.command === "fetch") {
         Deno.exit(1);
     }
 
-    await handler.run(input.args);
+    await handler.run(payload.args)
 } else {
-    console.error("Unknown command: ", input.command);
+    console.error("Unknown command: ", payload.command);
     Deno.exit(1);
 }

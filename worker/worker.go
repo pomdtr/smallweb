@@ -3,9 +3,7 @@ package worker
 import (
 	"bufio"
 	"context"
-	"crypto"
 	_ "embed"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -29,26 +27,7 @@ import (
 )
 
 //go:embed sandbox.ts
-var sandboxBytes []byte
-var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%s.ts", hash(sandboxBytes)))
-
-func hash(b []byte) string {
-	sha := crypto.SHA256.New()
-	sha.Write(b)
-	return base64.URLEncoding.EncodeToString(sha.Sum(nil))
-}
-
-func init() {
-	if !utils.FileExists(sandboxPath) {
-		if err := os.MkdirAll(filepath.Dir(sandboxPath), 0755); err != nil {
-			log.Fatalf("could not create directory: %v", err)
-		}
-
-		if err := os.WriteFile(sandboxPath, sandboxBytes, 0644); err != nil {
-			log.Fatalf("could not write file: %v", err)
-		}
-	}
-}
+var sandboxContent string
 
 type Worker struct {
 	App       app.App
@@ -117,18 +96,11 @@ func (me *Worker) DenoArgs(deno string) []string {
 		"--quiet",
 	}
 
-	appDir := me.App.Dir()
-	if configPath := filepath.Join(appDir, "deno.json"); utils.FileExists(configPath) {
-		args = append(args, "--config", configPath)
-	} else if configPath := filepath.Join(appDir, "deno.jsonc"); utils.FileExists(configPath) {
-		args = append(args, "--config", configPath)
-	}
-
 	npmCache := filepath.Join(xdg.CacheHome, "smallweb", "deno", "npm", "registry.npmjs.org")
 	if me.App.Admin {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", me.App.RootDir, sandboxPath, deno, npmCache),
+			fmt.Sprintf("--allow-read=%s,%s,%s", me.App.RootDir, deno, npmCache),
 			fmt.Sprintf("--allow-write=%s", me.App.RootDir),
 			fmt.Sprintf("--deny-write=%s", filepath.Join(me.App.RootDir, ".smallweb")),
 		)
@@ -137,10 +109,11 @@ func (me *Worker) DenoArgs(deno string) []string {
 	}
 
 	// if root is not a symlink
+	appDir := me.App.Dir()
 	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, sandboxPath, deno, npmCache),
+			fmt.Sprintf("--allow-read=%s,%s,%s", appDir, deno, npmCache),
 			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
 		)
 
@@ -158,7 +131,7 @@ func (me *Worker) DenoArgs(deno string) []string {
 
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s,%s", appDir, target, sandboxPath, deno, npmCache),
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, target, deno, npmCache),
 		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
 	)
 	return args
@@ -189,9 +162,10 @@ func (me *Worker) Start() error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	args = append(args, sandboxPath, input.String())
+	args = append(args, "-", input.String())
 
 	command := exec.Command(deno, args...)
+	command.Stdin = strings.NewReader(sandboxContent)
 	command.Dir = me.App.Dir()
 	command.Env = commandEnv(me.App)
 
@@ -489,8 +463,8 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	denoArgs := []string{"run"}
 	denoArgs = append(denoArgs, me.DenoArgs(deno)...)
 
-	input := strings.Builder{}
-	encoder := json.NewEncoder(&input)
+	payload := strings.Builder{}
+	encoder := json.NewEncoder(&payload)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
 		"command":    "run",
@@ -500,9 +474,10 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 		return nil, fmt.Errorf("could not encode input: %w", err)
 	}
 
-	denoArgs = append(denoArgs, sandboxPath, input.String())
+	denoArgs = append(denoArgs, "-", payload.String())
 
 	command := exec.CommandContext(ctx, deno, denoArgs...)
+	command.Stdin = strings.NewReader(sandboxContent)
 	command.Dir = me.App.Dir()
 
 	command.Env = commandEnv(me.App)
