@@ -1,36 +1,42 @@
-# Smallweb - Host websites from your internet folder
+# Smallweb
 
-Smallweb is a lightweight web server based on [Deno](https://deno.com). It draws inspiration from both legacy specifications like [CGI](https://en.wikipedia.org/wiki/Common_Gateway_Interface), modern serverless platforms such as [Val Town](https://val.town) and static sites generators like [Blot.im](https://blot.im).
+What if your computer had an internet folder, where each subfolder would be mapped to a subdomains? That's what Smallweb is about.
 
-Smallweb maps domains to folders in your filesystem. For example, if you own the `pomdtr.me` domain:
+Creating a new website becomes as simple as running `mkdir` and creating a few files. Instead of learning with a clunky REST API, you can use the unix tools you already know and love to manage your websites.
 
-- `https://www.pomdtr.me` maps to `~/smallweb/www`
-- `https://example.pomdtr.me` maps to `~/smallweb/example`
+## Example
 
-Creating a new website is as simple as creating a folder and opening the corresponding URL in your browser. There's no need to configure a build step (unless you want to) or start a development server. Since servers are mapped to folders, you can manage them using standard Unix tools like `cp`, `mv`, or `rm`.
+Let's say I want to self-host my own drawing app.
 
-## A self-hosted personal cloud
+```bash
+mkdir -p ~/smallweb/draw
+cat <<EOF > ~/smallweb/draw/main.ts
+import { Excalidraw } from "jsr:@smallweb/excalidraw@0.9.1";
 
-Each incoming HTTP request is sandboxed in a single Deno subprocess by the Smallweb evaluation server. If there are no incoming requests, no resources are used, making it an ideal solution for low-traffic websites.
+const excalidraw = new Excalidraw({
+    rootDir: "./data"
+});
 
-Smallweb does not use Docker, but it still sandboxes your code using Deno. And if you website suddenly go viral, you can move your site to Deno Deploy in one command.
-
-## Installation
-
-All the instructions are available in the [docs](https://docs.smallweb.run).
-
-## Examples
-
-All the websites on the `smallweb.run` domain are hosted using smallweb (including this one):
-
-- <https://docs.smallweb.run>
-- <https://blog.smallweb.run>
-- <https://excalidraw.smallweb.run>
-
-Since creating smallweb websites is so easy, you can even create super simple ones. For example, when I want to invite someone to the smallweb discord server, I just send him the link <https://discord.smallweb.run>, which maps to `~/smallweb/discord/main.ts` on my vps.
-
-```ts
-export default {
-    fetch: () => Response.redirect("https://discord.gg/BsgQK42qZe"),
-};
+export default excalidraw;
+EOF
 ```
+
+And voila! No need to run a single command, your website is already available at `https://draw.<your-domain>`! And each time the drawing is modified, it get automatically persited to `~/smallweb/draw/data/drawing.json`.
+
+Tired of it ? Just run `rm -rf ~/smallweb/draw` and it's like it never existed.
+
+## Try it out
+
+Leave me a message at [excalidraw.demo.smallweb.live](https://excalidraw.demo.smallweb.live), and then go create your own website from [vscode.demo.smallweb.live](https://vscode.demo.smallweb.live)!
+
+If you want to self-host smallweb, just run `curl https://install.smallweb.run/vps.sh` on a fresh new debian-based server to get a fully working smallweb instance, with on-demand TLS certificates.
+
+Or alternatively, register at [https://cloud.smallweb.run](https://cloud.smallweb.run) to get an hosted instance.
+
+## How it works
+
+Smallweb is distributed as a single golang binary, and use [deno](https://deno.com/) as it's runtime. It uses a serverless architecture, where deno workers are spawned on-demand to handle requests.
+
+If your pet project as no traffic, it won't consume any resources. And if it gets too popular, there is no lock-in, you can easily move to a more traditional hosting provider.
+
+Smallweb leverages deno sandboxing capabilities to isolate each website from each other: then only have access to their own files, and can't interfere with the rest of the system.
