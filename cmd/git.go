@@ -21,10 +21,6 @@ func NewCmdGitReceivePack() *cobra.Command {
 				return fmt.Errorf("invalid path")
 			}
 
-			if args[0] != "/" {
-				return fmt.Errorf("invalid path")
-			}
-
 			reposDir := filepath.Join(k.String("dir"), ".smallweb", "repos")
 			if err := os.MkdirAll(reposDir, 0755); err != nil {
 				return err
@@ -88,10 +84,6 @@ func NewCmdGitUploadPack() *cobra.Command {
 		Short:  "Git upload-pack",
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if args[0] != "/" {
-				return fmt.Errorf("invalid path")
-			}
-
 			repoDir := filepath.Join(k.String("dir"), ".smallweb", "repos", args[0])
 			uploadCmd := exec.Command("git-upload-pack", repoDir)
 
