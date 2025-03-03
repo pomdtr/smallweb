@@ -10,24 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewCmdGit() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:    "git",
-		Short:  "Git commands",
-		Hidden: true,
-	}
-
-	cmd.AddCommand(NewCmdGitReceivePack())
-	cmd.AddCommand(NewCmdGitUploadPack())
-
-	return cmd
-}
-
 func NewCmdGitReceivePack() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "git-receive-pack <git-dir>",
-		Short: "Git receive-pack",
-		Args:  cobra.ExactArgs(1),
+		Use:    "git-receive-pack <git-dir>",
+		Hidden: true,
+		Short:  "Git receive-pack",
+		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !strings.HasSuffix(args[0], ".git") {
 				return fmt.Errorf("invalid path")
@@ -95,9 +83,10 @@ func NewCmdGitReceivePack() *cobra.Command {
 
 func NewCmdGitUploadPack() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "git-upload-pack <git-dir>",
-		Short: "Git upload-pack",
-		Args:  cobra.ExactArgs(1),
+		Use:    "git-upload-pack <git-dir>",
+		Hidden: true,
+		Short:  "Git upload-pack",
+		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if args[0] != "/" {
 				return fmt.Errorf("invalid path")
