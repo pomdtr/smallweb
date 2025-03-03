@@ -61,6 +61,11 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
+			oldCronFlag, _ := cmd.Flags().GetBool("cron")
+			if oldCronFlag {
+				flags.enableCrons = true
+			}
+
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -335,6 +340,8 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().StringVar(&flags.apiAddr, "api-addr", "", "address to listen on for api")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
+	cmd.Flags().Bool("cron", false, "enable cron jobs")
+	cmd.Flags().MarkDeprecated("cron", "use --enable-crons instead")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
 
 	cmd.MarkFlagsRequiredTogether("tls-cert", "tls-key")
