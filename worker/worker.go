@@ -92,6 +92,7 @@ func (me *Worker) DenoArgs(deno string) []string {
 		"--unstable-kv",
 		"--unstable-otel",
 		"--unstable-temporal",
+		"--node-modules-dir=none",
 		"--no-prompt",
 		"--quiet",
 	}
