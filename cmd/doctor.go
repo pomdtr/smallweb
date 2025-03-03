@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var minimumDenoVersion = semver.MustParse("2.2.0")
+
 func NewCmdDoctor() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
@@ -69,8 +71,8 @@ func checkDenoVersion() (string, error) {
 		return "", err
 	}
 
-	if v.Major() < 2 {
-		return "", fmt.Errorf("deno version 2 or higher required")
+	if v.LessThan(minimumDenoVersion) {
+		return denoVersion, fmt.Errorf("deno version %s is too old, please upgrade to %s or newer", denoVersion, minimumDenoVersion)
 	}
 
 	return v.String(), nil

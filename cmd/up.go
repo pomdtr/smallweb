@@ -61,6 +61,14 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
+			if k.String("dir") == "" {
+				return fmt.Errorf("dir cannot be empty")
+			}
+
+			if _, err := checkDenoVersion(); err != nil {
+				return err
+			}
+
 			oldCronFlag, _ := cmd.Flags().GetBool("cron")
 			if oldCronFlag {
 				flags.enableCrons = true

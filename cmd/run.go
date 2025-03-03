@@ -13,6 +13,13 @@ func NewCmdRun() *cobra.Command {
 		Use:               "run <app> [args...]",
 		Short:             "Run an app cli",
 		ValidArgsFunction: completeApp,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if _, err := checkDenoVersion(); err != nil {
+				return err
+			}
+
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
