@@ -15,6 +15,21 @@
             },
         },
         {
+            "name": "smallweb.run up",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.go",
+            "args": [
+                "up",
+                "--addr=:7777",
+                "--ssh-addr=:2222"
+            ],
+            "env": {
+                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
+                "SMALLWEB_DOMAIN": "smallweb.localhost"
+            },
+        },
+        {
             "name": "smallweb cli",
             "type": "go",
             "request": "launch",
