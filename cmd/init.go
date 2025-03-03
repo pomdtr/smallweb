@@ -19,6 +19,16 @@ func NewCmdInit() *cobra.Command {
 		Short: "Initialize a new workspace",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			dir, _ := cmd.Flags().GetString("dir")
+			if dir == "" {
+				return fmt.Errorf("the dir flag is required")
+			}
+
+			domain, _ := cmd.Flags().GetString("domain")
+			if domain == "" {
+				return fmt.Errorf("the domain flag is required")
+			}
+
 			subFS, err := fs.Sub(embedFS, "templates/workspace")
 			if err != nil {
 				return fmt.Errorf("failed to read workspace embed: %w", err)
