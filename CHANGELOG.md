@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.24.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.24>.
+
+- opentelemetry support
+- removal of the `smallweb logs` and `smallweb fetch` commands
+- enforces deno version >= 2.2
+- new format for git urls: `_@<domain>:<app>.git`
+- `smallweb up --cron` is deprecated in favor of `smallweb up --enable-crons`
+
 ## 0.23.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.23>.
