@@ -231,20 +231,7 @@ func NewCmdUp() *cobra.Command {
 					sftp.SSHOption(k.String("dir"), nil),
 					wish.WithMiddleware(func(next ssh.Handler) ssh.Handler {
 						return func(sess ssh.Session) {
-							var cmd *exec.Cmd
-							if sess.User() == "_" {
-								execPath, err := os.Executable()
-								if err != nil {
-									fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
-									sess.Exit(1)
-									return
-								}
-
-								cmd = exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
-								cmd.Args = append(cmd.Args, sess.Command()...)
-								cmd.Env = os.Environ()
-								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_PLUGINS=true")
-							} else {
+							if sess.User() != "_" {
 								a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", sess.User())))
 								if err != nil {
 									fmt.Fprintf(sess, "failed to load app: %v\n", err)
@@ -253,15 +240,42 @@ func NewCmdUp() *cobra.Command {
 								}
 
 								wk := worker.NewWorker(a)
-								command, err := wk.Command(sess.Context(), sess.Command()...)
+								cmd, err := wk.Command(sess.Context(), sess.Command()...)
 								if err != nil {
 									fmt.Fprintf(sess, "failed to get command: %v\n", err)
 									sess.Exit(1)
 									return
 								}
 
-								cmd = command
+								cmd.Stdout = sess
+								cmd.Stderr = sess.Stderr()
+
+								if err := cmd.Run(); err != nil {
+									var exitErr *exec.ExitError
+									if errors.As(err, &exitErr) {
+										sess.Exit(exitErr.ExitCode())
+										return
+									}
+
+									fmt.Fprintf(sess, "failed to run command: %v", err)
+									sess.Exit(1)
+									return
+								}
+
+								return
 							}
+
+							execPath, err := os.Executable()
+							if err != nil {
+								fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
+								sess.Exit(1)
+								return
+							}
+
+							cmd := exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
+							cmd.Args = append(cmd.Args, sess.Command()...)
+							cmd.Env = os.Environ()
+							cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_PLUGINS=true")
 
 							ptyReq, winCh, isPty := sess.Pty()
 							if isPty {
