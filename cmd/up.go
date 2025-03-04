@@ -57,9 +57,9 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if _, err := checkDenoVersion(); err != nil {
-				return err
-			}
+			// if _, err := checkDenoVersion(); err != nil {
+			// 	return err
+			// }
 
 			oldCronFlag, _ := cmd.Flags().GetBool("cron")
 			if oldCronFlag {
