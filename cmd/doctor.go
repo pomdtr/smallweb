@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver"
+	"github.com/pomdtr/smallweb/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -54,7 +55,7 @@ func NewCmdDoctor() *cobra.Command {
 }
 
 func checkDenoVersion() (string, error) {
-	deno, err := exec.LookPath("deno")
+	deno, err := worker.DenoExecutable()
 	if err != nil {
 		return "", err
 	}

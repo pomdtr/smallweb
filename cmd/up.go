@@ -57,9 +57,9 @@ func NewCmdUp() *cobra.Command {
 		Aliases: []string{"serve"},
 		Args:    cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			// if _, err := checkDenoVersion(); err != nil {
-			// 	return err
-			// }
+			if _, err := checkDenoVersion(); err != nil {
+				return err
+			}
 
 			oldCronFlag, _ := cmd.Flags().GetBool("cron")
 			if oldCronFlag {
@@ -69,6 +69,10 @@ func NewCmdUp() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if k.String("dir") == "" {
+				return fmt.Errorf("dir cannot be empty")
+			}
+
 			if k.String("domain") == "" {
 				return fmt.Errorf("domain cannot be empty")
 			}
