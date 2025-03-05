@@ -5,7 +5,9 @@ dist
 
 .envrc
 .gitignore
-docker-compose.yml
+.dockerignore
+compose.yml
+compose-dev.yml
 Dockerfile
 goreleaser.yml
 LICENSE.md

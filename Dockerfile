@@ -24,5 +24,6 @@ RUN groupadd -g $GID smallweb && useradd -m -s /bin/bash -u $UID -g $GID smallwe
 USER smallweb
 WORKDIR /home/smallweb
 EXPOSE 7777 2222
+VOLUME /home/smallweb/workspace
 ENTRYPOINT ["/usr/local/bin/smallweb"]
 CMD [  "up", "--enable-crons", "--addr", ":7777", "--ssh-addr", ":2222"]
