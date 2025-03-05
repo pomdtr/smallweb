@@ -20,11 +20,11 @@ ENV PATH="/usr/local/deno/bin:$PATH"
 ARG UID=1000
 ARG GID=1000
 RUN groupadd -g $GID smallweb && useradd -m -s /bin/bash -u $UID -g $GID smallweb
+RUN mkdir /smallweb && chown smallweb:smallweb /smallweb
 
 USER smallweb
-WORKDIR /home/smallweb
+VOLUME /smallweb
+WORKDIR /smallweb
 EXPOSE 7777 2222
-VOLUME /home/smallweb/workspace
-WORKDIR /home/smallweb/workspace
 ENTRYPOINT ["/usr/local/bin/smallweb"]
 CMD [  "up", "--enable-crons", "--addr", ":7777", "--ssh-addr", ":2222"]

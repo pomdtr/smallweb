@@ -7,6 +7,6 @@ services:
       - 7777:7777
       - 2222:2222
     volumes:
-      - ./workspace:/home/smallweb/workspace
+      - ./workspace:/smallweb
     environment:
-      - SMALLWEB_DIR=/home/smallweb/workspace
+      - SMALLWEB_DIR=/smallweb
