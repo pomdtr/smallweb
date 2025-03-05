@@ -1,8 +1,0 @@
-services:
-  smallweb:
-    image: ghcr.io/pomdtr/smallweb:latest
-    ports:
-      - 7777:7777
-      - 2222:2222
-    volumes:
-      - ./examples:/smallweb

@@ -1,0 +1,14 @@
+services:
+  smallweb:
+    build:
+      context: .
+    container_name: smallweb
+    restart: unless-stopped
+    ports:
+      - 7777:7777
+      - 2222:2222
+    volumes:
+      - ./workspace:/smallweb
+    environment:
+      - SMALLWEB_DIR=/home/smallweb/workspace
+      - SMALLWEB_DOMAIN=smallweb.localhost

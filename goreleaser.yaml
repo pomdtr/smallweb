@@ -64,3 +64,11 @@ brews:
     skip_upload: auto
     install: |-
       bin.install "smallweb"
+scoops:
+  - name: smallweb
+    repository:
+      owner: pomdtr
+      name: scoop-bucket
+
+    homepage: https://smallweb.run
+    description: You

@@ -17,9 +17,12 @@ ARG DENO_VERSION=v2.2.2
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh -s "$DENO_VERSION"
 ENV PATH="/usr/local/deno/bin:$PATH"
 
-ENV SMALLWEB_DIR=/smallweb
-VOLUME ["$SMALLWEB_DIR"]
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g $GID smallweb && useradd -m -s /bin/bash -u $UID -g $GID smallweb
 
+USER smallweb
+WORKDIR /home/smallweb
 EXPOSE 7777 2222
 ENTRYPOINT ["/usr/local/bin/smallweb"]
 CMD [  "up", "--enable-crons", "--addr", ":7777", "--ssh-addr", ":2222"]

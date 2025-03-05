@@ -11,7 +11,7 @@
                 "--ssh-addr=:2222"
             ],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/examples",
+                "SMALLWEB_DIR": "${workspaceFolder}/workspace",
             },
         },
         {
@@ -39,7 +39,7 @@
                 // your args here
             ],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/examples",
+                "SMALLWEB_DIR": "${workspaceFolder}/workspace",
             },
         },
         {
@@ -53,7 +53,7 @@
                 "--ssh-addr=:2222"
             ],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/examples",
+                "SMALLWEB_DIR": "${workspaceFolder}/workspace",
                 "OTEL_DENO": "true",
             }
         }
