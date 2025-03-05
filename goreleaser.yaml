@@ -69,6 +69,5 @@ scoops:
     repository:
       owner: pomdtr
       name: scoop-bucket
-
     homepage: https://smallweb.run
-    description: You
+    description: Your Internet Folder
