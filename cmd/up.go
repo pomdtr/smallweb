@@ -280,12 +280,7 @@ func NewCmdUp() *cobra.Command {
 									sess.Exit(1)
 									return
 								}
-								// go func() {
-								// for win := range winCh {
-								// 	syscall.Syscall(syscall.SYS_IOCTL, f.Fd(), uintptr(syscall.TIOCSWINSZ),
-								// 		uintptr(unsafe.Pointer(&struct{ h, w, x, y uint16 }{uint16(win.Height), uint16(win.Width), 0, 0})))
-								// }
-								// }()
+
 								go func() {
 									io.Copy(f, sess)
 								}()
