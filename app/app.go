@@ -214,7 +214,7 @@ func (me App) Entrypoint() string {
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
 		path := filepath.Join(me.Dir(), candidate)
 		if utils.FileExists(path) {
-			return path
+			return fmt.Sprintf("file://%s", path)
 		}
 	}
 
