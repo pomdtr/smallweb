@@ -22,6 +22,7 @@ builds:
       - -X github.com/pomdtr/smallweb/build.Date={{.Date}}
       - -X github.com/pomdtr/smallweb/build.BuiltBy=goreleaser
     goos:
+      - windows
       - linux
       - darwin
 archives:
