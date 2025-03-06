@@ -21,7 +21,7 @@ ENV PATH="/usr/local/deno/bin:$PATH"
 # Set up default user with ID 1000
 ARG UID=1000
 ARG GID=1000
-RUN groupadd -g $GID smallweb && useradd -m -s /bin/bash -u $GID -g $1000 smallweb
+RUN groupadd -g $GID smallweb && useradd -m -s /bin/bash -u $UID -g $GID smallweb
 
 # Create app directory
 RUN mkdir -p /smallweb && chown smallweb:smallweb /smallweb
