@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"text/template"
 
@@ -40,16 +39,11 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
-				admin := slices.Contains(k.Strings("adminApps"), name)
-				if cmd.Flags().Changed("admin") && flags.admin != admin {
-					continue
-				}
-
 				apps = append(apps, app.App{
 					Name:    name,
 					BaseDir: filepath.Join(k.String("dir"), name),
 					URL:     fmt.Sprintf("https://%s.%s", name, k.String("domain")),
-					Admin:   admin,
+					Admin:   k.Bool(fmt.Sprintf("apps.%s.admin", name)),
 				})
 			}
 
