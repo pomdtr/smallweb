@@ -83,7 +83,14 @@ func NewWorker(app app.App) *Worker {
 
 var upgrader = websocket.Upgrader{} // use default options
 
-func (me *Worker) DenoArgs(deno string) []string {
+type SandboxMethod string
+
+var (
+	SandboxMethodFetch SandboxMethod = "fetch"
+	SandboxMethodRun   SandboxMethod = "run"
+)
+
+func (me *Worker) DenoArgs(deno string, method SandboxMethod) []string {
 	args := []string{
 		"--allow-net",
 		"--allow-import",
@@ -115,8 +122,13 @@ func (me *Worker) DenoArgs(deno string) []string {
 		args = append(
 			args,
 			fmt.Sprintf("--allow-read=%s,%s,%s", appDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
 		)
+
+		if method == SandboxMethodRun {
+			args = append(args, fmt.Sprintf("--allow-write=%s", me.App.Dir()))
+		} else {
+			args = append(args, fmt.Sprintf("--allow-write=%s", me.App.DataDir()))
+		}
 
 		return args
 	}
@@ -133,8 +145,14 @@ func (me *Worker) DenoArgs(deno string) []string {
 	args = append(
 		args,
 		fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, target, deno, npmCache),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
 	)
+
+	if method == SandboxMethodRun {
+		args = append(args, fmt.Sprintf("--allow-write=%s,%s", me.App.Dir(), target))
+	} else {
+		args = append(args, fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")))
+	}
+
 	return args
 }
 
@@ -151,7 +169,7 @@ func (me *Worker) Start() error {
 	}
 
 	args := []string{"run"}
-	args = append(args, me.DenoArgs(deno)...)
+	args = append(args, me.DenoArgs(deno, SandboxMethodFetch)...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
@@ -462,7 +480,7 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	}
 
 	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.DenoArgs(deno)...)
+	denoArgs = append(denoArgs, me.DenoArgs(deno, SandboxMethodRun)...)
 
 	payload := strings.Builder{}
 	encoder := json.NewEncoder(&payload)
