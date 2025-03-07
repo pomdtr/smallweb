@@ -28,10 +28,10 @@ require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/getsops/sops/v3 v3.9.1
 	github.com/knadh/koanf/providers/posflag v0.1.0
+	github.com/leaanthony/gosod v1.0.4
 	github.com/pkg/sftp v1.13.7
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/crypto v0.32.0
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
@@ -120,7 +120,6 @@ require (
 	github.com/knadh/koanf/maps v0.1.1 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/leaanthony/gosod v1.0.4 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/libdns/libdns v0.2.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
