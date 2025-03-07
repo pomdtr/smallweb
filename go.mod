@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/Masterminds/semver v1.5.0
-	github.com/adrg/xdg v0.4.0
+	github.com/adrg/xdg v0.5.3
 	github.com/cli/go-gh/v2 v2.9.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
