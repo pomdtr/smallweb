@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/cli/browser"
 	"github.com/pomdtr/smallweb/app"
@@ -24,11 +25,17 @@ func NewCmdOpen() *cobra.Command {
 					return fmt.Errorf("failed to get current directory: %w", err)
 				}
 
-				if filepath.Dir(cwd) != k.String("dir") {
-					return fmt.Errorf("no app specified and not in an app directory")
+				if !strings.HasPrefix(cwd, k.String("dir")) {
+					return fmt.Errorf("not in an app directory")
 				}
 
-				a, err := app.LoadApp(filepath.Base(cwd), k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), filepath.Base(cwd)))
+				appDir := cwd
+				for filepath.Dir(appDir) != k.String("dir") {
+					appDir = filepath.Dir(appDir)
+				}
+
+				appName := filepath.Base(appDir)
+				a, err := app.LoadApp(appName, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appName)))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
