@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -20,6 +18,7 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/charmbracelet/log"
 	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/build"
@@ -226,20 +225,13 @@ func (me *Worker) Start() error {
 		return fmt.Errorf("server start timed out")
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-
 	// Function to handle logging for both stdout and stderr
 	logPipe := func(pipe io.ReadCloser, stream string) {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
-			logger.LogAttrs(
-				context.Background(),
-				slog.LevelInfo,
-				stream,
-				slog.String("type", "console"),
-				slog.String("stream", stream),
-				slog.String("app", me.App.Name),
-				slog.String("text", scanner.Text()),
+			log.Info(
+				scanner.Text(),
+				"app", me.App.Name,
 			)
 		}
 	}
