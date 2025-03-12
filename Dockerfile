@@ -32,6 +32,8 @@ RUN chmod +x /entrypoint.sh
 
 VOLUME /smallweb
 WORKDIR /smallweb
+ENV SMALLWEB_DIR /smallweb
+
 EXPOSE 7777 2222
 
 ENTRYPOINT ["/entrypoint.sh"]
