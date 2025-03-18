@@ -466,14 +466,31 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		clientID := fmt.Sprintf("https://%s", r.Host)
 		oauth2Config := &oauth2.Config{
 			ClientID:    clientID,
-			Scopes:      []string{"openid", "email", "profile"},
-			RedirectURL: fmt.Sprintf("https://%s/_auth/callback", r.Host),
+			Scopes:      []string{"openid", "email"},
+			RedirectURL: fmt.Sprintf("https://%s/oauth/callback", r.Host),
 			Endpoint:    me.provider.Endpoint(),
 		}
 
-		if r.URL.Path == "/_auth/logout" {
+		if r.URL.Path == "/oauth/signin" {
+			state := rand.Text()
+
 			http.SetCookie(w, &http.Cookie{
-				Name:     "auth_token",
+				Name:     "oauth_state",
+				Secure:   true,
+				Path:     "/",
+				HttpOnly: true,
+				MaxAge:   10 * 60,
+				SameSite: http.SameSiteLaxMode,
+				Value:    state,
+			})
+
+			http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusTemporaryRedirect)
+			return
+		}
+
+		if r.URL.Path == "/oauth/signout" {
+			http.SetCookie(w, &http.Cookie{
+				Name:     "smallweb_jwt",
 				Secure:   true,
 				HttpOnly: true,
 				Path:     "/",
@@ -484,7 +501,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if r.URL.Path == "/_auth/callback" {
+		if r.URL.Path == "/oauth/callback" {
 			cookie, err := r.Cookie("oauth_state")
 			if err != nil {
 				http.Error(w, "state cookie not found", http.StatusUnauthorized)
@@ -492,7 +509,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			http.SetCookie(w, &http.Cookie{
-				Name:     "oauth_state",
+				Name:     "oauth_session",
 				Secure:   true,
 				HttpOnly: true,
 				Path:     "/",
@@ -546,7 +563,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			http.SetCookie(w, &http.Cookie{
-				Name:     "auth_token",
+				Name:     "smallweb_jwt",
 				Value:    string(signedToken),
 				Secure:   true,
 				MaxAge:   7 * 24 * 60 * 60,
@@ -559,21 +576,9 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cookie, err := r.Cookie("auth_token")
+		cookie, err := r.Cookie("smallweb_jwt")
 		if err != nil {
-			state := rand.Text()
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     "oauth_state",
-				Secure:   true,
-				Path:     "/",
-				HttpOnly: true,
-				MaxAge:   10 * 60,
-				SameSite: http.SameSiteLaxMode,
-				Value:    state,
-			})
-
-			http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -599,24 +604,24 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to parse token: %v", err), http.StatusUnauthorized)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
 			return
 		}
 
 		if !token.Valid {
-			http.Error(w, "invalid token", http.StatusUnauthorized)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			http.Error(w, "invalid claims", http.StatusUnauthorized)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
 			return
 		}
 
 		email, ok := claims["sub"].(string)
 		if !ok {
-			http.Error(w, "invalid email", http.StatusUnauthorized)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
 			return
 		}
 
