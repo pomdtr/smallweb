@@ -190,7 +190,17 @@ func NewCmdUp() *cobra.Command {
 					if err != nil {
 						return fmt.Errorf("failed to get home directory: %v", err)
 					}
-					hostKey = filepath.Join(homeDir, ".ssh", "smallweb")
+
+					for _, key := range []string{"id_ed25519", "id_rsa"} {
+						if utils.FileExists(filepath.Join(homeDir, ".ssh", key)) {
+							hostKey = filepath.Join(homeDir, ".ssh", key)
+							break
+						}
+					}
+
+					if hostKey == "" {
+						return fmt.Errorf("failed to find host key")
+					}
 				}
 
 				if !utils.FileExists(hostKey) {
