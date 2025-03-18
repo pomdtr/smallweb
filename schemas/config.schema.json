@@ -3,11 +3,18 @@
     "type": "object",
     "properties": {
         "domain": {
-            "description": "Smallweb name",
+            "description": "Domain name",
             "type": "string"
         },
         "additionalDomains": {
             "description": "Additional wildcard domains",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "authorizedEmails": {
+            "description": "Authorized email addresses",
             "type": "array",
             "items": {
                 "type": "string"
@@ -35,8 +42,19 @@
                     "description": "Give the app admin privileges",
                     "type": "boolean"
                 },
+                "private": {
+                    "description": "Protect the app with authentication",
+                    "type": "boolean"
+                },
                 "additionalDomains": {
                     "description": "Additional app domains",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "authorizedEmails": {
+                    "description": "Authorized email addresses",
                     "type": "array",
                     "items": {
                         "type": "string"

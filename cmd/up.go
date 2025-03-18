@@ -2,7 +2,11 @@ package cmd
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,14 +19,18 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	_ "embed"
 
 	"github.com/caddyserver/certmagic"
+	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/creack/pty"
+	"github.com/golang-jwt/jwt"
 	"github.com/knadh/koanf/providers/file"
+
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 
@@ -30,6 +38,7 @@ import (
 	"github.com/pomdtr/smallweb/sftp"
 	"github.com/pomdtr/smallweb/watcher"
 	gossh "golang.org/x/crypto/ssh"
+	"golang.org/x/oauth2"
 
 	"github.com/pomdtr/smallweb/utils"
 	"github.com/pomdtr/smallweb/worker"
@@ -74,6 +83,27 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
+			sshHostKey := flags.sshHostKey
+			if sshHostKey == "" {
+				homeDir, err := os.UserHomeDir()
+				if err != nil {
+					return fmt.Errorf("failed to get home directory: %v", err)
+				}
+
+				for _, key := range []string{"id_ed25519", "id_rsa"} {
+					if utils.FileExists(filepath.Join(homeDir, ".ssh", key)) {
+						sshHostKey = filepath.Join(homeDir, ".ssh", key)
+						break
+					}
+				}
+
+				if sshHostKey == "" {
+					if _, err := keygen.New(filepath.Join(homeDir, ".ssh", "id_ed25519"), keygen.WithWrite()); err != nil {
+						return fmt.Errorf("failed to generate ssh key: %v", err)
+					}
+				}
+			}
+
 			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
 				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
 				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
@@ -90,9 +120,21 @@ func NewCmdUp() *cobra.Command {
 			go watcher.Start()
 			defer watcher.Stop()
 
+			// Read the SSH private key file
+			keyData, err := os.ReadFile(sshHostKey)
+			if err != nil {
+				return fmt.Errorf("failed to read SSH private key: %w", err)
+			}
+
+			privateKey, err := gossh.ParseRawPrivateKey(keyData)
+			if err != nil {
+				return fmt.Errorf("failed to parse SSH private key: %w", err)
+			}
+
 			handler := &Handler{
-				watcher: watcher,
-				workers: make(map[string]*worker.Worker),
+				watcher:    watcher,
+				privateKey: privateKey,
+				workers:    make(map[string]*worker.Worker),
 			}
 
 			if flags.onDemandTLS {
@@ -183,28 +225,9 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			if flags.sshAddr != "" {
-				hostKey := flags.sshHostKey
-				if hostKey == "" {
-					homeDir, err := os.UserHomeDir()
-					if err != nil {
-						return fmt.Errorf("failed to get home directory: %v", err)
-					}
-
-					for _, key := range []string{"id_ed25519", "id_rsa"} {
-						if utils.FileExists(filepath.Join(homeDir, ".ssh", key)) {
-							hostKey = filepath.Join(homeDir, ".ssh", key)
-							break
-						}
-					}
-
-					if hostKey == "" {
-						return fmt.Errorf("failed to find host key")
-					}
-				}
-
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
-					wish.WithHostKeyPath(hostKey),
+					wish.WithHostKeyPath(sshHostKey),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
 						authorizedKeys := k.Strings("authorizedKeys")
 						if ctx.User() != "_" {
@@ -391,9 +414,14 @@ func getListener(addr string, config *tls.Config) (net.Listener, error) {
 }
 
 type Handler struct {
-	watcher *watcher.Watcher
-	mu      sync.Mutex
-	workers map[string]*worker.Worker
+	watcher    *watcher.Watcher
+	mu         sync.Mutex
+	workers    map[string]*worker.Worker
+	privateKey any
+}
+
+type UserInfo struct {
+	Email string `json:"email"`
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -419,6 +447,200 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		target.Host = fmt.Sprintf("%s.%s", appname, r.Host)
 		http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 		return
+	}
+
+	isPrivate := k.Bool(fmt.Sprintf("apps.%s.private", appname))
+	if isPrivate {
+		if !k.Exists("auth") {
+			http.Error(w, "auth not configured", http.StatusInternalServerError)
+			return
+		}
+
+		r.Header.Set("Remote-Email", "")
+		oauthConfig := &oauth2.Config{
+			ClientID:    fmt.Sprintf("https://%s", r.Host),
+			Scopes:      []string{"email"},
+			RedirectURL: fmt.Sprintf("https://%s/_auth/callback", r.Host),
+			Endpoint: oauth2.Endpoint{
+				TokenURL: k.String("auth.tokenEndpoint"),
+				AuthURL:  k.String("auth.authorizationEndpoint"),
+			},
+		}
+
+		if r.URL.Path == "/_auth/logout" {
+			http.SetCookie(w, &http.Cookie{
+				Name:     "auth_token",
+				Secure:   true,
+				HttpOnly: true,
+				Path:     "/",
+				MaxAge:   -1,
+			})
+
+			http.Redirect(w, r, fmt.Sprintf("https://%s/", r.Host), http.StatusTemporaryRedirect)
+			return
+		}
+
+		if r.URL.Path == "/_auth/callback" {
+			cookie, err := r.Cookie("oauth_state")
+			if err != nil {
+				http.Error(w, "state cookie not found", http.StatusUnauthorized)
+				return
+			}
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "oauth_state",
+				Secure:   true,
+				HttpOnly: true,
+				Path:     "/",
+				MaxAge:   -1,
+			})
+
+			if cookie.Value != r.URL.Query().Get("state") {
+				http.Error(w, "invalid state", http.StatusUnauthorized)
+				return
+			}
+
+			code := r.URL.Query().Get("code")
+			if code == "" {
+				http.Error(w, "code not found", http.StatusBadRequest)
+				return
+			}
+
+			oauthToken, err := oauthConfig.Exchange(r.Context(), code)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to exchange code: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			resp, err := oauthConfig.Client(r.Context(), oauthToken).Get(k.String("auth.userinfoEndpoint"))
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to get userinfo: %v", err), http.StatusInternalServerError)
+				return
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				http.Error(w, fmt.Sprintf("failed to get userinfo: %s", resp.Status), resp.StatusCode)
+				return
+			}
+
+			decoder := json.NewDecoder(resp.Body)
+
+			var userInfo UserInfo
+			if err := decoder.Decode(&userInfo); err != nil {
+				http.Error(w, fmt.Sprintf("failed to decode userinfo: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			var signingMethod jwt.SigningMethod
+			var privateKey interface{}
+			switch key := me.privateKey.(type) {
+			case *rsa.PrivateKey:
+				signingMethod = jwt.SigningMethodRS256
+				privateKey = key
+			case *ed25519.PrivateKey:
+				signingMethod = jwt.SigningMethodEdDSA
+				privateKey = *key
+			default:
+				http.Error(w, "unsupported key type", http.StatusInternalServerError)
+				return
+			}
+
+			token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
+				"email": userInfo.Email,
+				"aud":   fmt.Sprintf("https://%s", r.Host),
+				"iat":   time.Now().Unix(),
+				"exp":   time.Now().Add(7 * 24 * time.Hour).Unix(),
+				"iss":   k.String("domain"),
+			})
+
+			signedToken, err := token.SignedString(privateKey)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to sign token: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "auth_token",
+				Value:    string(signedToken),
+				Secure:   true,
+				MaxAge:   7 * 24 * 60 * 60,
+				Path:     "/",
+				HttpOnly: true,
+				SameSite: http.SameSiteLaxMode,
+			})
+
+			http.Redirect(w, r, fmt.Sprintf("https://%s/", r.Host), http.StatusTemporaryRedirect)
+			return
+		}
+
+		cookie, err := r.Cookie("auth_token")
+		if err != nil {
+			state := rand.Text()
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "oauth_state",
+				Secure:   true,
+				Path:     "/",
+				HttpOnly: true,
+				MaxAge:   10 * 60,
+				SameSite: http.SameSiteLaxMode,
+				Value:    state,
+			})
+
+			http.Redirect(w, r, oauthConfig.AuthCodeURL(state), http.StatusTemporaryRedirect)
+			return
+		}
+
+		token, err := jwt.Parse(cookie.Value, func(t *jwt.Token) (interface{}, error) {
+			var signinMethod jwt.SigningMethod
+			var publicKey interface{}
+			switch key := me.privateKey.(type) {
+			case *rsa.PrivateKey:
+				signinMethod = jwt.SigningMethodRS256
+				publicKey = key.Public()
+			case *ed25519.PrivateKey:
+				signinMethod = jwt.SigningMethodEdDSA
+				publicKey = key.Public()
+			default:
+				return nil, fmt.Errorf("unsupported key type")
+			}
+
+			if t.Method != signinMethod {
+				return nil, fmt.Errorf("unexpected signing method")
+			}
+
+			return publicKey, nil
+		})
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse token: %v", err), http.StatusUnauthorized)
+			return
+		}
+
+		if !token.Valid {
+			http.Error(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			http.Error(w, "invalid claims", http.StatusUnauthorized)
+			return
+		}
+
+		email, ok := claims["email"].(string)
+		if !ok {
+			http.Error(w, "invalid email", http.StatusUnauthorized)
+			return
+		}
+
+		if !slices.Contains(k.Strings("authorizedEmails"), email) && !slices.Contains(k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname)), email) {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		r.Header.Set("Remote-Email", email)
 	}
 
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))

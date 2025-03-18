@@ -1,8 +1,13 @@
 {
     "$schema": "../../schemas/config.schema.json",
     "domain": "smallweb.localhost",
-    "additionalDomains": [
-        "custom-domain.localhost"
+    "auth": {
+        "authorizationEndpoint": "https://lastlogin.net/auth",
+        "tokenEndpoint": "https://lastlogin.net/token",
+        "userinfoEndpoint": "https://lastlogin.net/userinfo"
+    },
+    "authorizedEmails": [
+        "achille.lacoin@gmail.com"
     ],
     "authorizedKeys": [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJW+GQk0KCvSreL+y3AZdtCu82+13E2eEled+sGRkIEv"
@@ -10,9 +15,13 @@
     "apps": {
         "ls": {
             "admin": true,
+            "private": true,
             "additionalDomains": [
                 "custom-domain.localhost"
             ]
+        },
+        "echo": {
+            "private": true
         }
     }
 }
