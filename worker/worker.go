@@ -48,7 +48,6 @@ func commandEnv(a app.App) []string {
 
 	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
 	env = append(env, "DENO_NO_UPDATE_CHECK=1")
-	env = append(env, fmt.Sprintf("DENO_DIR=%s", filepath.Join(xdg.CacheHome, "smallweb", "deno")))
 
 	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
 	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", a.RootDir))
