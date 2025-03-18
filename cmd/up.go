@@ -6,6 +6,8 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -430,6 +432,11 @@ type Handler struct {
 	provider   *oidc.Provider
 }
 
+type AuthData struct {
+	State      string `json:"state"`
+	SuccessURL string `json:"success_url"`
+}
+
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hostname, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
@@ -472,16 +479,36 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if r.URL.Path == "/oauth/signin" {
-			state := rand.Text()
+			var successURL string
+			if param := r.URL.Query().Get("success_url"); param != "" {
+				successURL = fmt.Sprintf("https://%s%s", r.Host, param)
+			} else if r.Header.Get("Referer") != "" {
+				successURL = r.Header.Get("Referer")
+			} else {
+				successURL = fmt.Sprintf("https://%s/", r.Host)
+			}
 
+			state := rand.Text()
+			authData := AuthData{
+				State:      state,
+				SuccessURL: successURL,
+			}
+
+			// Marshal the struct to JSON
+			jsonData, err := json.Marshal(authData)
+			if err != nil {
+				http.Error(w, "Server error", http.StatusInternalServerError)
+				return
+			}
+
+			encodedData := base64.StdEncoding.EncodeToString(jsonData)
 			http.SetCookie(w, &http.Cookie{
-				Name:     "oauth_state",
+				Name:     "oauth_data",
+				Value:    encodedData,
 				Secure:   true,
-				Path:     "/",
 				HttpOnly: true,
-				MaxAge:   10 * 60,
+				MaxAge:   5 * 60,
 				SameSite: http.SameSiteLaxMode,
-				Value:    state,
 			})
 
 			http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusTemporaryRedirect)
@@ -497,26 +524,47 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				MaxAge:   -1,
 			})
 
-			http.Redirect(w, r, fmt.Sprintf("https://%s/", r.Host), http.StatusTemporaryRedirect)
+			var successUrl string
+			if param := r.URL.Query().Get("success_url"); param != "" {
+				successUrl = fmt.Sprintf("https://%s%s", r.Host, param)
+			} else if r.Header.Get("Referer") != "" {
+				successUrl = r.Header.Get("Referer")
+			} else {
+				successUrl = fmt.Sprintf("https://%s/", r.Host)
+			}
+
+			http.Redirect(w, r, successUrl, http.StatusTemporaryRedirect)
 			return
 		}
 
 		if r.URL.Path == "/oauth/callback" {
-			cookie, err := r.Cookie("oauth_state")
+			authCookie, err := r.Cookie("oauth_data")
 			if err != nil {
 				http.Error(w, "state cookie not found", http.StatusUnauthorized)
 				return
 			}
 
 			http.SetCookie(w, &http.Cookie{
-				Name:     "oauth_session",
+				Name:     "oauth_data",
 				Secure:   true,
 				HttpOnly: true,
 				Path:     "/",
 				MaxAge:   -1,
 			})
 
-			if cookie.Value != r.URL.Query().Get("state") {
+			decodedData, err := base64.StdEncoding.DecodeString(authCookie.Value)
+			if err != nil {
+				http.Error(w, "failed to decode state cookie", http.StatusUnauthorized)
+				return
+			}
+
+			var authData AuthData
+			if err := json.Unmarshal(decodedData, &authData); err != nil {
+				http.Error(w, "failed to unmarshal state cookie", http.StatusUnauthorized)
+				return
+			}
+
+			if authData.State != r.URL.Query().Get("state") {
 				http.Error(w, "invalid state", http.StatusUnauthorized)
 				return
 			}
@@ -549,7 +597,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
 				"sub": userinfo.Email,
-				"aud": fmt.Sprintf("https://%s", r.Host),
+				"aud": r.Host,
 				"iat": time.Now().Unix(),
 				"nbf": time.Now().Unix(),
 				"exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
@@ -572,13 +620,13 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				SameSite: http.SameSiteLaxMode,
 			})
 
-			http.Redirect(w, r, fmt.Sprintf("https://%s/", r.Host), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, authData.SuccessURL, http.StatusTemporaryRedirect)
 			return
 		}
 
 		cookie, err := r.Cookie("smallweb_jwt")
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -604,24 +652,24 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
 		if !token.Valid {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
 		email, ok := claims["sub"].(string)
 		if !ok {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin", r.Host), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
