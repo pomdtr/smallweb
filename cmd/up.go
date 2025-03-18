@@ -85,24 +85,16 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("failed to get home directory: %v", err)
+			}
+
 			sshHostKey := flags.sshHostKey
-			if sshHostKey == "" {
-				homeDir, err := os.UserHomeDir()
-				if err != nil {
-					return fmt.Errorf("failed to get home directory: %v", err)
-				}
-
-				for _, key := range []string{"id_ed25519", "id_rsa"} {
-					if utils.FileExists(filepath.Join(homeDir, ".ssh", key)) {
-						sshHostKey = filepath.Join(homeDir, ".ssh", key)
-						break
-					}
-				}
-
-				if sshHostKey == "" {
-					if _, err := keygen.New(filepath.Join(homeDir, ".ssh", "id_ed25519"), keygen.WithWrite()); err != nil {
-						return fmt.Errorf("failed to generate ssh key: %v", err)
-					}
+			if flags.sshHostKey == "" {
+				sshHostKey = filepath.Join(homeDir, ".ssh", "smallweb", "ed25519")
+				if _, err := keygen.New(sshHostKey, keygen.WithWrite()); err != nil {
+					return fmt.Errorf("failed to generate ssh host key: %v", err)
 				}
 			}
 
