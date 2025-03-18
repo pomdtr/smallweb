@@ -462,7 +462,6 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		r.Header.Set("Remote-Email", "")
 		clientID := fmt.Sprintf("https://%s", r.Host)
 		oauth2Config := &oauth2.Config{
 			ClientID:    clientID,
@@ -614,7 +613,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		email, ok := claims["email"].(string)
+		email, ok := claims["sub"].(string)
 		if !ok {
 			http.Error(w, "invalid email", http.StatusUnauthorized)
 			return
@@ -624,8 +623,6 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-
-		r.Header.Set("Remote-Email", email)
 	}
 
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
