@@ -455,6 +455,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Header.Del("X-Smallweb-Email")
 	isPrivate := k.Bool(fmt.Sprintf("apps.%s.private", appname))
 	if isPrivate {
 		if me.provider == nil {
@@ -623,6 +624,8 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
+
+		r.Header.Set("X-Smallweb-Email", email)
 	}
 
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
