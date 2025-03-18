@@ -17,9 +17,6 @@
             "additionalDomains": [
                 "custom-domain.localhost"
             ]
-        },
-        "echo": {
-            "private": true
         }
     }
 }
