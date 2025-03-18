@@ -20,7 +20,7 @@ require (
 
 require (
 	github.com/caddyserver/certmagic v0.22.0
-	github.com/charmbracelet/log v0.4.0
+	github.com/charmbracelet/log v0.4.1
 	github.com/charmbracelet/ssh v0.0.0-20250213143314-8712ec3ff3ef
 	github.com/charmbracelet/wish v1.4.6
 	github.com/cli/browser v1.3.0
@@ -29,7 +29,7 @@ require (
 	github.com/getsops/sops/v3 v3.9.4
 	github.com/knadh/koanf/providers/posflag v0.1.0
 	github.com/leaanthony/gosod v1.0.4
-	github.com/pkg/sftp v1.13.7
+	github.com/pkg/sftp v1.13.8
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/crypto v0.36.0
 )
