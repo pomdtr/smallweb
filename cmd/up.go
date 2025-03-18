@@ -19,7 +19,6 @@ import (
 	_ "embed"
 
 	"github.com/caddyserver/certmagic"
-	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/creack/pty"
@@ -200,13 +199,6 @@ func NewCmdUp() *cobra.Command {
 
 					if hostKey == "" {
 						return fmt.Errorf("failed to find host key")
-					}
-				}
-
-				if !utils.FileExists(hostKey) {
-					_, err := keygen.New(hostKey, keygen.WithWrite())
-					if err != nil {
-						return fmt.Errorf("failed to generate host key: %v", err)
 					}
 				}
 
