@@ -1,11 +1,9 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "domain": "smallweb.localhost",
-    "auth": {
-        "authorizationEndpoint": "https://lastlogin.net/auth",
-        "tokenEndpoint": "https://lastlogin.net/token",
-        "userinfoEndpoint": "https://lastlogin.net/userinfo"
+    "oidc": {
+        "issuer": "https://lastlogin.net"
     },
+    "domain": "smallweb.localhost",
     "authorizedEmails": [
         "achille.lacoin@gmail.com"
     ],

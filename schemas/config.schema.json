@@ -2,6 +2,19 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
+        "oidc": {
+            "type": "object",
+            "description": "OpenID Connect configuration",
+            "required": [
+                "issuer"
+            ],
+            "properties": {
+                "issuer": {
+                    "description": "OpenID Connect issuer",
+                    "type": "string"
+                }
+            }
+        },
         "domain": {
             "description": "Domain name",
             "type": "string"

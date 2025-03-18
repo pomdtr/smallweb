@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -27,6 +26,7 @@ import (
 	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/creack/pty"
 	"github.com/golang-jwt/jwt"
 	"github.com/knadh/koanf/providers/file"
@@ -135,6 +135,15 @@ func NewCmdUp() *cobra.Command {
 				watcher:    watcher,
 				privateKey: privateKey,
 				workers:    make(map[string]*worker.Worker),
+			}
+
+			if issuer := k.String("oidc.issuer"); issuer != "" {
+				provider, err := oidc.NewProvider(context.Background(), issuer)
+				if err != nil {
+					return fmt.Errorf("failed to create oidc provider: %v", err)
+				}
+
+				handler.provider = provider
 			}
 
 			if flags.onDemandTLS {
@@ -418,10 +427,7 @@ type Handler struct {
 	mu         sync.Mutex
 	workers    map[string]*worker.Worker
 	privateKey any
-}
-
-type UserInfo struct {
-	Email string `json:"email"`
+	provider   *oidc.Provider
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -451,20 +457,18 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	isPrivate := k.Bool(fmt.Sprintf("apps.%s.private", appname))
 	if isPrivate {
-		if !k.Exists("auth") {
+		if me.provider == nil {
 			http.Error(w, "auth not configured", http.StatusInternalServerError)
 			return
 		}
 
 		r.Header.Set("Remote-Email", "")
-		oauthConfig := &oauth2.Config{
-			ClientID:    fmt.Sprintf("https://%s", r.Host),
-			Scopes:      []string{"email"},
+		clientID := fmt.Sprintf("https://%s", r.Host)
+		oauth2Config := &oauth2.Config{
+			ClientID:    clientID,
+			Scopes:      []string{"openid", "email", "profile"},
 			RedirectURL: fmt.Sprintf("https://%s/_auth/callback", r.Host),
-			Endpoint: oauth2.Endpoint{
-				TokenURL: k.String("auth.tokenEndpoint"),
-				AuthURL:  k.String("auth.authorizationEndpoint"),
-			},
+			Endpoint:    me.provider.Endpoint(),
 		}
 
 		if r.URL.Path == "/_auth/logout" {
@@ -500,35 +504,15 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			code := r.URL.Query().Get("code")
-			if code == "" {
-				http.Error(w, "code not found", http.StatusBadRequest)
-				return
-			}
-
-			oauthToken, err := oauthConfig.Exchange(r.Context(), code)
+			oauthToken, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
 			if err != nil {
 				http.Error(w, fmt.Sprintf("failed to exchange code: %v", err), http.StatusInternalServerError)
 				return
 			}
 
-			resp, err := oauthConfig.Client(r.Context(), oauthToken).Get(k.String("auth.userinfoEndpoint"))
+			userinfo, err := me.provider.UserInfo(r.Context(), oauth2Config.TokenSource(r.Context(), oauthToken))
 			if err != nil {
 				http.Error(w, fmt.Sprintf("failed to get userinfo: %v", err), http.StatusInternalServerError)
-				return
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				http.Error(w, fmt.Sprintf("failed to get userinfo: %s", resp.Status), resp.StatusCode)
-				return
-			}
-
-			decoder := json.NewDecoder(resp.Body)
-
-			var userInfo UserInfo
-			if err := decoder.Decode(&userInfo); err != nil {
-				http.Error(w, fmt.Sprintf("failed to decode userinfo: %v", err), http.StatusInternalServerError)
 				return
 			}
 
@@ -547,11 +531,12 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
-				"email": userInfo.Email,
-				"aud":   fmt.Sprintf("https://%s", r.Host),
-				"iat":   time.Now().Unix(),
-				"exp":   time.Now().Add(7 * 24 * time.Hour).Unix(),
-				"iss":   k.String("domain"),
+				"sub": userinfo.Email,
+				"aud": fmt.Sprintf("https://%s", r.Host),
+				"iat": time.Now().Unix(),
+				"nbf": time.Now().Unix(),
+				"exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
+				"iss": k.String("domain"),
 			})
 
 			signedToken, err := token.SignedString(privateKey)
@@ -588,7 +573,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Value:    state,
 			})
 
-			http.Redirect(w, r, oauthConfig.AuthCodeURL(state), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusTemporaryRedirect)
 			return
 		}
 
