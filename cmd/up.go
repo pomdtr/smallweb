@@ -433,8 +433,9 @@ type Handler struct {
 }
 
 type AuthData struct {
-	State      string `json:"state"`
-	SuccessURL string `json:"success_url"`
+	State        string `json:"state"`
+	SuccessURL   string `json:"success_url"`
+	CodeVerifier string `json:"code_verifier"`
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -489,9 +490,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			state := rand.Text()
+			verifier := oauth2.GenerateVerifier()
 			authData := AuthData{
-				State:      state,
-				SuccessURL: successURL,
+				State:        state,
+				SuccessURL:   successURL,
+				CodeVerifier: verifier,
 			}
 
 			// Marshal the struct to JSON
@@ -511,7 +514,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				SameSite: http.SameSiteLaxMode,
 			})
 
-			http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, oauth2Config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier)), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -569,7 +572,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			oauthToken, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
+			oauthToken, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(authData.CodeVerifier))
 			if err != nil {
 				http.Error(w, fmt.Sprintf("failed to exchange code: %v", err), http.StatusInternalServerError)
 				return
