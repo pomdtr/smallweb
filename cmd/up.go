@@ -613,7 +613,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				"iat":   time.Now().Unix(),
 				"exp":   time.Now().Add(30 * 24 * time.Hour).Unix(),
 				"iss":   fmt.Sprintf("https://%s", k.String("domain")),
-				"aud":   []string{clientID},
+				"aud":   clientID,
 			})
 
 			signedToken, err := token.SignedString(privateKey)
