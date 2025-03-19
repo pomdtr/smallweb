@@ -661,7 +661,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			return publicKey, nil
-		}, jwt.WithIssuer(clientID), jwt.WithExpirationRequired(), jwt.WithIssuedAt())
+		}, jwt.WithIssuer(k.String("domain")), jwt.WithAudience(clientID), jwt.WithExpirationRequired(), jwt.WithIssuedAt())
 
 		if err != nil {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
