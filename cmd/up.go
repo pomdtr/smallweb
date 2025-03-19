@@ -591,12 +591,14 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
-				"sub": userinfo.Email,
-				"aud": r.Host,
-				"iat": time.Now().Unix(),
-				"nbf": time.Now().Unix(),
-				"exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
-				"iss": k.String("domain"),
+				"sub":            userinfo.Email,
+				"email":          userinfo.Email,
+				"email_verified": userinfo.EmailVerified,
+				"aud":            []string{clientID},
+				"iat":            time.Now().Unix(),
+				"nbf":            time.Now().Unix(),
+				"exp":            time.Now().Add(7 * 24 * time.Hour).Unix(),
+				"iss":            k.String("domain"),
 			})
 
 			signedToken, err := token.SignedString(privateKey)
