@@ -25,7 +25,6 @@ import (
 	_ "embed"
 
 	"github.com/caddyserver/certmagic"
-	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -85,34 +84,24 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			homeDir, err := os.UserHomeDir()
-			if err != nil {
-				return fmt.Errorf("failed to get home directory: %v", err)
-			}
-
 			sshHostKey := flags.sshHostKey
 			if flags.sshHostKey == "" {
-				sshHostKey = filepath.Join(homeDir, ".ssh", "smallweb", "ed25519")
-				if _, err := keygen.New(sshHostKey, keygen.WithWrite()); err != nil {
-					return fmt.Errorf("failed to generate ssh host key: %v", err)
+				homeDir, err := os.UserHomeDir()
+				if err != nil {
+					return fmt.Errorf("failed to get home directory: %v", err)
+				}
+
+				for _, keyType := range []string{"id_rsa", "id_ed25519"} {
+					if _, err := os.Stat(filepath.Join(homeDir, ".ssh", keyType)); err == nil {
+						sshHostKey = filepath.Join(homeDir, ".ssh", keyType)
+						break
+					}
+				}
+
+				if sshHostKey == "" {
+					return fmt.Errorf("no SSH private key found")
 				}
 			}
-
-			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
-				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
-				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
-
-				k = koanf.New(".")
-				_ = k.Load(fileProvider, utils.ConfigParser())
-				_ = k.Load(envProvider, nil)
-				_ = k.Load(flagProvider, nil)
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create watcher: %v", err)
-			}
-
-			go watcher.Start()
-			defer watcher.Stop()
 
 			// Read the SSH private key file
 			keyData, err := os.ReadFile(sshHostKey)
@@ -126,10 +115,33 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			handler := &Handler{
-				watcher:    watcher,
 				privateKey: privateKey,
 				workers:    make(map[string]*worker.Worker),
 			}
+			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
+				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
+				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
+
+				k = koanf.New(".")
+				_ = k.Load(fileProvider, utils.ConfigParser())
+				_ = k.Load(envProvider, nil)
+				_ = k.Load(flagProvider, nil)
+				// reload oidc provider on config change
+				if issuer := k.String("oidc.issuer"); issuer != "" {
+					handler.provider, err = oidc.NewProvider(context.Background(), issuer)
+					if err != nil {
+						fmt.Fprintf(cmd.ErrOrStderr(), "failed to create oidc provider: %v\n", err)
+						return
+					}
+				}
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create watcher: %v", err)
+			}
+
+			handler.watcher = watcher
+			go watcher.Start()
+			defer watcher.Stop()
 
 			if issuer := k.String("oidc.issuer"); issuer != "" {
 				provider, err := oidc.NewProvider(context.Background(), issuer)
@@ -595,7 +607,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				"email":          userinfo.Email,
 				"email_verified": userinfo.EmailVerified,
 				"iat":            time.Now().Unix(),
-				"exp":            time.Now().Add(7 * 24 * time.Hour).Unix(),
+				"exp":            time.Now().Add(30 * 24 * time.Hour).Unix(),
 				"iss":            clientID,
 			})
 
@@ -609,7 +621,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Name:     "smallweb_jwt",
 				Value:    string(signedToken),
 				Secure:   true,
-				MaxAge:   7 * 24 * 60 * 60,
+				MaxAge:   30 * 24 * 60 * 60,
 				Path:     "/",
 				HttpOnly: true,
 				SameSite: http.SameSiteLaxMode,
@@ -654,6 +666,44 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !token.Valid {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
+		}
+
+		expTime, err := token.Claims.GetExpirationTime()
+		if err != nil {
+			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+			return
+		}
+
+		// refresh token if it expires in 15 days
+		if time.Now().Add(15 * 24 * time.Hour).After(expTime.Time) {
+			token.Claims.(jwt.MapClaims)["exp"] = time.Now().Add(30 * 24 * time.Hour).Unix()
+			token.Claims.(jwt.MapClaims)["iat"] = time.Now().Unix()
+			var privateKey interface{}
+			switch key := me.privateKey.(type) {
+			case *rsa.PrivateKey:
+				privateKey = key
+			case *ed25519.PrivateKey:
+				privateKey = *key
+			default:
+				http.Error(w, "unsupported key type", http.StatusInternalServerError)
+				return
+			}
+
+			token.Raw, err = token.SignedString(privateKey)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to sign token: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "smallweb_jwt",
+				Value:    token.Raw,
+				MaxAge:   30 * 24 * 60 * 60,
+				Secure:   true,
+				HttpOnly: true,
+				Path:     "/",
+				SameSite: http.SameSiteLaxMode,
+			})
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
