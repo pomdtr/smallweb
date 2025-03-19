@@ -619,13 +619,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
-				"sub":    claims.Email,
-				"email":  claims.Email,
-				"iat":    time.Now().Unix(),
-				"exp":    time.Now().Add(24 * time.Hour).Unix(),
-				"aud":    clientID,
-				"rtk":    oauth2Token.RefreshToken,
-				"rtkexp": oauth2Token.Expiry.Unix(),
+				"sub":   claims.Email,
+				"email": claims.Email,
+				"iat":   time.Now().Unix(),
+				"exp":   time.Now().Add(24 * time.Hour).Unix(),
+				"aud":   clientID,
 			})
 
 			signedToken, err := token.SignedString(privateKey)
