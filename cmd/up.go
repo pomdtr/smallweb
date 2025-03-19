@@ -92,27 +92,27 @@ func NewCmdUp() *cobra.Command {
 						break
 					}
 				}
-
-				if sshPrivateKey == "" {
-					return fmt.Errorf("no SSH private key found")
-				}
-			}
-
-			// Read the SSH private key file
-			keyData, err := os.ReadFile(sshPrivateKey)
-			if err != nil {
-				return fmt.Errorf("failed to read SSH private key: %w", err)
-			}
-
-			privateKey, err := gossh.ParseRawPrivateKey(keyData)
-			if err != nil {
-				return fmt.Errorf("failed to parse SSH private key: %w", err)
 			}
 
 			handler := &Handler{
-				privateKey: privateKey,
-				workers:    make(map[string]*worker.Worker),
+				workers: make(map[string]*worker.Worker),
 			}
+
+			if sshPrivateKey != "" {
+				// Read the SSH private key file
+				keyData, err := os.ReadFile(sshPrivateKey)
+				if err != nil {
+					return fmt.Errorf("failed to read SSH private key: %w", err)
+				}
+
+				privateKey, err := gossh.ParseRawPrivateKey(keyData)
+				if err != nil {
+					return fmt.Errorf("failed to parse SSH private key: %w", err)
+				}
+
+				handler.privateKey = privateKey
+			}
+
 			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
 				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
 				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
@@ -123,11 +123,13 @@ func NewCmdUp() *cobra.Command {
 				_ = k.Load(flagProvider, nil)
 				// reload oidc provider on config change
 				if issuer := k.String("oidc.issuer"); issuer != "" {
-					handler.provider, err = oidc.NewProvider(context.Background(), issuer)
+					provider, err := oidc.NewProvider(context.Background(), issuer)
 					if err != nil {
 						fmt.Fprintf(cmd.ErrOrStderr(), "failed to create oidc provider: %v\n", err)
 						return
 					}
+
+					handler.provider = provider
 				}
 			})
 			if err != nil {
@@ -383,7 +385,6 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
 	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-private-key", "", "ssh private key")
 	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-host-key", "", "ssh host key")
-	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().StringVar(&flags.apiAddr, "api-addr", "", "address to listen on for api")
