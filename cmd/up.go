@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"context"
-	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -20,7 +18,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"time"
 
 	_ "embed"
 
@@ -30,7 +27,6 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/creack/pty"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/knadh/koanf/providers/file"
 
 	"github.com/knadh/koanf/providers/posflag"
@@ -97,6 +93,10 @@ func NewCmdUp() *cobra.Command {
 					return fmt.Errorf("failed to generate ssh host key: %v", err)
 				}
 			}
+			handler := &Handler{
+				workers:   make(map[string]*worker.Worker),
+				verifiers: make(map[string]*oidc.IDTokenVerifier),
+			}
 
 			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
 				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
@@ -106,30 +106,26 @@ func NewCmdUp() *cobra.Command {
 				_ = k.Load(fileProvider, utils.ConfigParser())
 				_ = k.Load(envProvider, nil)
 				_ = k.Load(flagProvider, nil)
+
+				// reload oidc provider on config change
+				if issuer := k.String("oidc.issuer"); issuer != "" {
+					handler.provider, err = oidc.NewProvider(context.Background(), issuer)
+					if err != nil {
+						fmt.Fprintf(cmd.ErrOrStderr(), "failed to create oidc provider: %v\n", err)
+						return
+					}
+
+					handler.verifiers = make(map[string]*oidc.IDTokenVerifier)
+				}
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create watcher: %v", err)
 			}
 
+			handler.watcher = watcher
+
 			go watcher.Start()
 			defer watcher.Stop()
-
-			// Read the SSH private key file
-			keyData, err := os.ReadFile(sshHostKey)
-			if err != nil {
-				return fmt.Errorf("failed to read SSH private key: %w", err)
-			}
-
-			privateKey, err := gossh.ParseRawPrivateKey(keyData)
-			if err != nil {
-				return fmt.Errorf("failed to parse SSH private key: %w", err)
-			}
-
-			handler := &Handler{
-				watcher:    watcher,
-				privateKey: privateKey,
-				workers:    make(map[string]*worker.Worker),
-			}
 
 			if issuer := k.String("oidc.issuer"); issuer != "" {
 				provider, err := oidc.NewProvider(context.Background(), issuer)
@@ -417,11 +413,11 @@ func getListener(addr string, config *tls.Config) (net.Listener, error) {
 }
 
 type Handler struct {
-	watcher    *watcher.Watcher
-	mu         sync.Mutex
-	workers    map[string]*worker.Worker
-	privateKey any
-	provider   *oidc.Provider
+	watcher   *watcher.Watcher
+	mu        sync.Mutex
+	workers   map[string]*worker.Worker
+	provider  *oidc.Provider
+	verifiers map[string]*oidc.IDTokenVerifier
 }
 
 type AuthData struct {
@@ -471,6 +467,12 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Endpoint:    me.provider.Endpoint(),
 		}
 
+		verifier, ok := me.verifiers[clientID]
+		if !ok {
+			verifier = me.provider.Verifier(&oidc.Config{ClientID: clientID})
+			me.verifiers[clientID] = verifier
+		}
+
 		if r.URL.Path == "/oauth/signin" {
 			var successURL string
 			if param := r.URL.Query().Get("success_url"); param != "" {
@@ -512,7 +514,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if r.URL.Path == "/oauth/signout" {
 			http.SetCookie(w, &http.Cookie{
-				Name:     "smallweb_jwt",
+				Name:     "oidc_token",
 				Secure:   true,
 				HttpOnly: true,
 				Path:     "/",
@@ -564,52 +566,29 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			oauthToken, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(authData.CodeVerifier))
+			oauth2Token, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(authData.CodeVerifier))
 			if err != nil {
 				http.Error(w, fmt.Sprintf("failed to exchange code: %v", err), http.StatusInternalServerError)
 				return
 			}
 
-			userinfo, err := me.provider.UserInfo(r.Context(), oauth2Config.TokenSource(r.Context(), oauthToken))
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to get userinfo: %v", err), http.StatusInternalServerError)
+			rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+			if !ok {
+				http.Error(w, "failed to get id token", http.StatusInternalServerError)
 				return
 			}
 
-			var signingMethod jwt.SigningMethod
-			var privateKey interface{}
-			switch key := me.privateKey.(type) {
-			case *rsa.PrivateKey:
-				signingMethod = jwt.SigningMethodRS256
-				privateKey = key
-			case *ed25519.PrivateKey:
-				signingMethod = jwt.SigningMethodEdDSA
-				privateKey = *key
-			default:
-				http.Error(w, "unsupported key type", http.StatusInternalServerError)
-				return
-			}
-
-			token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
-				"sub":            userinfo.Email,
-				"email":          userinfo.Email,
-				"email_verified": userinfo.EmailVerified,
-				"iat":            time.Now().Unix(),
-				"exp":            time.Now().Add(7 * 24 * time.Hour).Unix(),
-				"iss":            clientID,
-			})
-
-			signedToken, err := token.SignedString(privateKey)
+			idToken, err := verifier.Verify(r.Context(), rawIDToken)
 			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to sign token: %v", err), http.StatusInternalServerError)
+				http.Error(w, "failed to verify id token", http.StatusInternalServerError)
 				return
 			}
 
 			http.SetCookie(w, &http.Cookie{
-				Name:     "smallweb_jwt",
-				Value:    string(signedToken),
+				Name:     "oidc_token",
+				Value:    string(rawIDToken),
 				Secure:   true,
-				MaxAge:   7 * 24 * 60 * 60,
+				Expires:  idToken.Expiry,
 				Path:     "/",
 				HttpOnly: true,
 				SameSite: http.SameSiteLaxMode,
@@ -619,61 +598,34 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cookie, err := r.Cookie("smallweb_jwt")
+		cookie, err := r.Cookie("oidc_token")
 		if err != nil {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
-		token, err := jwt.Parse(cookie.Value, func(t *jwt.Token) (interface{}, error) {
-			var signinMethod jwt.SigningMethod
-			var publicKey interface{}
-			switch key := me.privateKey.(type) {
-			case *rsa.PrivateKey:
-				signinMethod = jwt.SigningMethodRS256
-				publicKey = key.Public()
-			case *ed25519.PrivateKey:
-				signinMethod = jwt.SigningMethodEdDSA
-				publicKey = key.Public()
-			default:
-				return nil, fmt.Errorf("unsupported key type")
-			}
-
-			if t.Method != signinMethod {
-				return nil, fmt.Errorf("unexpected signing method")
-			}
-
-			return publicKey, nil
-		}, jwt.WithIssuer(clientID), jwt.WithExpirationRequired(), jwt.WithIssuedAt())
-
+		// Parse and verify ID Token payload.
+		idToken, err := verifier.Verify(r.Context(), cookie.Value)
 		if err != nil {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
-		if !token.Valid {
+		var claims struct {
+			Email    string `json:"email"`
+			Verified bool   `json:"email_verified"`
+		}
+		if err := idToken.Claims(&claims); err != nil {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-			return
-		}
-
-		email, ok := claims["email"].(string)
-		if !ok {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-			return
-		}
-
-		if !slices.Contains(k.Strings("authorizedEmails"), email) && !slices.Contains(k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname)), email) {
+		if !slices.Contains(k.Strings("authorizedEmails"), claims.Email) && !slices.Contains(k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname)), claims.Email) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
 
-		r.Header.Set("X-Smallweb-Email", email)
+		r.Header.Set("X-Smallweb-Email", claims.Email)
 	}
 
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
