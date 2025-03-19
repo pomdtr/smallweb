@@ -102,7 +102,7 @@ func (me *Worker) DenoArgs(deno string, method SandboxMethod) []string {
 		"--quiet",
 	}
 
-	npmCache := filepath.Join(xdg.CacheHome, "smallweb", "deno", "npm", "registry.npmjs.org")
+	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
 	if me.App.Admin {
 		args = append(
 			args,
