@@ -612,7 +612,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				"email": userinfo.Email,
 				"iat":   time.Now().Unix(),
 				"exp":   time.Now().Add(30 * 24 * time.Hour).Unix(),
-				"iss":   fmt.Sprintf("https://%s", r.Host),
+				"iss":   fmt.Sprintf("https://%s", k.String("domain")),
 				"aud":   []string{clientID},
 			})
 
