@@ -48,14 +48,14 @@ import (
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
-		enableCrons bool
-		addr        string
-		apiAddr     string
-		sshAddr     string
-		sshHostKey  string
-		tlsCert     string
-		tlsKey      string
-		onDemandTLS bool
+		enableCrons   bool
+		addr          string
+		apiAddr       string
+		sshAddr       string
+		sshPrivateKey string
+		tlsCert       string
+		tlsKey        string
+		onDemandTLS   bool
 	}
 
 	cmd := &cobra.Command{
@@ -66,11 +66,6 @@ func NewCmdUp() *cobra.Command {
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := checkDenoVersion(); err != nil {
 				return err
-			}
-
-			oldCronFlag, _ := cmd.Flags().GetBool("cron")
-			if oldCronFlag {
-				flags.enableCrons = true
 			}
 
 			return nil
@@ -84,8 +79,8 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			sshHostKey := flags.sshHostKey
-			if flags.sshHostKey == "" {
+			sshPrivateKey := flags.sshPrivateKey
+			if flags.sshPrivateKey == "" {
 				homeDir, err := os.UserHomeDir()
 				if err != nil {
 					return fmt.Errorf("failed to get home directory: %v", err)
@@ -93,18 +88,18 @@ func NewCmdUp() *cobra.Command {
 
 				for _, keyType := range []string{"id_rsa", "id_ed25519"} {
 					if _, err := os.Stat(filepath.Join(homeDir, ".ssh", keyType)); err == nil {
-						sshHostKey = filepath.Join(homeDir, ".ssh", keyType)
+						sshPrivateKey = filepath.Join(homeDir, ".ssh", keyType)
 						break
 					}
 				}
 
-				if sshHostKey == "" {
+				if sshPrivateKey == "" {
 					return fmt.Errorf("no SSH private key found")
 				}
 			}
 
 			// Read the SSH private key file
-			keyData, err := os.ReadFile(sshHostKey)
+			keyData, err := os.ReadFile(sshPrivateKey)
 			if err != nil {
 				return fmt.Errorf("failed to read SSH private key: %w", err)
 			}
@@ -242,7 +237,7 @@ func NewCmdUp() *cobra.Command {
 			if flags.sshAddr != "" {
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
-					wish.WithHostKeyPath(sshHostKey),
+					wish.WithHostKeyPath(sshPrivateKey),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
 						authorizedKeys := k.Strings("authorizedKeys")
 						if ctx.User() != "_" {
@@ -386,14 +381,18 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
-	cmd.Flags().StringVar(&flags.sshHostKey, "ssh-host-key", "", "ssh host key")
+	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-private-key", "", "ssh private key")
+	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-host-key", "", "ssh host key")
+	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().StringVar(&flags.apiAddr, "api-addr", "", "address to listen on for api")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
 	cmd.Flags().Bool("cron", false, "enable cron jobs")
-	cmd.Flags().MarkDeprecated("cron", "use --enable-crons instead")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
+
+	cmd.Flags().MarkDeprecated("cron", "use --enable-crons instead")
+	cmd.Flags().MarkDeprecated("ssh-host-key", "use --ssh-private-key instead")
 
 	cmd.MarkFlagsRequiredTogether("tls-cert", "tls-key")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
