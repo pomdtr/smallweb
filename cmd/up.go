@@ -30,7 +30,7 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/creack/pty"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/knadh/koanf/providers/file"
 
 	"github.com/knadh/koanf/providers/posflag"
@@ -595,7 +595,6 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				"email":          userinfo.Email,
 				"email_verified": userinfo.EmailVerified,
 				"iat":            time.Now().Unix(),
-				"nbf":            time.Now().Unix(),
 				"exp":            time.Now().Add(7 * 24 * time.Hour).Unix(),
 				"iss":            clientID,
 			})
@@ -645,7 +644,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			return publicKey, nil
-		})
+		}, jwt.WithIssuer(clientID), jwt.WithExpirationRequired(), jwt.WithIssuedAt())
 
 		if err != nil {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
@@ -663,7 +662,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		email, ok := claims["sub"].(string)
+		email, ok := claims["email"].(string)
 		if !ok {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
