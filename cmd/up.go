@@ -593,11 +593,6 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if !userinfo.EmailVerified {
-				http.Error(w, "email not verified", http.StatusUnauthorized)
-				return
-			}
-
 			var signingMethod jwt.SigningMethod
 			var privateKey interface{}
 			switch key := me.privateKey.(type) {
