@@ -30,6 +30,10 @@ RUN mkdir -p /smallweb && chown smallweb:smallweb /smallweb
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+RUN mkdir -p /home/smallweb/.cache/deno
+RUN chown -R smallweb:smallweb /home/smallweb/.cache/deno
+VOLUME [ "/home/smallweb/.cache/deno" ]
+
 VOLUME /smallweb
 WORKDIR /smallweb
 ENV SMALLWEB_DIR /smallweb
