@@ -594,11 +594,10 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				"sub":            userinfo.Email,
 				"email":          userinfo.Email,
 				"email_verified": userinfo.EmailVerified,
-				"aud":            []string{clientID},
 				"iat":            time.Now().Unix(),
 				"nbf":            time.Now().Unix(),
 				"exp":            time.Now().Add(7 * 24 * time.Hour).Unix(),
-				"iss":            k.String("domain"),
+				"iss":            clientID,
 			})
 
 			signedToken, err := token.SignedString(privateKey)
