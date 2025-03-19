@@ -588,6 +588,16 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			if userinfo.Email == "" {
+				http.Error(w, "email not found", http.StatusUnauthorized)
+				return
+			}
+
+			if !userinfo.EmailVerified {
+				http.Error(w, "email not verified", http.StatusUnauthorized)
+				return
+			}
+
 			var signingMethod jwt.SigningMethod
 			var privateKey interface{}
 			switch key := me.privateKey.(type) {
@@ -603,12 +613,12 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
-				"sub":            userinfo.Email,
-				"email":          userinfo.Email,
-				"email_verified": userinfo.EmailVerified,
-				"iat":            time.Now().Unix(),
-				"exp":            time.Now().Add(30 * 24 * time.Hour).Unix(),
-				"iss":            clientID,
+				"sub":   userinfo.Email,
+				"email": userinfo.Email,
+				"iat":   time.Now().Unix(),
+				"exp":   time.Now().Add(30 * 24 * time.Hour).Unix(),
+				"iss":   fmt.Sprintf("https://%s", r.Host),
+				"aud":   []string{clientID},
 			})
 
 			signedToken, err := token.SignedString(privateKey)
