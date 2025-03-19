@@ -23,22 +23,22 @@ ARG UID=1000
 ARG GID=1000
 RUN groupadd -g $GID smallweb && useradd -m -s /bin/bash -u $UID -g $GID smallweb
 
-# Create app directory
-RUN mkdir -p /smallweb && chown smallweb:smallweb /smallweb
-
-# Add entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
 RUN mkdir -p /home/smallweb/.cache/deno
 RUN chown -R smallweb:smallweb /home/smallweb/.cache/deno
 VOLUME [ "/home/smallweb/.cache/deno" ]
 
+# Create app directory
+RUN mkdir -p /smallweb && chown smallweb:smallweb /smallweb
 VOLUME /smallweb
 WORKDIR /smallweb
 ENV SMALLWEB_DIR /smallweb
 
 EXPOSE 7777 2222
+
+# Add entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["up", "--enable-crons", "--addr", ":7777", "--ssh-addr", ":2222"]
