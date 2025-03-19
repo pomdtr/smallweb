@@ -576,20 +576,31 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			oauthToken, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(authData.CodeVerifier))
+			oauth2Token, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(authData.CodeVerifier))
 			if err != nil {
 				http.Error(w, fmt.Sprintf("failed to exchange code: %v", err), http.StatusInternalServerError)
 				return
 			}
 
-			userinfo, err := me.provider.UserInfo(r.Context(), oauth2Config.TokenSource(r.Context(), oauthToken))
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to get userinfo: %v", err), http.StatusInternalServerError)
+			rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+			if !ok {
+				http.Error(w, "missing id_token", http.StatusInternalServerError)
 				return
 			}
 
-			if userinfo.Email == "" {
-				http.Error(w, "email not found", http.StatusUnauthorized)
+			verifier := me.provider.Verifier(&oidc.Config{ClientID: clientID})
+			idToken, err := verifier.Verify(r.Context(), rawIDToken)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to verify id_token: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			// Extract custom claims
+			var claims struct {
+				Email string `json:"email"`
+			}
+			if err := idToken.Claims(&claims); err != nil {
+				http.Error(w, fmt.Sprintf("failed to extract claims: %v", err), http.StatusInternalServerError)
 				return
 			}
 
@@ -608,12 +619,13 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
-				"sub":   userinfo.Email,
-				"email": userinfo.Email,
-				"iat":   time.Now().Unix(),
-				"exp":   time.Now().Add(30 * 24 * time.Hour).Unix(),
-				"iss":   fmt.Sprintf("https://%s", k.String("domain")),
-				"aud":   clientID,
+				"sub":    claims.Email,
+				"email":  claims.Email,
+				"iat":    time.Now().Unix(),
+				"exp":    time.Now().Add(24 * time.Hour).Unix(),
+				"aud":    clientID,
+				"rtk":    oauth2Token.RefreshToken,
+				"rtkexp": oauth2Token.Expiry.Unix(),
 			})
 
 			signedToken, err := token.SignedString(privateKey)
@@ -626,7 +638,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Name:     "smallweb_jwt",
 				Value:    string(signedToken),
 				Secure:   true,
-				MaxAge:   30 * 24 * 60 * 60,
+				MaxAge:   24 * 60 * 60,
 				Path:     "/",
 				HttpOnly: true,
 				SameSite: http.SameSiteLaxMode,
@@ -661,7 +673,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 
 			return publicKey, nil
-		}, jwt.WithIssuer(k.String("domain")), jwt.WithAudience(clientID), jwt.WithExpirationRequired(), jwt.WithIssuedAt())
+		}, jwt.WithAudience(clientID), jwt.WithExpirationRequired(), jwt.WithIssuedAt())
 
 		if err != nil {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
@@ -673,43 +685,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		expTime, err := token.Claims.GetExpirationTime()
-		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-			return
-		}
-
-		// refresh token if it expires in 15 days
-		if time.Now().Add(15 * 24 * time.Hour).After(expTime.Time) {
-			token.Claims.(jwt.MapClaims)["exp"] = time.Now().Add(30 * 24 * time.Hour).Unix()
-			token.Claims.(jwt.MapClaims)["iat"] = time.Now().Unix()
-			var privateKey interface{}
-			switch key := me.privateKey.(type) {
-			case *rsa.PrivateKey:
-				privateKey = key
-			case *ed25519.PrivateKey:
-				privateKey = *key
-			default:
-				http.Error(w, "unsupported key type", http.StatusInternalServerError)
-				return
-			}
-
-			token.Raw, err = token.SignedString(privateKey)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to sign token: %v", err), http.StatusInternalServerError)
-				return
-			}
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     "smallweb_jwt",
-				Value:    token.Raw,
-				MaxAge:   30 * 24 * 60 * 60,
-				Secure:   true,
-				HttpOnly: true,
-				Path:     "/",
-				SameSite: http.SameSiteLaxMode,
-			})
-		}
+		// TODO: handle token refresh
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
