@@ -1,12 +1,7 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "openauth": {
-        "issuer": "https://auth.smallweb.localhost"
-    },
     "domain": "smallweb.localhost",
-    "authorizedEmails": [
-        "achille.lacoin@gmail.com"
-    ],
+    "openauth.issuer": "https://auth.smallweb.localhost",
     "authorizedKeys": [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJW+GQk0KCvSreL+y3AZdtCu82+13E2eEled+sGRkIEv"
     ],
