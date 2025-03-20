@@ -14,7 +14,7 @@ COPY --from=builder /build/smallweb /usr/local/bin/smallweb
 RUN apt update && apt install -y git unzip curl gosu && rm -rf /var/lib/apt/lists/*
 
 # Install Deno
-ARG DENO_VERSION=v2.2.2
+ARG DENO_VERSION=v2.2.4
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh -s "$DENO_VERSION"
 ENV PATH="/usr/local/deno/bin:$PATH"
 
