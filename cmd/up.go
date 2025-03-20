@@ -704,13 +704,15 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		email := claims.Properties.Email
-		if !slices.Contains(k.Strings("authorizedEmails"), email) && !slices.Contains(k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname)), email) {
+		var authorizedEmails []string
+		authorizedEmails = append(authorizedEmails, k.Strings("authorizedEmails")...)
+		authorizedEmails = append(authorizedEmails, k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname))...)
+		if len(authorizedEmails) > 0 && !slices.Contains(authorizedEmails, claims.Properties.Email) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
 
-		r.Header.Set("X-Smallweb-Email", email)
+		r.Header.Set("X-Smallweb-Email", claims.Properties.Email)
 	}
 
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
