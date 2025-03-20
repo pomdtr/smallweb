@@ -522,7 +522,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		oauth2Config := &oauth2.Config{
 			ClientID:    clientID,
 			Scopes:      []string{"email"},
-			RedirectURL: fmt.Sprintf("https://%s/oauth/callback", r.Host),
+			RedirectURL: fmt.Sprintf("https://%s/_smallweb/oauth/callback", r.Host),
 			Endpoint: oauth2.Endpoint{
 				AuthURL:   me.issuerConfig.AuthorizationEndpoint,
 				TokenURL:  me.issuerConfig.TokenEndpoint,
@@ -530,7 +530,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 
-		if r.URL.Path == "/oauth/signin" {
+		if r.URL.Path == "/_smallweb/signin" {
 			var successURL string
 			if param := r.URL.Query().Get("success_url"); param != "" {
 				successURL = fmt.Sprintf("https://%s%s", r.Host, param)
@@ -569,7 +569,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if r.URL.Path == "/oauth/signout" {
+		if r.URL.Path == "/_smallweb/signout" {
 			http.SetCookie(w, &http.Cookie{
 				Name:     "access_token",
 				Secure:   true,
@@ -599,7 +599,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if r.URL.Path == "/oauth/callback" {
+		if r.URL.Path == "/_smallweb/oauth/callback" {
 			authCookie, err := r.Cookie("oauth_data")
 			if err != nil {
 				http.Error(w, "state cookie not found", http.StatusUnauthorized)
