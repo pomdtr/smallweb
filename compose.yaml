@@ -3,8 +3,18 @@ services:
     image: ghcr.io/pomdtr/smallweb:latest
     container_name: smallweb
     restart: unless-stopped
+    command: ["up", "--ssh-addr=:2222", "--ssh-private-key=/run/secrets/ssh_private_key", "--enable-crons"]
+    secrets:
+      - ssh_private_key
     ports:
       - 7777:7777
       - 2222:2222
     volumes:
       - ./workspace:/smallweb
+      - deno_cache:/home/smallweb/.cache/deno
+
+volumes:
+  deno_cache:
+secrets:
+  ssh_private_key:
+    file: $HOME/.ssh/id_ed25519

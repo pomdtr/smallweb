@@ -4,10 +4,23 @@ services:
       context: .
     container_name: smallweb
     restart: unless-stopped
+    command: ["up", "--ssh-addr=:2222", "--ssh-private-key=/run/secrets/ssh_private_key", "--enable-crons"]
     ports:
       - 7777:7777
       - 2222:2222
+    secrets:
+      - ssh_private_key
     volumes:
       - ./workspace:/smallweb
+      - deno_cache:/home/smallweb/.cache/deno
     environment:
-      - SMALLWEB_DIR=/smallweb
+      - SMALLWEB_ADDITIONAL_DOMAINS=smallweb.local
+    labels:
+      dev.orbstack.domains: smallweb.local,*.smallweb.local
+
+volumes:
+  deno_cache:
+
+secrets:
+  ssh_private_key:
+    file: $HOME/.ssh/id_ed25519

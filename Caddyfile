@@ -1,3 +1,0 @@
-smallweb.localhost, *.smallweb.localhost {
-	reverse_proxy localhost:7777
-}
