@@ -732,7 +732,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func lookupApp(domain string) (app string, redirect bool, found bool) {
 	if domain == k.String("domain") {
-		return "www", true, true
+		return "www", false, true
 	}
 
 	for _, app := range k.MapKeys("apps") {
@@ -747,7 +747,7 @@ func lookupApp(domain string) (app string, redirect bool, found bool) {
 
 	for _, additionalDomain := range k.Strings("additionalDomains") {
 		if domain == additionalDomain {
-			return "www", true, true
+			return "www", false, true
 		}
 
 		if strings.HasSuffix(domain, fmt.Sprintf(".%s", additionalDomain)) {
