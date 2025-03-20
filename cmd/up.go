@@ -495,8 +495,9 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			me.keyfunc = kf
 		}
 
+		clientID := fmt.Sprintf("https://%s", r.Host)
 		oauth2Config := &oauth2.Config{
-			ClientID:    r.Host,
+			ClientID:    clientID,
 			Scopes:      []string{"email"},
 			RedirectURL: fmt.Sprintf("https://%s/oauth/callback", r.Host),
 			Endpoint: oauth2.Endpoint{
@@ -651,7 +652,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			jwt.RegisteredClaims
 		}
 
-		token, err := jwt.ParseWithClaims(accessToken, &claims, me.keyfunc.Keyfunc, jwt.WithAudience(fmt.Sprintf("https://%s", r.Host)))
+		token, err := jwt.ParseWithClaims(accessToken, &claims, me.keyfunc.Keyfunc, jwt.WithAudience(clientID))
 		if err != nil && errors.Is(err, jwt.ErrTokenExpired) {
 			refreshTokenCookie, err := r.Cookie("refresh_token")
 			if err != nil {
@@ -688,7 +689,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				MaxAge:   34560000,
 			})
 
-			token, err = jwt.ParseWithClaims(oauth2Token.AccessToken, &claims, me.keyfunc.Keyfunc, jwt.WithAudience(fmt.Sprintf("https://%s", r.Host)))
+			token, err = jwt.ParseWithClaims(oauth2Token.AccessToken, &claims, me.keyfunc.Keyfunc, jwt.WithAudience(clientID))
 			if err != nil {
 				http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
