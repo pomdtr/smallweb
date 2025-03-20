@@ -193,7 +193,7 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			if flags.sshAddr != "" {
-				sshPrivateKey := flags.sshPrivateKey
+				sshPrivateKeyPath := flags.sshPrivateKey
 				if flags.sshPrivateKey == "" {
 					homeDir, err := os.UserHomeDir()
 					if err != nil {
@@ -202,17 +202,40 @@ func NewCmdUp() *cobra.Command {
 
 					for _, keyType := range []string{"id_rsa", "id_ed25519"} {
 						if _, err := os.Stat(filepath.Join(homeDir, ".ssh", keyType)); err == nil {
-							sshPrivateKey = filepath.Join(homeDir, ".ssh", keyType)
+							sshPrivateKeyPath = filepath.Join(homeDir, ".ssh", keyType)
 							break
 						}
 					}
 				}
 
+				if sshPrivateKeyPath == "" {
+					return fmt.Errorf("ssh private key not found")
+				}
+
+				privateKeyBytes, err := os.ReadFile(sshPrivateKeyPath)
+				if err != nil {
+					return fmt.Errorf("failed to read private key: %v", err)
+				}
+
+				privateKey, err := gossh.ParseRawPrivateKey(privateKeyBytes)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to parse private key: %v\n", err)
+					os.Exit(1)
+				}
+
+				signer, err := gossh.NewSignerFromKey(privateKey)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Failed to create signer: %v\n", err)
+					os.Exit(1)
+				}
+
+				authorizedKey := string(gossh.MarshalAuthorizedKey(signer.PublicKey()))
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
-					wish.WithHostKeyPath(sshPrivateKey),
+					wish.WithHostKeyPath(sshPrivateKeyPath),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
-						authorizedKeys := k.Strings("authorizedKeys")
+						authorizedKeys := []string{authorizedKey}
+						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
 						if ctx.User() != "_" {
 							authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("apps.%s.authorizedKeys", ctx.User()))...)
 						}
