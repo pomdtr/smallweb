@@ -34,11 +34,11 @@ VOLUME /smallweb
 WORKDIR /smallweb
 ENV SMALLWEB_DIR /smallweb
 
-EXPOSE 7777 2222
+EXPOSE 7777
 
 # Add entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["up", "--enable-crons", "--addr", ":7777", "--ssh-addr", ":2222"]
+CMD ["up", "--enable-crons", "--addr", ":7777"]

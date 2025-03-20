@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"context"
-	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -13,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -20,14 +19,13 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"time"
 
 	_ "embed"
 
+	"github.com/MicahParks/keyfunc/v3"
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/creack/pty"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/knadh/koanf/providers/file"
@@ -79,38 +77,9 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
-			sshPrivateKey := flags.sshPrivateKey
-			if flags.sshPrivateKey == "" {
-				homeDir, err := os.UserHomeDir()
-				if err != nil {
-					return fmt.Errorf("failed to get home directory: %v", err)
-				}
-
-				for _, keyType := range []string{"id_rsa", "id_ed25519"} {
-					if _, err := os.Stat(filepath.Join(homeDir, ".ssh", keyType)); err == nil {
-						sshPrivateKey = filepath.Join(homeDir, ".ssh", keyType)
-						break
-					}
-				}
-			}
-
 			handler := &Handler{
 				workers: make(map[string]*worker.Worker),
-			}
-
-			if sshPrivateKey != "" {
-				// Read the SSH private key file
-				keyData, err := os.ReadFile(sshPrivateKey)
-				if err != nil {
-					return fmt.Errorf("failed to read SSH private key: %w", err)
-				}
-
-				privateKey, err := gossh.ParseRawPrivateKey(keyData)
-				if err != nil {
-					return fmt.Errorf("failed to parse SSH private key: %w", err)
-				}
-
-				handler.privateKey = privateKey
+				issuer:  k.String("openauth.issuer"),
 			}
 
 			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
@@ -121,15 +90,11 @@ func NewCmdUp() *cobra.Command {
 				_ = k.Load(fileProvider, utils.ConfigParser())
 				_ = k.Load(envProvider, nil)
 				_ = k.Load(flagProvider, nil)
-				// reload oidc provider on config change
-				if issuer := k.String("oidc.issuer"); issuer != "" {
-					provider, err := oidc.NewProvider(context.Background(), issuer)
-					if err != nil {
-						fmt.Fprintf(cmd.ErrOrStderr(), "failed to create oidc provider: %v\n", err)
-						return
-					}
 
-					handler.provider = provider
+				if issuer := k.String("openauth.issuer"); issuer != handler.issuer {
+					handler.issuer = issuer
+					handler.issuerConfig = nil
+					handler.keyfunc = nil
 				}
 			})
 			if err != nil {
@@ -139,15 +104,6 @@ func NewCmdUp() *cobra.Command {
 			handler.watcher = watcher
 			go watcher.Start()
 			defer watcher.Stop()
-
-			if issuer := k.String("oidc.issuer"); issuer != "" {
-				provider, err := oidc.NewProvider(context.Background(), issuer)
-				if err != nil {
-					return fmt.Errorf("failed to create oidc provider: %v", err)
-				}
-
-				handler.provider = provider
-			}
 
 			if flags.onDemandTLS {
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
@@ -237,6 +193,21 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			if flags.sshAddr != "" {
+				sshPrivateKey := flags.sshPrivateKey
+				if flags.sshPrivateKey == "" {
+					homeDir, err := os.UserHomeDir()
+					if err != nil {
+						return fmt.Errorf("failed to get home directory: %v", err)
+					}
+
+					for _, keyType := range []string{"id_rsa", "id_ed25519"} {
+						if _, err := os.Stat(filepath.Join(homeDir, ".ssh", keyType)); err == nil {
+							sshPrivateKey = filepath.Join(homeDir, ".ssh", keyType)
+							break
+						}
+					}
+				}
+
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKey),
@@ -429,17 +400,48 @@ func getListener(addr string, config *tls.Config) (net.Listener, error) {
 }
 
 type Handler struct {
-	watcher    *watcher.Watcher
-	mu         sync.Mutex
-	workers    map[string]*worker.Worker
-	privateKey any
-	provider   *oidc.Provider
+	watcher      *watcher.Watcher
+	mu           sync.Mutex
+	workers      map[string]*worker.Worker
+	issuer       string
+	issuerConfig *IssuerConfig
+	keyfunc      keyfunc.Keyfunc
 }
 
 type AuthData struct {
 	State        string `json:"state"`
 	SuccessURL   string `json:"success_url"`
 	CodeVerifier string `json:"code_verifier"`
+}
+
+type IssuerConfig struct {
+	AuthorizationEndpoint string `json:"authorization_endpoint"`
+	TokenEndpoint         string `json:"token_endpoint"`
+	JwksUri               string `json:"jwks_uri"`
+}
+
+func getIssuerConfig(issuer string) (*IssuerConfig, error) {
+	configUrl, err := url.JoinPath(issuer, ".well-known/oauth-authorization-server")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config url: %v", err)
+	}
+
+	resp, err := http.Get(configUrl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get config: %v", resp.Status)
+	}
+
+	var issuerConfig IssuerConfig
+	if err := json.NewDecoder(resp.Body).Decode(&issuerConfig); err != nil {
+		return nil, fmt.Errorf("failed to decode config: %v", err)
+	}
+
+	return &issuerConfig, nil
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -470,17 +472,39 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Header.Del("X-Smallweb-Email")
 	isPrivate := k.Bool(fmt.Sprintf("apps.%s.private", appname))
 	if isPrivate {
-		if me.provider == nil {
-			http.Error(w, "auth not configured", http.StatusInternalServerError)
+		if me.issuer == "" {
+			http.Error(w, "openauth issuer not set", http.StatusInternalServerError)
 			return
+		}
+
+		if me.issuerConfig == nil {
+			issuerConfig, err := getIssuerConfig(me.issuer)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to get issuer config: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			me.issuerConfig = issuerConfig
+
+			kf, err := keyfunc.NewDefault([]string{issuerConfig.JwksUri})
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to create keyfunc: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			me.keyfunc = kf
 		}
 
 		clientID := fmt.Sprintf("https://%s", r.Host)
 		oauth2Config := &oauth2.Config{
 			ClientID:    clientID,
-			Scopes:      []string{"openid", "email"},
+			Scopes:      []string{"email"},
 			RedirectURL: fmt.Sprintf("https://%s/oauth/callback", r.Host),
-			Endpoint:    me.provider.Endpoint(),
+			Endpoint: oauth2.Endpoint{
+				AuthURL:   me.issuerConfig.AuthorizationEndpoint,
+				TokenURL:  me.issuerConfig.TokenEndpoint,
+				AuthStyle: oauth2.AuthStyleInParams,
+			},
 		}
 
 		if r.URL.Path == "/oauth/signin" {
@@ -524,7 +548,15 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if r.URL.Path == "/oauth/signout" {
 			http.SetCookie(w, &http.Cookie{
-				Name:     "smallweb_jwt",
+				Name:     "access_token",
+				Secure:   true,
+				HttpOnly: true,
+				Path:     "/",
+				MaxAge:   -1,
+			})
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "refresh_token",
 				Secure:   true,
 				HttpOnly: true,
 				Path:     "/",
@@ -582,99 +614,88 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			rawIDToken, ok := oauth2Token.Extra("id_token").(string)
-			if !ok {
-				http.Error(w, "missing id_token", http.StatusInternalServerError)
-				return
-			}
-
-			verifier := me.provider.Verifier(&oidc.Config{ClientID: clientID})
-			idToken, err := verifier.Verify(r.Context(), rawIDToken)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to verify id_token: %v", err), http.StatusInternalServerError)
-				return
-			}
-
-			// Extract custom claims
-			var claims struct {
-				Email string `json:"email"`
-			}
-			if err := idToken.Claims(&claims); err != nil {
-				http.Error(w, fmt.Sprintf("failed to extract claims: %v", err), http.StatusInternalServerError)
-				return
-			}
-
-			var signingMethod jwt.SigningMethod
-			var privateKey interface{}
-			switch key := me.privateKey.(type) {
-			case *rsa.PrivateKey:
-				signingMethod = jwt.SigningMethodRS256
-				privateKey = key
-			case *ed25519.PrivateKey:
-				signingMethod = jwt.SigningMethodEdDSA
-				privateKey = *key
-			default:
-				http.Error(w, "unsupported key type", http.StatusInternalServerError)
-				return
-			}
-
-			token := jwt.NewWithClaims(signingMethod, jwt.MapClaims{
-				"sub":   claims.Email,
-				"email": claims.Email,
-				"iat":   time.Now().Unix(),
-				"exp":   time.Now().Add(24 * time.Hour).Unix(),
-				"aud":   clientID,
+			http.SetCookie(w, &http.Cookie{
+				Name:     "access_token",
+				Value:    oauth2Token.AccessToken,
+				SameSite: http.SameSiteLaxMode,
+				Secure:   true,
+				HttpOnly: true,
+				Path:     "/",
+				MaxAge:   34560000,
 			})
 
-			signedToken, err := token.SignedString(privateKey)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to sign token: %v", err), http.StatusInternalServerError)
-				return
-			}
-
 			http.SetCookie(w, &http.Cookie{
-				Name:     "smallweb_jwt",
-				Value:    string(signedToken),
-				Secure:   true,
-				MaxAge:   24 * 60 * 60,
-				Path:     "/",
-				HttpOnly: true,
+				Name:     "refresh_token",
+				Value:    oauth2Token.RefreshToken,
 				SameSite: http.SameSiteLaxMode,
+				Secure:   true,
+				HttpOnly: true,
+				Path:     "/",
+				MaxAge:   34560000,
 			})
 
 			http.Redirect(w, r, authData.SuccessURL, http.StatusTemporaryRedirect)
 			return
 		}
 
-		cookie, err := r.Cookie("smallweb_jwt")
+		accessTokenCookie, err := r.Cookie("access_token")
 		if err != nil {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
+		accessToken := accessTokenCookie.Value
 
-		token, err := jwt.Parse(cookie.Value, func(t *jwt.Token) (interface{}, error) {
-			var signinMethod jwt.SigningMethod
-			var publicKey interface{}
-			switch key := me.privateKey.(type) {
-			case *rsa.PrivateKey:
-				signinMethod = jwt.SigningMethodRS256
-				publicKey = key.Public()
-			case *ed25519.PrivateKey:
-				signinMethod = jwt.SigningMethodEdDSA
-				publicKey = key.Public()
-			default:
-				return nil, fmt.Errorf("unsupported key type")
+		var claims struct {
+			Properties struct {
+				Email string `json:"email"`
+			} `json:"properties"`
+			jwt.RegisteredClaims
+		}
+
+		token, err := jwt.ParseWithClaims(accessToken, &claims, me.keyfunc.Keyfunc, jwt.WithAudience(clientID))
+		if err != nil && errors.Is(err, jwt.ErrTokenExpired) {
+			refreshTokenCookie, err := r.Cookie("refresh_token")
+			if err != nil {
+				http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				return
 			}
 
-			if t.Method != signinMethod {
-				return nil, fmt.Errorf("unexpected signing method")
+			refreshToken := refreshTokenCookie.Value
+			tokenSource := oauth2Config.TokenSource(context.Background(), &oauth2.Token{RefreshToken: refreshToken})
+
+			oauth2Token, err := tokenSource.Token()
+			if err != nil {
+				http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				return
 			}
 
-			return publicKey, nil
-		}, jwt.WithAudience(clientID), jwt.WithExpirationRequired(), jwt.WithIssuedAt())
+			http.SetCookie(w, &http.Cookie{
+				Name:     "access_token",
+				Value:    oauth2Token.AccessToken,
+				SameSite: http.SameSiteLaxMode,
+				Secure:   true,
+				HttpOnly: true,
+				Path:     "/",
+				MaxAge:   34560000,
+			})
 
-		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+			http.SetCookie(w, &http.Cookie{
+				Name:     "refresh_token",
+				Value:    oauth2Token.RefreshToken,
+				SameSite: http.SameSiteLaxMode,
+				Secure:   true,
+				HttpOnly: true,
+				Path:     "/",
+				MaxAge:   34560000,
+			})
+
+			token, err = jwt.ParseWithClaims(oauth2Token.AccessToken, &claims, me.keyfunc.Keyfunc, jwt.WithAudience(clientID))
+			if err != nil {
+				http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				return
+			}
+		} else if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse token: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -683,20 +704,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// TODO: handle token refresh
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-			return
-		}
-
-		email, ok := claims["email"].(string)
-		if !ok {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-			return
-		}
-
+		email := claims.Properties.Email
 		if !slices.Contains(k.Strings("authorizedEmails"), email) && !slices.Contains(k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname)), email) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return

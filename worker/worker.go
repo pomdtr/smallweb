@@ -231,6 +231,7 @@ func (me *Worker) Start() error {
 			log.Info(
 				scanner.Text(),
 				"app", me.App.Name,
+				"stream", stream,
 			)
 		}
 	}
