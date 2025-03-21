@@ -499,7 +499,6 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Header.Del("X-Smallweb-Email")
 	if a.IsRoutePrivate(r.URL.Path) {
 		if me.issuer == "" {
 			http.Error(w, "openauth issuer not set", http.StatusInternalServerError)
@@ -740,8 +739,6 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-
-		r.Header.Set("X-Smallweb-Email", claims.Properties.Email)
 	}
 
 	wk, err := me.GetWorker(a, k.String("dir"), k.String("domain"))
