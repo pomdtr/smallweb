@@ -55,10 +55,6 @@
                     "description": "Give the app admin privileges",
                     "type": "boolean"
                 },
-                "private": {
-                    "description": "Protect the app with authentication",
-                    "type": "boolean"
-                },
                 "additionalDomains": {
                     "description": "Additional app domains",
                     "type": "array",

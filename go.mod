@@ -20,6 +20,7 @@ require (
 
 require (
 	github.com/MicahParks/keyfunc/v3 v3.3.10
+	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/caddyserver/certmagic v0.22.0
 	github.com/charmbracelet/log v0.4.1
 	github.com/charmbracelet/ssh v0.0.0-20250213143314-8712ec3ff3ef

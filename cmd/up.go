@@ -492,9 +492,15 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("failed to load app: %v", err)))
+		return
+	}
+
 	r.Header.Del("X-Smallweb-Email")
-	isPrivate := k.Bool(fmt.Sprintf("apps.%s.private", appname))
-	if isPrivate {
+	if a.IsRoutePrivate(r.URL.Path) {
 		if me.issuer == "" {
 			http.Error(w, "openauth issuer not set", http.StatusInternalServerError)
 			return
@@ -663,7 +669,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		accessTokenCookie, err := r.Cookie("access_token")
 		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 		accessToken := accessTokenCookie.Value
@@ -679,7 +685,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err != nil && errors.Is(err, jwt.ErrTokenExpired) {
 			refreshTokenCookie, err := r.Cookie("refresh_token")
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
@@ -688,7 +694,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			oauth2Token, err := tokenSource.Token()
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
@@ -714,7 +720,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			token, err = jwt.ParseWithClaims(oauth2Token.AccessToken, &claims, me.keyfunc.Keyfunc, jwt.WithAudience(clientID))
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 		} else if err != nil {
@@ -723,7 +729,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !token.Valid {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/oauth/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -738,7 +744,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.Header.Set("X-Smallweb-Email", claims.Properties.Email)
 	}
 
-	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
+	wk, err := me.GetWorker(a, k.String("dir"), k.String("domain"))
 	if err != nil {
 		if errors.Is(err, app.ErrAppNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -782,18 +788,13 @@ func lookupApp(domain string) (app string, redirect bool, found bool) {
 	return "", false, false
 }
 
-func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, error) {
-	if wk, ok := me.workers[appname]; ok && wk.IsRunning() && me.watcher.GetAppMtime(appname).Before(wk.StartedAt) {
+func (me *Handler) GetWorker(a app.App, rootDir, domain string) (*worker.Worker, error) {
+	if wk, ok := me.workers[a.Name]; ok && wk.IsRunning() && me.watcher.GetAppMtime(a.Name).Before(wk.StartedAt) {
 		return wk, nil
 	}
 
 	me.mu.Lock()
 	defer me.mu.Unlock()
-
-	a, err := app.LoadApp(appname, rootDir, domain, k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to load app: %w", err)
-	}
 
 	wk := worker.NewWorker(a)
 
@@ -801,6 +802,6 @@ func (me *Handler) GetWorker(appname, rootDir, domain string) (*worker.Worker, e
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}
 
-	me.workers[appname] = wk
+	me.workers[a.Name] = wk
 	return wk, nil
 }
