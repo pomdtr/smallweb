@@ -7,7 +7,7 @@
 		2222
 	],
 	"remoteEnv": {
-		"SMALLWEB_DIR": "${containerWorkspaceFolder}/workspace"
+		"SMALLWEB_DIR": "${containerWorkspaceFolder}/example"
 	},
 	"features": {
 		"ghcr.io/devcontainers/features/go:1": {},

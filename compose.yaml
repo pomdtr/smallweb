@@ -10,7 +10,7 @@ services:
       - 7777:7777
       - 2222:2222
     volumes:
-      - ./workspace:/smallweb
+      - ./example:/smallweb
       - deno_cache:/home/smallweb/.cache/deno
 
 volumes:
