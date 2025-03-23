@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bmatcuk/doublestar/v4"
 	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
 	"github.com/pomdtr/smallweb/utils"
@@ -21,12 +20,9 @@ var (
 )
 
 type AppConfig struct {
-	Entrypoint    string    `json:"entrypoint,omitempty"`
-	Root          string    `json:"root,omitempty"`
-	Crons         []CronJob `json:"crons,omitempty"`
-	Private       bool      `json:"private,omitempty"`
-	PrivateRoutes []string  `json:"privateRoutes,omitempty"`
-	PublicRoutes  []string  `json:"publicRoutes,omitempty"`
+	Entrypoint string    `json:"entrypoint,omitempty"`
+	Root       string    `json:"root,omitempty"`
+	Crons      []CronJob `json:"crons,omitempty"`
 }
 
 type CronJob struct {
@@ -223,24 +219,4 @@ func (me App) Entrypoint() string {
 	}
 
 	return "jsr:@smallweb/file-server@0.8.2"
-}
-
-func (me App) IsRoutePrivate(route string) bool {
-	routeIsPrivate := me.Config.Private
-	for _, publicRoute := range me.Config.PublicRoutes {
-		if isMatch, _ := doublestar.Match(publicRoute, route); isMatch {
-			routeIsPrivate = false
-			break
-		}
-
-	}
-
-	for _, privateRoute := range me.Config.PrivateRoutes {
-		if isMatch, _ := doublestar.Match(privateRoute, route); isMatch {
-			routeIsPrivate = true
-			break
-		}
-	}
-
-	return routeIsPrivate
 }

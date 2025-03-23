@@ -1,7 +1,7 @@
 {
     "$schema": "../../schemas/config.schema.json",
     "domain": "smallweb.localhost",
-    "openauth.issuer": "https://auth.smallweb.localhost",
+    "oidc.issuer": "https://lastlogin.net",
     "apps": {
         "ls": {
             "admin": true,

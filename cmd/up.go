@@ -11,7 +11,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -22,12 +21,12 @@ import (
 
 	_ "embed"
 
-	"github.com/MicahParks/keyfunc/v3"
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/creack/pty"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/knadh/koanf/providers/file"
 
 	"github.com/knadh/koanf/providers/posflag"
@@ -79,7 +78,15 @@ func NewCmdUp() *cobra.Command {
 
 			handler := &Handler{
 				workers: make(map[string]*worker.Worker),
-				issuer:  k.String("openauth.issuer"),
+			}
+
+			if issuer := k.String("oidc.issuer"); issuer != "" {
+				provider, err := oidc.NewProvider(context.Background(), issuer)
+				if err != nil {
+					return fmt.Errorf("failed to get provider: %v", err)
+				}
+
+				handler.oidcProvider = provider
 			}
 
 			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
@@ -91,10 +98,14 @@ func NewCmdUp() *cobra.Command {
 				_ = k.Load(envProvider, nil)
 				_ = k.Load(flagProvider, nil)
 
-				if issuer := k.String("openauth.issuer"); issuer != handler.issuer {
-					handler.issuer = issuer
-					handler.issuerConfig = nil
-					handler.keyfunc = nil
+				if issuer := k.String("oidc.issuer"); issuer != "" {
+					provider, err := oidc.NewProvider(context.Background(), issuer)
+					if err != nil {
+						fmt.Fprintf(cmd.ErrOrStderr(), "failed to get provider: %v\n", err)
+						return
+					}
+
+					handler.oidcProvider = provider
 				}
 			})
 			if err != nil {
@@ -426,9 +437,7 @@ type Handler struct {
 	watcher      *watcher.Watcher
 	mu           sync.Mutex
 	workers      map[string]*worker.Worker
-	issuer       string
-	issuerConfig *IssuerConfig
-	keyfunc      keyfunc.Keyfunc
+	oidcProvider *oidc.Provider
 }
 
 type AuthData struct {
@@ -441,30 +450,6 @@ type IssuerConfig struct {
 	AuthorizationEndpoint string `json:"authorization_endpoint"`
 	TokenEndpoint         string `json:"token_endpoint"`
 	JwksUri               string `json:"jwks_uri"`
-}
-
-func getIssuerConfig(issuer string) (*IssuerConfig, error) {
-	configUrl, err := url.JoinPath(issuer, ".well-known/oauth-authorization-server")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config url: %v", err)
-	}
-
-	resp, err := http.Get(configUrl)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get config: %v", resp.Status)
-	}
-
-	var issuerConfig IssuerConfig
-	if err := json.NewDecoder(resp.Body).Decode(&issuerConfig); err != nil {
-		return nil, fmt.Errorf("failed to decode config: %v", err)
-	}
-
-	return &issuerConfig, nil
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -492,47 +477,44 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("failed to load app: %v", err)))
-		return
-	}
-
-	if a.IsRoutePrivate(r.URL.Path) {
-		if me.issuer == "" {
-			http.Error(w, "openauth issuer not set", http.StatusInternalServerError)
-			return
+	isRouteProtected := func(route string) bool {
+		routeisProtected := k.Bool(fmt.Sprintf("apps.%s.private", appname))
+		for _, publicRoute := range k.Strings(fmt.Sprintf("apps.%s.publicRoutes", appname)) {
+			if isMatch, _ := doublestar.Match(publicRoute, route); isMatch {
+				routeisProtected = false
+				break
+			}
 		}
 
-		if me.issuerConfig == nil {
-			issuerConfig, err := getIssuerConfig(me.issuer)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to get issuer config: %v", err), http.StatusInternalServerError)
-				return
+		for _, privateRoute := range k.Strings(fmt.Sprintf("apps.%s.privateRoutes", appname)) {
+			if isMatch, _ := doublestar.Match(privateRoute, route); isMatch {
+				routeisProtected = true
+				break
 			}
+		}
 
-			me.issuerConfig = issuerConfig
+		return routeisProtected
+	}
 
-			kf, err := keyfunc.NewDefault([]string{issuerConfig.JwksUri})
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to create keyfunc: %v", err), http.StatusInternalServerError)
-				return
-			}
+	if me.oidcProvider != nil {
+		r.Header.Del("Remote-Email")
+		r.Header.Del("Remote-User")
+		r.Header.Del("Remote-Name")
+		r.Header.Del("Remote-Groups")
+	}
 
-			me.keyfunc = kf
+	if isRouteProtected(r.URL.Path) {
+		if me.oidcProvider == nil {
+			http.Error(w, "openauth issuer not set", http.StatusInternalServerError)
+			return
 		}
 
 		clientID := fmt.Sprintf("https://%s", r.Host)
 		oauth2Config := &oauth2.Config{
 			ClientID:    clientID,
-			Scopes:      []string{"email"},
+			Scopes:      []string{"openid", "email", "profile", "groups"},
 			RedirectURL: fmt.Sprintf("https://%s/_smallweb/oauth/callback", r.Host),
-			Endpoint: oauth2.Endpoint{
-				AuthURL:   me.issuerConfig.AuthorizationEndpoint,
-				TokenURL:  me.issuerConfig.TokenEndpoint,
-				AuthStyle: oauth2.AuthStyleInParams,
-			},
+			Endpoint:    me.oidcProvider.Endpoint(),
 		}
 
 		if r.URL.Path == "/_smallweb/signin" {
@@ -576,10 +558,9 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if r.URL.Path == "/_smallweb/signout" {
 			http.SetCookie(w, &http.Cookie{
-				Name:     "access_token",
+				Name:     "id_token",
 				Secure:   true,
 				HttpOnly: true,
-				Path:     "/",
 				MaxAge:   -1,
 			})
 
@@ -642,9 +623,15 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			idToken := oauth2Token.Extra("id_token").(string)
+			if idToken == "" {
+				http.Error(w, "id token not found", http.StatusInternalServerError)
+				return
+			}
+
 			http.SetCookie(w, &http.Cookie{
-				Name:     "access_token",
-				Value:    oauth2Token.AccessToken,
+				Name:     "id_token",
+				Value:    idToken,
 				SameSite: http.SameSiteLaxMode,
 				Secure:   true,
 				HttpOnly: true,
@@ -652,96 +639,108 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				MaxAge:   34560000,
 			})
 
-			http.SetCookie(w, &http.Cookie{
-				Name:     "refresh_token",
-				Value:    oauth2Token.RefreshToken,
-				SameSite: http.SameSiteLaxMode,
-				Secure:   true,
-				HttpOnly: true,
-				Path:     "/",
-				MaxAge:   34560000,
-			})
+			if oauth2Token.RefreshToken != "" {
+				http.SetCookie(w, &http.Cookie{
+					Name:     "refresh_token",
+					Value:    oauth2Token.RefreshToken,
+					SameSite: http.SameSiteLaxMode,
+					Secure:   true,
+					HttpOnly: true,
+					Path:     "/",
+					MaxAge:   34560000,
+				})
+			}
 
 			http.Redirect(w, r, authData.SuccessURL, http.StatusTemporaryRedirect)
 			return
 		}
 
-		accessTokenCookie, err := r.Cookie("access_token")
+		idTokenCookie, err := r.Cookie("id_token")
 		if err != nil {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
-		accessToken := accessTokenCookie.Value
 
+		verifier := me.oidcProvider.Verifier(&oidc.Config{ClientID: clientID})
+		idToken, err := verifier.Verify(r.Context(), idTokenCookie.Value)
+		if err != nil {
+			var expiredErr *oidc.TokenExpiredError
+			if errors.As(err, &expiredErr) {
+				refreshTokenCookie, err := r.Cookie("refresh_token")
+				if err != nil {
+					http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+					return
+				}
+
+				tokenSource := oauth2Config.TokenSource(context.Background(), &oauth2.Token{RefreshToken: refreshTokenCookie.Value})
+				oauth2Token, err := tokenSource.Token()
+				if err != nil {
+					http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+					return
+				}
+
+				idToken, ok := oauth2Token.Extra("id_token").(string)
+				if !ok {
+					http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+					return
+				}
+
+				http.SetCookie(w, &http.Cookie{
+					Name:     "id_token",
+					Value:    idToken,
+					SameSite: http.SameSiteLaxMode,
+					Secure:   true,
+					HttpOnly: true,
+					Path:     "/",
+					MaxAge:   34560000,
+				})
+
+				if oauth2Token.RefreshToken != "" {
+					http.SetCookie(w, &http.Cookie{
+						Name:     "refresh_token",
+						Value:    oauth2Token.RefreshToken,
+						SameSite: http.SameSiteLaxMode,
+						Secure:   true,
+						HttpOnly: true,
+						Path:     "/",
+						MaxAge:   34560000,
+					})
+				}
+
+			} else {
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				return
+			}
+		}
+
+		// Extract custom claims
 		var claims struct {
-			Properties struct {
-				Email string `json:"email"`
-			} `json:"properties"`
-			jwt.RegisteredClaims
+			Email   string   `json:"email"`
+			Subject string   `json:"sub"`
+			Name    string   `json:"name"`
+			Groups  []string `json:"groups"`
 		}
 
-		token, err := jwt.ParseWithClaims(accessToken, &claims, me.keyfunc.Keyfunc, jwt.WithAudience(clientID))
-		if err != nil && errors.Is(err, jwt.ErrTokenExpired) {
-			refreshTokenCookie, err := r.Cookie("refresh_token")
-			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-				return
-			}
-
-			refreshToken := refreshTokenCookie.Value
-			tokenSource := oauth2Config.TokenSource(context.Background(), &oauth2.Token{RefreshToken: refreshToken})
-
-			oauth2Token, err := tokenSource.Token()
-			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-				return
-			}
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     "access_token",
-				Value:    oauth2Token.AccessToken,
-				SameSite: http.SameSiteLaxMode,
-				Secure:   true,
-				HttpOnly: true,
-				Path:     "/",
-				MaxAge:   34560000,
-			})
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     "refresh_token",
-				Value:    oauth2Token.RefreshToken,
-				SameSite: http.SameSiteLaxMode,
-				Secure:   true,
-				HttpOnly: true,
-				Path:     "/",
-				MaxAge:   34560000,
-			})
-
-			token, err = jwt.ParseWithClaims(oauth2Token.AccessToken, &claims, me.keyfunc.Keyfunc, jwt.WithAudience(clientID))
-			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-				return
-			}
-		} else if err != nil {
-			http.Error(w, fmt.Sprintf("failed to parse token: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		if !token.Valid {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+		if err := idToken.Claims(&claims); err != nil {
+			http.Error(w, fmt.Sprintf("failed to get claims: %v", err), http.StatusInternalServerError)
 			return
 		}
 
 		var authorizedEmails []string
 		authorizedEmails = append(authorizedEmails, k.Strings("authorizedEmails")...)
 		authorizedEmails = append(authorizedEmails, k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname))...)
-		if len(authorizedEmails) > 0 && !slices.Contains(authorizedEmails, claims.Properties.Email) {
+		if len(authorizedEmails) > 0 && !slices.Contains(authorizedEmails, claims.Email) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
+
+		r.Header.Set("Remote-Email", claims.Email)
+		r.Header.Set("Remote-User", claims.Subject)
+		r.Header.Set("Remote-Name", claims.Name)
+		r.Header.Set("Remote-Groups", strings.Join(claims.Groups, ","))
 	}
 
-	wk, err := me.GetWorker(a, k.String("dir"), k.String("domain"))
+	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
 	if err != nil {
 		if errors.Is(err, app.ErrAppNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -785,13 +784,18 @@ func lookupApp(domain string) (app string, redirect bool, found bool) {
 	return "", false, false
 }
 
-func (me *Handler) GetWorker(a app.App, rootDir, domain string) (*worker.Worker, error) {
-	if wk, ok := me.workers[a.Name]; ok && wk.IsRunning() && me.watcher.GetAppMtime(a.Name).Before(wk.StartedAt) {
+func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Worker, error) {
+	if wk, ok := me.workers[appname]; ok && wk.IsRunning() && me.watcher.GetAppMtime(appname).Before(wk.StartedAt) {
 		return wk, nil
 	}
 
 	me.mu.Lock()
 	defer me.mu.Unlock()
+
+	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load app: %w", err)
+	}
 
 	wk := worker.NewWorker(a)
 
