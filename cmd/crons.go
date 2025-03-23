@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,8 +20,9 @@ import (
 )
 
 type CronItem struct {
-	App string `json:"app"`
-	app.CronJob
+	App      string   `json:"app"`
+	Args     []string `json:"args"`
+	Schedule string   `json:"schedule"`
 }
 
 func NewCmdCrons() *cobra.Command {
@@ -45,42 +45,17 @@ func NewCmdCrons() *cobra.Command {
 		},
 		Short: "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var appName string
-			if len(args) > 0 {
-				appName = args[0]
-			} else if !flags.all {
-				cwd, err := os.Getwd()
-				if err != nil {
-					return fmt.Errorf("failed to get current directory: %w", err)
-				}
-
-				if filepath.Dir(cwd) != k.String("dir") {
-					return fmt.Errorf("no app specified and not in an app directory")
-				}
-
-				appName = filepath.Base(cwd)
-			}
-
-			apps, err := app.ListApps(k.String("dir"))
-			if err != nil {
-				return fmt.Errorf("failed to list apps: %w", err)
-			}
-
-			crons := make([]CronItem, 0)
-			for _, name := range apps {
-				if appName != "" && name != appName {
+			var crons []CronItem
+			for _, appname := range k.MapKeys("apps") {
+				if len(args) > 0 && appname != args[0] {
 					continue
 				}
 
-				app, err := app.LoadApp(name, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", name)))
-				if err != nil {
-					return fmt.Errorf("failed to load app: %w", err)
-				}
-
-				for _, job := range app.Config.Crons {
+				for _, job := range k.Slices(fmt.Sprintf("apps.%s.crons", appname)) {
 					crons = append(crons, CronItem{
-						App:     name,
-						CronJob: job,
+						App:      appname,
+						Args:     job.Strings("args"),
+						Schedule: job.String("schedule"),
 					})
 				}
 			}
@@ -143,20 +118,9 @@ func CronRunner(stdout, stderr io.Writer) *cron.Cron {
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
 		rounded := time.Now().Truncate(time.Minute)
-		apps, err := app.ListApps(k.String("dir"))
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		for _, name := range apps {
-			a, err := app.LoadApp(name, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", name)))
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-
-			for _, job := range a.Config.Crons {
-				sched, err := parser.Parse(job.Schedule)
+		for _, appname := range k.MapKeys("apps") {
+			for _, job := range k.Slices(fmt.Sprintf("apps.%s.crons", appname)) {
+				sched, err := parser.Parse(job.String("schedule"))
 				if err != nil {
 					fmt.Println(err)
 					continue
@@ -166,9 +130,14 @@ func CronRunner(stdout, stderr io.Writer) *cron.Cron {
 					continue
 				}
 
+				a, err := app.LoadApp(appname, k.String("rootDir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
 				wk := worker.NewWorker(a)
 
-				command, err := wk.Command(context.Background(), job.Args...)
+				command, err := wk.Command(context.Background(), job.Strings("args")...)
 				if err != nil {
 					fmt.Println(err)
 					continue

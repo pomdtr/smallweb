@@ -33,6 +33,13 @@
                 "type": "string"
             }
         },
+        "authorizedGroups": {
+            "description": "Authorized groups",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
         "authorizedKeys": {
             "description": "Authorized SSH keys",
             "type": "array",
@@ -55,6 +62,30 @@
                     "description": "Give the app admin privileges",
                     "type": "boolean"
                 },
+                "crons": {
+                    "description": "Cron jobs",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "schedule",
+                            "args"
+                        ],
+                        "properties": {
+                            "schedule": {
+                                "description": "Cron schedule",
+                                "type": "string"
+                            },
+                            "args": {
+                                "description": "Cron arguments",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
                 "additionalDomains": {
                     "description": "Additional app domains",
                     "type": "array",
@@ -64,6 +95,13 @@
                 },
                 "authorizedEmails": {
                     "description": "Authorized email addresses",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "authorizedGroups": {
+                    "description": "Authorized groups",
                     "type": "array",
                     "items": {
                         "type": "string"
