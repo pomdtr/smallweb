@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -49,6 +50,23 @@ func NewCmdCrons() *cobra.Command {
 			for _, appname := range k.MapKeys("apps") {
 				if len(args) > 0 && appname != args[0] {
 					continue
+				} else if len(args) == 0 && !flags.all {
+					cwd, err := os.Getwd()
+					if err != nil {
+						return fmt.Errorf("failed to get current directory: %w", err)
+					}
+
+					if !strings.HasPrefix(cwd, k.String("dir")) {
+						return fmt.Errorf("not in an app directory")
+					}
+					appDir := cwd
+					for filepath.Dir(appDir) != k.String("dir") {
+						appDir = filepath.Dir(appDir)
+					}
+
+					if appname != filepath.Base(appDir) {
+						continue
+					}
 				}
 
 				for _, job := range k.Slices(fmt.Sprintf("apps.%s.crons", appname)) {
