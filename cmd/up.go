@@ -624,8 +624,8 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	email, err := me.extractEmail(r)
-	if err != nil && IsRoutePrivate(appname, r.URL.Path) {
+	userinfos, err := me.extractUserInfos(r)
+	if err != nil && isRoutePrivate(appname, r.URL.Path) {
 		if !errors.Is(err, &oidc.TokenExpiredError{}) {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 			return
@@ -665,11 +665,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			var claims struct {
-				Email string `json:"email"`
-			}
-
-			if err := idToken.Claims(&claims); err != nil {
+			if err := idToken.Claims(&userinfos); err != nil {
 				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 				return
 			}
@@ -698,19 +694,20 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if IsRoutePrivate(appname, r.URL.Path) {
-		var authorizedEmails []string
-		authorizedEmails = append(authorizedEmails, k.Strings("authorizedEmails")...)
-		authorizedEmails = append(authorizedEmails, k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname))...)
-		if len(authorizedEmails) > 0 && !slices.Contains(authorizedEmails, email) {
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+	if isRoutePrivate(appname, r.URL.Path) && !isAuthorized(appname, userinfos.Email, userinfos.Group) {
+		if userinfos.Email == "" {
+			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 			return
 		}
+
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
 	}
 
-	if email != "" {
-		r.Header.Set("Remote-Email", email)
-	}
+	r.Header.Set("Remote-User", userinfos.User)
+	r.Header.Set("Remote-Email", userinfos.Email)
+	r.Header.Set("Remote-Group", userinfos.Group)
+	r.Header.Set("Remote-Name", userinfos.Name)
 
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
 	if err != nil {
@@ -728,7 +725,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 
-func IsRoutePrivate(appname string, route string) bool {
+func isRoutePrivate(appname string, route string) bool {
 	isPrivate := k.Bool(fmt.Sprintf("apps.%s.private", appname))
 
 	for _, publicRoute := range k.Strings(fmt.Sprintf("apps.%s.publicRoutes", appname)) {
@@ -746,32 +743,52 @@ func IsRoutePrivate(appname string, route string) bool {
 	return isPrivate
 }
 
-func (me *Handler) extractEmail(r *http.Request) (string, error) {
+func isAuthorized(appname string, email string, group string) bool {
+	var authorizedEmails []string
+	authorizedEmails = append(authorizedEmails, k.Strings("authorizedEmails")...)
+	authorizedEmails = append(authorizedEmails, k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname))...)
+
+	var authorizedGroups []string
+	authorizedGroups = append(authorizedGroups, k.Strings("authorizedGroups")...)
+	authorizedGroups = append(authorizedGroups, k.Strings(fmt.Sprintf("apps.%s.authorizedGroups", appname))...)
+
+	return slices.Contains(authorizedEmails, email) || slices.Contains(authorizedGroups, group)
+}
+
+type UserInfos struct {
+	Email string
+	Group string
+	User  string
+	Name  string
+}
+
+func (me *Handler) extractUserInfos(r *http.Request) (UserInfos, error) {
 	if me.oidcProvider == nil {
-		return r.Header.Get("Remote-Email"), nil
+		return UserInfos{
+			Email: r.Header.Get("Remote-Email"),
+			Group: r.Header.Get("Remote-Group"),
+			User:  r.Header.Get("Remote-User"),
+			Name:  r.Header.Get("Remote-Name"),
+		}, nil
 	}
 
-	r.Header.Del("Remote-Email")
 	idTokenCookie, err := r.Cookie("id_token")
 	if err != nil {
-		return "", fmt.Errorf("id token not found")
+		return UserInfos{}, fmt.Errorf("id token not found")
 	}
 
 	verifier := me.oidcProvider.Verifier(&oidc.Config{ClientID: fmt.Sprintf("https://%s", r.Host)})
 	idToken, err := verifier.Verify(r.Context(), idTokenCookie.Value)
 	if err != nil {
-		return "", fmt.Errorf("failed to verify id token: %v", err)
+		return UserInfos{}, fmt.Errorf("failed to verify id token: %v", err)
 	}
 
-	var claims struct {
-		Email string `json:"email"`
+	var userinfo UserInfos
+	if err := idToken.Claims(&userinfo); err != nil {
+		return UserInfos{}, fmt.Errorf("failed to extract claims: %v", err)
 	}
 
-	if err := idToken.Claims(&claims); err != nil {
-		return "", fmt.Errorf("failed to extract claims: %v", err)
-	}
-
-	return claims.Email, nil
+	return userinfo, nil
 }
 
 func lookupApp(domain string) (app string, redirect bool, found bool) {

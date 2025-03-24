@@ -2,6 +2,9 @@
     "$schema": "../../schemas/config.schema.json",
     "domain": "smallweb.localhost",
     "oidc.issuer": "https://lastlogin.net",
+    "authorizedEmails": [
+        "achille.lacoin@gmail.com"
+    ],
     "apps": {
         "ls": {
             "admin": true,
