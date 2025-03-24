@@ -9,48 +9,6 @@
         "root": {
             "description": "The root directory of the project",
             "type": "string"
-        },
-        "private": {
-            "type": "boolean",
-            "description": "Whether the app is private"
-        },
-        "privateRoutes": {
-            "type": "array",
-            "description": "An array of private routes",
-            "items": {
-                "type": "string"
-            }
-        },
-        "publicRoutes": {
-            "type": "array",
-            "description": "An array of public routes",
-            "items": {
-                "type": "string"
-            }
-        },
-        "crons": {
-            "description": "An array of cron jobs",
-            "type": "array",
-            "items": {
-                "type": "object",
-                "required": [
-                    "schedule",
-                    "args"
-                ],
-                "properties": {
-                    "schedule": {
-                        "description": "The cron schedule",
-                        "type": "string"
-                    },
-                    "args": {
-                        "description": "An array of arguments to pass to the app cli entrypoint",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
         }
     }
 }
