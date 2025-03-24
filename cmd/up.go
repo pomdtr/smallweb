@@ -477,161 +477,206 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isRouteProtected := func(route string) bool {
-		routeisProtected := k.Bool(fmt.Sprintf("apps.%s.private", appname))
-		for _, publicRoute := range k.Strings(fmt.Sprintf("apps.%s.publicRoutes", appname)) {
-			if isMatch, _ := doublestar.Match(publicRoute, route); isMatch {
-				routeisProtected = false
-				break
-			}
-		}
-
-		for _, privateRoute := range k.Strings(fmt.Sprintf("apps.%s.privateRoutes", appname)) {
-			if isMatch, _ := doublestar.Match(privateRoute, route); isMatch {
-				routeisProtected = true
-				break
-			}
-		}
-
-		return routeisProtected
-	}
-
-	if me.oidcProvider != nil {
-		r.Header.Del("Remote-Email")
-		r.Header.Del("Remote-User")
-		r.Header.Del("Remote-Name")
-		r.Header.Del("Remote-Groups")
-	}
-
-	if isRouteProtected(r.URL.Path) {
-		if me.oidcProvider == nil {
-			http.Error(w, "openauth issuer not set", http.StatusInternalServerError)
+	if r.URL.Path == "/_smallweb/signin" {
+		oauth2Config, err := me.Oauth2Config(r.Host)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to get oauth2 config: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		clientID := fmt.Sprintf("https://%s", r.Host)
-		oauth2Config := &oauth2.Config{
-			ClientID:    clientID,
-			Scopes:      []string{"openid", "email", "profile", "groups"},
-			RedirectURL: fmt.Sprintf("https://%s/_smallweb/oauth/callback", r.Host),
-			Endpoint:    me.oidcProvider.Endpoint(),
+		var successURL string
+		if param := r.URL.Query().Get("success_url"); param != "" {
+			successURL = fmt.Sprintf("https://%s%s", r.Host, param)
+		} else if r.Header.Get("Referer") != "" {
+			successURL = r.Header.Get("Referer")
+		} else {
+			successURL = fmt.Sprintf("https://%s/", r.Host)
 		}
 
-		if r.URL.Path == "/_smallweb/signin" {
-			var successURL string
-			if param := r.URL.Query().Get("success_url"); param != "" {
-				successURL = fmt.Sprintf("https://%s%s", r.Host, param)
-			} else if r.Header.Get("Referer") != "" {
-				successURL = r.Header.Get("Referer")
-			} else {
-				successURL = fmt.Sprintf("https://%s/", r.Host)
-			}
+		state := rand.Text()
+		verifier := oauth2.GenerateVerifier()
+		authData := AuthData{
+			State:        state,
+			SuccessURL:   successURL,
+			CodeVerifier: verifier,
+		}
 
-			state := rand.Text()
-			verifier := oauth2.GenerateVerifier()
-			authData := AuthData{
-				State:        state,
-				SuccessURL:   successURL,
-				CodeVerifier: verifier,
-			}
-
-			// Marshal the struct to JSON
-			jsonData, err := json.Marshal(authData)
-			if err != nil {
-				http.Error(w, "Server error", http.StatusInternalServerError)
-				return
-			}
-
-			encodedData := base64.StdEncoding.EncodeToString(jsonData)
-			http.SetCookie(w, &http.Cookie{
-				Name:     "oauth_data",
-				Value:    encodedData,
-				Secure:   true,
-				HttpOnly: true,
-				MaxAge:   5 * 60,
-				SameSite: http.SameSiteLaxMode,
-			})
-
-			http.Redirect(w, r, oauth2Config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier)), http.StatusTemporaryRedirect)
+		// Marshal the struct to JSON
+		jsonData, err := json.Marshal(authData)
+		if err != nil {
+			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
 		}
 
-		if r.URL.Path == "/_smallweb/signout" {
-			http.SetCookie(w, &http.Cookie{
-				Name:     "id_token",
-				Secure:   true,
-				HttpOnly: true,
-				MaxAge:   -1,
-			})
+		encodedData := base64.StdEncoding.EncodeToString(jsonData)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "oauth_data",
+			Value:    encodedData,
+			Secure:   true,
+			HttpOnly: true,
+			MaxAge:   5 * 60,
+			SameSite: http.SameSiteLaxMode,
+		})
 
+		http.Redirect(w, r, oauth2Config.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier)), http.StatusTemporaryRedirect)
+		return
+	}
+
+	if r.URL.Path == "/_smallweb/signout" {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "id_token",
+			Secure:   true,
+			HttpOnly: true,
+			MaxAge:   -1,
+		})
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "refresh_token",
+			Secure:   true,
+			HttpOnly: true,
+			Path:     "/",
+			MaxAge:   -1,
+		})
+
+		var successUrl string
+		if param := r.URL.Query().Get("success_url"); param != "" {
+			successUrl = fmt.Sprintf("https://%s%s", r.Host, param)
+		} else if r.Header.Get("Referer") != "" {
+			successUrl = r.Header.Get("Referer")
+		} else {
+			successUrl = fmt.Sprintf("https://%s/", r.Host)
+		}
+
+		http.Redirect(w, r, successUrl, http.StatusTemporaryRedirect)
+		return
+	}
+
+	if r.URL.Path == "/_smallweb/oauth/callback" {
+		oauth2Config, err := me.Oauth2Config(r.Host)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to get oauth2 config: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		authCookie, err := r.Cookie("oauth_data")
+		if err != nil {
+			http.Error(w, "state cookie not found", http.StatusUnauthorized)
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "oauth_data",
+			Secure:   true,
+			HttpOnly: true,
+			Path:     "/",
+			MaxAge:   -1,
+		})
+
+		decodedData, err := base64.StdEncoding.DecodeString(authCookie.Value)
+		if err != nil {
+			http.Error(w, "failed to decode state cookie", http.StatusUnauthorized)
+			return
+		}
+
+		var authData AuthData
+		if err := json.Unmarshal(decodedData, &authData); err != nil {
+			http.Error(w, "failed to unmarshal state cookie", http.StatusUnauthorized)
+			return
+		}
+
+		if authData.State != r.URL.Query().Get("state") {
+			http.Error(w, "invalid state", http.StatusUnauthorized)
+			return
+		}
+
+		oauth2Token, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(authData.CodeVerifier))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to exchange code: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		idToken := oauth2Token.Extra("id_token").(string)
+		if idToken == "" {
+			http.Error(w, "id token not found", http.StatusInternalServerError)
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "id_token",
+			Value:    idToken,
+			SameSite: http.SameSiteLaxMode,
+			Secure:   true,
+			HttpOnly: true,
+			Path:     "/",
+			MaxAge:   34560000,
+		})
+
+		if oauth2Token.RefreshToken != "" {
 			http.SetCookie(w, &http.Cookie{
 				Name:     "refresh_token",
+				Value:    oauth2Token.RefreshToken,
+				SameSite: http.SameSiteLaxMode,
 				Secure:   true,
 				HttpOnly: true,
 				Path:     "/",
-				MaxAge:   -1,
+				MaxAge:   34560000,
 			})
+		}
+	}
 
-			var successUrl string
-			if param := r.URL.Query().Get("success_url"); param != "" {
-				successUrl = fmt.Sprintf("https://%s%s", r.Host, param)
-			} else if r.Header.Get("Referer") != "" {
-				successUrl = r.Header.Get("Referer")
-			} else {
-				successUrl = fmt.Sprintf("https://%s/", r.Host)
-			}
-
-			http.Redirect(w, r, successUrl, http.StatusTemporaryRedirect)
+	email, err := me.extractEmail(r)
+	if err != nil && IsRoutePrivate(appname, r.URL.Path) {
+		if !errors.Is(err, &oidc.TokenExpiredError{}) {
+			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 			return
 		}
 
-		if r.URL.Path == "/_smallweb/oauth/callback" {
-			authCookie, err := r.Cookie("oauth_data")
+		var expiredErr *oidc.TokenExpiredError
+		if errors.As(err, &expiredErr) {
+			refreshTokenCookie, err := r.Cookie("refresh_token")
 			if err != nil {
-				http.Error(w, "state cookie not found", http.StatusUnauthorized)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 				return
 			}
 
-			http.SetCookie(w, &http.Cookie{
-				Name:     "oauth_data",
-				Secure:   true,
-				HttpOnly: true,
-				Path:     "/",
-				MaxAge:   -1,
-			})
-
-			decodedData, err := base64.StdEncoding.DecodeString(authCookie.Value)
+			oauth2Config, err := me.Oauth2Config(r.Host)
 			if err != nil {
-				http.Error(w, "failed to decode state cookie", http.StatusUnauthorized)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 				return
 			}
 
-			var authData AuthData
-			if err := json.Unmarshal(decodedData, &authData); err != nil {
-				http.Error(w, "failed to unmarshal state cookie", http.StatusUnauthorized)
-				return
-			}
-
-			if authData.State != r.URL.Query().Get("state") {
-				http.Error(w, "invalid state", http.StatusUnauthorized)
-				return
-			}
-
-			oauth2Token, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(authData.CodeVerifier))
+			tokenSource := oauth2Config.TokenSource(context.Background(), &oauth2.Token{RefreshToken: refreshTokenCookie.Value})
+			oauth2Token, err := tokenSource.Token()
 			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to exchange code: %v", err), http.StatusInternalServerError)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 				return
 			}
 
-			idToken := oauth2Token.Extra("id_token").(string)
-			if idToken == "" {
-				http.Error(w, "id token not found", http.StatusInternalServerError)
+			rawIdToken, ok := oauth2Token.Extra("id_token").(string)
+			if !ok {
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+				return
+			}
+
+			verifier := me.oidcProvider.Verifier(&oidc.Config{ClientID: r.Host})
+			idToken, err := verifier.Verify(r.Context(), rawIdToken)
+			if err != nil {
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+				return
+			}
+
+			var claims struct {
+				Email string `json:"email"`
+			}
+
+			if err := idToken.Claims(&claims); err != nil {
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 				return
 			}
 
 			http.SetCookie(w, &http.Cookie{
 				Name:     "id_token",
-				Value:    idToken,
+				Value:    rawIdToken,
 				SameSite: http.SameSiteLaxMode,
 				Secure:   true,
 				HttpOnly: true,
@@ -650,94 +695,21 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					MaxAge:   34560000,
 				})
 			}
-
-			http.Redirect(w, r, authData.SuccessURL, http.StatusTemporaryRedirect)
-			return
 		}
+	}
 
-		idTokenCookie, err := r.Cookie("id_token")
-		if err != nil {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-			return
-		}
-
-		verifier := me.oidcProvider.Verifier(&oidc.Config{ClientID: clientID})
-		idToken, err := verifier.Verify(r.Context(), idTokenCookie.Value)
-		if err != nil {
-			var expiredErr *oidc.TokenExpiredError
-			if errors.As(err, &expiredErr) {
-				refreshTokenCookie, err := r.Cookie("refresh_token")
-				if err != nil {
-					http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-					return
-				}
-
-				tokenSource := oauth2Config.TokenSource(context.Background(), &oauth2.Token{RefreshToken: refreshTokenCookie.Value})
-				oauth2Token, err := tokenSource.Token()
-				if err != nil {
-					http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-					return
-				}
-
-				idToken, ok := oauth2Token.Extra("id_token").(string)
-				if !ok {
-					http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-					return
-				}
-
-				http.SetCookie(w, &http.Cookie{
-					Name:     "id_token",
-					Value:    idToken,
-					SameSite: http.SameSiteLaxMode,
-					Secure:   true,
-					HttpOnly: true,
-					Path:     "/",
-					MaxAge:   34560000,
-				})
-
-				if oauth2Token.RefreshToken != "" {
-					http.SetCookie(w, &http.Cookie{
-						Name:     "refresh_token",
-						Value:    oauth2Token.RefreshToken,
-						SameSite: http.SameSiteLaxMode,
-						Secure:   true,
-						HttpOnly: true,
-						Path:     "/",
-						MaxAge:   34560000,
-					})
-				}
-
-			} else {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
-				return
-			}
-		}
-
-		// Extract custom claims
-		var claims struct {
-			Email   string   `json:"email"`
-			Subject string   `json:"sub"`
-			Name    string   `json:"name"`
-			Groups  []string `json:"groups"`
-		}
-
-		if err := idToken.Claims(&claims); err != nil {
-			http.Error(w, fmt.Sprintf("failed to get claims: %v", err), http.StatusInternalServerError)
-			return
-		}
-
+	if IsRoutePrivate(appname, r.URL.Path) {
 		var authorizedEmails []string
 		authorizedEmails = append(authorizedEmails, k.Strings("authorizedEmails")...)
 		authorizedEmails = append(authorizedEmails, k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname))...)
-		if len(authorizedEmails) > 0 && !slices.Contains(authorizedEmails, claims.Email) {
+		if len(authorizedEmails) > 0 && !slices.Contains(authorizedEmails, email) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
+	}
 
-		r.Header.Set("Remote-Email", claims.Email)
-		r.Header.Set("Remote-User", claims.Subject)
-		r.Header.Set("Remote-Name", claims.Name)
-		r.Header.Set("Remote-Groups", strings.Join(claims.Groups, ","))
+	if email != "" {
+		r.Header.Set("Remote-Email", email)
 	}
 
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
@@ -754,6 +726,52 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wk.ServeHTTP(w, r)
+}
+
+func IsRoutePrivate(appname string, route string) bool {
+	isPrivate := k.Bool(fmt.Sprintf("apps.%s.private", appname))
+
+	for _, publicRoute := range k.Strings(fmt.Sprintf("apps.%s.publicRoutes", appname)) {
+		if ok, _ := doublestar.Match(publicRoute, route); ok {
+			isPrivate = false
+		}
+	}
+
+	for _, privateRoute := range k.Strings(fmt.Sprintf("apps.%s.privateRoutes", appname)) {
+		if ok, _ := doublestar.Match(privateRoute, route); ok {
+			isPrivate = true
+		}
+	}
+
+	return isPrivate
+}
+
+func (me *Handler) extractEmail(r *http.Request) (string, error) {
+	if me.oidcProvider == nil {
+		return r.Header.Get("Remote-Email"), nil
+	}
+
+	r.Header.Del("Remote-Email")
+	idTokenCookie, err := r.Cookie("id_token")
+	if err != nil {
+		return "", fmt.Errorf("id token not found")
+	}
+
+	verifier := me.oidcProvider.Verifier(&oidc.Config{ClientID: fmt.Sprintf("https://%s", r.Host)})
+	idToken, err := verifier.Verify(r.Context(), idTokenCookie.Value)
+	if err != nil {
+		return "", fmt.Errorf("failed to verify id token: %v", err)
+	}
+
+	var claims struct {
+		Email string `json:"email"`
+	}
+
+	if err := idToken.Claims(&claims); err != nil {
+		return "", fmt.Errorf("failed to extract claims: %v", err)
+	}
+
+	return claims.Email, nil
 }
 
 func lookupApp(domain string) (app string, redirect bool, found bool) {
@@ -782,6 +800,20 @@ func lookupApp(domain string) (app string, redirect bool, found bool) {
 	}
 
 	return "", false, false
+}
+
+func (me *Handler) Oauth2Config(host string) (*oauth2.Config, error) {
+	if me.oidcProvider == nil {
+		return nil, fmt.Errorf("oidc provider not found")
+	}
+
+	clientID := fmt.Sprintf("https://%s", host)
+	return &oauth2.Config{
+		ClientID:    clientID,
+		Scopes:      []string{"openid", "email", "profile", "groups"},
+		RedirectURL: fmt.Sprintf("https://%s/_smallweb/oauth/callback", host),
+		Endpoint:    me.oidcProvider.Endpoint(),
+	}, nil
 }
 
 func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Worker, error) {
