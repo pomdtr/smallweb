@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -80,14 +81,11 @@ func NewCmdUp() *cobra.Command {
 				workers: make(map[string]*worker.Worker),
 			}
 
-			if issuer := k.String("oidc.issuer"); issuer != "" {
-				provider, err := oidc.NewProvider(context.Background(), issuer)
-				if err != nil {
-					return fmt.Errorf("failed to get provider: %v", err)
-				}
-
-				handler.oidcProvider = provider
+			issuerUrl, err := url.Parse(k.String("oidc.issuer"))
+			if err != nil {
+				return fmt.Errorf("failed to parse issuer url: %v", err)
 			}
+			handler.oidcIssuerUrl = issuerUrl
 
 			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
 				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
@@ -99,13 +97,13 @@ func NewCmdUp() *cobra.Command {
 				_ = k.Load(flagProvider, nil)
 
 				if issuer := k.String("oidc.issuer"); issuer != "" {
-					provider, err := oidc.NewProvider(context.Background(), issuer)
+					issuerUrl, err := url.Parse(issuer)
 					if err != nil {
-						fmt.Fprintf(cmd.ErrOrStderr(), "failed to get provider: %v\n", err)
+						fmt.Fprintf(cmd.ErrOrStderr(), "failed to parse issuer url: %v\n", err)
 						return
 					}
 
-					handler.oidcProvider = provider
+					handler.oidcIssuerUrl = issuerUrl
 				}
 			})
 			if err != nil {
@@ -434,10 +432,12 @@ func getListener(addr string, config *tls.Config) (net.Listener, error) {
 }
 
 type Handler struct {
-	watcher      *watcher.Watcher
-	mu           sync.Mutex
-	workers      map[string]*worker.Worker
-	oidcProvider *oidc.Provider
+	watcher       *watcher.Watcher
+	workerMu      sync.Mutex
+	workers       map[string]*worker.Worker
+	oidcMu        sync.Mutex
+	oidcIssuerUrl *url.URL
+	oidcProvider  *oidc.Provider
 }
 
 type AuthData struct {
@@ -474,6 +474,24 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		target.Host = fmt.Sprintf("%s.%s", appname, r.Host)
 		http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
+		return
+	}
+
+	if me.oidcIssuerUrl != nil && me.oidcIssuerUrl.Host == r.Host {
+		wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
+		if err != nil {
+			if errors.Is(err, app.ErrAppNotFound) {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
+				return
+			}
+
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "failed to get worker: %v", err)
+			return
+		}
+
+		wk.ServeHTTP(w, r)
 		return
 	}
 
@@ -589,14 +607,20 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		oauth2Token, err := oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(authData.CodeVerifier))
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			http.Error(w, "oauth code not found", http.StatusUnauthorized)
+			return
+		}
+
+		oauth2Token, err := oauth2Config.Exchange(r.Context(), code, oauth2.VerifierOption(authData.CodeVerifier))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to exchange code: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		idToken := oauth2Token.Extra("id_token").(string)
-		if idToken == "" {
+		idToken, ok := oauth2Token.Extra("id_token").(string)
+		if !ok {
 			http.Error(w, "id token not found", http.StatusInternalServerError)
 			return
 		}
@@ -622,9 +646,12 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				MaxAge:   34560000,
 			})
 		}
+
+		http.Redirect(w, r, authData.SuccessURL, http.StatusTemporaryRedirect)
+		return
 	}
 
-	userinfos, err := me.extractUserInfos(r)
+	claims, err := me.extractClaims(r)
 	if err != nil && isRoutePrivate(appname, r.URL.Path) {
 		if !errors.Is(err, &oidc.TokenExpiredError{}) {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
@@ -658,14 +685,19 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			verifier := me.oidcProvider.Verifier(&oidc.Config{ClientID: r.Host})
+			if me.Provider() == nil {
+				http.Error(w, "oidc provider not found", http.StatusInternalServerError)
+				return
+			}
+
+			verifier := me.Provider().Verifier(&oidc.Config{ClientID: r.Host})
 			idToken, err := verifier.Verify(r.Context(), rawIdToken)
 			if err != nil {
 				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 				return
 			}
 
-			if err := idToken.Claims(&userinfos); err != nil {
+			if err := idToken.Claims(&claims); err != nil {
 				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 				return
 			}
@@ -694,8 +726,8 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if isRoutePrivate(appname, r.URL.Path) && !isAuthorized(appname, userinfos.Email, userinfos.Group) {
-		if userinfos.Email == "" {
+	if isRoutePrivate(appname, r.URL.Path) && !isAuthorized(appname, claims.Email, claims.Group) {
+		if claims.Email == "" {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 			return
 		}
@@ -704,10 +736,10 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Header.Set("Remote-User", userinfos.User)
-	r.Header.Set("Remote-Email", userinfos.Email)
-	r.Header.Set("Remote-Group", userinfos.Group)
-	r.Header.Set("Remote-Name", userinfos.Name)
+	r.Header.Set("Remote-User", claims.User)
+	r.Header.Set("Remote-Email", claims.Email)
+	r.Header.Set("Remote-Group", claims.Group)
+	r.Header.Set("Remote-Name", claims.Name)
 
 	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
 	if err != nil {
@@ -755,16 +787,16 @@ func isAuthorized(appname string, email string, group string) bool {
 	return slices.Contains(authorizedEmails, email) || slices.Contains(authorizedGroups, group)
 }
 
-type UserInfos struct {
+type Claims struct {
 	Email string
 	Group string
 	User  string
 	Name  string
 }
 
-func (me *Handler) extractUserInfos(r *http.Request) (UserInfos, error) {
-	if me.oidcProvider == nil {
-		return UserInfos{
+func (me *Handler) extractClaims(r *http.Request) (Claims, error) {
+	if me.Provider() == nil {
+		return Claims{
 			Email: r.Header.Get("Remote-Email"),
 			Group: r.Header.Get("Remote-Group"),
 			User:  r.Header.Get("Remote-User"),
@@ -774,18 +806,18 @@ func (me *Handler) extractUserInfos(r *http.Request) (UserInfos, error) {
 
 	idTokenCookie, err := r.Cookie("id_token")
 	if err != nil {
-		return UserInfos{}, fmt.Errorf("id token not found")
+		return Claims{}, fmt.Errorf("id token not found")
 	}
 
-	verifier := me.oidcProvider.Verifier(&oidc.Config{ClientID: fmt.Sprintf("https://%s", r.Host)})
+	verifier := me.Provider().Verifier(&oidc.Config{ClientID: fmt.Sprintf("https://%s", r.Host)})
 	idToken, err := verifier.Verify(r.Context(), idTokenCookie.Value)
 	if err != nil {
-		return UserInfos{}, fmt.Errorf("failed to verify id token: %v", err)
+		return Claims{}, fmt.Errorf("failed to verify id token: %v", err)
 	}
 
-	var userinfo UserInfos
+	var userinfo Claims
 	if err := idToken.Claims(&userinfo); err != nil {
-		return UserInfos{}, fmt.Errorf("failed to extract claims: %v", err)
+		return Claims{}, fmt.Errorf("failed to extract claims: %v", err)
 	}
 
 	return userinfo, nil
@@ -819,17 +851,33 @@ func lookupApp(domain string) (app string, redirect bool, found bool) {
 	return "", false, false
 }
 
-func (me *Handler) Oauth2Config(host string) (*oauth2.Config, error) {
-	if me.oidcProvider == nil {
-		return nil, fmt.Errorf("oidc provider not found")
+func (me *Handler) Provider() *oidc.Provider {
+	me.oidcMu.Lock()
+	defer me.oidcMu.Unlock()
+
+	if me.oidcIssuerUrl == nil {
+		return nil
 	}
 
+	if me.oidcProvider == nil {
+		provider, err := oidc.NewProvider(context.Background(), me.oidcIssuerUrl.String())
+		if err != nil {
+			return nil
+		}
+
+		me.oidcProvider = provider
+	}
+
+	return me.oidcProvider
+}
+
+func (me *Handler) Oauth2Config(host string) (*oauth2.Config, error) {
 	clientID := fmt.Sprintf("https://%s", host)
 	return &oauth2.Config{
 		ClientID:    clientID,
 		Scopes:      []string{"openid", "email", "profile", "groups"},
 		RedirectURL: fmt.Sprintf("https://%s/_smallweb/oauth/callback", host),
-		Endpoint:    me.oidcProvider.Endpoint(),
+		Endpoint:    me.Provider().Endpoint(),
 	}, nil
 }
 
@@ -838,8 +886,8 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 		return wk, nil
 	}
 
-	me.mu.Lock()
-	defer me.mu.Unlock()
+	me.workerMu.Lock()
+	defer me.workerMu.Unlock()
 
 	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
 	if err != nil {
