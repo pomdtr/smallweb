@@ -66,8 +66,15 @@ export default {
             return Response.json({
                 ...oauth2Config,
                 userinfo_endpoint: new URL("/userinfo", url).toString(),
-                scopes_supported: ["openid", "email"],
+                scopes_supported: ["openid", "email", "groups"],
                 id_token_signing_alg_values_supported: ["ES256"],
+            }, {
+                headers: {
+                    "content-type": "application/json",
+                    "access-control-allow-origin": "*",
+                    "access-control-allow-methods": "GET",
+                    "access-control-allow-headers": "Content-Type",
+                }
             })
         }
 
@@ -99,16 +106,16 @@ export default {
 
             const signinKey = await signingKeys(storage).then((keys) => keys[0])
             const access_token = await jwtVerify<{
-                properties: {
-                    email: string
-                }
+                type: string,
+                properties: Record<string, unknown>,
             }>(tokens.access_token, signinKey.public)
             const jwt = new SignJWT({
+                ...access_token.payload.properties,
+                groups: [access_token.payload.type],
                 aud: access_token.payload.aud,
                 iss: access_token.payload.iss,
                 sub: access_token.payload.sub,
                 exp: access_token.payload.exp,
-                email: access_token.payload.properties.email,
             })
 
             jwt.setProtectedHeader(access_token.protectedHeader)
