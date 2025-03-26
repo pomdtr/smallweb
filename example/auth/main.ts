@@ -5,9 +5,7 @@ import { THEME_SST } from "npm:/@openauthjs/openauth@^0.3.7/ui/theme";
 import { MemoryStorage } from "npm:/@openauthjs/openauth@^0.3.7/storage/memory";
 import { createSubjects } from "npm:@openauthjs/openauth@^0.3.7/subject";
 import { object, string } from "npm:valibot@1.0.0"
-import { signingKeys } from "npm:@openauthjs/openauth@^0.3.7/keys";
-import { jwtVerify, SignJWT } from "npm:jose"
-import * as fs from "jsr:@std/fs@^1.0.11";
+import { oicd } from "jsr:@pomdtr/openauth-oidc@0.1.1";
 
 const { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET } = Deno.env.toObject();
 if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
@@ -55,79 +53,4 @@ const iss = issuer({
 })
 
 
-export default {
-    fetch: async (req: Request) => {
-        await fs.ensureDir("./data");
-        const url = new URL(req.url);
-
-        if (url.pathname === "/.well-known/openid-configuration") {
-            const resp = await iss.request(new URL("/.well-known/oauth-authorization-server", url))
-            const oauth2Config = await resp.json()
-            return Response.json({
-                ...oauth2Config,
-                userinfo_endpoint: new URL("/userinfo", url).toString(),
-                scopes_supported: ["openid", "email", "groups"],
-                id_token_signing_alg_values_supported: ["ES256"],
-            }, {
-                headers: {
-                    "content-type": "application/json",
-                    "access-control-allow-origin": "*",
-                    "access-control-allow-methods": "GET",
-                    "access-control-allow-headers": "Content-Type",
-                }
-            })
-        }
-
-        if (url.pathname === "/token") {
-            if (req.headers.get("content-type") !== "application/x-www-form-urlencoded") {
-                return new Response("Invalid content type", {
-                    status: 400,
-                })
-            }
-
-            const params = new URLSearchParams(await req.text())
-            if (!params.has("client_id")) {
-                return new Response("Missing client_id", {
-                    status: 400,
-                })
-            }
-
-            const resp = await iss.request(req.url, {
-                method: req.method,
-                headers: req.headers,
-                body: params.toString(),
-            })
-
-            if (!resp.ok) {
-                return resp
-            }
-
-            const tokens = await resp.json()
-
-            const signinKey = await signingKeys(storage).then((keys) => keys[0])
-            const access_token = await jwtVerify<{
-                type: string,
-                properties: Record<string, unknown>,
-            }>(tokens.access_token, signinKey.public)
-            const jwt = new SignJWT({
-                ...access_token.payload.properties,
-                groups: [access_token.payload.type],
-                aud: access_token.payload.aud,
-                iss: access_token.payload.iss,
-                sub: access_token.payload.sub,
-                exp: access_token.payload.exp,
-            })
-
-            jwt.setProtectedHeader(access_token.protectedHeader)
-            jwt.sign(signinKey.private)
-
-
-            return Response.json({
-                id_token: await jwt.sign(signinKey.private),
-                ...tokens,
-            })
-        }
-
-        return iss.fetch(req);
-    }
-}
+export default oicd(iss, storage)
