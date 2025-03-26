@@ -205,7 +205,7 @@ func NewCmdUp() *cobra.Command {
 
 			if flags.smtpAddr != "" {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Starting smtp server on %s...\n", flags.smtpAddr)
-				go smtpd.ListenAndServe(flags.smtpAddr, func(remoteAddr net.Addr, from string, to []string, msg []byte) error {
+				go smtpd.ListenAndServe(flags.smtpAddr, func(remoteAddr net.Addr, from string, to []string, data []byte) error {
 					for _, recipient := range to {
 						parts := strings.Split(recipient, "@")
 						if len(parts) != 2 {
@@ -223,7 +223,7 @@ func NewCmdUp() *cobra.Command {
 						}
 
 						worker := worker.NewWorker(a)
-						if err := worker.SendEmail(context.Background(), msg); err != nil {
+						if err := worker.SendEmail(context.Background(), data); err != nil {
 							return fmt.Errorf("failed to send email: %v", err)
 						}
 					}
@@ -305,7 +305,7 @@ func NewCmdUp() *cobra.Command {
 								}
 
 								wk := worker.NewWorker(a)
-								cmd, err := wk.Command(sess.Context(), sess.Command()...)
+								cmd, err := wk.Command(sess.Context(), sess.Command(), nil)
 								if err != nil {
 									fmt.Fprintf(sess, "failed to get command: %v\n", err)
 									sess.Exit(1)

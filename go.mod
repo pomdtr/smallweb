@@ -31,6 +31,7 @@ require (
 	github.com/getsops/sops/v3 v3.9.4
 	github.com/knadh/koanf/providers/posflag v0.1.0
 	github.com/leaanthony/gosod v1.0.4
+	github.com/mhale/smtpd v0.8.3
 	github.com/pkg/sftp v1.13.9
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/crypto v0.36.0
@@ -138,7 +139,6 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
-	github.com/mhale/smtpd v0.8.3 // indirect
 	github.com/mholt/acmez/v3 v3.1.1 // indirect
 	github.com/miekg/dns v1.1.63 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect

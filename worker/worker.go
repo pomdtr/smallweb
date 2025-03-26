@@ -461,7 +461,7 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error) {
+func (me *Worker) Command(ctx context.Context, args []string, input []byte) (*exec.Cmd, error) {
 	if args == nil {
 		args = []string{}
 	}
@@ -481,6 +481,7 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 		"command":    "run",
 		"entrypoint": me.App.Entrypoint(),
 		"args":       args,
+		"input":      base64.StdEncoding.EncodeToString(input),
 	}); err != nil {
 		return nil, fmt.Errorf("could not encode input: %w", err)
 	}
@@ -496,7 +497,7 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	return command, nil
 }
 
-func (me *Worker) SendEmail(ctx context.Context, data []byte) error {
+func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	deno, err := DenoExecutable()
 	if err != nil {
 		return fmt.Errorf("could not find deno executable")
@@ -511,7 +512,7 @@ func (me *Worker) SendEmail(ctx context.Context, data []byte) error {
 	if err := encoder.Encode(map[string]any{
 		"command":    "email",
 		"entrypoint": me.App.Entrypoint(),
-		"msg":        base64.StdEncoding.EncodeToString(data),
+		"msg":        base64.StdEncoding.EncodeToString(msg),
 	}); err != nil {
 		return fmt.Errorf("could not encode input: %w", err)
 	}

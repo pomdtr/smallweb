@@ -155,7 +155,7 @@ func CronRunner(stdout, stderr io.Writer) *cron.Cron {
 				}
 				wk := worker.NewWorker(a)
 
-				command, err := wk.Command(context.Background(), job.Strings("args")...)
+				command, err := wk.Command(context.Background(), job.Strings("args"), nil)
 				if err != nil {
 					fmt.Println(err)
 					continue

@@ -160,7 +160,9 @@ if (payload.command === "fetch") {
         Deno.exit(1);
     }
 
-    await handler.run(payload.args)
+    const data = decodeBase64(payload.input)
+    const blob = new Blob([data]);
+    await handler.run(payload.args, blob.stream());
 } else if (payload.command === "email") {
     const mod = await import(payload.entrypoint);
     if (!mod.default || typeof mod.default !== "object") {
