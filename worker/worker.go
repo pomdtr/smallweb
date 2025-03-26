@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -493,6 +494,40 @@ func (me *Worker) Command(ctx context.Context, args ...string) (*exec.Cmd, error
 	command.Env = commandEnv(me.App)
 
 	return command, nil
+}
+
+func (me *Worker) SendEmail(ctx context.Context, data []byte) error {
+	deno, err := DenoExecutable()
+	if err != nil {
+		return fmt.Errorf("could not find deno executable")
+	}
+
+	denoArgs := []string{"run"}
+	denoArgs = append(denoArgs, me.DenoArgs(deno, SandboxMethodRun)...)
+
+	payload := strings.Builder{}
+	encoder := json.NewEncoder(&payload)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(map[string]any{
+		"command":    "email",
+		"entrypoint": me.App.Entrypoint(),
+		"msg":        base64.StdEncoding.EncodeToString(data),
+	}); err != nil {
+		return fmt.Errorf("could not encode input: %w", err)
+	}
+
+	denoArgs = append(denoArgs, "-", payload.String())
+
+	command := exec.CommandContext(ctx, deno, denoArgs...)
+
+	command.Stdin = strings.NewReader(sandboxContent)
+	command.Stderr = os.Stderr
+	command.Stdout = os.Stdout
+	command.Dir = me.App.Dir()
+
+	command.Env = commandEnv(me.App)
+
+	return command.Run()
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.

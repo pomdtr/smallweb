@@ -1,5 +1,6 @@
 import { accepts } from "jsr:@std/http@1.0.12/negotiation"
 import { escape } from "jsr:@std/html@1.0.3"
+import { decodeBase64 } from "jsr:@std/encoding@1.0.8/base64"
 
 function cleanStack(str?: string) {
     if (!str) return undefined;
@@ -160,6 +161,23 @@ if (payload.command === "fetch") {
     }
 
     await handler.run(payload.args)
+} else if (payload.command === "email") {
+    const mod = await import(payload.entrypoint);
+    if (!mod.default || typeof mod.default !== "object") {
+        console.error(
+            "The mod does not provide an object as it's default export.",
+        );
+        Deno.exit(1);
+    }
+
+    const handler = mod.default;
+    if (!("email" in handler)) {
+        console.error("The mod default export does not have a email function.");
+        Deno.exit(1);
+    }
+
+    const msg = decodeBase64(payload.msg)
+    await handler.email(msg)
 } else {
     console.error("Unknown command: ", payload.command);
     Deno.exit(1);

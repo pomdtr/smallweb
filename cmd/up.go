@@ -29,6 +29,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/creack/pty"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/mhale/smtpd"
 
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
@@ -50,6 +51,7 @@ func NewCmdUp() *cobra.Command {
 		addr          string
 		apiAddr       string
 		sshAddr       string
+		smtpAddr      string
 		sshPrivateKey string
 		tlsCert       string
 		tlsKey        string
@@ -199,6 +201,35 @@ func NewCmdUp() *cobra.Command {
 
 				fmt.Fprintf(cmd.ErrOrStderr(), "Starting api server on %s...\n", flags.apiAddr)
 				go http.Serve(ln, mux)
+			}
+
+			if flags.smtpAddr != "" {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Starting smtp server on %s...\n", flags.smtpAddr)
+				go smtpd.ListenAndServe(flags.smtpAddr, func(remoteAddr net.Addr, from string, to []string, msg []byte) error {
+					for _, recipient := range to {
+						parts := strings.Split(recipient, "@")
+						if len(parts) != 2 {
+							return fmt.Errorf("invalid recipient: %s", recipient)
+						}
+
+						account, domain := parts[0], parts[1]
+						if domain != k.String("domain") {
+							return fmt.Errorf("invalid domain: %s", domain)
+						}
+
+						a, err := app.LoadApp(account, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", parts[0])))
+						if err != nil {
+							return fmt.Errorf("failed to load app: %v", err)
+						}
+
+						worker := worker.NewWorker(a)
+						if err := worker.SendEmail(context.Background(), msg); err != nil {
+							return fmt.Errorf("failed to send email: %v", err)
+						}
+					}
+
+					return nil
+				}, "smallweb", k.String("domain"))
 			}
 
 			if flags.sshAddr != "" {
@@ -370,9 +401,7 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				fmt.Fprintf(cmd.ErrOrStderr(), "Starting ssh server on %s...\n", flags.sshAddr)
-				if err = srv.ListenAndServe(); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-					fmt.Fprintf(cmd.ErrOrStderr(), "failed to start ssh server: %v\n", err)
-				}
+				go srv.ListenAndServe()
 			}
 
 			// sigint handling
@@ -386,6 +415,7 @@ func NewCmdUp() *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
+	cmd.Flags().StringVar(&flags.smtpAddr, "smtp-addr", "", "address to listen on for smtp")
 	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-private-key", "", "ssh private key")
 	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-host-key", "", "ssh host key")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")

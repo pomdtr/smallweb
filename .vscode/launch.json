@@ -8,7 +8,8 @@
             "args": [
                 "up",
                 "--addr=:7777",
-                "--ssh-addr=:2222"
+                "--ssh-addr=:2222",
+                "--smtp-addr=:2525",
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/example",
