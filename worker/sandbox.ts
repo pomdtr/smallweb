@@ -176,8 +176,9 @@ if (payload.command === "fetch") {
         Deno.exit(1);
     }
 
-    const msg = decodeBase64(payload.msg)
-    await handler.email(msg)
+    const data = decodeBase64(payload.msg)
+    const blob = new Blob([data]);
+    await handler.email(blob.stream());
 } else {
     console.error("Unknown command: ", payload.command);
     Deno.exit(1);
