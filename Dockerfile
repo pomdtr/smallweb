@@ -18,19 +18,10 @@ ARG DENO_VERSION=v2.2.4
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh -s "$DENO_VERSION"
 ENV PATH="/usr/local/deno/bin:$PATH"
 
-# Set up default user with ID 1000
-ARG UID=1000
-ARG GID=1000
-RUN groupadd -g $GID smallweb && useradd -m -s /bin/bash -u $UID -g $GID smallweb
+RUN mkdir -p /var/deno && chmod 777 /var/deno
+VOLUME [ "/var/deno" ]
 
-
-RUN mkdir -p /home/smallweb/.cache/deno
-RUN chown -R smallweb:smallweb /home/smallweb/.cache/deno
-VOLUME [ "/home/smallweb/.cache/deno" ]
-
-# Create app directory
-RUN mkdir -p /smallweb && chown smallweb:smallweb /smallweb
-VOLUME /smallweb
+VOLUME ["/smallweb"]
 WORKDIR /smallweb
 ENV SMALLWEB_DIR /smallweb
 
