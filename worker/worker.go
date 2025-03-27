@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -19,7 +20,6 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
-	"github.com/charmbracelet/log"
 	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/app"
 	"github.com/pomdtr/smallweb/build"
@@ -33,6 +33,7 @@ type Worker struct {
 	App       app.App
 	Env       map[string]string
 	StartedAt time.Time
+	Logger    *slog.Logger
 
 	port           int
 	idleTimer      *time.Timer
@@ -72,9 +73,10 @@ func commandEnv(a app.App) []string {
 	return env
 }
 
-func NewWorker(app app.App) *Worker {
+func NewWorker(app app.App, logger *slog.Logger) *Worker {
 	worker := &Worker{
-		App: app,
+		App:    app,
+		Logger: logger,
 	}
 
 	return worker
@@ -84,12 +86,7 @@ var upgrader = websocket.Upgrader{} // use default options
 
 type SandboxMethod string
 
-var (
-	SandboxMethodFetch SandboxMethod = "fetch"
-	SandboxMethodRun   SandboxMethod = "run"
-)
-
-func (me *Worker) DenoArgs(deno string, method SandboxMethod) []string {
+func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	args := []string{
 		"--allow-net",
 		"--allow-import",
@@ -111,7 +108,7 @@ func (me *Worker) DenoArgs(deno string, method SandboxMethod) []string {
 			fmt.Sprintf("--allow-write=%s", me.App.RootDir),
 		)
 
-		return args
+		return args, nil
 	}
 
 	// if root is not a symlink
@@ -120,20 +117,15 @@ func (me *Worker) DenoArgs(deno string, method SandboxMethod) []string {
 		args = append(
 			args,
 			fmt.Sprintf("--allow-read=%s,%s,%s", appDir, deno, npmCache),
+			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
 		)
 
-		if method == SandboxMethodRun {
-			args = append(args, fmt.Sprintf("--allow-write=%s", me.App.Dir()))
-		} else {
-			args = append(args, fmt.Sprintf("--allow-write=%s", me.App.DataDir()))
-		}
-
-		return args
+		return args, nil
 	}
 
 	target, err := os.Readlink(appDir)
 	if err != nil {
-		log.Printf("could not read symlink: %v", err)
+		return nil, fmt.Errorf("could not read symlink: %w", err)
 	}
 
 	if !filepath.IsAbs(target) {
@@ -143,15 +135,10 @@ func (me *Worker) DenoArgs(deno string, method SandboxMethod) []string {
 	args = append(
 		args,
 		fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, target, deno, npmCache),
+		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
 	)
 
-	if method == SandboxMethodRun {
-		args = append(args, fmt.Sprintf("--allow-write=%s,%s", me.App.Dir(), target))
-	} else {
-		args = append(args, fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")))
-	}
-
-	return args
+	return args, nil
 }
 
 func (me *Worker) Start() error {
@@ -167,7 +154,12 @@ func (me *Worker) Start() error {
 	}
 
 	args := []string{"run"}
-	args = append(args, me.DenoArgs(deno, SandboxMethodFetch)...)
+	denoArgs, err := me.DenoArgs(deno)
+	if err != nil {
+		return fmt.Errorf("could not get deno args: %w", err)
+	}
+
+	args = append(args, denoArgs...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
@@ -228,9 +220,16 @@ func (me *Worker) Start() error {
 	logPipe := func(pipe io.ReadCloser, stream string) {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
-			log.Info(
+			if me.Logger == nil {
+				if stream == "stderr" {
+					fmt.Fprintln(os.Stderr, scanner.Text())
+				} else {
+					fmt.Fprintln(os.Stdout, scanner.Text())
+				}
+				continue
+			}
+			me.Logger.Info(
 				scanner.Text(),
-				"app", me.App.Name,
 				"stream", stream,
 			)
 		}
@@ -263,7 +262,7 @@ func (me *Worker) Stop() error {
 	me.command = nil
 
 	if err := command.Process.Signal(os.Interrupt); err != nil {
-		log.Printf("Failed to send interrupt signal: %v", err)
+		return fmt.Errorf("failed to send interrupt signal: %w", err)
 	}
 
 	done := make(chan error, 1)
@@ -304,7 +303,7 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Upgrade") == "websocket" {
 		serverConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Printf("Error upgrading connection: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		defer serverConn.Close()
@@ -471,8 +470,12 @@ func (me *Worker) Command(ctx context.Context, args []string, input []byte) (*ex
 		return nil, fmt.Errorf("could not find deno executable")
 	}
 
-	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.DenoArgs(deno, SandboxMethodRun)...)
+	cmdArgs := []string{"run"}
+	denoArgs, err := me.DenoArgs(deno)
+	if err != nil {
+		return nil, fmt.Errorf("could not get deno args: %w", err)
+	}
+	cmdArgs = append(cmdArgs, denoArgs...)
 
 	payload := strings.Builder{}
 	encoder := json.NewEncoder(&payload)
@@ -486,9 +489,9 @@ func (me *Worker) Command(ctx context.Context, args []string, input []byte) (*ex
 		return nil, fmt.Errorf("could not encode input: %w", err)
 	}
 
-	denoArgs = append(denoArgs, "-", payload.String())
+	cmdArgs = append(cmdArgs, "-", payload.String())
 
-	command := exec.CommandContext(ctx, deno, denoArgs...)
+	command := exec.CommandContext(ctx, deno, cmdArgs...)
 	command.Stdin = strings.NewReader(sandboxContent)
 	command.Dir = me.App.Dir()
 
@@ -503,8 +506,13 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not find deno executable")
 	}
 
-	denoArgs := []string{"run"}
-	denoArgs = append(denoArgs, me.DenoArgs(deno, SandboxMethodRun)...)
+	args := []string{"run"}
+	denoArgs, err := me.DenoArgs(deno)
+	if err != nil {
+		return fmt.Errorf("could not get deno args: %w", err)
+	}
+
+	args = append(args, denoArgs...)
 
 	payload := strings.Builder{}
 	encoder := json.NewEncoder(&payload)
@@ -517,7 +525,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	denoArgs = append(denoArgs, "-", payload.String())
+	denoArgs = append(args, "-", payload.String())
 
 	command := exec.CommandContext(ctx, deno, denoArgs...)
 

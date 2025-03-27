@@ -21,7 +21,6 @@ require (
 require (
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/caddyserver/certmagic v0.22.2
-	github.com/charmbracelet/log v0.4.1
 	github.com/charmbracelet/ssh v0.0.0-20250213143314-8712ec3ff3ef
 	github.com/charmbracelet/wish v1.4.7
 	github.com/cli/browser v1.3.0
@@ -34,6 +33,7 @@ require (
 	github.com/mhale/smtpd v0.8.3
 	github.com/pkg/sftp v1.13.9
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/samber/slog-http v1.6.0
 	golang.org/x/crypto v0.36.0
 	golang.org/x/oauth2 v0.28.0
 )
@@ -90,6 +90,7 @@ require (
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
 	github.com/charmbracelet/keygen v0.5.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250319133953-166f707985bc // indirect
+	github.com/charmbracelet/log v0.4.1 // indirect
 	github.com/charmbracelet/x/ansi v0.8.0 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.13 // indirect
 	github.com/charmbracelet/x/conpty v0.1.0 // indirect

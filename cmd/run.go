@@ -37,7 +37,7 @@ func NewCmdRun() *cobra.Command {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a)
+			wk := worker.NewWorker(a, nil)
 			var input []byte
 			if !isatty.IsTerminal(os.Stdin.Fd()) {
 				i, err := io.ReadAll(os.Stdin)

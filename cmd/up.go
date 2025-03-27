@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -30,6 +31,7 @@ import (
 	"github.com/creack/pty"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/mhale/smtpd"
+	sloghttp "github.com/samber/slog-http"
 
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
@@ -45,6 +47,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var ErrSilent = errors.New("exit error")
+
 func NewCmdUp() *cobra.Command {
 	var flags struct {
 		enableCrons   bool
@@ -59,10 +63,11 @@ func NewCmdUp() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:     "up",
-		Short:   "Start the smallweb evaluation server",
-		Aliases: []string{"serve"},
-		Args:    cobra.NoArgs,
+		Use:           "up",
+		Short:         "Start the smallweb evaluation server",
+		Aliases:       []string{"serve"},
+		Args:          cobra.NoArgs,
+		SilenceErrors: true,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := checkDenoVersion(); err != nil {
 				return err
@@ -71,23 +76,30 @@ func NewCmdUp() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
 			if k.String("dir") == "" {
-				return fmt.Errorf("dir cannot be empty")
+				logger.Error("dir cannot be empty")
+				return ErrSilent
 			}
 
 			if k.String("domain") == "" {
-				return fmt.Errorf("domain cannot be empty")
+				logger.Error("domain cannot be empty")
+				return ErrSilent
 			}
 
 			handler := &Handler{
 				workers: make(map[string]*worker.Worker),
+				logger:  logger,
 			}
 
-			issuerUrl, err := url.Parse(k.String("oidc.issuer"))
-			if err != nil {
-				return fmt.Errorf("failed to parse issuer url: %v", err)
+			if issuer := k.String("oidc.issuer"); issuer != "" {
+				issuerUrl, err := url.Parse(issuer)
+				if err == nil {
+					handler.oidcIssuerUrl = issuerUrl
+				} else {
+					logger.Error("failed to parse issuer url")
+				}
 			}
-			handler.oidcIssuerUrl = issuerUrl
 
 			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
 				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
@@ -101,15 +113,17 @@ func NewCmdUp() *cobra.Command {
 				if issuer := k.String("oidc.issuer"); issuer != "" {
 					issuerUrl, err := url.Parse(issuer)
 					if err != nil {
-						fmt.Fprintf(cmd.ErrOrStderr(), "failed to parse issuer url: %v\n", err)
+						logger.Error("failed to parse issuer url")
 						return
 					}
 
 					handler.oidcIssuerUrl = issuerUrl
+					handler.oidcProvider = nil
 				}
 			})
 			if err != nil {
-				return fmt.Errorf("failed to create watcher: %v", err)
+				logger.Error("failed to create watcher")
+				return ErrSilent
 			}
 
 			handler.watcher = watcher
@@ -130,12 +144,13 @@ func NewCmdUp() *cobra.Command {
 						return fmt.Errorf("domain not found")
 					},
 				}
-				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), ":443")
-				go certmagic.HTTPS(nil, handler)
+				logger.Info("serving on-demand https", "domain", k.String("domain"), "dir", k.String("dir"))
+				go certmagic.HTTPS(nil, sloghttp.New(logger.With("logger", "http"))(handler))
 			} else if flags.tlsCert != "" && flags.tlsKey != "" {
 				cert, err := tls.LoadX509KeyPair(flags.tlsCert, flags.tlsKey)
 				if err != nil {
-					return fmt.Errorf("failed to load tls certificate: %v", err)
+					logger.Error("failed to load tls certificate", "error", err)
+					return ErrSilent
 				}
 
 				tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
@@ -148,11 +163,12 @@ func NewCmdUp() *cobra.Command {
 
 				ln, err := getListener(addr, tlsConfig)
 				if err != nil {
-					return fmt.Errorf("failed to get listener: %v", err)
+					logger.Error("failed to get listener", "error", err)
+					return ErrSilent
 				}
 
-				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
-				go http.Serve(ln, handler)
+				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"))
+				go http.Serve(ln, sloghttp.New(logger.With("logger", "http"))(handler))
 			} else {
 				addr := flags.addr
 				if addr == "" {
@@ -161,75 +177,58 @@ func NewCmdUp() *cobra.Command {
 
 				ln, err := getListener(addr, nil)
 				if err != nil {
-					return fmt.Errorf("failed to get listener: %v", err)
+					logger.Error("failed to get listener", "error", err)
+					return ErrSilent
 				}
 
-				fmt.Fprintf(cmd.ErrOrStderr(), "Serving *.%s from %s on %s...\n", k.String("domain"), utils.AddTilde(k.String("dir")), addr)
-				go http.Serve(ln, handler)
+				logger.Info("serving http", "domain", k.String("domain"), "dir", k.String("dir"))
+				go http.Serve(ln, sloghttp.New(logger.With("logger", "http"))(handler))
 			}
 
 			if flags.enableCrons {
-				fmt.Fprintln(cmd.ErrOrStderr(), "Starting cron jobs...")
+				logger.Info("starting cron jobs")
 				crons := CronRunner(cmd.OutOrStdout(), cmd.ErrOrStderr())
 				crons.Start()
 				defer crons.Stop()
 			}
 
-			if flags.apiAddr != "" {
-				mux := http.NewServeMux()
-
-				mux.HandleFunc("GET /caddy/ask", func(w http.ResponseWriter, r *http.Request) {
-					domain := r.URL.Query().Get("domain")
-					if domain == "" {
-						http.Error(w, "domain parameter is required", http.StatusBadRequest)
-						return
-					}
-
-					_, _, found := lookupApp(domain)
-					if !found {
-						http.Error(w, "app not found", http.StatusNotFound)
-						return
-					}
-
-					w.Write([]byte("ok"))
-				})
-
-				ln, err := getListener(flags.apiAddr, nil)
-				if err != nil {
-					return fmt.Errorf("failed to get listener for api: %v", err)
-				}
-
-				fmt.Fprintf(cmd.ErrOrStderr(), "Starting api server on %s...\n", flags.apiAddr)
-				go http.Serve(ln, mux)
-			}
-
 			if flags.smtpAddr != "" {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Starting smtp server on %s...\n", flags.smtpAddr)
-				go smtpd.ListenAndServe(flags.smtpAddr, func(remoteAddr net.Addr, from string, to []string, data []byte) error {
+				handler := func(remoteAddr net.Addr, from string, to []string, data []byte) error {
 					for _, recipient := range to {
 						parts := strings.Split(recipient, "@")
 						if len(parts) != 2 {
-							return fmt.Errorf("invalid recipient: %s", recipient)
+							logger.Error("invalid recipient", "recipient", recipient)
+							continue
 						}
 
 						account, domain := parts[0], parts[1]
 						if domain != k.String("domain") {
-							return fmt.Errorf("invalid domain: %s", domain)
+							logger.Error("invalid domain", "domain", domain)
+							continue
 						}
 
 						a, err := app.LoadApp(account, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", parts[0])))
 						if err != nil {
-							return fmt.Errorf("failed to load app: %v", err)
+							logger.Error("failed to load app", "error", err)
+							continue
 						}
 
-						worker := worker.NewWorker(a)
+						worker := worker.NewWorker(a, nil)
 						if err := worker.SendEmail(context.Background(), data); err != nil {
-							return fmt.Errorf("failed to send email: %v", err)
+							logger.Error("failed to send email", "error", err)
+							continue
 						}
 					}
 
 					return nil
-				}, "smallweb", k.String("domain"))
+				}
+
+				logger.Info("starting smtp server", "addr", flags.smtpAddr)
+				if flags.tlsCert != "" && flags.tlsKey != "" {
+					go smtpd.ListenAndServeTLS(flags.smtpAddr, flags.tlsCert, flags.tlsKey, handler, "smallweb", k.String("domain"))
+				} else {
+					go smtpd.ListenAndServe(flags.smtpAddr, handler, "smallweb", k.String("domain"))
+				}
 			}
 
 			if flags.sshAddr != "" {
@@ -237,7 +236,8 @@ func NewCmdUp() *cobra.Command {
 				if flags.sshPrivateKey == "" {
 					homeDir, err := os.UserHomeDir()
 					if err != nil {
-						return fmt.Errorf("failed to get home directory: %v", err)
+						logger.Error("failed to get home directory", "error", err)
+						return ErrSilent
 					}
 
 					for _, keyType := range []string{"id_rsa", "id_ed25519"} {
@@ -249,24 +249,26 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				if sshPrivateKeyPath == "" {
-					return fmt.Errorf("ssh private key not found")
+					logger.Error("ssh private key not found")
+					return ErrSilent
 				}
 
 				privateKeyBytes, err := os.ReadFile(sshPrivateKeyPath)
 				if err != nil {
-					return fmt.Errorf("failed to read private key: %v", err)
+					logger.Error("failed to read private key", "error", err)
+					return ErrSilent
 				}
 
 				privateKey, err := gossh.ParseRawPrivateKey(privateKeyBytes)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Failed to parse private key: %v\n", err)
-					os.Exit(1)
+					logger.Error("failed to parse private key", "error", err)
+					return ErrSilent
 				}
 
 				signer, err := gossh.NewSignerFromKey(privateKey)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Failed to create signer: %v\n", err)
-					os.Exit(1)
+					logger.Error("failed to create signer", "error", err)
+					return ErrSilent
 				}
 
 				authorizedKey := string(gossh.MarshalAuthorizedKey(signer.PublicKey()))
@@ -304,7 +306,7 @@ func NewCmdUp() *cobra.Command {
 									return
 								}
 
-								wk := worker.NewWorker(a)
+								wk := worker.NewWorker(a, nil)
 								cmd, err := wk.Command(sess.Context(), sess.Command(), nil)
 								if err != nil {
 									fmt.Fprintf(sess, "failed to get command: %v\n", err)
@@ -397,10 +399,11 @@ func NewCmdUp() *cobra.Command {
 				)
 
 				if err != nil {
-					return fmt.Errorf("failed to create ssh server: %v", err)
+					logger.Error("failed to create ssh server", "error", err)
+					return ErrSilent
 				}
 
-				fmt.Fprintf(cmd.ErrOrStderr(), "Starting ssh server on %s...\n", flags.sshAddr)
+				logger.Info("serving ssh", "addr", flags.sshAddr)
 				go srv.ListenAndServe()
 			}
 
@@ -420,7 +423,6 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-host-key", "", "ssh host key")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
-	cmd.Flags().StringVar(&flags.apiAddr, "api-addr", "", "address to listen on for api")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
 	cmd.Flags().Bool("cron", false, "enable cron jobs")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
@@ -463,6 +465,7 @@ func getListener(addr string, config *tls.Config) (net.Listener, error) {
 
 type Handler struct {
 	watcher       *watcher.Watcher
+	logger        *slog.Logger
 	workerMu      sync.Mutex
 	workers       map[string]*worker.Worker
 	oidcMu        sync.Mutex
@@ -924,7 +927,7 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a)
+	wk := worker.NewWorker(a, me.logger.With("logger", "console", "app", appname))
 
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)

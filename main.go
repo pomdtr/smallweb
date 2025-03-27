@@ -3,8 +3,8 @@ package main
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/pomdtr/smallweb/cmd"
 )
@@ -17,9 +17,8 @@ func main() {
 	root.SetErr(os.Stderr)
 
 	if err := root.Execute(); err != nil {
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			os.Exit(exitError.ExitCode())
+		if !errors.Is(err, cmd.ErrSilent) {
+			fmt.Fprintln(os.Stderr, err)
 		}
 
 		os.Exit(1)
