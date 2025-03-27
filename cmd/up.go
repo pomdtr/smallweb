@@ -857,14 +857,14 @@ func (me *Handler) extractClaims(r *http.Request) (Claims, error) {
 }
 
 func lookupApp(domain string) (app string, redirect bool, found bool) {
-	if domain == k.String("domain") {
-		return "www", true, true
-	}
-
 	for _, app := range k.MapKeys("apps") {
 		if slices.Contains(k.Strings(fmt.Sprintf("apps.%s.additionalDomains", app)), domain) {
 			return app, false, true
 		}
+	}
+
+	if domain == k.String("domain") {
+		return "www", true, true
 	}
 
 	if strings.HasSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))) {
