@@ -9,6 +9,13 @@
         "root": {
             "description": "The root directory of the project",
             "type": "string"
+        },
+        "labels": {
+            "description": "Labels for the project",
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
         }
     }
 }
