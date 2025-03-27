@@ -18,18 +18,15 @@ ARG DENO_VERSION=v2.2.4
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh -s "$DENO_VERSION"
 ENV PATH="/usr/local/deno/bin:$PATH"
 
+ENV DENO_DIR=/var/deno
 RUN mkdir -p /var/deno && chmod 777 /var/deno
 VOLUME [ "/var/deno" ]
 
 VOLUME ["/smallweb"]
 WORKDIR /smallweb
-ENV SMALLWEB_DIR /smallweb
+ENV SMALLWEB_DIR=/smallweb
 
 EXPOSE 7777
 
-# Add entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["smallweb"]
 CMD ["up", "--enable-crons", "--addr", ":7777"]
