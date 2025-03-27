@@ -1,6 +1,7 @@
 services:
   smallweb:
     image: ghcr.io/pomdtr/smallweb:latest
+    init: true
     container_name: smallweb
     restart: unless-stopped
     command: ["up", "--ssh-addr=:2222", "--ssh-private-key=/run/secrets/ssh_private_key", "--enable-crons"]
