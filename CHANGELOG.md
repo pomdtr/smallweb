@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.25.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.25>.
+
+- openid connect support
+- add support for receiving emails from smallweb apps
+- crons moved from app manifest to global config
+- ability to access stdin from the `run` entrypoint
+- `smallweb up` emit http/console logs on stdout
+
 ## 0.24.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.24>.
