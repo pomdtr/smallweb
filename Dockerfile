@@ -19,7 +19,7 @@ RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh -s
 ENV PATH="/usr/local/deno/bin:$PATH"
 
 ENV DENO_DIR=/var/deno
-RUN mkdir -p /var/deno && chmod 777 /var/deno
+RUN mkdir -p /var/deno && chmod -R 777 /var/deno
 VOLUME [ "/var/deno" ]
 
 VOLUME ["/smallweb"]
