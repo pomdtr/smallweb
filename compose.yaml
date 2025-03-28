@@ -1,6 +1,9 @@
 services:
   smallweb:
     image: ghcr.io/pomdtr/smallweb:latest
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     init: true
     container_name: smallweb
     restart: unless-stopped
