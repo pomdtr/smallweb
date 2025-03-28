@@ -212,7 +212,7 @@ func (me *Worker) Start() error {
 		if !ready {
 			return fmt.Errorf("server did not start correctly")
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(30 * time.Second):
 		return fmt.Errorf("server start timed out")
 	}
 
