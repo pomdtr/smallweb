@@ -28,7 +28,6 @@ import (
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/creack/pty"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/mhale/smtpd"
 	sloghttp "github.com/samber/slog-http"
@@ -343,31 +342,6 @@ func NewCmdUp() *cobra.Command {
 							cmd.Args = append(cmd.Args, sess.Command()...)
 							cmd.Env = os.Environ()
 							cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_PLUGINS=true")
-
-							ptyReq, _, isPty := sess.Pty()
-							if isPty {
-								cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
-								f, err := pty.Start(cmd)
-								if err != nil {
-									fmt.Fprintf(sess, "failed to start pty: %v\n", err)
-									sess.Exit(1)
-									return
-								}
-
-								go func() {
-									io.Copy(f, sess)
-								}()
-								io.Copy(sess, f)
-
-								if err := cmd.Wait(); err != nil {
-									var exitErr *exec.ExitError
-									if errors.As(err, &exitErr) {
-										sess.Exit(exitErr.ExitCode())
-									}
-									sess.Exit(1)
-								}
-								return
-							}
 
 							cmd.Stdout = sess
 							cmd.Stderr = sess.Stderr()
