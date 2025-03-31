@@ -31,6 +31,8 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/mhale/smtpd"
 	sloghttp "github.com/samber/slog-http"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
@@ -130,6 +132,14 @@ func NewCmdUp() *cobra.Command {
 			defer watcher.Stop()
 
 			if flags.onDemandTLS {
+				config := zap.NewProductionConfig()
+				config.EncoderConfig.TimeKey = "time"
+				config.OutputPaths = []string{"stdout"}
+				config.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
+				config.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+
+				caddyLogger, _ := config.Build()
+				certmagic.Default.Logger = caddyLogger
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 					DecisionFunc: func(ctx context.Context, name string) error {
 						if _, _, ok := lookupApp(name); ok {
