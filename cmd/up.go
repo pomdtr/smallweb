@@ -523,6 +523,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.URL.Path == "/_smallweb/signin" {
+		if me.oidcIssuerUrl == nil {
+			http.Error(w, "oidc issuer url not set", http.StatusInternalServerError)
+			return
+		}
+
 		oauth2Config, err := me.Oauth2Config(r.Host)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to get oauth2 config: %v", err), http.StatusInternalServerError)
@@ -568,6 +573,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.URL.Path == "/_smallweb/signout" {
+		if me.oidcIssuerUrl == nil {
+			http.Error(w, "oidc issuer url not set", http.StatusInternalServerError)
+			return
+		}
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     "id_token",
 			Secure:   true,
@@ -597,6 +607,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.URL.Path == "/_smallweb/oauth/callback" {
+		if me.oidcIssuerUrl == nil {
+			http.Error(w, "oidc issuer url not set", http.StatusInternalServerError)
+			return
+		}
+
 		oauth2Config, err := me.Oauth2Config(r.Host)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to get oauth2 config: %v", err), http.StatusInternalServerError)
