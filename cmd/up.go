@@ -680,6 +680,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := me.extractClaims(r)
 	if err != nil && isRoutePrivate(appname, r.URL.Path) {
+		if me.oidcIssuerUrl == nil {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
 		if !errors.Is(err, &oidc.TokenExpiredError{}) {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 			return
