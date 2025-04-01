@@ -715,7 +715,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			oauth2Config, err := me.Oauth2Config(r.Host)
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+				http.Error(w, fmt.Sprintf("failed to get oauth2 config: %v", err), http.StatusInternalServerError)
 				return
 			}
 
@@ -732,12 +732,13 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if me.Provider() == nil {
+			provider, ok := me.Provider()
+			if !ok {
 				http.Error(w, "oidc provider not found", http.StatusInternalServerError)
 				return
 			}
 
-			verifier := me.Provider().Verifier(&oidc.Config{ClientID: r.Host})
+			verifier := provider.Verifier(&oidc.Config{ClientID: r.Host})
 			idToken, err := verifier.Verify(r.Context(), rawIdToken)
 			if err != nil {
 				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
@@ -842,7 +843,8 @@ type Claims struct {
 }
 
 func (me *Handler) extractClaims(r *http.Request) (Claims, error) {
-	if me.Provider() == nil {
+	provider, ok := me.Provider()
+	if !ok {
 		return Claims{
 			Email: r.Header.Get("Remote-Email"),
 			Group: r.Header.Get("Remote-Group"),
@@ -856,7 +858,7 @@ func (me *Handler) extractClaims(r *http.Request) (Claims, error) {
 		return Claims{}, fmt.Errorf("id token not found")
 	}
 
-	verifier := me.Provider().Verifier(&oidc.Config{ClientID: fmt.Sprintf("https://%s", r.Host)})
+	verifier := provider.Verifier(&oidc.Config{ClientID: fmt.Sprintf("https://%s", r.Host)})
 	idToken, err := verifier.Verify(r.Context(), idTokenCookie.Value)
 	if err != nil {
 		return Claims{}, fmt.Errorf("failed to verify id token: %v", err)
@@ -898,33 +900,39 @@ func lookupApp(domain string) (app string, redirect bool, found bool) {
 	return "", false, false
 }
 
-func (me *Handler) Provider() *oidc.Provider {
+func (me *Handler) Provider() (*oidc.Provider, bool) {
 	me.oidcMu.Lock()
 	defer me.oidcMu.Unlock()
 
 	if me.oidcIssuerUrl == nil {
-		return nil
+		return nil, false
 	}
 
 	if me.oidcProvider == nil {
 		provider, err := oidc.NewProvider(context.Background(), me.oidcIssuerUrl.String())
 		if err != nil {
-			return nil
+			me.logger.Error("failed to create oidc provider", "error", err)
+			return nil, false
 		}
 
 		me.oidcProvider = provider
 	}
 
-	return me.oidcProvider
+	return me.oidcProvider, true
 }
 
 func (me *Handler) Oauth2Config(host string) (*oauth2.Config, error) {
 	clientID := fmt.Sprintf("https://%s", host)
+	provider, ok := me.Provider()
+	if !ok {
+		return nil, fmt.Errorf("oidc provider not set")
+	}
+
 	return &oauth2.Config{
 		ClientID:    clientID,
 		Scopes:      []string{"openid", "email", "profile", "groups"},
 		RedirectURL: fmt.Sprintf("https://%s/_smallweb/oauth/callback", host),
-		Endpoint:    me.Provider().Endpoint(),
+		Endpoint:    provider.Endpoint(),
 	}, nil
 }
 
