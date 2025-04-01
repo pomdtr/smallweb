@@ -25,15 +25,15 @@ require (
 	github.com/charmbracelet/wish v1.4.7
 	github.com/cli/browser v1.3.0
 	github.com/coreos/go-oidc/v3 v3.13.0
-	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.8.0
-	github.com/getsops/sops/v3 v3.10.0
+	github.com/getsops/sops/v3 v3.10.1
 	github.com/knadh/koanf/providers/posflag v0.1.0
 	github.com/leaanthony/gosod v1.0.4
 	github.com/mhale/smtpd v0.8.3
 	github.com/pkg/sftp v1.13.9
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/slog-http v1.6.0
+	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.36.0
 	golang.org/x/oauth2 v0.28.0
 )
@@ -101,6 +101,7 @@ require (
 	github.com/cloudflare/circl v1.6.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20250326154945-ae57f3c0d45f // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/creack/pty v1.1.24 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
@@ -175,7 +176,6 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/mod v0.24.0 // indirect
