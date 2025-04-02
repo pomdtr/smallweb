@@ -582,6 +582,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Name:     "id_token",
 			Secure:   true,
 			HttpOnly: true,
+			Path:     "/",
 			MaxAge:   -1,
 		})
 
