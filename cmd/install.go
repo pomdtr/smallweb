@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -57,6 +58,26 @@ func NewCmdInstall() *cobra.Command {
 
 			if len(branches) == 0 {
 				return fmt.Errorf("no branches found in the repository")
+			}
+
+			if _, err := os.Stat(filepath.Join(k.String("dir"), ".gitmodules")); err == nil {
+				if slices.Contains(branches, "smallweb") {
+					addCmd := exec.Command("git", "submodule", "add", "--branch", "smallweb", repoUrl, appDir)
+					if err := addCmd.Run(); err != nil {
+						return fmt.Errorf("failed to add submodule: %w", err)
+					}
+
+					cmd.PrintErrf("App %s available at https://%s.%s\n", appName, appName, k.String("domain"))
+					return nil
+				}
+
+				addCmd := exec.Command("git", "submodule", "add", repoUrl, appDir)
+				if err := addCmd.Run(); err != nil {
+					return fmt.Errorf("failed to add submodule: %w", err)
+				}
+
+				cmd.PrintErrf("App %s available at https://%s.%s\n", appName, appName, k.String("domain"))
+				return nil
 			}
 
 			if slices.Contains(branches, "smallweb") {
