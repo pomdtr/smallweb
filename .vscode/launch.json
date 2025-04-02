@@ -22,12 +22,12 @@
             "program": "${workspaceFolder}/main.go",
             "args": [
                 "up",
+                "--domain=smallweb.localhost",
                 "--addr=:7777",
                 "--ssh-addr=:2222"
             ],
             "env": {
                 "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
-                "SMALLWEB_DOMAIN": "smallweb.localhost"
             },
         },
         {
