@@ -59,9 +59,11 @@ func NewCmdInstall() *cobra.Command {
 				return fmt.Errorf("no branches found in the repository")
 			}
 
-			if _, err := os.Stat(filepath.Join(k.String("dir"), ".gitmodules")); err == nil {
+			if _, err := os.Stat(filepath.Join(k.String("dir"), ".git")); err == nil {
 				if slices.Contains(branches, "smallweb") {
 					addCmd := exec.Command("git", "submodule", "add", "--branch", "smallweb", repoUrl, appDir)
+					addCmd.Stdout = cmd.OutOrStdout()
+					addCmd.Stderr = cmd.ErrOrStderr()
 					if err := addCmd.Run(); err != nil {
 						return fmt.Errorf("failed to add submodule: %w", err)
 					}
@@ -71,6 +73,8 @@ func NewCmdInstall() *cobra.Command {
 				}
 
 				addCmd := exec.Command("git", "submodule", "add", repoUrl, appDir)
+				addCmd.Stdout = cmd.OutOrStdout()
+				addCmd.Stderr = cmd.ErrOrStderr()
 				if err := addCmd.Run(); err != nil {
 					return fmt.Errorf("failed to add submodule: %w", err)
 				}
@@ -82,6 +86,8 @@ func NewCmdInstall() *cobra.Command {
 			if slices.Contains(branches, "smallweb") {
 				cmd.PrintErrf("Cloning branch 'smallweb' from %s to %s...\n", repoUrl, appDir)
 				cloneCmd := exec.Command("git", "clone", "--single-branch", "--branch", "smallweb", repoUrl, appDir)
+				cloneCmd.Stdout = cmd.OutOrStdout()
+				cloneCmd.Stderr = cmd.ErrOrStderr()
 				if err := cloneCmd.Run(); err != nil {
 					return fmt.Errorf("failed to clone branch: %w", err)
 				}
@@ -91,7 +97,9 @@ func NewCmdInstall() *cobra.Command {
 			}
 
 			cmd.PrintErrf("Cloning %s to %s...\n", repoUrl, appDir)
-			cloneCmd := exec.Command("git", "clone", "--single-branch", appDir)
+			cloneCmd := exec.Command("git", "clone", "--single-branch", repoUrl, appDir)
+			cloneCmd.Stdout = cmd.OutOrStdout()
+			cloneCmd.Stderr = cmd.ErrOrStderr()
 			if err := cloneCmd.Run(); err != nil {
 				return fmt.Errorf("failed to clone repository: %w", err)
 			}
