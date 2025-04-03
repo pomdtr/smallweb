@@ -19,7 +19,6 @@ func NewCmdInstall() *cobra.Command {
 		Use:   "install <repo> [app]",
 		Args:  cobra.RangeArgs(1, 2),
 		Short: "Install an app",
-		Long:  "Install an app a remote repository.",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := exec.LookPath("git"); err != nil {
 				return fmt.Errorf("git is not installed: %w", err)
