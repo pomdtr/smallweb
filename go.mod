@@ -24,7 +24,7 @@ require (
 	github.com/charmbracelet/ssh v0.0.0-20250213143314-8712ec3ff3ef
 	github.com/charmbracelet/wish v1.4.7
 	github.com/cli/browser v1.3.0
-	github.com/coreos/go-oidc/v3 v3.13.0
+	github.com/coreos/go-oidc/v3 v3.14.1
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/getsops/sops/v3 v3.10.1
 	github.com/knadh/koanf/providers/posflag v0.1.0
