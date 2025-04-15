@@ -854,13 +854,30 @@ func (me *Handler) extractClaims(r *http.Request) (Claims, error) {
 		}, nil
 	}
 
-	idTokenCookie, err := r.Cookie("id_token")
-	if err != nil {
-		return Claims{}, fmt.Errorf("id token not found")
+	var rawIdToken string
+	if auth := r.Header.Get("Authorization"); auth != "" {
+		parts := strings.Split(strings.TrimSpace(auth), " ")
+		if len(parts) != 2 {
+			return Claims{}, fmt.Errorf("invalid authorization header")
+		}
+
+		if parts[0] != "Bearer" {
+			return Claims{}, fmt.Errorf("invalid authorization header")
+		}
+
+		rawIdToken = parts[1]
+
+	} else {
+		idTokenCookie, err := r.Cookie("id_token")
+		if err != nil {
+			return Claims{}, fmt.Errorf("id token not found")
+		}
+
+		rawIdToken = idTokenCookie.Value
 	}
 
 	verifier := provider.Verifier(&oidc.Config{ClientID: fmt.Sprintf("https://%s", r.Host)})
-	idToken, err := verifier.Verify(r.Context(), idTokenCookie.Value)
+	idToken, err := verifier.Verify(r.Context(), rawIdToken)
 	if err != nil {
 		return Claims{}, fmt.Errorf("failed to verify id token: %v", err)
 	}
