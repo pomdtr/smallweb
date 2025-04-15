@@ -45,11 +45,6 @@ var envProvider = env.ProviderWithValue("SMALLWEB_", ".", func(s string, v strin
 	switch s {
 	case "SMALLWEB_DIR":
 		return "dir", v
-	case "SMALLWEB_DOMAIN":
-		return "domain", v
-	case "SMALLWEB_ADDITIONAL_DOMAINS":
-		additionalDomains := strings.Split(v, ";")
-		return "additionalDomains", additionalDomains
 	}
 
 	return "", nil
