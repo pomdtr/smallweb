@@ -35,7 +35,7 @@ URL for them above, as well as copies of any plain-text lines
 beginning with `Required Notice:` that the licensor provided
 with the software.  For example:
 
-> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
+> Required Notice: Copyright Yoyodyne, Inc. (<http://example.com>)
 
 ## Changes and New Works License
 
@@ -86,7 +86,7 @@ line beginning with `Licensor Line of Business:` with the
 software that mentions that line of business.  For example:
 
 > Licensor Line of Business: YoyodyneCMS Content Management
-System (http://example.com/cms)
+System (<http://example.com/cms>)
 
 ## Sales of Business
 
