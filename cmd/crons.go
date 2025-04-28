@@ -47,7 +47,12 @@ func NewCmdCrons() *cobra.Command {
 		Short: "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var crons []CronItem
-			for _, appname := range k.MapKeys("apps") {
+			apps, err := app.ListApps(k.String("dir"))
+			if err != nil {
+				return fmt.Errorf("failed to list apps: %w", err)
+			}
+
+			for _, appname := range apps {
 				if len(args) > 0 && appname != args[0] {
 					continue
 				} else if len(args) == 0 && !flags.all {
@@ -69,11 +74,16 @@ func NewCmdCrons() *cobra.Command {
 					}
 				}
 
-				for _, job := range k.Slices(fmt.Sprintf("apps.%s.crons", appname)) {
+				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
+				if err != nil {
+					return fmt.Errorf("failed to load app %s: %w", appname, err)
+				}
+
+				for _, job := range a.Config.Crons {
 					crons = append(crons, CronItem{
 						App:      appname,
-						Args:     job.Strings("args"),
-						Schedule: job.String("schedule"),
+						Args:     job.Args,
+						Schedule: job.Schedule,
 					})
 				}
 			}

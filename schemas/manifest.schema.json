@@ -10,6 +10,52 @@
             "description": "The root directory of the project",
             "type": "string"
         },
+        "private": {
+            "description": "Protect all routes behind authentication",
+            "type": "boolean"
+        },
+        "privateRoutes": {
+            "description": "Make specific routes private",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "publicRoutes": {
+            "description": "Make specific routes public",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "crons": {
+            "description": "Cron jobs",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "schedule",
+                    "args"
+                ],
+                "properties": {
+                    "schedule": {
+                        "description": "Cron schedule",
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "An optional description for the task"
+                    },
+                    "args": {
+                        "description": "Cron arguments",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "labels": {
             "description": "Labels for the project",
             "type": "object",

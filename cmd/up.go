@@ -694,8 +694,21 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
+	if err != nil {
+		if errors.Is(err, app.ErrAppNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "failed to get worker: %v", err)
+		return
+	}
+
 	claims, err := me.extractClaims(r)
-	if err != nil && isRoutePrivate(appname, r.URL.Path) {
+	if err != nil && isRoutePrivate(wk.App, r.URL.Path) {
 		if me.oidcIssuerUrl == nil {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
@@ -775,7 +788,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if isRoutePrivate(appname, r.URL.Path) && !isAuthorized(appname, claims.Email, claims.Group) {
+	if isRoutePrivate(wk.App, r.URL.Path) && !isAuthorized(appname, claims.Email, claims.Group) {
 		if claims.Email == "" {
 			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
 			return
@@ -790,32 +803,19 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.Header.Set("Remote-Group", claims.Group)
 	r.Header.Set("Remote-Name", claims.Name)
 
-	wk, err := me.GetWorker(appname, k.String("dir"), k.String("domain"))
-	if err != nil {
-		if errors.Is(err, app.ErrAppNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
-			return
-		}
-
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "failed to get worker: %v", err)
-		return
-	}
-
 	wk.ServeHTTP(w, r)
 }
 
-func isRoutePrivate(appname string, route string) bool {
-	isPrivate := k.Bool(fmt.Sprintf("apps.%s.private", appname))
+func isRoutePrivate(a app.App, route string) bool {
+	isPrivate := a.Config.Private
 
-	for _, publicRoute := range k.Strings(fmt.Sprintf("apps.%s.publicRoutes", appname)) {
+	for _, publicRoute := range a.Config.PublicRoutes {
 		if ok, _ := doublestar.Match(publicRoute, route); ok {
 			isPrivate = false
 		}
 	}
 
-	for _, privateRoute := range k.Strings(fmt.Sprintf("apps.%s.privateRoutes", appname)) {
+	for _, privateRoute := range a.Config.PrivateRoutes {
 		if ok, _ := doublestar.Match(privateRoute, route); ok {
 			isPrivate = true
 		}

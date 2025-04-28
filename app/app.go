@@ -20,13 +20,18 @@ var (
 )
 
 type AppConfig struct {
-	Entrypoint string `json:"entrypoint,omitempty"`
-	Root       string `json:"root,omitempty"`
+	Entrypoint    string    `json:"entrypoint,omitempty"`
+	Root          string    `json:"root,omitempty"`
+	Crons         []CronJob `json:"cron"`
+	Private       bool      `json:"private"`
+	PrivateRoutes []string  `json:"privateRoutes"`
+	PublicRoutes  []string  `json:"publicRoutes"`
 }
 
 type CronJob struct {
-	Schedule string   `json:"schedule"`
-	Args     []string `json:"args"`
+	Description string   `json:"description"`
+	Schedule    string   `json:"schedule"`
+	Args        []string `json:"args"`
 }
 
 type App struct {
