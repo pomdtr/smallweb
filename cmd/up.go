@@ -29,6 +29,7 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/mattn/go-isatty"
 	"github.com/mhale/smtpd"
 	sloghttp "github.com/samber/slog-http"
 	"go.uber.org/zap"
@@ -61,6 +62,7 @@ func NewCmdUp() *cobra.Command {
 		tlsCert       string
 		tlsKey        string
 		onDemandTLS   bool
+		logFormat     string
 	}
 
 	cmd := &cobra.Command{
@@ -77,7 +79,21 @@ func NewCmdUp() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
+			var logger *slog.Logger
+			if flags.logFormat == "" {
+				if isatty.IsTerminal(os.Stdout.Fd()) {
+					logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
+				} else {
+					logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
+				}
+			} else if flags.logFormat == "json" {
+				logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
+			} else if flags.logFormat == "text" {
+				logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
+			} else {
+				return fmt.Errorf("invalid log format: %s", flags.logFormat)
+			}
+
 			if k.String("dir") == "" {
 				logger.Error("dir cannot be empty")
 				return ErrSilent
@@ -417,6 +433,7 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-host-key", "", "ssh host key")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
+	cmd.Flags().StringVar(&flags.logFormat, "log-format", "", "log format (json or text)")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
 	cmd.Flags().Bool("cron", false, "enable cron jobs")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
