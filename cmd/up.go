@@ -24,7 +24,6 @@ import (
 	_ "embed"
 
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -33,8 +32,6 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/mhale/smtpd"
 	sloghttp "github.com/samber/slog-http"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
@@ -151,31 +148,7 @@ func NewCmdUp() *cobra.Command {
 				WithRequestID: false,
 			})
 
-			if flags.onDemandTLS {
-				config := zap.NewProductionConfig()
-				config.EncoderConfig.TimeKey = "time"
-				config.OutputPaths = []string{"stdout"}
-				config.EncoderConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
-				config.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-
-				caddyLogger, _ := config.Build()
-				certmagic.Default.Logger = caddyLogger
-				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
-					DecisionFunc: func(ctx context.Context, name string) error {
-						if _, _, ok := lookupApp(name); ok {
-							return nil
-						}
-
-						if _, err := os.Stat(filepath.Join(k.String("dir"), name)); err == nil {
-							return nil
-						}
-
-						return fmt.Errorf("domain not found")
-					},
-				}
-				logger.Info("serving on-demand https", "domain", k.String("domain"), "dir", k.String("dir"))
-				go certmagic.HTTPS(nil, logMiddleware(handler))
-			} else if flags.tlsCert != "" && flags.tlsKey != "" {
+			if flags.tlsCert != "" && flags.tlsKey != "" {
 				cert, err := tls.LoadX509KeyPair(flags.tlsCert, flags.tlsKey)
 				if err != nil {
 					logger.Error("failed to load tls certificate", "error", err)
