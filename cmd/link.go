@@ -10,6 +10,10 @@ import (
 )
 
 func NewCmdLink() *cobra.Command {
+	var flags struct {
+		force bool
+	}
+
 	cmd := &cobra.Command{
 		Use:     "link <source> <target>",
 		Aliases: []string{"ln"},
@@ -34,15 +38,17 @@ func NewCmdLink() *cobra.Command {
 				return fmt.Errorf("failed to get absolute path for target: %w", err)
 			}
 
-			if _, err := os.Stat(target); err == nil {
-				return fmt.Errorf("target already exists")
-			}
-
 			// if target is inside the smallweb directory, create a relative symlink
 			if strings.HasPrefix(target, k.String("dir")) {
 				relative, err := filepath.Rel(filepath.Dir(target), source)
 				if err != nil {
 					return fmt.Errorf("failed to get relative path: %w", err)
+				}
+
+				if flags.force {
+					if err := os.Remove(target); err != nil && !os.IsNotExist(err) {
+						return fmt.Errorf("failed to remove existing target: %w", err)
+					}
 				}
 
 				if err := os.Symlink(relative, target); err != nil {
@@ -60,6 +66,8 @@ func NewCmdLink() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVarP(&flags.force, "force", "f", false, "Force overwrite existing symlinks")
 
 	return cmd
 }
