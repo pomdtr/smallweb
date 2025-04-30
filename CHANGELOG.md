@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.26.0
+
+- remove `on-demand-tls` flag in `smallweb up` command
+- move `crons`, `private`, `privateRoutes` and `publicRoutes` fields to the `smallweb.json` config
+- add `--log-format` flag to `smallweb up` command, supporting `pretty`, `json` and `text` formats
+- add `--force` flag to the smallweb link command
+- remove `SMALLWEB_DOMAIN` and `SMALLWEB_ADDITIONAL_DOMAINS` environment variables
+
 ## 0.25.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.25>.
