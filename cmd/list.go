@@ -43,7 +43,6 @@ func NewCmdList() *cobra.Command {
 					Name:    name,
 					BaseDir: filepath.Join(k.String("dir"), name),
 					URL:     fmt.Sprintf("https://%s.%s", name, k.String("domain")),
-					Admin:   k.Bool(fmt.Sprintf("apps.%s.admin", name)),
 				})
 			}
 
@@ -122,7 +121,7 @@ func NewCmdList() *cobra.Command {
 				printer.AddField(strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1))
 				printer.AddField(a.URL)
 
-				if a.Admin {
+				if k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)) {
 					printer.AddField("Yes")
 				} else {
 					printer.AddField("No")

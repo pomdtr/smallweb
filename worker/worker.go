@@ -34,6 +34,7 @@ type Worker struct {
 	Env       map[string]string
 	StartedAt time.Time
 	Logger    *slog.Logger
+	Admin     bool
 
 	port           int
 	idleTimer      *time.Timer
@@ -41,7 +42,7 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func commandEnv(a app.App) []string {
+func commandEnv(a app.App, admin bool) []string {
 	env := []string{}
 
 	for k, v := range a.Env {
@@ -58,7 +59,7 @@ func commandEnv(a app.App) []string {
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DOMAIN=%s", a.Domain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_URL=%s", a.URL))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DIR=%s", a.BaseDir))
-	if a.Admin {
+	if admin {
 		env = append(env, "SMALLWEB_ADMIN=1")
 	}
 
@@ -73,10 +74,11 @@ func commandEnv(a app.App) []string {
 	return env
 }
 
-func NewWorker(app app.App, logger *slog.Logger) *Worker {
+func NewWorker(app app.App, admin bool, logger *slog.Logger) *Worker {
 	worker := &Worker{
 		App:    app,
 		Logger: logger,
+		Admin:  admin,
 	}
 
 	return worker
@@ -101,7 +103,7 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
-	if me.App.Admin {
+	if me.Admin {
 		args = append(
 			args,
 			fmt.Sprintf("--allow-read=%s,%s,%s", me.App.RootDir, deno, npmCache),
@@ -176,7 +178,7 @@ func (me *Worker) Start() error {
 	command := exec.Command(deno, args...)
 	command.Stdin = strings.NewReader(sandboxContent)
 	command.Dir = me.App.Dir()
-	command.Env = commandEnv(me.App)
+	command.Env = commandEnv(me.App, me.Admin)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -495,7 +497,7 @@ func (me *Worker) Command(ctx context.Context, args []string, input []byte) (*ex
 	command.Stdin = strings.NewReader(sandboxContent)
 	command.Dir = me.App.Dir()
 
-	command.Env = commandEnv(me.App)
+	command.Env = commandEnv(me.App, me.Admin)
 
 	return command, nil
 }
@@ -534,7 +536,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	command.Stdout = os.Stdout
 	command.Dir = me.App.Dir()
 
-	command.Env = commandEnv(me.App)
+	command.Env = commandEnv(me.App, me.Admin)
 
 	return command.Run()
 }

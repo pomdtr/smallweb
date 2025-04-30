@@ -29,6 +29,7 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/mhale/smtpd"
 	sloghttp "github.com/samber/slog-http"
@@ -80,17 +81,14 @@ func NewCmdUp() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var logger *slog.Logger
-			if flags.logFormat == "" {
-				if isatty.IsTerminal(os.Stdout.Fd()) {
-					logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
-				} else {
-					logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
-				}
-			} else if flags.logFormat == "json" {
+			switch flags.logFormat {
+			case "json":
 				logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
-			} else if flags.logFormat == "text" {
-				logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
-			} else {
+			case "text", "":
+				logger = slog.New(tint.NewHandler(os.Stdout, &tint.Options{
+					NoColor: !isatty.IsTerminal(os.Stdout.Fd()),
+				}))
+			default:
 				return fmt.Errorf("invalid log format: %s", flags.logFormat)
 			}
 
@@ -170,7 +168,8 @@ func NewCmdUp() *cobra.Command {
 					},
 				}
 				logger.Info("serving on-demand https", "domain", k.String("domain"), "dir", k.String("dir"))
-				go certmagic.HTTPS(nil, sloghttp.New(logger.With("logger", "http"))(handler))
+				logMiddleware := sloghttp.New(logger.With("logger", "http"))
+				go certmagic.HTTPS(nil, logMiddleware(handler))
 			} else if flags.tlsCert != "" && flags.tlsKey != "" {
 				cert, err := tls.LoadX509KeyPair(flags.tlsCert, flags.tlsKey)
 				if err != nil {
@@ -192,8 +191,9 @@ func NewCmdUp() *cobra.Command {
 					return ErrSilent
 				}
 
-				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"))
-				go http.Serve(ln, sloghttp.New(logger.With("logger", "http"))(handler))
+				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
+				logMiddleware := sloghttp.New(logger.With("logger", "http"))
+				go http.Serve(ln, logMiddleware(handler))
 			} else {
 				addr := flags.addr
 				if addr == "" {
@@ -206,8 +206,9 @@ func NewCmdUp() *cobra.Command {
 					return ErrSilent
 				}
 
-				logger.Info("serving http", "domain", k.String("domain"), "dir", k.String("dir"))
-				go http.Serve(ln, sloghttp.New(logger.With("logger", "http"))(handler))
+				logger.Info("serving http", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
+				logMiddleware := sloghttp.New(logger.With("logger", "http"))
+				go http.Serve(ln, logMiddleware(handler))
 			}
 
 			if flags.enableCrons {
@@ -232,13 +233,13 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						a, err := app.LoadApp(account, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", parts[0])))
+						a, err := app.LoadApp(account, k.String("dir"), k.String("domain"))
 						if err != nil {
 							logger.Error("failed to load app", "error", err)
 							continue
 						}
 
-						worker := worker.NewWorker(a, nil)
+						worker := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
 						if err := worker.SendEmail(context.Background(), data); err != nil {
 							logger.Error("failed to send email", "error", err)
 							continue
@@ -324,14 +325,14 @@ func NewCmdUp() *cobra.Command {
 					wish.WithMiddleware(func(next ssh.Handler) ssh.Handler {
 						return func(sess ssh.Session) {
 							if sess.User() != "_" {
-								a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", sess.User())))
+								a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"))
 								if err != nil {
 									fmt.Fprintf(sess, "failed to load app: %v\n", err)
 									sess.Exit(1)
 									return
 								}
 
-								wk := worker.NewWorker(a, nil)
+								wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
 								var input []byte
 								if !sess.EmulatedPty() {
 									input, err = io.ReadAll(sess)
@@ -979,13 +980,12 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 	me.workerMu.Lock()
 	defer me.workerMu.Unlock()
 
-	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
+	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a, me.logger.With("logger", "console", "app", appname))
-
+	wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), me.logger.With("logger", "console", "app", appname))
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}

@@ -35,7 +35,6 @@ type CronJob struct {
 }
 
 type App struct {
-	Admin      bool              `json:"admin"`
 	Name       string            `json:"name"`
 	RootDir    string            `json:"-"`
 	RootDomain string            `json:"-"`
@@ -114,7 +113,7 @@ func ListApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func LoadApp(appname string, rootDir string, domain string, isAdmin bool) (App, error) {
+func LoadApp(appname string, rootDir string, domain string) (App, error) {
 	appDir := filepath.Join(rootDir, appname)
 	if !utils.FileExists(filepath.Join(rootDir, appname)) {
 		return App{}, ErrAppNotFound
@@ -122,7 +121,6 @@ func LoadApp(appname string, rootDir string, domain string, isAdmin bool) (App, 
 
 	app := App{
 		Name:       appname,
-		Admin:      isAdmin,
 		RootDir:    rootDir,
 		RootDomain: domain,
 		BaseDir:    filepath.Join(rootDir, appname),

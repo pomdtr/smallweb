@@ -32,12 +32,12 @@ func NewCmdRun() *cobra.Command {
 				return cmd.Help()
 			}
 
-			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", args[0])))
+			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a, nil)
+			wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
 			var input []byte
 			if !isatty.IsTerminal(os.Stdin.Fd()) {
 				i, err := io.ReadAll(os.Stdin)

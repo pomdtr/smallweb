@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/cli/browser"
@@ -35,7 +34,7 @@ func NewCmdOpen() *cobra.Command {
 				}
 
 				appName := filepath.Base(appDir)
-				a, err := app.LoadApp(appName, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appName)))
+				a, err := app.LoadApp(appName, k.String("dir"), k.String("domain"))
 				if err != nil {
 					return fmt.Errorf("failed to load app: %w", err)
 				}
@@ -47,7 +46,7 @@ func NewCmdOpen() *cobra.Command {
 				return nil
 			}
 
-			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"), slices.Contains(k.Strings("adminApps"), args[0]))
+			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}

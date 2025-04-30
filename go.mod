@@ -29,6 +29,7 @@ require (
 	github.com/getsops/sops/v3 v3.10.1
 	github.com/knadh/koanf/providers/posflag v0.1.0
 	github.com/leaanthony/gosod v1.0.4
+	github.com/lmittmann/tint v1.0.7
 	github.com/mhale/smtpd v0.8.3
 	github.com/pkg/sftp v1.13.9
 	github.com/robfig/cron/v3 v3.0.1

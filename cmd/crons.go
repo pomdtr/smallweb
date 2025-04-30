@@ -74,7 +74,7 @@ func NewCmdCrons() *cobra.Command {
 					}
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
+				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 				if err != nil {
 					return fmt.Errorf("failed to load app %s: %w", appname, err)
 				}
@@ -158,12 +158,12 @@ func CronRunner(stdout, stderr io.Writer) *cron.Cron {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("rootDir"), k.String("domain"), k.Bool(fmt.Sprintf("apps.%s.admin", appname)))
+				a, err := app.LoadApp(appname, k.String("rootDir"), k.String("domain"))
 				if err != nil {
 					fmt.Println(err)
 					continue
 				}
-				wk := worker.NewWorker(a, nil)
+				wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
 
 				command, err := wk.Command(context.Background(), job.Strings("args"), nil)
 				if err != nil {
