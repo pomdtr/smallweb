@@ -59,7 +59,6 @@ func NewCmdUp() *cobra.Command {
 		sshPrivateKey string
 		tlsCert       string
 		tlsKey        string
-		onDemandTLS   bool
 		logFormat     string
 	}
 
@@ -413,15 +412,11 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.logFormat, "log-format", "pretty", "log format (json or text)")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
 	cmd.Flags().Bool("cron", false, "enable cron jobs")
-	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
 
 	cmd.Flags().MarkDeprecated("cron", "use --enable-crons instead")
 	cmd.Flags().MarkDeprecated("ssh-host-key", "use --ssh-private-key instead")
 
 	cmd.MarkFlagsRequiredTogether("tls-cert", "tls-key")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-key")
-	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "addr")
 
 	return cmd
 }
