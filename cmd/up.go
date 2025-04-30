@@ -86,7 +86,7 @@ func NewCmdUp() *cobra.Command {
 				logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
 			case "text":
 				logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
-			case "pretty", "":
+			case "pretty":
 				logger = slog.New(tint.NewHandler(os.Stdout, &tint.Options{
 					NoColor: !isatty.IsTerminal(os.Stdout.Fd()),
 				}))
@@ -437,7 +437,7 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-host-key", "", "ssh host key")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
-	cmd.Flags().StringVar(&flags.logFormat, "log-format", "", "log format (json or text)")
+	cmd.Flags().StringVar(&flags.logFormat, "log-format", "pretty", "log format (json or text)")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
 	cmd.Flags().Bool("cron", false, "enable cron jobs")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
