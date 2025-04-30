@@ -84,7 +84,9 @@ func NewCmdUp() *cobra.Command {
 			switch flags.logFormat {
 			case "json":
 				logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
-			case "text", "":
+			case "text":
+				logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
+			case "pretty", "":
 				logger = slog.New(tint.NewHandler(os.Stdout, &tint.Options{
 					NoColor: !isatty.IsTerminal(os.Stdout.Fd()),
 				}))
@@ -145,6 +147,10 @@ func NewCmdUp() *cobra.Command {
 			go watcher.Start()
 			defer watcher.Stop()
 
+			logMiddleware := sloghttp.NewWithConfig(logger.With("logger", "http"), sloghttp.Config{
+				WithRequestID: false,
+			})
+
 			if flags.onDemandTLS {
 				config := zap.NewProductionConfig()
 				config.EncoderConfig.TimeKey = "time"
@@ -168,7 +174,6 @@ func NewCmdUp() *cobra.Command {
 					},
 				}
 				logger.Info("serving on-demand https", "domain", k.String("domain"), "dir", k.String("dir"))
-				logMiddleware := sloghttp.New(logger.With("logger", "http"))
 				go certmagic.HTTPS(nil, logMiddleware(handler))
 			} else if flags.tlsCert != "" && flags.tlsKey != "" {
 				cert, err := tls.LoadX509KeyPair(flags.tlsCert, flags.tlsKey)
@@ -192,7 +197,6 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
-				logMiddleware := sloghttp.New(logger.With("logger", "http"))
 				go http.Serve(ln, logMiddleware(handler))
 			} else {
 				addr := flags.addr
@@ -207,7 +211,6 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				logger.Info("serving http", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
-				logMiddleware := sloghttp.New(logger.With("logger", "http"))
 				go http.Serve(ln, logMiddleware(handler))
 			}
 
