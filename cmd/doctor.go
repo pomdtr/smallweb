@@ -40,7 +40,7 @@ func NewCmdDoctor() *cobra.Command {
 			fmt.Fprintln(cmd.ErrOrStderr(), "🔍 Checking domain...")
 			if k.String("domain") == "" {
 				fmt.Fprintln(cmd.ErrOrStderr(), "❌ Domain not set")
-				fmt.Fprintf(cmd.ErrOrStderr(), "💡 Set it using the $SMALLWEB_DOMAIN env var or the `domain` field in your smallweb config")
+				fmt.Fprintf(cmd.ErrOrStderr(), "💡 Set it using the `domain` field in your smallweb config")
 				return nil
 			}
 			fmt.Fprintln(cmd.ErrOrStderr(), "✅ Domain is set")
