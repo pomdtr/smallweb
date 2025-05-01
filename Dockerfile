@@ -32,7 +32,7 @@ VOLUME [ "/home/smallweb/.cache/deno" ]
 RUN mkdir -p /smallweb && chown smallweb:smallweb /smallweb
 VOLUME /smallweb
 WORKDIR /smallweb
-ENV SMALLWEB_DIR /smallweb
+ENV SMALLWEB_DIR=/smallweb
 
 EXPOSE 7777
 

@@ -174,11 +174,7 @@ func NewCmdUp() *cobra.Command {
 				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
 				go http.Serve(ln, logMiddleware(handler))
 			} else if flags.onDemandTLS {
-				config := zap.NewProductionConfig()
-				config.OutputPaths = []string{"/dev/null"}
-
-				caddyLogger, _ := config.Build()
-				certmagic.Default.Logger = caddyLogger
+				certmagic.Default.Logger = zap.NewNop()
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 					DecisionFunc: func(ctx context.Context, name string) error {
 						if _, _, ok := lookupApp(name); ok {
