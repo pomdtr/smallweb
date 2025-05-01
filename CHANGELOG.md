@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.26.1
+
+- add back `--on-demand-tls` flag in `smallweb up` command
+
 ## 0.26.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.26>.
