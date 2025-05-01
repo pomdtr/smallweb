@@ -24,6 +24,7 @@ import (
 	_ "embed"
 
 	"github.com/bmatcuk/doublestar/v4"
+	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -32,6 +33,7 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/mhale/smtpd"
 	sloghttp "github.com/samber/slog-http"
+	"go.uber.org/zap"
 
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
@@ -52,6 +54,7 @@ var ErrSilent = errors.New("exit error")
 func NewCmdUp() *cobra.Command {
 	var flags struct {
 		enableCrons   bool
+		onDemandTLS   bool
 		addr          string
 		apiAddr       string
 		sshAddr       string
@@ -170,6 +173,27 @@ func NewCmdUp() *cobra.Command {
 
 				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
 				go http.Serve(ln, logMiddleware(handler))
+			} else if flags.onDemandTLS {
+				config := zap.NewProductionConfig()
+				config.OutputPaths = []string{"/dev/null"}
+
+				caddyLogger, _ := config.Build()
+				certmagic.Default.Logger = caddyLogger
+				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
+					DecisionFunc: func(ctx context.Context, name string) error {
+						if _, _, ok := lookupApp(name); ok {
+							return nil
+						}
+
+						if _, err := os.Stat(filepath.Join(k.String("dir"), name)); err == nil {
+							return nil
+						}
+
+						return fmt.Errorf("domain not found")
+					},
+				}
+				logger.Info("serving on-demand https", "domain", k.String("domain"), "dir", k.String("dir"))
+				go certmagic.HTTPS(nil, logMiddleware(handler))
 			} else {
 				addr := flags.addr
 				if addr == "" {
@@ -409,12 +433,16 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.sshPrivateKey, "ssh-host-key", "", "ssh host key")
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
+	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
 	cmd.Flags().StringVar(&flags.logFormat, "log-format", "pretty", "log format (json or text)")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
 	cmd.Flags().Bool("cron", false, "enable cron jobs")
 
 	cmd.Flags().MarkDeprecated("cron", "use --enable-crons instead")
 	cmd.Flags().MarkDeprecated("ssh-host-key", "use --ssh-private-key instead")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-key")
+	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "addr")
 
 	cmd.MarkFlagsRequiredTogether("tls-cert", "tls-key")
 
