@@ -6,12 +6,13 @@ Smallweb is obsessed with scaling down. No dev server or a build is required, an
 
 ## Example
 
-Smallweb makes creating a new website as simple as running `mkdir` and creating a `main.ts` file.
-
 Let's say I want to self-host my own drawing app.
 
 ```bash
+# the app subdomain will be draw.<your-domain>
 mkdir -p ~/smallweb/draw
+
+# Smallweb apps can be contained in a single file
 cat <<EOF > ~/smallweb/draw/main.ts
 import { Excalidraw } from "jsr:@smallweb/excalidraw@0.9.1";
 
