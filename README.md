@@ -1,10 +1,12 @@
 # Smallweb
 
-What if your computer had an internet folder, where each subfolder would be mapped to a subdomains?
+Smallweb is a new take on self-hosting. The goal is to make it as easy as possible to host your own apps. To achieve this, it uses a "file-based hosting" approach: every subfolder in your smallweb folder becomes a unique subdomain.
 
-Smallweb makes creating a new website as simple as running `mkdir` and creating a few files. Instead of learning with a clunky REST API, you can use the unix tools you already know and love to manage your websites.
+Smallweb is obsessed with scaling down. No dev server or a build is required, and you don't even need to care about deployment. You can just write a single file, hit save, and voila! Your app is live.
 
 ## Example
+
+Smallweb makes creating a new website as simple as running `mkdir` and creating a `main.ts` file.
 
 Let's say I want to self-host my own drawing app.
 
@@ -29,7 +31,7 @@ Tired of it ? Just run `rm -rf ~/smallweb/draw` and it's like it never existed.
 
 Leave me a message at [excalidraw.demo.smallweb.live](https://excalidraw.demo.smallweb.live), and then go create your own website from [vscode.demo.smallweb.live](https://vscode.demo.smallweb.live)!
 
-If you want to self-host smallweb, just run `curl https://install.smallweb.run/vps.sh` on a fresh new debian-based server to get a fully working smallweb instance, with on-demand TLS certificates.
+If you want to self-host smallweb, refer to the [docs](https://www.smallweb.run/docs/hosting/vps).
 
 Or alternatively, register at [https://cloud.smallweb.run](https://cloud.smallweb.run) to get an hosted instance.
 
