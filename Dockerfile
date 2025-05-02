@@ -23,10 +23,13 @@ ARG UID=1000
 ARG GID=1000
 RUN groupadd -g $GID smallweb && useradd -m -s /bin/bash -u $UID -g $GID smallweb
 
-
 RUN mkdir -p /home/smallweb/.cache/deno
 RUN chown -R smallweb:smallweb /home/smallweb/.cache/deno
 VOLUME [ "/home/smallweb/.cache/deno" ]
+
+RUN mkdir -p /home/smallweb/.cache/certmagic
+RUN chown -R smallweb:smallweb /home/smallweb/.cache/certmagic
+VOLUME [ "/home/smallweb/.cache/certmagic" ]
 
 # Create app directory
 RUN mkdir -p /smallweb && chown smallweb:smallweb /smallweb
