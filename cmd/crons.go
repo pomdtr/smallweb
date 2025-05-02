@@ -122,7 +122,12 @@ func NewCmdCrons() *cobra.Command {
 			for _, item := range crons {
 				printer.AddField(item.Schedule)
 				printer.AddField(item.App)
-				printer.AddField(strings.Join(item.Args, " "))
+				args, err := json.Marshal(item.Args)
+				if err != nil {
+					return fmt.Errorf("failed to marshal args: %w", err)
+				}
+
+				printer.AddField(string(args))
 
 				printer.EndRow()
 			}
