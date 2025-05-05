@@ -49,8 +49,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ErrSilent = errors.New("exit error")
-
 func NewCmdUp() *cobra.Command {
 	var flags struct {
 		enableCrons   bool
@@ -66,11 +64,10 @@ func NewCmdUp() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:           "up",
-		Short:         "Start the smallweb evaluation server",
-		Aliases:       []string{"serve"},
-		Args:          cobra.NoArgs,
-		SilenceErrors: true,
+		Use:     "up",
+		Short:   "Start the smallweb evaluation server",
+		Aliases: []string{"serve"},
+		Args:    cobra.NoArgs,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := checkDenoVersion(); err != nil {
 				return err
@@ -95,12 +92,11 @@ func NewCmdUp() *cobra.Command {
 
 			if k.String("dir") == "" {
 				logger.Error("dir cannot be empty")
-				return ErrSilent
+				return fmt.Errorf("dir cannot be empty")
 			}
 
 			if k.String("domain") == "" {
-				logger.Error("domain cannot be empty")
-				return ErrSilent
+				return fmt.Errorf("domain cannot be empty")
 			}
 
 			handler := &Handler{
@@ -138,8 +134,7 @@ func NewCmdUp() *cobra.Command {
 				}
 			})
 			if err != nil {
-				logger.Error("failed to create watcher")
-				return ErrSilent
+				return fmt.Errorf("failed to create watcher: %w", err)
 			}
 
 			handler.watcher = watcher
@@ -153,8 +148,7 @@ func NewCmdUp() *cobra.Command {
 			if flags.tlsCert != "" && flags.tlsKey != "" {
 				cert, err := tls.LoadX509KeyPair(flags.tlsCert, flags.tlsKey)
 				if err != nil {
-					logger.Error("failed to load tls certificate", "error", err)
-					return ErrSilent
+					return fmt.Errorf("failed to load tls certificate: %w", err)
 				}
 
 				tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
@@ -167,8 +161,7 @@ func NewCmdUp() *cobra.Command {
 
 				ln, err := getListener(addr, tlsConfig)
 				if err != nil {
-					logger.Error("failed to get listener", "error", err)
-					return ErrSilent
+					return fmt.Errorf("failed to get listener: %w", err)
 				}
 
 				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
@@ -198,8 +191,7 @@ func NewCmdUp() *cobra.Command {
 
 				ln, err := getListener(addr, nil)
 				if err != nil {
-					logger.Error("failed to get listener", "error", err)
-					return ErrSilent
+					return fmt.Errorf("failed to get listener: %w", err)
 				}
 
 				logger.Info("serving http", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
@@ -208,7 +200,7 @@ func NewCmdUp() *cobra.Command {
 
 			if flags.enableCrons {
 				logger.Info("starting cron jobs")
-				crons := CronRunner(cmd.OutOrStdout(), cmd.ErrOrStderr())
+				crons := CronRunner(logger.With("logger", "cron"))
 				crons.Start()
 				defer crons.Stop()
 			}
@@ -257,8 +249,7 @@ func NewCmdUp() *cobra.Command {
 				if flags.sshPrivateKey == "" {
 					homeDir, err := os.UserHomeDir()
 					if err != nil {
-						logger.Error("failed to get home directory", "error", err)
-						return ErrSilent
+						return fmt.Errorf("failed to get home directory: %w", err)
 					}
 
 					for _, keyType := range []string{"id_rsa", "id_ed25519"} {
@@ -270,26 +261,22 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				if sshPrivateKeyPath == "" {
-					logger.Error("ssh private key not found")
-					return ErrSilent
+					return fmt.Errorf("ssh private key not found")
 				}
 
 				privateKeyBytes, err := os.ReadFile(sshPrivateKeyPath)
 				if err != nil {
-					logger.Error("failed to read private key", "error", err)
-					return ErrSilent
+					return fmt.Errorf("failed to read private key: %w", err)
 				}
 
 				privateKey, err := gossh.ParseRawPrivateKey(privateKeyBytes)
 				if err != nil {
-					logger.Error("failed to parse private key", "error", err)
-					return ErrSilent
+					return fmt.Errorf("failed to parse private key: %w", err)
 				}
 
 				signer, err := gossh.NewSignerFromKey(privateKey)
 				if err != nil {
-					logger.Error("failed to create signer", "error", err)
-					return ErrSilent
+					return fmt.Errorf("failed to create signer: %w", err)
 				}
 
 				authorizedKey := string(gossh.MarshalAuthorizedKey(signer.PublicKey()))
@@ -406,7 +393,7 @@ func NewCmdUp() *cobra.Command {
 
 				if err != nil {
 					logger.Error("failed to create ssh server", "error", err)
-					return ErrSilent
+					return fmt.Errorf("failed to create ssh server: %w", err)
 				}
 
 				logger.Info("serving ssh", "addr", flags.sshAddr)
@@ -432,10 +419,7 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
 	cmd.Flags().StringVar(&flags.logFormat, "log-format", "pretty", "log format (json or text)")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
-	cmd.Flags().Bool("cron", false, "enable cron jobs")
 
-	cmd.Flags().MarkDeprecated("cron", "use --enable-crons instead")
-	cmd.Flags().MarkDeprecated("ssh-host-key", "use --ssh-private-key instead")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-key")
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "addr")

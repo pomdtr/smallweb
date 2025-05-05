@@ -12,13 +12,16 @@ import (
 )
 
 func NewCmdOpen() *cobra.Command {
+	var flags struct {
+		app string
+	}
+
 	cmd := &cobra.Command{
-		Use:               "open [app]",
-		Short:             "Open an app in the browser",
-		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp,
+		Use:   "open [app]",
+		Short: "Open an app in the browser",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
+			if flags.app == "" {
 				cwd, err := os.Getwd()
 				if err != nil {
 					return fmt.Errorf("failed to get current directory: %w", err)
@@ -46,7 +49,7 @@ func NewCmdOpen() *cobra.Command {
 				return nil
 			}
 
-			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"))
+			a, err := app.LoadApp(flags.app, k.String("dir"), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
@@ -58,6 +61,9 @@ func NewCmdOpen() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "The app to open")
+	cmd.RegisterFlagCompletionFunc("app", completeApp)
 
 	return cmd
 }

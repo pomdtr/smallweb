@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/getsops/sops/v3/decrypt"
@@ -23,20 +24,35 @@ type Secret struct {
 func NewCmdSecrets() *cobra.Command {
 	var flags struct {
 		json   bool
+		app    string
 		dotenv bool
 	}
 
 	cmd := &cobra.Command{
-		Use:               "secrets [app]",
-		Short:             "Print app secrets",
-		ValidArgsFunction: completeApp,
-		Args:              cobra.MaximumNArgs(1),
+		Use:   "secrets [app]",
+		Short: "Print app secrets",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("app name is required")
+			appName := flags.app
+			if appName == "" {
+				cwd, err := os.Getwd()
+				if err != nil {
+					return fmt.Errorf("failed to get current directory: %w", err)
+				}
+
+				if !strings.HasPrefix(cwd, k.String("dir")) {
+					return fmt.Errorf("not in an app directory")
+				}
+
+				appDir := cwd
+				for filepath.Dir(appDir) != k.String("dir") {
+					appDir = filepath.Dir(appDir)
+				}
+
+				appName = filepath.Base(appDir)
 			}
 
-			secretPath := filepath.Join(k.String("dir"), args[0], "secrets.enc.env")
+			secretPath := filepath.Join(k.String("dir"), appName, "secrets.enc.env")
 
 			rawBytes, err := os.ReadFile(secretPath)
 			if err != nil {
@@ -107,6 +123,8 @@ func NewCmdSecrets() *cobra.Command {
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "Output as JSON")
 	cmd.Flags().BoolVar(&flags.dotenv, "dotenv", false, "Output as dotenv")
+	cmd.Flags().StringVar(&flags.app, "app", "", "App name")
+	cmd.RegisterFlagCompletionFunc("app", completeApp)
 
 	return cmd
 

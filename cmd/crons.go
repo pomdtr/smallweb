@@ -4,8 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,22 +28,15 @@ type CronItem struct {
 func NewCmdCrons() *cobra.Command {
 	var flags struct {
 		json bool
+		app  string
 		all  bool
 	}
 
 	cmd := &cobra.Command{
-		Use:               "crons [app]",
-		Aliases:           []string{"cron"},
-		Args:              cobra.MaximumNArgs(1),
-		ValidArgsFunction: completeApp,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 && flags.all {
-				return fmt.Errorf("cannot set both --all and specify an app")
-			}
-
-			return nil
-		},
-		Short: "List cron jobs",
+		Use:     "crons",
+		Aliases: []string{"cron"},
+		Args:    cobra.NoArgs,
+		Short:   "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var crons []CronItem
 			apps, err := app.ListApps(k.String("dir"))
@@ -142,45 +134,61 @@ func NewCmdCrons() *cobra.Command {
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
 	cmd.Flags().BoolVar(&flags.all, "all", false, "show all cron jobs")
+	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "the app to show cron jobs for")
+	cmd.RegisterFlagCompletionFunc("app", completeApp)
+	cmd.MarkFlagsMutuallyExclusive("app", "all")
 
 	return cmd
 }
 
-func CronRunner(stdout, stderr io.Writer) *cron.Cron {
+func CronRunner(logger *slog.Logger) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
-		rounded := time.Now().Truncate(time.Minute)
-		for _, appname := range k.MapKeys("apps") {
-			for _, job := range k.Slices(fmt.Sprintf("apps.%s.crons", appname)) {
-				sched, err := parser.Parse(job.String("schedule"))
+		apps, err := app.ListApps(k.String("dir"))
+		if err != nil {
+			logger.Error("failed to list apps", "error", err)
+			return
+		}
+
+		for _, appname := range apps {
+			a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+			if err != nil {
+				logger.Error("failed to load app", "app", appname, "error", err)
+				continue
+			}
+
+			current := time.Now().Truncate(time.Minute)
+			for _, job := range a.Config.Crons {
+				sched, err := parser.Parse(job.Schedule)
 				if err != nil {
-					fmt.Println(err)
+					logger.Error("failed to parse cron schedule", "app", appname, "schedule", job.Schedule, "error", err)
 					continue
 				}
 
-				if sched.Next(rounded.Add(-1*time.Second)) != rounded {
+				if sched.Next(current.Add(-1*time.Second)) != current {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("rootDir"), k.String("domain"))
+				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 				if err != nil {
-					fmt.Println(err)
+					logger.Error("failed to load app", "app", appname, "error", err)
 					continue
 				}
 				wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
 
-				command, err := wk.Command(context.Background(), job.Strings("args"), nil)
+				command, err := wk.Command(context.Background(), job.Args, nil)
 				if err != nil {
-					fmt.Println(err)
+					logger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
 					continue
 				}
-				command.Stdout = stdout
-				command.Stderr = stderr
 
-				if err := command.Run(); err != nil {
-					log.Printf("failed to run command: %v", err)
-				}
+				logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
+				go func() {
+					if err := command.Run(); err != nil {
+						logger.Error("failed to run command", "app", appname, "args", job.Args, "error", err)
+					}
+				}()
 			}
 		}
 	})

@@ -42,10 +42,6 @@
                         "description": "Cron schedule",
                         "type": "string"
                     },
-                    "description": {
-                        "type": "string",
-                        "description": "An optional description for the task"
-                    },
                     "args": {
                         "description": "Cron arguments",
                         "type": "array",
