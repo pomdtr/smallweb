@@ -30,11 +30,9 @@ Tired of it ? Just run `rm -rf ~/smallweb/draw` and it's like it never existed.
 
 ## Try it out
 
-Leave me a message at [excalidraw.demo.smallweb.live](https://excalidraw.demo.smallweb.live), and then go create your own website from [vscode.demo.smallweb.live](https://vscode.demo.smallweb.live)!
+Leave me a message at [excalidraw.demo.smallweb.live](https://excalidraw.demo.smallweb.live), and then go create your own website from [vscode.demo.smallweb.live](https://vscode.demo.smallweb.live)! Also feel free to join our [discord](https://discord.smallweb.run) to ask any question or just hang out with us!
 
-If you want to self-host smallweb, refer to the [docs](https://www.smallweb.run/docs/hosting/vps).
-
-Or alternatively, register at [https://cloud.smallweb.run](https://cloud.smallweb.run) to get an hosted instance.
+If you want to self-host smallweb, refer to the [docs](https://www.smallweb.run/docs/hosting/vps). Or alternatively, register at [https://cloud.smallweb.run](https://cloud.smallweb.run) to get an hosted instance.
 
 ## Application structure
 
