@@ -826,11 +826,23 @@ func isAuthorized(appname string, email string, group string) bool {
 	authorizedEmails = append(authorizedEmails, k.Strings("authorizedEmails")...)
 	authorizedEmails = append(authorizedEmails, k.Strings(fmt.Sprintf("apps.%s.authorizedEmails", appname))...)
 
+	for _, authorizedEmail := range authorizedEmails {
+		if match, _ := doublestar.Match(authorizedEmail, email); match {
+			return true
+		}
+	}
+
 	var authorizedGroups []string
 	authorizedGroups = append(authorizedGroups, k.Strings("authorizedGroups")...)
 	authorizedGroups = append(authorizedGroups, k.Strings(fmt.Sprintf("apps.%s.authorizedGroups", appname))...)
 
-	return slices.Contains(authorizedEmails, email) || slices.Contains(authorizedGroups, group)
+	for _, authorizedGroup := range authorizedGroups {
+		if match, _ := doublestar.Match(authorizedGroup, group); match {
+			return true
+		}
+	}
+
+	return false
 }
 
 type Claims struct {
