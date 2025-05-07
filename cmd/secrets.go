@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -37,7 +38,11 @@ func NewCmdSecrets() *cobra.Command {
 			if appName == "" {
 				cwd, err := os.Getwd()
 				if err != nil {
-					return fmt.Errorf("failed to get current directory: %w", err)
+					return fmt.Errorf("could not get current working directory: %v", err)
+				}
+
+				if cwd == path.Clean(k.String("dir")) {
+					return fmt.Errorf("not in an app directory")
 				}
 
 				if !strings.HasPrefix(cwd, k.String("dir")) {
@@ -56,6 +61,10 @@ func NewCmdSecrets() *cobra.Command {
 
 			rawBytes, err := os.ReadFile(secretPath)
 			if err != nil {
+				if os.IsNotExist(err) {
+					return fmt.Errorf("secrets file %s does not exist", secretPath)
+				}
+
 				return fmt.Errorf("could not read %s: %v", secretPath, err)
 			}
 

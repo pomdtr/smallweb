@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -53,9 +54,14 @@ func NewCmdCrons() *cobra.Command {
 						return fmt.Errorf("failed to get current directory: %w", err)
 					}
 
+					if cwd == path.Clean(k.String("dir")) {
+						return fmt.Errorf("not in an app directory")
+					}
+
 					if !strings.HasPrefix(cwd, k.String("dir")) {
 						return fmt.Errorf("not in an app directory")
 					}
+
 					appDir := cwd
 					for filepath.Dir(appDir) != k.String("dir") {
 						appDir = filepath.Dir(appDir)

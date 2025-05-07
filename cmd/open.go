@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -21,10 +22,15 @@ func NewCmdOpen() *cobra.Command {
 		Short: "Open an app in the browser",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			appName := flags.app
 			if flags.app == "" {
 				cwd, err := os.Getwd()
 				if err != nil {
-					return fmt.Errorf("failed to get current directory: %w", err)
+					return fmt.Errorf("could not get current working directory: %v", err)
+				}
+
+				if cwd == path.Clean(k.String("dir")) {
+					return fmt.Errorf("not in an app directory")
 				}
 
 				if !strings.HasPrefix(cwd, k.String("dir")) {
@@ -36,20 +42,10 @@ func NewCmdOpen() *cobra.Command {
 					appDir = filepath.Dir(appDir)
 				}
 
-				appName := filepath.Base(appDir)
-				a, err := app.LoadApp(appName, k.String("dir"), k.String("domain"))
-				if err != nil {
-					return fmt.Errorf("failed to load app: %w", err)
-				}
-
-				if err := browser.OpenURL(a.URL); err != nil {
-					return fmt.Errorf("failed to open browser: %w", err)
-				}
-
-				return nil
+				appName = filepath.Base(appDir)
 			}
 
-			a, err := app.LoadApp(flags.app, k.String("dir"), k.String("domain"))
+			a, err := app.LoadApp(appName, k.String("dir"), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
