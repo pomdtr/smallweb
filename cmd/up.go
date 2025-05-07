@@ -712,7 +712,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !errors.Is(err, &oidc.TokenExpiredError{}) {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -720,7 +720,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &expiredErr) {
 			refreshTokenCookie, err := r.Cookie("refresh_token")
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
@@ -733,13 +733,13 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			tokenSource := oauth2Config.TokenSource(context.Background(), &oauth2.Token{RefreshToken: refreshTokenCookie.Value})
 			oauth2Token, err := tokenSource.Token()
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
 			rawIdToken, ok := oauth2Token.Extra("id_token").(string)
 			if !ok {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
@@ -752,12 +752,12 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			verifier := provider.Verifier(&oidc.Config{ClientID: r.Host})
 			idToken, err := verifier.Verify(r.Context(), rawIdToken)
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
 			if err := idToken.Claims(&claims); err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
@@ -787,7 +787,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if isRoutePrivate(wk.App, r.URL.Path) && !isAuthorized(appname, claims.Email, claims.Group) {
 		if claims.Email == "" {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin", r.Host), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
