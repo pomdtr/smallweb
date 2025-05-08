@@ -38,14 +38,14 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 
-	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/sftp"
-	"github.com/pomdtr/smallweb/watcher"
+	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/sftp"
+	"github.com/pomdtr/smallweb/internal/watcher"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/oauth2"
 
-	"github.com/pomdtr/smallweb/utils"
-	"github.com/pomdtr/smallweb/worker"
+	"github.com/pomdtr/smallweb/internal/utils"
+	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/spf13/cobra"
 )
 

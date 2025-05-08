@@ -3,7 +3,8 @@ FROM golang:1.24-alpine AS builder
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
-COPY . .
+COPY main.go ./
+COPY internal/ ./internal/
 ARG SMALLWEB_VERSION=dev
 RUN go build -ldflags="-s -w -X github.com/pomdtr/smallweb/build.Version=${SMALLWEB_VERSION}" -o smallweb
 
@@ -40,8 +41,8 @@ ENV SMALLWEB_DIR=/smallweb
 EXPOSE 7777
 
 # Add entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["up", "--enable-crons", "--addr", ":7777"]

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver"
-	"github.com/pomdtr/smallweb/worker"
+	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/spf13/cobra"
 )
 

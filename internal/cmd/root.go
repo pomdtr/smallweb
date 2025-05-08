@@ -14,9 +14,9 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 
-	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/build"
-	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/build"
+	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/spf13/cobra"
 )
 

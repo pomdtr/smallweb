@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/worker"
+	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/spf13/cobra"
 )
 

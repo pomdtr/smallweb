@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/cli/browser"
-	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/spf13/cobra"
 )
 

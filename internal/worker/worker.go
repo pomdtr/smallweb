@@ -21,9 +21,9 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
-	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/build"
-	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/build"
+	"github.com/pomdtr/smallweb/internal/utils"
 )
 
 //go:embed sandbox.ts

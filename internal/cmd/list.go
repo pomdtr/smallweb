@@ -10,7 +10,7 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/app"
+	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

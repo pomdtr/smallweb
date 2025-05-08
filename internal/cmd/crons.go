@@ -13,8 +13,8 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
-	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/worker"
+	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"

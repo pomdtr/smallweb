@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"os"
 
-	"github.com/pomdtr/smallweb/cmd"
+	"github.com/pomdtr/smallweb/internal/cmd"
 )
 
 func main() {

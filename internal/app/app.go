@@ -11,7 +11,7 @@ import (
 
 	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
-	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/tailscale/hujson"
 )
 

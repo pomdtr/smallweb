@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/pomdtr/smallweb/app"
-	"github.com/pomdtr/smallweb/utils"
+	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/utils"
 )
 
 type Watcher struct {
