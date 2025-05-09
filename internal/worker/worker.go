@@ -26,8 +26,7 @@ import (
 	"github.com/pomdtr/smallweb/internal/utils"
 )
 
-//go:embed sandbox.ts
-var sandboxContent string
+var sandboxUrl = "jsr:@smallweb/sandbox@0.1.0"
 
 type Worker struct {
 	App       app.App
@@ -113,6 +112,14 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		return args, nil
 	}
 
+	for _, configName := range []string{"deno.json", "deno.jsonc"} {
+		configPath := filepath.Join(me.App.Dir(), configName)
+		if _, err := os.Stat(configPath); err == nil {
+			args = append(args, fmt.Sprintf("--config=%s", configPath))
+			break
+		}
+	}
+
 	// if root is not a symlink
 	appDir := me.App.Dir()
 	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
@@ -173,10 +180,9 @@ func (me *Worker) Start() error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	args = append(args, "-", input.String())
+	args = append(args, sandboxUrl, input.String())
 
 	command := exec.Command(deno, args...)
-	command.Stdin = strings.NewReader(sandboxContent)
 	command.Dir = me.App.Dir()
 	command.Env = commandEnv(me.App, me.Admin)
 
@@ -490,10 +496,9 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 		return nil, fmt.Errorf("could not encode input: %w", err)
 	}
 
-	cmdArgs = append(cmdArgs, "-", payload.String())
+	cmdArgs = append(cmdArgs, sandboxUrl, payload.String())
 
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
-	command.Stdin = strings.NewReader(sandboxContent)
 	command.Dir = me.App.Dir()
 
 	command.Env = commandEnv(me.App, me.Admin)
@@ -526,11 +531,10 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	denoArgs = append(args, "-", payload.String())
+	denoArgs = append(args, sandboxUrl, payload.String())
 
 	command := exec.CommandContext(ctx, deno, denoArgs...)
 
-	command.Stdin = strings.NewReader(sandboxContent)
 	command.Stderr = os.Stderr
 	command.Stdout = os.Stdout
 	command.Dir = me.App.Dir()

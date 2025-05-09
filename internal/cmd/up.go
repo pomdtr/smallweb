@@ -324,6 +324,17 @@ func NewCmdUp() *cobra.Command {
 
 								cmd.Stdout = sess
 								cmd.Stderr = sess.Stderr()
+								stdin, err := cmd.StdinPipe()
+								if err != nil {
+									fmt.Fprintf(sess, "failed to get stdin: %v\n", err)
+									sess.Exit(1)
+									return
+								}
+
+								go func() {
+									defer stdin.Close()
+									io.Copy(stdin, sess)
+								}()
 
 								if err := cmd.Run(); err != nil {
 									var exitErr *exec.ExitError
