@@ -462,7 +462,7 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-func (me *Worker) Command(ctx context.Context, args []string, input []byte) (*exec.Cmd, error) {
+func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error) {
 	if args == nil {
 		args = []string{}
 	}
@@ -486,7 +486,6 @@ func (me *Worker) Command(ctx context.Context, args []string, input []byte) (*ex
 		"command":    "run",
 		"entrypoint": me.App.Entrypoint(),
 		"args":       args,
-		"input":      base64.StdEncoding.EncodeToString(input),
 	}); err != nil {
 		return nil, fmt.Errorf("could not encode input: %w", err)
 	}

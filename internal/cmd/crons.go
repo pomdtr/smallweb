@@ -183,7 +183,7 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 				}
 				wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
 
-				command, err := wk.Command(context.Background(), job.Args, nil)
+				command, err := wk.Command(context.Background(), job.Args)
 				if err != nil {
 					logger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
 					continue

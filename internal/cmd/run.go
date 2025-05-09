@@ -2,10 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"os"
 
-	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/spf13/cobra"
@@ -38,16 +35,7 @@ func NewCmdRun() *cobra.Command {
 			}
 
 			wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
-			var input []byte
-			if !isatty.IsTerminal(os.Stdin.Fd()) {
-				i, err := io.ReadAll(os.Stdin)
-				if err != nil {
-					return fmt.Errorf("failed to read from stdin: %w", err)
-				}
-
-				input = i
-			}
-			command, err := wk.Command(cmd.Context(), args[1:], input)
+			command, err := wk.Command(cmd.Context(), args[1:])
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)
 			}

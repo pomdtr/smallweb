@@ -315,17 +315,7 @@ func NewCmdUp() *cobra.Command {
 								}
 
 								wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
-								var input []byte
-								if !sess.EmulatedPty() {
-									input, err = io.ReadAll(sess)
-									if err != nil {
-										fmt.Fprintf(sess, "failed to read input: %v\n", err)
-										sess.Exit(1)
-										return
-									}
-								}
-
-								cmd, err := wk.Command(sess.Context(), sess.Command(), input)
+								cmd, err := wk.Command(sess.Context(), sess.Command())
 								if err != nil {
 									fmt.Fprintf(sess, "failed to get command: %v\n", err)
 									sess.Exit(1)
