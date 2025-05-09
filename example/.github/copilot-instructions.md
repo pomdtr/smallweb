@@ -144,9 +144,20 @@ for (const row of rows) {
 db.close();
 ```
 
-## Imports
+## Dependencies
 
-Use `https://esm.sh` for npm and Deno dependencies to ensure compatibility on server and browser
+Smallweb supports importing dependencies from urls, or npm/jsr packages. You can use the `npm:` prefix to import npm packages.
+
+```ts
+// Importing from npm
+import { Hono } from "npm:hono";
+
+// Importing from jsr
+import { Hono } from "jsr:@hono/hono"
+
+// Importing from a URL
+import { Hono } from "https://esm.sh/hono"
+```
 
 ## Secrets / Environment Variables
 
