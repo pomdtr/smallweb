@@ -16,6 +16,14 @@
         "jsr:@std/http"
       ]
     },
+    "@smallweb/sandbox@0.1.1": {
+      "integrity": "e90d4f3ca3abbc5b765e29ab90f12cc4e6c8754ec4311bc296ccf6240053f3e6",
+      "dependencies": [
+        "jsr:@std/encoding",
+        "jsr:@std/html",
+        "jsr:@std/http"
+      ]
+    },
     "@std/encoding@1.0.8": {
       "integrity": "a6c8f3f933ab1bed66244f435d1dc0fd23a888e07195532122ddc3d5f8f0e6b4"
     },

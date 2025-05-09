@@ -26,7 +26,7 @@ import (
 	"github.com/pomdtr/smallweb/internal/utils"
 )
 
-var sandboxUrl = "jsr:@smallweb/sandbox@0.1.0"
+var sandboxUrl = "jsr:@smallweb/sandbox@0.1.1"
 
 type Worker struct {
 	App       app.App
