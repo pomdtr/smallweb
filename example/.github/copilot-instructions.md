@@ -127,9 +127,33 @@ Smallweb apps only have write access to the `data/` directory. You can use this 
 
 ```ts
 await Deno.writeTextFile("data/hello.txt", "Hello World");
+
+const content = await Deno.readTextFile("data/hello.txt");
+console.log(content); // Hello World
 ```
 
-### SQLite
+### Using a JSON file as a database
+
+```ts
+import { JSONFilePreset } from "npm:lowdb/node"
+
+const db = await JSONFilePreset('data/db.json', { posts: [] })
+
+// read existing posts
+console.log(db.data.posts)
+
+// add new post
+const post = { id: 1, title: 'lowdb is awesome', views: 100 }
+
+// In two steps
+db.data.posts.push(post)
+await db.write()
+
+// Or in one
+await db.update(({ posts }) => posts.push(post))
+```
+
+### Using SQLite
 
 ```ts
 import { DatabaseSync } from "node:sqlite";
