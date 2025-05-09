@@ -49,5 +49,6 @@ func NewCmdRun() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().SetInterspersed(false)
 	return cmd
 }

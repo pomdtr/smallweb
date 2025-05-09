@@ -132,6 +132,7 @@ func NewCmdRoot() *cobra.Command {
 
 	rootCmd.PersistentFlags().String("dir", findSmallwebDir(), "The root directory for smallweb")
 	rootCmd.PersistentFlags().String("domain", "", "The domain for smallweb")
+	rootCmd.Flags().SetInterspersed(false)
 
 	rootCmd.AddCommand(NewCmdRun())
 	rootCmd.AddCommand(NewCmdOpen())
