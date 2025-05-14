@@ -280,6 +280,7 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				authorizedKey := string(gossh.MarshalAuthorizedKey(signer.PublicKey()))
+				sshLogger := logger.With("logger", "ssh")
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKeyPath),
@@ -304,23 +305,65 @@ func NewCmdUp() *cobra.Command {
 						return false
 					}),
 					sftp.SSHOption(k.String("dir"), nil),
-					wish.WithMiddleware(func(next ssh.Handler) ssh.Handler {
-						return func(sess ssh.Session) {
-							if sess.User() != "_" {
-								a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"))
+					wish.WithMiddleware(
+						func(next ssh.Handler) ssh.Handler {
+							return func(sess ssh.Session) {
+								if sess.User() != "_" {
+									a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"))
+									if err != nil {
+										fmt.Fprintf(sess, "failed to load app: %v\n", err)
+										sess.Exit(1)
+										return
+									}
+
+									wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
+									cmd, err := wk.Command(sess.Context(), sess.Command())
+									if err != nil {
+										fmt.Fprintf(sess, "failed to get command: %v\n", err)
+										sess.Exit(1)
+										return
+									}
+
+									cmd.Stdout = sess
+									cmd.Stderr = sess.Stderr()
+									stdin, err := cmd.StdinPipe()
+									if err != nil {
+										fmt.Fprintf(sess, "failed to get stdin: %v\n", err)
+										sess.Exit(1)
+										return
+									}
+
+									go func() {
+										defer stdin.Close()
+										io.Copy(stdin, sess)
+									}()
+
+									if err := cmd.Run(); err != nil {
+										var exitErr *exec.ExitError
+										if errors.As(err, &exitErr) {
+											sess.Exit(exitErr.ExitCode())
+											return
+										}
+
+										fmt.Fprintf(sess, "failed to run command: %v", err)
+										sess.Exit(1)
+										return
+									}
+
+									return
+								}
+
+								execPath, err := os.Executable()
 								if err != nil {
-									fmt.Fprintf(sess, "failed to load app: %v\n", err)
+									fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
 									sess.Exit(1)
 									return
 								}
 
-								wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
-								cmd, err := wk.Command(sess.Context(), sess.Command())
-								if err != nil {
-									fmt.Fprintf(sess, "failed to get command: %v\n", err)
-									sess.Exit(1)
-									return
-								}
+								cmd := exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
+								cmd.Args = append(cmd.Args, sess.Command()...)
+								cmd.Env = os.Environ()
+								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_PLUGINS=true")
 
 								cmd.Stdout = sess
 								cmd.Stderr = sess.Stderr()
@@ -347,49 +390,20 @@ func NewCmdUp() *cobra.Command {
 									sess.Exit(1)
 									return
 								}
-
-								return
 							}
-
-							execPath, err := os.Executable()
-							if err != nil {
-								fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
-								sess.Exit(1)
-								return
+						},
+						func(next ssh.Handler) ssh.Handler {
+							return func(sess ssh.Session) {
+								sshLogger.Info(
+									"ssh connection",
+									"user", sess.User(),
+									"remote addr", sess.RemoteAddr().String(),
+									"command", sess.Command(),
+								)
+								next(sess)
 							}
-
-							cmd := exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
-							cmd.Args = append(cmd.Args, sess.Command()...)
-							cmd.Env = os.Environ()
-							cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_PLUGINS=true")
-
-							cmd.Stdout = sess
-							cmd.Stderr = sess.Stderr()
-							stdin, err := cmd.StdinPipe()
-							if err != nil {
-								fmt.Fprintf(sess, "failed to get stdin: %v\n", err)
-								sess.Exit(1)
-								return
-							}
-
-							go func() {
-								defer stdin.Close()
-								io.Copy(stdin, sess)
-							}()
-
-							if err := cmd.Run(); err != nil {
-								var exitErr *exec.ExitError
-								if errors.As(err, &exitErr) {
-									sess.Exit(exitErr.ExitCode())
-									return
-								}
-
-								fmt.Fprintf(sess, "failed to run command: %v", err)
-								sess.Exit(1)
-								return
-							}
-						}
-					}),
+						},
+					),
 				)
 
 				if err != nil {
