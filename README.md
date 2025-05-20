@@ -8,12 +8,16 @@ Smallweb is obsessed with scaling down. No dev server or a build is required, an
 
 Let's say I want to self-host my own drawing app.
 
-```bash
-# the app subdomain will be draw.<your-domain>
-mkdir -p ~/smallweb/draw
+First, I'll create a folder for my app:
 
-# Smallweb apps can be contained in a single file
-cat <<EOF > ~/smallweb/draw/main.ts
+```ts
+mkdir -p ~/smallweb/draw
+```
+
+Then, I'll create a `main.ts` file in that folder:
+
+```ts
+// ~/smallweb/draw/main.ts
 import { Excalidraw } from "jsr:@smallweb/excalidraw@0.9.1";
 
 const excalidraw = new Excalidraw({
@@ -21,7 +25,6 @@ const excalidraw = new Excalidraw({
 });
 
 export default excalidraw;
-EOF
 ```
 
 And voila! No need to run a single command, your website is already available at `https://draw.<your-domain>`! And each time the drawing is modified, it get automatically persited to `~/smallweb/draw/data/drawing.json`.
@@ -43,11 +46,14 @@ Smallweb tries to keep it's api as simple as possible. The only requirement is t
 
 export default {
     fetch: (request: Request) => {
-        return new Response("Example server!");
+        return new Response("Handling request!");
     },
-    run: () => {
-        console.log("Example cli!");
-    }
+    run: (_args: string[]) => {
+        console.log("Running command!");
+    },
+    email: (_msg: ReadableStream) => {
+        console.log("Received email!");
+    },
 }
 ```
 
@@ -55,6 +61,7 @@ You can invoke:
 
 - the `fetch` function by send a request to `https://example.<your-domain>`
 - the `run` function by running `smallweb run example` or `ssh example@<your-domain>`
+- the `email` function by sending an email to `example!<your-domain>`
 
 Of course, it is super easy to hook these functions to a web framweork like [hono](https://hono.dev) or a cli framework like [commander](https://www.npmjs.com/package/commander).
 
