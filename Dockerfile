@@ -6,7 +6,7 @@ RUN go mod download
 COPY main.go ./
 COPY internal/ ./internal/
 ARG SMALLWEB_VERSION=dev
-RUN go build -ldflags="-s -w -X github.com/pomdtr/smallweb/build.Version=${SMALLWEB_VERSION}" -o smallweb
+RUN go build -ldflags="-s -w -X github.com/pomdtr/smallweb/internal/build.Version=${SMALLWEB_VERSION}" -o smallweb
 
 FROM debian:bookworm-slim
 COPY --from=builder /build/smallweb /usr/local/bin/smallweb
