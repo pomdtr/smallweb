@@ -140,6 +140,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdUp())
 	rootCmd.AddCommand(NewCmdDoctor())
 	rootCmd.AddCommand(NewCmdList())
+	rootCmd.AddCommand(NewCmdShell())
 	rootCmd.AddCommand(NewCmdCrons())
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdLink())
@@ -222,7 +223,7 @@ func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string
 		return nil, cobra.ShellCompDirectiveDefault
 	}
 
-	apps, err := app.ListApps(k.String("dir"))
+	apps, err := app.LookupApps(k.String("dir"))
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveDefault
 	}

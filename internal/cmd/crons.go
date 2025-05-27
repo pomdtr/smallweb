@@ -40,7 +40,7 @@ func NewCmdCrons() *cobra.Command {
 		Short:   "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var crons []CronItem
-			apps, err := app.ListApps(k.String("dir"))
+			apps, err := app.LookupApps(k.String("dir"))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}
@@ -151,7 +151,7 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
-		apps, err := app.ListApps(k.String("dir"))
+		apps, err := app.LookupApps(k.String("dir"))
 		if err != nil {
 			logger.Error("failed to list apps", "error", err)
 			return

@@ -32,7 +32,7 @@ func NewCmdList() *cobra.Command {
 				return fmt.Errorf("smallweb directory not set")
 			}
 
-			names, err := app.ListApps(k.String("dir"))
+			names, err := app.LookupApps(k.String("dir"))
 			if err != nil {
 				return fmt.Errorf("failed to list apps: %w", err)
 			}

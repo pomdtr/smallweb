@@ -91,7 +91,7 @@ func (me *App) DataDir() string {
 	return dir
 }
 
-func ListApps(rootDir string) ([]string, error) {
+func LookupApps(rootDir string) ([]string, error) {
 	entries, err := os.ReadDir(rootDir)
 	if err != nil {
 		return nil, fmt.Errorf("could not read directory %s: %v", rootDir, err)

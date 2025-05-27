@@ -65,7 +65,7 @@ func (me *Watcher) Start() error {
 			// if the event is originated from config file, reload the config and update all mtimes
 			if event.Name == utils.FindConfigPath(me.root) {
 				go me.reloadConfig()
-				apps, err := app.ListApps(me.root)
+				apps, err := app.LookupApps(me.root)
 				if err != nil {
 					continue
 				}
