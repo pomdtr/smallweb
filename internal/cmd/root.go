@@ -96,6 +96,8 @@ func NewCmdRoot() *cobra.Command {
 					Stdout: cmd.OutOrStdout(),
 				})
 
+				shell.AutoHelp(false)
+
 				appnames, err := app.LookupApps(k.String("dir"))
 				if err != nil {
 					return fmt.Errorf("failed to lookup apps: %w", err)
@@ -133,8 +135,8 @@ func NewCmdRoot() *cobra.Command {
 				})
 
 				shell.AddCmd(&ishell.Cmd{
-					Name:    "/ls",
-					Aliases: []string{"/list"},
+					Name:    "/list",
+					Aliases: []string{"/ls"},
 					Help:    "list available apps",
 					Func: func(c *ishell.Context) {
 						if len(appnames) == 0 {
@@ -299,7 +301,7 @@ func completePlugins(cmd *cobra.Command, args []string, toComplete string) ([]st
 	_ = k.Load(flagProvider, nil)
 
 	if len(args) > 0 {
-		return nil, cobra.ShellCompDirectiveDefault
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	var plugins []string
@@ -323,7 +325,7 @@ func completePlugins(cmd *cobra.Command, args []string, toComplete string) ([]st
 		}
 	}
 
-	return plugins, cobra.ShellCompDirectiveDefault
+	return plugins, cobra.ShellCompDirectiveNoFileComp
 }
 
 func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -331,13 +333,13 @@ func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string
 	_ = k.Load(flagProvider, nil)
 
 	if len(args) > 0 {
-		return nil, cobra.ShellCompDirectiveDefault
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	apps, err := app.LookupApps(k.String("dir"))
 	if err != nil {
-		return nil, cobra.ShellCompDirectiveDefault
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	return apps, cobra.ShellCompDirectiveDefault
+	return apps, cobra.ShellCompDirectiveNoFileComp
 }

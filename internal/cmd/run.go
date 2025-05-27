@@ -13,6 +13,7 @@ func NewCmdRun() *cobra.Command {
 		Use:               "run <app> [args...]",
 		Short:             "Run an app cli",
 		ValidArgsFunction: completeApp,
+		Args:              cobra.MinimumNArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := checkDenoVersion(); err != nil {
 				return err
@@ -21,14 +22,6 @@ func NewCmdRun() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return cmd.Help()
-			}
-
-			if args[0] == "-h" || args[0] == "--help" {
-				return cmd.Help()
-			}
-
 			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
