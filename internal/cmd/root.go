@@ -176,7 +176,7 @@ func NewCmdRoot() *cobra.Command {
 							c.Print()
 
 							command.Stdout = cmd.OutOrStdout()
-							command.Stderr = cmd.ErrOrStderr()
+							command.Stderr = cmd.OutOrStdout()
 
 							command.Run()
 						},
