@@ -92,8 +92,8 @@ func NewCmdRoot() *cobra.Command {
 						return 80 // Default terminal width
 					},
 					Stdin:  fakeReadCloser{cmd.InOrStdin()},
-					Stderr: cmd.ErrOrStderr(),
 					Stdout: cmd.OutOrStdout(),
+					Stderr: cmd.OutOrStdout(),
 				})
 
 				shell.AutoHelp(false)
