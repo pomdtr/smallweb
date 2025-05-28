@@ -19,6 +19,8 @@ require (
 )
 
 require (
+	github.com/abiosoft/ishell/v2 v2.0.2
+	github.com/abiosoft/readline v0.0.0-20180607040430-155bce2042db
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/caddyserver/certmagic v0.23.0
 	github.com/charmbracelet/ssh v0.0.0-20250213143314-8712ec3ff3ef
@@ -29,7 +31,7 @@ require (
 	github.com/getsops/sops/v3 v3.10.2
 	github.com/knadh/koanf/providers/posflag v1.0.0
 	github.com/leaanthony/gosod v1.0.4
-	github.com/lmittmann/tint v1.0.7
+	github.com/lmittmann/tint v1.1.0
 	github.com/mhale/smtpd v0.8.3
 	github.com/pkg/sftp v1.13.9
 	github.com/robfig/cron/v3 v3.0.1
@@ -62,8 +64,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.51.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.51.0 // indirect
 	github.com/ProtonMail/go-crypto v1.2.0 // indirect
-	github.com/abiosoft/ishell/v2 v2.0.2 // indirect
-	github.com/abiosoft/readline v0.0.0-20180607040430-155bce2042db // indirect
+	github.com/abiosoft/ishell v2.0.0+incompatible // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect
