@@ -80,7 +80,7 @@ func NewCmdRoot() *cobra.Command {
 
 			return nil
 		},
-		ValidArgsFunction: completePlugins,
+		ValidArgsFunction: completeCommands,
 		SilenceUsage:      true,
 		Args:              cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -190,15 +190,15 @@ func NewCmdRoot() *cobra.Command {
 				return nil
 			}
 
-			if env, ok := os.LookupEnv("SMALLWEB_DISABLE_PLUGINS"); ok {
-				if disablePlugins, _ := strconv.ParseBool(env); disablePlugins {
+			if env, ok := os.LookupEnv("SMALLWEB_DISABLE_CUSTOM_COMMANDS"); ok {
+				if disableCustomCommands, _ := strconv.ParseBool(env); disableCustomCommands {
 					return fmt.Errorf("unknown command \"%s\" for \"smallweb\"", args[0])
 				}
 			}
 
 			for _, pluginDir := range []string{
-				filepath.Join(k.String("dir"), ".smallweb", "plugins"),
-				filepath.Join(xdg.DataHome, "smallweb", "plugins"),
+				filepath.Join(k.String("dir"), ".smallweb", "commands"),
+				filepath.Join(xdg.ConfigHome, "smallweb", "commands"),
 			} {
 				entries, err := os.ReadDir(pluginDir)
 				if err != nil {
@@ -295,7 +295,7 @@ func isExecutable(path string) (bool, error) {
 	return fileInfo.Mode().Perm()&0111 != 0, nil
 }
 
-func completePlugins(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func completeCommands(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 	_ = k.Load(flagProvider, nil)
 
@@ -303,13 +303,13 @@ func completePlugins(cmd *cobra.Command, args []string, toComplete string) ([]st
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	var plugins []string
-	for _, pluginDir := range []string{
-		filepath.Join(k.String("dir"), ".smallweb", "plugins"),
-		filepath.Join(xdg.DataHome, "smallweb", "plugins"),
+	var completions []string
+	for _, dir := range []string{
+		filepath.Join(k.String("dir"), ".smallweb", "commands"),
+		filepath.Join(xdg.ConfigHome, "smallweb", "commands"),
 	} {
 
-		entries, err := os.ReadDir(pluginDir)
+		entries, err := os.ReadDir(dir)
 		if err != nil {
 			continue
 		}
@@ -319,12 +319,12 @@ func completePlugins(cmd *cobra.Command, args []string, toComplete string) ([]st
 				continue
 			}
 
-			plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-			plugins = append(plugins, fmt.Sprintf("%s\tPlugin %s", plugin, plugin))
+			name := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+			completions = append(completions, fmt.Sprintf("%s\tCustom command", name))
 		}
 	}
 
-	return plugins, cobra.ShellCompDirectiveNoFileComp
+	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
 func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

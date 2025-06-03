@@ -363,7 +363,7 @@ func NewCmdUp() *cobra.Command {
 								cmd := exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
 								cmd.Args = append(cmd.Args, sess.Command()...)
 								cmd.Env = os.Environ()
-								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_PLUGINS=true")
+								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
 
 								cmd.Stdout = sess
 								cmd.Stderr = sess.Stderr()
