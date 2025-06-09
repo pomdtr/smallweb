@@ -342,7 +342,7 @@ func NewCmdUp() *cobra.Command {
 									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
 								}
 
-								ptyReq, _, isPty := sess.Pty()
+								ptyReq, winCh, isPty := sess.Pty()
 								if isPty {
 									cmd.Env = append(cmd.Env, "TERM="+ptyReq.Term)
 									f, err := pty.Start(cmd)
@@ -350,6 +350,15 @@ func NewCmdUp() *cobra.Command {
 										fmt.Fprintf(sess, "failed to start command: %v\n", err)
 										sess.Exit(1)
 									}
+
+									go func() {
+										for win := range winCh {
+											pty.Setsize(f, &pty.Winsize{
+												Rows: uint16(win.Height),
+												Cols: uint16(win.Width),
+											})
+										}
+									}()
 
 									go func() {
 										io.Copy(sess, f)
