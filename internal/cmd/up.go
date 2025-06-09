@@ -28,6 +28,7 @@ import (
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/creack/pty"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
@@ -308,6 +309,7 @@ func NewCmdUp() *cobra.Command {
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
+								var cmd *exec.Cmd
 								if sess.User() != "_" {
 									a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"))
 									if err != nil {
@@ -317,28 +319,47 @@ func NewCmdUp() *cobra.Command {
 									}
 
 									wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
-									cmd, err := wk.Command(sess.Context(), sess.Command())
+									c, err := wk.Command(sess.Context(), sess.Command())
 									if err != nil {
 										fmt.Fprintf(sess, "failed to get command: %v\n", err)
 										sess.Exit(1)
 										return
 									}
 
-									cmd.Stdout = sess
-									cmd.Stderr = sess.Stderr()
-									stdin, err := cmd.StdinPipe()
+									cmd = c
+									cmd.Env = os.Environ()
+								} else {
+									execPath, err := os.Executable()
 									if err != nil {
-										fmt.Fprintf(sess, "failed to get stdin: %v\n", err)
+										fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
 										sess.Exit(1)
 										return
 									}
 
+									cmd = exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
+									cmd.Args = append(cmd.Args, sess.Command()...)
+									cmd.Env = os.Environ()
+									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
+								}
+
+								ptyReq, _, isPty := sess.Pty()
+								if isPty {
+									cmd.Env = append(cmd.Env, "TERM="+ptyReq.Term)
+									f, err := pty.Start(cmd)
+									if err != nil {
+										fmt.Fprintf(sess, "failed to start command: %v\n", err)
+										sess.Exit(1)
+									}
+
 									go func() {
-										defer stdin.Close()
-										io.Copy(stdin, sess)
+										io.Copy(sess, f)
 									}()
 
-									if err := cmd.Run(); err != nil {
+									go func() {
+										io.Copy(f, sess)
+									}()
+
+									if err := cmd.Wait(); err != nil {
 										var exitErr *exec.ExitError
 										if errors.As(err, &exitErr) {
 											sess.Exit(exitErr.ExitCode())
@@ -352,18 +373,6 @@ func NewCmdUp() *cobra.Command {
 
 									return
 								}
-
-								execPath, err := os.Executable()
-								if err != nil {
-									fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
-									sess.Exit(1)
-									return
-								}
-
-								cmd := exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
-								cmd.Args = append(cmd.Args, sess.Command()...)
-								cmd.Env = os.Environ()
-								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
 
 								cmd.Stdout = sess
 								cmd.Stderr = sess.Stderr()
