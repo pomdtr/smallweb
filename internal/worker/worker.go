@@ -49,6 +49,7 @@ func commandEnv(a app.App, admin bool) []string {
 	}
 
 	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+	env = append(env, "DENO_TLS_CA_STORE=system")
 	env = append(env, "DENO_NO_UPDATE_CHECK=1")
 
 	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
@@ -99,6 +100,7 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		"--node-modules-dir=none",
 		"--no-prompt",
 		"--quiet",
+		fmt.Sprintf("--reload=https://esm.%s", me.App.RootDomain),
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")

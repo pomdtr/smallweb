@@ -39,6 +39,7 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 
+	"github.com/pomdtr/smallweb/example/esm"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/sftp"
 	"github.com/pomdtr/smallweb/internal/watcher"
@@ -101,8 +102,9 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			handler := &Handler{
-				workers: make(map[string]*worker.Worker),
-				logger:  logger,
+				workers:    make(map[string]*worker.Worker),
+				logger:     logger,
+				esmHandler: esm.NewHandler(filepath.Join(k.String("dir"), ".smallweb", "repos")),
 			}
 
 			if issuer := k.String("oidc.issuer"); issuer != "" {
@@ -495,6 +497,7 @@ type Handler struct {
 	oidcMu        sync.Mutex
 	oidcIssuerUrl *url.URL
 	oidcProvider  *oidc.Provider
+	esmHandler    http.Handler
 }
 
 type AuthData struct {
@@ -513,6 +516,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hostname, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
 		hostname = r.Host
+	}
+
+	if hostname == fmt.Sprintf("esm.%s", k.String("domain")) {
+		me.esmHandler.ServeHTTP(w, r)
+		return
 	}
 
 	appname, redirect, ok := lookupApp(hostname)
