@@ -39,6 +39,7 @@ require (
 	github.com/pkg/sftp v1.13.9
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/slog-http v1.7.0
+	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.38.0
 	golang.org/x/oauth2 v0.30.0

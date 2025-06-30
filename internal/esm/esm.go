@@ -1,6 +1,7 @@
 package esm
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,6 +11,29 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 )
+
+type DenoConfig struct {
+	Imports map[string]string `json:"imports"`
+}
+
+// resolveImports replaces bare import specifiers and package subpaths in TypeScript/JavaScript code
+// using the provided import map. It rewrites module specifiers in import/export statements.
+func resolveImports(code string, imports map[string]string) string {
+	for key, value := range imports {
+		// bare import: from "key"
+		code = strings.ReplaceAll(code, fmt.Sprintf(`from "%s"`, key), fmt.Sprintf(`from "%s"`, value))
+		code = strings.ReplaceAll(code, fmt.Sprintf(`from '%s'`, key), fmt.Sprintf(`from '%s'`, value))
+		code = strings.ReplaceAll(code, fmt.Sprintf(`import("%s")`, key), fmt.Sprintf(`import("%s")`, value))
+		code = strings.ReplaceAll(code, fmt.Sprintf(`import('%s')`, key), fmt.Sprintf(`import('%s')`, value))
+
+		// subpath import: from "key/..."
+		code = strings.ReplaceAll(code, fmt.Sprintf(`from "%s/`, key), fmt.Sprintf(`from "%s/`, strings.TrimSuffix(value, "/")))
+		code = strings.ReplaceAll(code, fmt.Sprintf(`from '%s/`, key), fmt.Sprintf(`from '%s/`, strings.TrimSuffix(value, "/")))
+		code = strings.ReplaceAll(code, fmt.Sprintf(`import("%s/`, key), fmt.Sprintf(`import("%s/`, strings.TrimSuffix(value, "/")))
+		code = strings.ReplaceAll(code, fmt.Sprintf(`import('%s/`, key), fmt.Sprintf(`import('%s/`, strings.TrimSuffix(value, "/")))
+	}
+	return code
+}
 
 func NewHandler(root string) http.Handler {
 	mux := http.NewServeMux()
@@ -43,8 +67,15 @@ func NewHandler(root string) http.Handler {
 				http.Error(w, fmt.Sprintf("Revision not found: %s", revision), http.StatusNotFound)
 				return
 			}
-
 			http.Error(w, "Failed to resolve reference: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// If revision is not a short hash, redirect to the short hash URL
+		shortHash := hash.String()[:7]
+		if len(parts) == 1 || parts[1] != shortHash {
+			// reconstruct the URL with the short hash
+			http.Redirect(w, r, fmt.Sprintf("/%s@%s/%s", app, shortHash, fp), http.StatusFound)
 			return
 		}
 
@@ -66,18 +97,35 @@ func NewHandler(root string) http.Handler {
 			return
 		}
 
-		content, err := f.Contents()
+		contents, err := f.Contents()
 		if err != nil {
 			http.Error(w, "Failed to read file content: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write([]byte(content)); err != nil {
-			http.Error(w, "Failed to write response: "+err.Error(), http.StatusInternalServerError)
+		configFile, err := tree.File("deno.json")
+		if err != nil {
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte(contents))
+			return
+
+		}
+
+		config, err := configFile.Contents()
+		if err != nil {
+			http.Error(w, "Failed to read Deno config: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		var denoConfig DenoConfig
+		if err := json.Unmarshal([]byte(config), &denoConfig); err != nil {
+			http.Error(w, "Failed to parse Deno config: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		contents = resolveImports(contents, denoConfig.Imports)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte(contents))
 	})
 
 	return mux
