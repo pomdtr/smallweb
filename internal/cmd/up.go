@@ -39,8 +39,8 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 
-	"github.com/pomdtr/smallweb/example/esm"
 	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/esm"
 	"github.com/pomdtr/smallweb/internal/sftp"
 	"github.com/pomdtr/smallweb/internal/watcher"
 	gossh "golang.org/x/crypto/ssh"

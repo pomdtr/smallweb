@@ -23,6 +23,7 @@ require (
 	github.com/abiosoft/readline v0.0.0-20180607040430-155bce2042db
 	github.com/bmatcuk/doublestar/v4 v4.8.1
 	github.com/caddyserver/certmagic v0.23.0
+	github.com/charmbracelet/fang v0.1.0
 	github.com/charmbracelet/ssh v0.0.0-20250213143314-8712ec3ff3ef
 	github.com/charmbracelet/wish v1.4.7
 	github.com/cli/browser v1.3.0
@@ -30,6 +31,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/getsops/sops/v3 v3.10.2
+	github.com/go-git/go-git/v5 v5.16.2
 	github.com/knadh/koanf/providers/posflag v1.0.0
 	github.com/leaanthony/gosod v1.0.4
 	github.com/lmittmann/tint v1.0.7
@@ -96,7 +98,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/bubbletea v1.3.4 // indirect
 	github.com/charmbracelet/colorprofile v0.3.0 // indirect
-	github.com/charmbracelet/fang v0.1.0 // indirect
 	github.com/charmbracelet/keygen v0.5.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250319133953-166f707985bc // indirect
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.1 // indirect
@@ -123,7 +124,6 @@ require (
 	github.com/getsops/gopgagent v0.0.0-20241224165529-7044f28e491e // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
-	github.com/go-git/go-git/v5 v5.16.2 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
