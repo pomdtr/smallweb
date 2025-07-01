@@ -164,7 +164,7 @@ func NewHandler(gitdir string) http.Handler {
 			http.Error(w, "Failed to read file content: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		code = rewriteImports(code, config.Imports)
+		code = rewriteImportsAndJsx(code, config.Imports)
 
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(code))
@@ -226,15 +226,18 @@ func getConfig(tree *object.Tree) (*DenoConfig, error) {
 	return &DenoConfig{}, nil // No config found, return empty config
 }
 
-var importRewriteRegexp = regexp.MustCompile(`(?m)(?:import\s+(?:[^'"]+from\s+)?|export\s+[^'"]+from\s+|import\s*\()\s*(['"])([^'"]+)['"]`)
+func rewriteImportsAndJsx(src string, importMap map[string]string) string {
+	// Regex for import/export statements and dynamic import (without \1)
+	pattern := `(?m)(?:import\s+(?:[^'"]+from\s+)?|export\s+[^'"]+from\s+|import\s*\()\s*(['"])([^'"]+)['"]`
+	re := regexp.MustCompile(pattern)
 
-func rewriteImports(src string, importMap map[string]string) string {
-	if len(importMap) == 0 {
-		return src // No imports to rewrite
-	}
+	// Regex for /** @jsxImportSource <source> */
+	jsxPattern := `(?m)(/\*\*\s*@jsxImportSource\s+)([^\s*]+)(\s*\*/)`
+	jsxRe := regexp.MustCompile(jsxPattern)
 
-	return importRewriteRegexp.ReplaceAllStringFunc(src, func(match string) string {
-		submatches := importRewriteRegexp.FindStringSubmatch(match)
+	// Replace import/export/dynamic import specifiers
+	result := re.ReplaceAllStringFunc(src, func(match string) string {
+		submatches := re.FindStringSubmatch(match)
 		if len(submatches) < 3 {
 			return match
 		}
@@ -242,15 +245,12 @@ func rewriteImports(src string, importMap map[string]string) string {
 		quote := submatches[1]
 		specifier := submatches[2]
 
-		// find the longest matching prefix key in importMap
 		base, ok := findLongestPrefix(specifier, importMap)
 		if !ok {
-			return match // no match, return original
+			return match
 		}
 
-		// get remainder after base prefix
 		subpath := strings.TrimPrefix(specifier, base)
-
 		mappedBase := importMap[base]
 		newSpecifier := mappedBase + subpath
 
@@ -258,6 +258,29 @@ func rewriteImports(src string, importMap map[string]string) string {
 		newQuoted := quote + newSpecifier + quote
 		return strings.Replace(match, oldQuoted, newQuoted, 1)
 	})
+
+	// Replace @jsxImportSource comments
+	result = jsxRe.ReplaceAllStringFunc(result, func(match string) string {
+		submatches := jsxRe.FindStringSubmatch(match)
+		if len(submatches) < 4 {
+			return match
+		}
+		prefix := submatches[1]
+		source := submatches[2]
+		suffix := submatches[3]
+
+		base, ok := findLongestPrefix(source, importMap)
+		if !ok {
+			return match
+		}
+		subpath := strings.TrimPrefix(source, base)
+		mappedBase := importMap[base]
+		newSource := mappedBase + subpath
+
+		return prefix + newSource + suffix
+	})
+
+	return result
 }
 
 // findLongestPrefix returns the longest key in importMap matching start of specifier
