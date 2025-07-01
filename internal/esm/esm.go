@@ -19,12 +19,16 @@ import (
 func NewHandler(gitdir string) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/{app}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("Usage: /{app}@{ref}/{filepath}"))
+	})
+
+	mux.HandleFunc("GET /{app}", func(w http.ResponseWriter, r *http.Request) {
 		app := r.PathValue("app")
 		revision := plumbing.Revision("HEAD")
 
-		parts := strings.Split(app, "@")
-		if len(parts) > 1 {
+		if parts := strings.Split(app, "@"); len(parts) > 1 {
 			app = parts[0]
 			revision = plumbing.Revision(parts[1])
 		}
@@ -88,8 +92,7 @@ func NewHandler(gitdir string) http.Handler {
 		pathname := r.PathValue("pathname")
 		revision := plumbing.Revision("HEAD")
 
-		parts := strings.Split(app, "@")
-		if len(parts) > 1 {
+		if parts := strings.Split(app, "@"); len(parts) > 1 {
 			app = parts[0]
 			revision = plumbing.Revision(parts[1])
 		}
