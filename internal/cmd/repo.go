@@ -96,10 +96,10 @@ func NewCmdRepoList() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Remote URL"})
+			printer.AddHeader([]string{"Name", "Base URL"})
 			for _, name := range names {
 				printer.AddField(name)
-				printer.AddField(fmt.Sprintf("%s:%s.git", k.String("domain"), name))
+				printer.AddField(fmt.Sprintf("https://esm.%s/%s", k.String("domain"), name))
 				printer.EndRow()
 			}
 
