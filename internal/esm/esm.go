@@ -242,22 +242,33 @@ func rewriteImports(src string, importMap map[string]string) string {
 		quote := submatches[1]
 		specifier := submatches[2]
 
-		base := specifier
-		subpath := ""
-		if i := strings.Index(specifier, "/"); i != -1 {
-			base = specifier[:i]
-			subpath = specifier[i:]
-		}
-
-		mappedBase, ok := importMap[base]
+		// find the longest matching prefix key in importMap
+		base, ok := findLongestPrefix(specifier, importMap)
 		if !ok {
-			return match
+			return match // no match, return original
 		}
 
+		// get remainder after base prefix
+		subpath := strings.TrimPrefix(specifier, base)
+
+		mappedBase := importMap[base]
 		newSpecifier := mappedBase + subpath
 
 		oldQuoted := quote + specifier + quote
 		newQuoted := quote + newSpecifier + quote
 		return strings.Replace(match, oldQuoted, newQuoted, 1)
 	})
+}
+
+// findLongestPrefix returns the longest key in importMap matching start of specifier
+func findLongestPrefix(specifier string, importMap map[string]string) (string, bool) {
+	longestKey := ""
+	for key := range importMap {
+		if strings.HasPrefix(specifier, key) {
+			if len(key) > len(longestKey) {
+				longestKey = key
+			}
+		}
+	}
+	return longestKey, longestKey != ""
 }
