@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
@@ -35,6 +36,10 @@ func NewCmdRepoCreate() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
+			if !strings.HasSuffix(name, ".git") {
+				name += ".git"
+			}
+
 			repoDir := filepath.Join(k.String("dir"), ".smallweb", "repos", name)
 			if _, err := os.Stat(repoDir); err == nil {
 				return fmt.Errorf("repository %s already exists", name)
@@ -64,9 +69,10 @@ func NewCmdRepoCreate() *cobra.Command {
 
 func NewCmdRepoList() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List all repositories",
-		Long:  "List all repositories in the smallweb workspace.",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List all repositories",
+		Long:    "List all repositories in the smallweb workspace.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			reposDir := filepath.Join(k.String("dir"), ".smallweb", "repos")
 			files, err := os.ReadDir(reposDir)
@@ -80,8 +86,7 @@ func NewCmdRepoList() *cobra.Command {
 					continue
 				}
 
-				names = append(names, file.Name())
-
+				names = append(names, strings.TrimSuffix(file.Name(), ".git"))
 			}
 
 			var printer tableprinter.TablePrinter
@@ -96,9 +101,10 @@ func NewCmdRepoList() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Base URL"})
+			printer.AddHeader([]string{"Name", "Remote URL", "Module URL"})
 			for _, name := range names {
 				printer.AddField(name)
+				printer.AddField(fmt.Sprintf("git@%s:%s.git", k.String("domain"), name))
 				printer.AddField(fmt.Sprintf("https://esm.%s/%s", k.String("domain"), name))
 				printer.EndRow()
 			}

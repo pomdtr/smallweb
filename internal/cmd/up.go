@@ -288,8 +288,13 @@ func NewCmdUp() *cobra.Command {
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKeyPath),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
+						if ctx.User() == "git" {
+							return true
+						}
+
 						authorizedKeys := []string{authorizedKey}
 						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
+
 						if ctx.User() != "_" {
 							authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("apps.%s.authorizedKeys", ctx.User()))...)
 						}
@@ -409,6 +414,73 @@ func NewCmdUp() *cobra.Command {
 									fmt.Fprintf(sess, "failed to run command: %v", err)
 									sess.Exit(1)
 									return
+								}
+							}
+						},
+						func(next ssh.Handler) ssh.Handler {
+							return func(sess ssh.Session) {
+								if sess.User() != "git" {
+									next(sess)
+									return
+								}
+
+								args := sess.Command()
+								if len(args) != 2 {
+									fmt.Fprintf(sess.Stderr(), "invalid git command: %s\n", strings.Join(args, " "))
+									return
+								}
+
+								switch args[0] {
+								case "git-upload-pack":
+									cmd := NewCmdGitUploadPack()
+									cmd.SetArgs(args[1:])
+
+									cmd.SetIn(sess)
+									cmd.SetOut(sess)
+									cmd.SetErr(sess.Stderr())
+
+									if err := cmd.Execute(); err != nil {
+										fmt.Fprintf(sess.Stderr(), "failed to execute git command: %v\n", err)
+										sess.Exit(1)
+									}
+								case "git-receive-pack":
+									authorizedKeys := []string{authorizedKey}
+									authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
+									authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("repos.%s.authorizedKeys", strings.TrimSuffix(args[1], ".git")))...)
+
+									isAuthorized := false
+									for _, authorizedKey := range authorizedKeys {
+										k, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
+										if err != nil {
+											continue
+										}
+
+										if ssh.KeysEqual(k, sess.PublicKey()) {
+											isAuthorized = true
+											break
+										}
+									}
+
+									if !isAuthorized {
+										fmt.Fprintf(sess.Stderr(), "unauthorized git command: %s\n", strings.Join(args, " "))
+										sess.Exit(1)
+										return
+									}
+
+									cmd := NewCmdGitReceivePack()
+									cmd.SetArgs(args[1:])
+
+									cmd.SetIn(sess)
+									cmd.SetOut(sess)
+									cmd.SetErr(sess.Stderr())
+
+									if err := cmd.Execute(); err != nil {
+										fmt.Fprintf(sess.Stderr(), "failed to execute git command: %v\n", err)
+										sess.Exit(1)
+									}
+								default:
+									fmt.Fprintf(sess.Stderr(), "unknown git command: %s\n", strings.Join(args, " "))
+									sess.Exit(1)
 								}
 							}
 						},

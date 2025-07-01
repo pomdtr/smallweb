@@ -33,7 +33,7 @@ func NewHandler(gitdir string) http.Handler {
 			revision = plumbing.Revision(parts[1])
 		}
 
-		repoDir := filepath.Join(gitdir, app)
+		repoDir := filepath.Join(gitdir, fmt.Sprintf("%s.git", app))
 		if _, err := os.Stat(repoDir); os.IsNotExist(err) {
 			http.Error(w, "Repository not found", http.StatusNotFound)
 			return
@@ -97,7 +97,7 @@ func NewHandler(gitdir string) http.Handler {
 			revision = parts[1]
 		}
 
-		repoDir := filepath.Join(gitdir, app)
+		repoDir := filepath.Join(gitdir, fmt.Sprintf("%s.git", app))
 		if _, err := os.Stat(repoDir); os.IsNotExist(err) {
 			http.Error(w, "Repository not found", http.StatusNotFound)
 			return

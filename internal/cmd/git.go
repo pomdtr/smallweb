@@ -3,7 +3,6 @@ package cmd
 import (
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -15,8 +14,7 @@ func NewCmdGitReceivePack() *cobra.Command {
 		Short:  "Git receive-pack",
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repo := strings.TrimSuffix(args[0], ".git")
-			repoDir := filepath.Join(k.String("dir"), ".smallweb", "repos", repo)
+			repoDir := filepath.Join(k.String("dir"), ".smallweb", "repos", args[0])
 			gitReceiveCmd := exec.Command("git-receive-pack", repoDir)
 			gitReceiveCmd.Stdin = cmd.InOrStdin()
 			gitReceiveCmd.Stdout = cmd.OutOrStdout()
@@ -40,8 +38,7 @@ func NewCmdGitUploadPack() *cobra.Command {
 		Short:  "Git upload-pack",
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repo := strings.TrimSuffix(args[0], ".git")
-			repoDir := filepath.Join(k.String("dir"), ".smallweb", "repos", repo)
+			repoDir := filepath.Join(k.String("dir"), ".smallweb", "repos", args[0])
 			uploadCmd := exec.Command("git-upload-pack", repoDir)
 
 			uploadCmd.Stdin = cmd.InOrStdin()
