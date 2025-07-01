@@ -90,11 +90,11 @@ func NewHandler(gitdir string) http.Handler {
 	mux.HandleFunc("GET /{app}/{pathname...}", func(w http.ResponseWriter, r *http.Request) {
 		app := r.PathValue("app")
 		pathname := r.PathValue("pathname")
-		revision := plumbing.Revision("HEAD")
+		revision := "HEAD"
 
 		if parts := strings.Split(app, "@"); len(parts) > 1 {
 			app = parts[0]
-			revision = plumbing.Revision(parts[1])
+			revision = parts[1]
 		}
 
 		repoDir := filepath.Join(gitdir, app)
@@ -109,7 +109,7 @@ func NewHandler(gitdir string) http.Handler {
 			return
 		}
 
-		hash, err := repo.ResolveRevision(revision)
+		hash, err := repo.ResolveRevision(plumbing.Revision(revision))
 		if err != nil {
 			if err == plumbing.ErrReferenceNotFound {
 				http.Error(w, fmt.Sprintf("Revision not found: %s", revision), http.StatusNotFound)
@@ -121,7 +121,7 @@ func NewHandler(gitdir string) http.Handler {
 
 		// If revision is not a short hash, redirect to the short hash URL
 		shortHash := hash.String()[:7]
-		if len(parts) == 1 || parts[1] != shortHash {
+		if revision != shortHash {
 			// reconstruct the URL with the short hash
 			http.Redirect(w, r, fmt.Sprintf("/%s@%s/%s", app, shortHash, pathname), http.StatusFound)
 			return
