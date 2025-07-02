@@ -446,7 +446,7 @@ func NewCmdUp() *cobra.Command {
 								case "git-receive-pack":
 									authorizedKeys := []string{authorizedKey}
 									authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
-									authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("repos.%s.authorizedKeys", strings.TrimSuffix(args[1], ".git")))...)
+									authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("repos.%s.authorizedKeys", args[1]))...)
 
 									isAuthorized := false
 									for _, authorizedKey := range authorizedKeys {
