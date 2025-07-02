@@ -3,11 +3,14 @@ package esm
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -159,15 +162,44 @@ func NewHandler(gitdir string) http.Handler {
 			return
 		}
 
-		code, err := f.Contents()
-		if err != nil {
-			http.Error(w, "Failed to read file content: "+err.Error(), http.StatusInternalServerError)
+		if slices.Contains([]string{".ts", ".tsx", ".js", ".jsx"}, path.Ext(pathname)) {
+			contents, err := f.Contents()
+			if err != nil {
+				http.Error(w, "Failed to read file: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			var mimeType string
+			switch path.Ext(pathname) {
+			case ".js":
+				mimeType = "text/javascript"
+			case ".jsx":
+				mimeType = "text/jsx"
+			case ".ts":
+				mimeType = "text/typescript"
+			case ".tsx":
+				mimeType = "text/tsx"
+			}
+
+			w.Header().Set("Content-Type", mimeType)
+			w.Write([]byte(rewriteImportsAndJsx(contents, config.Imports)))
 			return
 		}
-		code = rewriteImportsAndJsx(code, config.Imports)
 
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(code))
+		mimeType := "application/octet-stream"
+		if detected := mime.TypeByExtension(filepath.Ext(pathname)); detected != "" {
+			mimeType = detected
+		}
+
+		reader, err := f.Blob.Reader()
+		if err != nil {
+			http.Error(w, "Failed to read file: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer reader.Close()
+
+		w.Header().Set("Content-Type", mimeType)
+		io.Copy(w, reader)
 	})
 
 	return mux
