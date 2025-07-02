@@ -99,7 +99,6 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		"--node-modules-dir=none",
 		"--no-prompt",
 		"--quiet",
-		fmt.Sprintf("--reload=https://esm.%s", me.App.RootDomain),
 	}
 
 	for _, configName := range []string{"deno.json", "deno.jsonc"} {
