@@ -103,6 +103,14 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		fmt.Sprintf("--reload=https://esm.%s", me.App.RootDomain),
 	}
 
+	for _, configName := range []string{"deno.json", "deno.jsonc"} {
+		configPath := filepath.Join(me.App.Dir(), configName)
+		if _, err := os.Stat(configPath); err == nil {
+			args = append(args, fmt.Sprintf("--config=%s", configPath))
+			break
+		}
+	}
+
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
 	if me.Admin {
 		args = append(
@@ -112,14 +120,6 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		)
 
 		return args, nil
-	}
-
-	for _, configName := range []string{"deno.json", "deno.jsonc"} {
-		configPath := filepath.Join(me.App.Dir(), configName)
-		if _, err := os.Stat(configPath); err == nil {
-			args = append(args, fmt.Sprintf("--config=%s", configPath))
-			break
-		}
 	}
 
 	// if root is not a symlink
