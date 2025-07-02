@@ -41,6 +41,7 @@ import (
 
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/esm"
+	"github.com/pomdtr/smallweb/internal/git"
 	"github.com/pomdtr/smallweb/internal/sftp"
 	"github.com/pomdtr/smallweb/internal/watcher"
 	gossh "golang.org/x/crypto/ssh"
@@ -101,10 +102,12 @@ func NewCmdUp() *cobra.Command {
 				return fmt.Errorf("domain cannot be empty")
 			}
 
+			gitdir := filepath.Join(k.String("dir"), ".smallweb", "repos")
 			handler := &Handler{
 				workers: make(map[string]*worker.Worker),
 				logger:  logger,
-				esm:     esm.NewHandler(filepath.Join(k.String("dir"), ".smallweb", "repos")),
+				esm:     esm.NewHandler(gitdir),
+				git:     git.NewHandler(gitdir),
 			}
 
 			if issuer := k.String("oidc.issuer"); issuer != "" {
@@ -570,6 +573,7 @@ type Handler struct {
 	oidcIssuerUrl *url.URL
 	oidcProvider  *oidc.Provider
 	esm           http.Handler
+	git           http.Handler
 }
 
 type AuthData struct {
@@ -592,6 +596,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if hostname == fmt.Sprintf("esm.%s", k.String("domain")) {
 		me.esm.ServeHTTP(w, r)
+		return
+	}
+
+	if hostname == fmt.Sprintf("git.%s", k.String("domain")) {
+		me.git.ServeHTTP(w, r)
 		return
 	}
 
