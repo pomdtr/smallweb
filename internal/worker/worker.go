@@ -94,7 +94,6 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		"--allow-env",
 		"--allow-sys",
 		"--unstable-kv",
-		"--unstable-otel",
 		"--unstable-temporal",
 		"--unstable-raw-imports",
 		"--node-modules-dir=none",
