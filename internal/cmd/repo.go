@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
@@ -36,9 +35,6 @@ func NewCmdRepoCreate() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
-			if !strings.HasSuffix(name, ".git") {
-				name += ".git"
-			}
 
 			repoDir := filepath.Join(k.String("dir"), ".smallweb", "repos", name)
 			if _, err := os.Stat(repoDir); err == nil {
@@ -86,7 +82,7 @@ func NewCmdRepoList() *cobra.Command {
 					continue
 				}
 
-				names = append(names, strings.TrimSuffix(file.Name(), ".git"))
+				names = append(names, file.Name())
 			}
 
 			var printer tableprinter.TablePrinter
@@ -104,7 +100,7 @@ func NewCmdRepoList() *cobra.Command {
 			printer.AddHeader([]string{"Name", "Remote URL", "Module URL"})
 			for _, name := range names {
 				printer.AddField(name)
-				printer.AddField(fmt.Sprintf("git@%s:%s.git", k.String("domain"), name))
+				printer.AddField(fmt.Sprintf("git@%s:%s", k.String("domain"), name))
 				printer.AddField(fmt.Sprintf("https://esm.%s/%s", k.String("domain"), name))
 				printer.EndRow()
 			}
