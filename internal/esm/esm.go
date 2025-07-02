@@ -19,7 +19,7 @@ import (
 	"github.com/tailscale/hujson"
 )
 
-func NewHandler(gitdir string) http.Handler {
+func NewHandler(root string) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +36,7 @@ func NewHandler(gitdir string) http.Handler {
 			revision = plumbing.Revision(parts[1])
 		}
 
-		repoDir := filepath.Join(gitdir, app)
+		repoDir := filepath.Join(root, app)
 		if _, err := os.Stat(repoDir); os.IsNotExist(err) {
 			http.Error(w, "Repository not found", http.StatusNotFound)
 			return
@@ -100,7 +100,7 @@ func NewHandler(gitdir string) http.Handler {
 			revision = parts[1]
 		}
 
-		repoDir := filepath.Join(gitdir, app)
+		repoDir := filepath.Join(root, app)
 		if _, err := os.Stat(repoDir); os.IsNotExist(err) {
 			http.Error(w, "Repository not found", http.StatusNotFound)
 			return

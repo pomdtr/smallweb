@@ -8,7 +8,7 @@ import (
 	"os/exec"
 )
 
-func NewHandler(gitdir string) http.Handler {
+func NewHandler(root string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
 			host := r.Host
@@ -19,7 +19,7 @@ func NewHandler(gitdir string) http.Handler {
 
 		// Set required environment variables for git-http-backend
 		env := os.Environ()
-		env = append(env, "GIT_PROJECT_ROOT="+gitdir)
+		env = append(env, "GIT_PROJECT_ROOT="+root)
 		env = append(env, "GIT_HTTP_EXPORT_ALL=") // allow all repos to be exported via HTTP
 		env = append(env, "PATH_INFO="+r.URL.Path)
 
@@ -33,7 +33,7 @@ func NewHandler(gitdir string) http.Handler {
 		cgiHandler := &cgi.Handler{
 			Path: git, // Adjust this path on your system
 			Args: []string{"http-backend"},
-			Dir:  gitdir,
+			Dir:  root,
 			Env:  env,
 		}
 

@@ -258,7 +258,6 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdLink())
 	rootCmd.AddCommand(NewCmdSecrets())
-	rootCmd.AddCommand(NewCmdRepo())
 	rootCmd.AddCommand(NewCmdConfig())
 
 	if _, ok := os.LookupEnv("SMALLWEB_DISABLE_COMPLETIONS"); ok {
