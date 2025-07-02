@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/cgi"
 	"os"
@@ -9,6 +10,13 @@ import (
 
 func NewHandler(gitdir string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			host := r.Host
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte(fmt.Sprintf("Usage: git clone https://%s/:repo\n", host)))
+			return
+		}
+
 		// Set required environment variables for git-http-backend
 		env := os.Environ()
 		env = append(env, "GIT_PROJECT_ROOT="+gitdir)
