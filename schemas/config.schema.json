@@ -55,6 +55,12 @@
             "additionalProperties": {
                 "$ref": "#/definitions/appConfig"
             }
+        },
+        "repos": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/repoConfig"
+            }
         }
     },
     "definitions": {
@@ -88,6 +94,18 @@
                 },
                 "authorizedKeys": {
                     "description": "Authorized SSH keys",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "repoConfig": {
+            "type": "object",
+            "properties": {
+                "authorizedKeys": {
+                    "description": "Authorized SSH keys for the repository",
                     "type": "array",
                     "items": {
                         "type": "string"

@@ -94,11 +94,19 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		"--allow-env",
 		"--allow-sys",
 		"--unstable-kv",
-		"--unstable-otel",
 		"--unstable-temporal",
+		"--unstable-raw-imports",
 		"--node-modules-dir=none",
 		"--no-prompt",
 		"--quiet",
+	}
+
+	for _, configName := range []string{"deno.json", "deno.jsonc"} {
+		configPath := filepath.Join(me.App.Dir(), configName)
+		if _, err := os.Stat(configPath); err == nil {
+			args = append(args, fmt.Sprintf("--config=%s", configPath))
+			break
+		}
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
@@ -110,14 +118,6 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		)
 
 		return args, nil
-	}
-
-	for _, configName := range []string{"deno.json", "deno.jsonc"} {
-		configPath := filepath.Join(me.App.Dir(), configName)
-		if _, err := os.Stat(configPath); err == nil {
-			args = append(args, fmt.Sprintf("--config=%s", configPath))
-			break
-		}
 	}
 
 	// if root is not a symlink

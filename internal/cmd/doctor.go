@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var minimumDenoVersion = semver.MustParse("2.2.0")
+var minimumDenoVersion = semver.MustParse("2.4.0")
 
 func NewCmdDoctor() *cobra.Command {
 	cmd := &cobra.Command{

@@ -258,8 +258,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdLink())
 	rootCmd.AddCommand(NewCmdSecrets())
-	rootCmd.AddCommand(NewCmdGitReceivePack())
-	rootCmd.AddCommand(NewCmdGitUploadPack())
+	rootCmd.AddCommand(NewCmdConfig())
 
 	if _, ok := os.LookupEnv("SMALLWEB_DISABLE_COMPLETIONS"); ok {
 		rootCmd.CompletionOptions.DisableDefaultCmd = true

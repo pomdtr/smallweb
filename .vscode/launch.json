@@ -13,6 +13,7 @@
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/example",
+                "DENO_TLS_CA_STORE": "system",
             },
         },
         {
@@ -27,7 +28,8 @@
                 "--ssh-addr=:2222"
             ],
             "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
+                "SMALLWEB_DIR": "${userHome}/Developer/smallweb.run",
+                "DENO_TLS_CA_STORE": "system",
             },
         },
         {
@@ -41,6 +43,7 @@
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/example",
+                "DENO_TLS_CA_STORE": "system",
             },
         },
         {
