@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.27.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.27>.
+
+- add an interactive repl when running `smallweb` without args
+- requires deno version >= 2.4 (in order to support text / bytes imports)
+- rename plugins to custom commands (and `.smallweb/plugins` to `.smallweb/commands`)
+
 ## 0.26.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.26>.
