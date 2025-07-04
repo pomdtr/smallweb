@@ -3,6 +3,7 @@ package worker
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
@@ -26,7 +27,22 @@ import (
 	"github.com/pomdtr/smallweb/internal/utils"
 )
 
-var sandboxUrl = "jsr:@smallweb/sandbox@0.1.1"
+//go:embed sandbox.ts
+var sandboxBytes []byte
+var sandboxHash = sha256.Sum256(sandboxBytes)
+var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%x.ts", sandboxHash))
+
+func init() {
+	if err := os.MkdirAll(filepath.Dir(sandboxPath), 0o755); err != nil {
+		panic(fmt.Errorf("could not create sandbox directory: %w", err))
+	}
+
+	if _, err := os.Stat(sandboxPath); os.IsNotExist(err) {
+		if err := os.WriteFile(sandboxPath, sandboxBytes, 0o644); err != nil {
+			panic(fmt.Errorf("could not write sandbox file: %w", err))
+		}
+	}
+}
 
 type Worker struct {
 	App       app.App
@@ -180,7 +196,7 @@ func (me *Worker) Start() error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	args = append(args, sandboxUrl, input.String())
+	args = append(args, sandboxPath, input.String())
 
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Dir()
@@ -496,7 +512,7 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 		return nil, fmt.Errorf("could not encode input: %w", err)
 	}
 
-	cmdArgs = append(cmdArgs, sandboxUrl, payload.String())
+	cmdArgs = append(cmdArgs, sandboxPath, payload.String())
 
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
 	command.Dir = me.App.Dir()
@@ -531,7 +547,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	denoArgs = append(args, sandboxUrl, payload.String())
+	denoArgs = append(args, sandboxPath, payload.String())
 
 	command := exec.CommandContext(ctx, deno, denoArgs...)
 

@@ -28,7 +28,7 @@
                 "--ssh-addr=:2222"
             ],
             "env": {
-                "SMALLWEB_DIR": "${userHome}/Developer/smallweb.run",
+                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
                 "DENO_TLS_CA_STORE": "system",
             },
         },
