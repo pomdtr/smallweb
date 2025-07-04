@@ -17,10 +17,10 @@ builds:
       - CGO_ENABLED=0
     ldflags:
       - -s -w
-      - -X github.com/pomdtr/smallweb/build.Version={{.Version}}
-      - -X github.com/pomdtr/smallweb/build.Commit={{.Commit}}
-      - -X github.com/pomdtr/smallweb/build.Date={{.Date}}
-      - -X github.com/pomdtr/smallweb/build.BuiltBy=goreleaser
+      - -X github.com/pomdtr/smallweb/internal/build.Version={{.Version}}
+      - -X github.com/pomdtr/smallweb/internal/build.Commit={{.Commit}}
+      - -X github.com/pomdtr/smallweb/internal/build.Date={{.Date}}
+      - -X github.com/pomdtr/smallweb/internal/build.BuiltBy=goreleaser
     goos:
       - windows
       - linux
