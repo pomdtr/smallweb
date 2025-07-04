@@ -16,8 +16,7 @@ RUN apt update && apt install -y git unzip curl gosu && rm -rf /var/lib/apt/list
 
 # Install Deno
 ARG DENO_VERSION=v2.4.0
-RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local/deno sh -s "$DENO_VERSION"
-ENV PATH="/usr/local/deno/bin:$PATH"
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh -s "$DENO_VERSION"
 
 # Set up default user with ID 1000
 ARG UID=1000
