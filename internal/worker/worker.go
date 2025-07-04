@@ -3,7 +3,6 @@ package worker
 import (
 	"bufio"
 	"context"
-	"crypto/sha256"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
@@ -29,18 +28,15 @@ import (
 
 //go:embed sandbox.ts
 var sandboxBytes []byte
-var sandboxHash = sha256.Sum256(sandboxBytes)
-var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", fmt.Sprintf("%x.ts", sandboxHash))
+var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", build.Version, "mod.ts")
 
 func init() {
 	if err := os.MkdirAll(filepath.Dir(sandboxPath), 0o755); err != nil {
 		panic(fmt.Errorf("could not create sandbox directory: %w", err))
 	}
 
-	if _, err := os.Stat(sandboxPath); os.IsNotExist(err) {
-		if err := os.WriteFile(sandboxPath, sandboxBytes, 0o644); err != nil {
-			panic(fmt.Errorf("could not write sandbox file: %w", err))
-		}
+	if err := os.WriteFile(sandboxPath, sandboxBytes, 0o644); err != nil {
+		panic(fmt.Errorf("could not write sandbox file: %w", err))
 	}
 }
 
