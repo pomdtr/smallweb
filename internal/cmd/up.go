@@ -328,7 +328,6 @@ func NewCmdUp() *cobra.Command {
 									}
 
 									cmd = c
-									cmd.Env = os.Environ()
 								} else {
 									execPath, err := os.Executable()
 									if err != nil {
