@@ -2,8 +2,8 @@
 set -e
 
 # Get current UID/GID from environment or use defaults
-USER_ID=${PUID:-$(stat -c '%u' "$SMALLWEB_DIR")}
-GROUP_ID=${PGID:-$(stat -c '%g' "$SMALLWEB_DIR")}
+USER_ID=${PUID:-1000}
+GROUP_ID=${PGID:-1000}
 
 if [ "$USER_ID" = "0" ]; then
     exec /usr/local/bin/smallweb "$@"
