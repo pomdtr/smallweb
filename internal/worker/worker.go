@@ -105,10 +105,6 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		"--allow-import",
 		"--allow-env",
 		"--allow-sys",
-		"--unstable-kv",
-		"--unstable-temporal",
-		"--unstable-raw-imports",
-		"--node-modules-dir=none",
 		"--no-prompt",
 		"--quiet",
 	}
