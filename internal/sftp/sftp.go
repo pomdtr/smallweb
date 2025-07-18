@@ -5,7 +5,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
@@ -23,7 +22,7 @@ func SSHOption(rootPath string, logger *slog.Logger) ssh.Option {
 	}
 }
 
-func SubsystemHandler(rootPath string, logger *slog.Logger) ssh.SubsystemHandler {
+func SubsystemHandler(dir string, logger *slog.Logger) ssh.SubsystemHandler {
 	return func(session ssh.Session) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -34,14 +33,12 @@ func SubsystemHandler(rootPath string, logger *slog.Logger) ssh.SubsystemHandler
 			}
 		}()
 
-		var workingDir string
 		if session.User() != "_" {
-			workingDir = filepath.Join(rootPath, session.User())
-		} else {
-			workingDir = rootPath
+			wish.Errorln(session, "sftp subsystem is only available for the _ user")
+			return
 		}
 
-		root, err := os.OpenRoot(workingDir)
+		root, err := os.OpenRoot(dir)
 		if err != nil {
 			if logger != nil {
 				logger.Error("Error opening root", "err", err)

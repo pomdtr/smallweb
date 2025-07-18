@@ -316,6 +316,10 @@ func NewCmdUp() *cobra.Command {
 						}
 
 						for _, authorizedKey := range authorizedKeys {
+							if authorizedKey == "*" {
+								return true
+							}
+
 							k, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
 							if err != nil {
 								continue
