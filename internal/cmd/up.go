@@ -26,6 +26,8 @@ import (
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/ssh"
+	"gopkg.in/natefinch/lumberjack.v2"
+
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/creack/pty"
@@ -62,6 +64,7 @@ func NewCmdUp() *cobra.Command {
 		tlsCert       string
 		tlsKey        string
 		logFormat     string
+		logOutput     string
 	}
 
 	cmd := &cobra.Command{
@@ -78,15 +81,34 @@ func NewCmdUp() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var logger *slog.Logger
+
+			var logOutput io.Writer
+			switch flags.logOutput {
+			case "stdout":
+				logOutput = os.Stdout
+			case "stderr", "":
+				logOutput = os.Stderr
+			default:
+				logOutput = &lumberjack.Logger{
+					Filename:   flags.logOutput,
+					MaxSize:    10, // megabytes
+					MaxBackups: 3,
+				}
+			}
+
 			switch flags.logFormat {
 			case "json":
-				logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
+				logger = slog.New(slog.NewJSONHandler(logOutput, &slog.HandlerOptions{}))
 			case "text":
-				logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
+				logger = slog.New(slog.NewTextHandler(logOutput, &slog.HandlerOptions{}))
 			case "pretty":
-				logger = slog.New(tint.NewHandler(os.Stdout, &tint.Options{
-					NoColor: !isatty.IsTerminal(os.Stdout.Fd()),
-				}))
+				logger = slog.New(tint.NewHandler(logOutput, &tint.Options{}))
+			case "":
+				if flags.logOutput == "stderr" && isatty.IsTerminal(os.Stderr.Fd()) || flags.logOutput == "stdout" && isatty.IsTerminal(os.Stdout.Fd()) {
+					logger = slog.New(tint.NewHandler(logOutput, &tint.Options{}))
+				} else {
+					logger = slog.New(slog.NewJSONHandler(logOutput, &slog.HandlerOptions{}))
+				}
 			default:
 				return fmt.Errorf("invalid log format: %s", flags.logFormat)
 			}
@@ -450,7 +472,8 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().StringVar(&flags.tlsCert, "tls-cert", "", "tls certificate file")
 	cmd.Flags().StringVar(&flags.tlsKey, "tls-key", "", "tls key file")
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
-	cmd.Flags().StringVar(&flags.logFormat, "log-format", "pretty", "log format (json or text)")
+	cmd.Flags().StringVar(&flags.logFormat, "log-format", "", "log format (json, text or pretty)")
+	cmd.Flags().StringVar(&flags.logOutput, "log-output", "stderr", "log output (stdout, stderr or filepath)")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
 
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")

@@ -1,4 +1,5 @@
 {
+    "lock": false,
     "imports": {
         "hono": "npm:hono@4.6.13"
     }
