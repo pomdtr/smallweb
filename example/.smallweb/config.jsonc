@@ -1,9 +1,6 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "domain": "smallweb.localhost",
-    // "oidc": {
-    //     "issuer": "https://auth.smallweb.localhost"
-    // },
+    "domain": "smallweb.live",
     "authorizedEmails": [
         "achille.lacoin@gmail.com"
     ],

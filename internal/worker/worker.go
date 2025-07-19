@@ -68,7 +68,6 @@ func commandEnv(a app.App, admin bool) []string {
 	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", a.RootDomain))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_NAME=%s", a.Name))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DOMAIN=%s", a.Domain))
-	env = append(env, fmt.Sprintf("SMALLWEB_APP_URL=%s", a.URL))
 	env = append(env, fmt.Sprintf("SMALLWEB_APP_DIR=%s", a.BaseDir))
 	if admin {
 		env = append(env, "SMALLWEB_ADMIN=1")

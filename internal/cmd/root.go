@@ -249,7 +249,6 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.Flags().SetInterspersed(false)
 
 	rootCmd.AddCommand(NewCmdRun())
-	rootCmd.AddCommand(NewCmdOpen())
 	rootCmd.AddCommand(NewCmdDocs())
 	rootCmd.AddCommand(NewCmdUp())
 	rootCmd.AddCommand(NewCmdDoctor())

@@ -40,8 +40,7 @@ type App struct {
 	RootDomain string            `json:"-"`
 	BaseDir    string            `json:"dir,omitempty"`
 	Domain     string            `json:"-"`
-	URL        string            `json:"url"`
-	Env        map[string]string `json:"-"`
+	Env        map[string]string `json:"domain,omitempty"`
 	Config     AppConfig         `json:"-"`
 }
 
@@ -125,7 +124,6 @@ func LoadApp(appname string, rootDir string, domain string) (App, error) {
 		RootDomain: domain,
 		BaseDir:    filepath.Join(rootDir, appname),
 		Domain:     fmt.Sprintf("%s.%s", appname, domain),
-		URL:        fmt.Sprintf("https://%s.%s/", appname, domain),
 		Env:        make(map[string]string),
 	}
 
