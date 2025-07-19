@@ -12,6 +12,7 @@ import (
 	"github.com/abiosoft/ishell/v2"
 	"github.com/abiosoft/readline"
 	"github.com/adrg/xdg"
+	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
@@ -70,11 +71,18 @@ func NewCmdRoot() *cobra.Command {
 		Version: build.Version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
+			_ = k.Load(confmap.Provider(map[string]interface{}{
+				"dir": findSmallwebDir(),
+			}, "."), nil)
+
 			_ = k.Load(flagProvider, nil)
 
 			configPath := utils.FindConfigPath(k.String("dir"))
 			fileProvider := file.Provider(configPath)
-			_ = k.Load(fileProvider, utils.ConfigParser())
+			if err := k.Load(fileProvider, utils.ConfigParser()); err != nil {
+				return fmt.Errorf("failed to load config file: %w", err)
+			}
+
 			_ = k.Load(envProvider, nil)
 			_ = k.Load(flagProvider, nil)
 
@@ -244,7 +252,7 @@ func NewCmdRoot() *cobra.Command {
 		},
 	}
 
-	rootCmd.PersistentFlags().String("dir", findSmallwebDir(), "The root directory for smallweb")
+	rootCmd.PersistentFlags().String("dir", "", "The root directory for smallweb")
 	rootCmd.PersistentFlags().String("domain", "", "The domain for smallweb")
 	rootCmd.Flags().SetInterspersed(false)
 

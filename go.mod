@@ -25,11 +25,11 @@ require (
 	github.com/caddyserver/certmagic v0.23.0
 	github.com/charmbracelet/ssh v0.0.0-20250213143314-8712ec3ff3ef
 	github.com/charmbracelet/wish v1.4.7
-	github.com/cli/browser v1.3.0
 	github.com/coreos/go-oidc/v3 v3.14.1
 	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/getsops/sops/v3 v3.10.2
+	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/providers/posflag v1.0.1
 	github.com/leaanthony/gosod v1.0.4
 	github.com/lmittmann/tint v1.1.2

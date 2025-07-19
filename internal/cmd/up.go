@@ -31,6 +31,7 @@ import (
 	"github.com/charmbracelet/wish"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/creack/pty"
+	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
@@ -114,7 +115,6 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			if k.String("dir") == "" {
-				logger.Error("dir cannot be empty")
 				return fmt.Errorf("dir cannot be empty")
 			}
 
@@ -129,23 +129,31 @@ func NewCmdUp() *cobra.Command {
 
 			if issuer := k.String("oidc.issuer"); issuer != "" {
 				issuerUrl, err := url.Parse(issuer)
-				if err == nil {
-					handler.oidcIssuerUrl = issuerUrl
-				} else {
-					logger.Error("failed to parse issuer url")
+				if err != nil {
+					return fmt.Errorf("failed to parse issuer url: %w", err)
 				}
+
+				handler.oidcIssuerUrl = issuerUrl
 			}
 
 			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
 				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
 				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 
-				k = koanf.New(".")
-				_ = k.Load(fileProvider, utils.ConfigParser())
-				_ = k.Load(envProvider, nil)
-				_ = k.Load(flagProvider, nil)
+				conf := koanf.New(".")
+				if err := conf.Load(fileProvider, utils.ConfigParser()); err != nil {
+					logger.Error("failed to reload config file", "error", err)
+					return
+				}
 
-				if issuer := k.String("oidc.issuer"); issuer != "" {
+				conf.Load(confmap.Provider(map[string]interface{}{
+					"dir": findSmallwebDir(),
+				}, "."), nil)
+
+				_ = conf.Load(envProvider, nil)
+				_ = conf.Load(flagProvider, nil)
+
+				if issuer := conf.String("oidc.issuer"); issuer != handler.oidcIssuerUrl.String() {
 					issuerUrl, err := url.Parse(issuer)
 					if err != nil {
 						logger.Error("failed to parse issuer url")
@@ -155,6 +163,8 @@ func NewCmdUp() *cobra.Command {
 					handler.oidcIssuerUrl = issuerUrl
 					handler.oidcProvider = nil
 				}
+
+				k = conf
 			})
 			if err != nil {
 				return fmt.Errorf("failed to create watcher: %w", err)

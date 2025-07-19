@@ -161,8 +161,6 @@ github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 h1:q763qf9huN11kDQavWsoZXJNW3xEE4JJyHa5Q25/sd8=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
-github.com/cli/browser v1.3.0 h1:LejqCrpWr+1pRqmEPDGnTZOjsMe7sehifLynZJuqJpo=
-github.com/cli/browser v1.3.0/go.mod h1:HH8s+fOAxjhQoBUAsKuPCbqUuxZDhQ2/aD+SzsEfBTk=
 github.com/cli/go-gh/v2 v2.12.1 h1:SVt1/afj5FRAythyMV3WJKaUfDNsxXTIe7arZbwTWKA=
 github.com/cli/go-gh/v2 v2.12.1/go.mod h1:+5aXmEOJsH9fc9mBHfincDwnS02j2AIA/DsTH0Bk5uw=
 github.com/cloudflare/circl v1.6.1 h1:zqIqSPIndyBh1bjLVVDHMPpVKqp8Su/V+6MeDzzQBQ0=
@@ -286,6 +284,8 @@ github.com/klauspost/cpuid/v2 v2.2.10 h1:tBs3QSyvjDyFTq3uoc/9xFpCuOsJQFNPiAhYdw2
 github.com/klauspost/cpuid/v2 v2.2.10/go.mod h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=
 github.com/knadh/koanf/maps v0.1.2 h1:RBfmAW5CnZT+PJ1CVc1QSJKf4Xu9kxfQgYVQSu8hpbo=
 github.com/knadh/koanf/maps v0.1.2/go.mod h1:npD/QZY3V6ghQDdcQzl1W4ICNVTkohC8E73eI2xW4yI=
+github.com/knadh/koanf/providers/confmap v1.0.0 h1:mHKLJTE7iXEys6deO5p6olAiZdG5zwp8Aebir+/EaRE=
+github.com/knadh/koanf/providers/confmap v1.0.0/go.mod h1:txHYHiI2hAtF0/0sCmcuol4IDcuQbKTybiB1nOcUo1A=
 github.com/knadh/koanf/providers/env v1.1.0 h1:U2VXPY0f+CsNDkvdsG8GcsnK4ah85WwWyJgef9oQMSc=
 github.com/knadh/koanf/providers/env v1.1.0/go.mod h1:QhHHHZ87h9JxJAn2czdEl6pdkNnDh/JS1Vtsyt65hTY=
 github.com/knadh/koanf/providers/file v1.2.0 h1:hrUJ6Y9YOA49aNu/RSYzOTFlqzXSCpmYIDXI7OJU6+U=
