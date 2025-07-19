@@ -35,8 +35,6 @@ Tired of it ? Just run `rm -rf ~/smallweb/draw` and it's like it never existed.
 
 Leave me a message at [excalidraw.smallweb.club](https://excalidraw.smallweb.club), and then go create your own website from [vscode.smallweb.club](https://vscode.smallweb.club)! Also feel free to join our [discord](https://discord.smallweb.run) to ask any question or just hang out with us!
 
-If you want to self-host smallweb, refer to the [docs](https://www.smallweb.run/docs/hosting/vps).
-
 ## Application structure
 
 Smallweb tries to keep it's api as simple as possible. The only requirement is to have a default export in a `main.ts` file at the root of your website folder
