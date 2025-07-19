@@ -17,32 +17,25 @@ func NewCmdInit() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize a new workspace",
-		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := k.String("dir")
 			if dir == "" {
-				return fmt.Errorf("dir is required")
+				cwd, err := os.Getwd()
+				if err != nil {
+					return fmt.Errorf("failed to get current working directory: %w", err)
+				}
+
+				dir = cwd
 			}
 
 			domain := k.String("domain")
 			if domain == "" {
-				return fmt.Errorf("domain is required")
+				domain = "smallweb.live"
 			}
 
 			subFS, err := fs.Sub(embedFS, "templates/workspace")
 			if err != nil {
 				return fmt.Errorf("failed to read workspace embed: %w", err)
-			}
-
-			if _, err := os.Stat(dir); err == nil {
-				entries, err := os.ReadDir(dir)
-				if err != nil {
-					return fmt.Errorf("failed to read directory %s: %w", dir, err)
-				}
-
-				if len(entries) > 0 {
-					return fmt.Errorf("directory %s already exists and is not empty", dir)
-				}
 			}
 
 			templateFS := gosod.New(subFS)
@@ -52,7 +45,6 @@ func NewCmdInit() *cobra.Command {
 				return fmt.Errorf("failed to extract workspace: %w", err)
 			}
 
-			fmt.Fprintf(cmd.ErrOrStderr(), "Workspace initialized at %s\n", dir)
 			return nil
 		},
 	}
