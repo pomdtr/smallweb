@@ -197,10 +197,6 @@ func NewCmdUp() *cobra.Command {
 							return nil
 						}
 
-						if _, err := os.Stat(filepath.Join(k.String("dir"), name)); err == nil {
-							return nil
-						}
-
 						return fmt.Errorf("domain not found")
 					},
 				}
