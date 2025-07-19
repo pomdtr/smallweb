@@ -79,10 +79,8 @@ func NewCmdRoot() *cobra.Command {
 
 			configPath := utils.FindConfigPath(k.String("dir"))
 			fileProvider := file.Provider(configPath)
-			if err := k.Load(fileProvider, utils.ConfigParser()); err != nil {
-				return fmt.Errorf("failed to load config file: %w", err)
-			}
 
+			_ = k.Load(fileProvider, utils.ConfigParser())
 			_ = k.Load(envProvider, nil)
 			_ = k.Load(flagProvider, nil)
 
