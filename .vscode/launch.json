@@ -10,10 +10,10 @@
                 "--addr=:7777",
                 "--ssh-addr=:2222",
                 "--smtp-addr=:2525",
-                "--log-output=${workspaceFolder}/example/logs/data/smallweb.log"
+                // "--log-output=${workspaceFolder}/example/logs/data/smallweb.log"
             ],
+            "cwd": "${workspaceFolder}/example",
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/example",
                 "DENO_TLS_CA_STORE": "system",
             },
         },
@@ -28,8 +28,8 @@
                 "--addr=:7777",
                 "--ssh-addr=:2222"
             ],
+            "cwd": "${userHome}/smallweb/smallweb.run",
             "env": {
-                "SMALLWEB_DIR": "${userHome}/smallweb/smallweb.run",
                 "DENO_TLS_CA_STORE": "system",
             },
         },
@@ -44,7 +44,6 @@
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/example",
-                "DENO_TLS_CA_STORE": "system",
             },
         },
         {

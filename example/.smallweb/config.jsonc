@@ -1,15 +1,20 @@
 {
     "$schema": "../../schemas/config.schema.json",
     "domain": "smallweb.live",
+    "oidc": {
+        "issuer": "https://lastlogin.net"
+    },
     "authorizedEmails": [
         "achille.lacoin@gmail.com"
     ],
     "apps": {
+        "www": {
+            "additionalDomains": [
+                "smallweb.live"
+            ]
+        },
         "ls": {
             "admin": true,
-            "additionalDomains": [
-                "custom-domain.localhost"
-            ]
         }
     }
 }
