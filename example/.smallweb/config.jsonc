@@ -14,7 +14,7 @@
             ]
         },
         "ls": {
-            "admin": true,
+            "admin": true
         }
     }
 }
