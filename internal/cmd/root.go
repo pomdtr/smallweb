@@ -75,6 +75,7 @@ func NewCmdRoot() *cobra.Command {
 				"dir": findSmallwebDir(),
 			}, "."), nil)
 
+			_ = k.Load(envProvider, nil)
 			_ = k.Load(flagProvider, nil)
 
 			configPath := utils.FindConfigPath(k.String("dir"))
@@ -261,8 +262,6 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdList())
 	rootCmd.AddCommand(NewCmdCrons())
 	rootCmd.AddCommand(NewCmdInit())
-	rootCmd.AddCommand(NewCmdLink())
-	rootCmd.AddCommand(NewCmdSecrets())
 	rootCmd.AddCommand(NewCmdConfig())
 
 	if _, ok := os.LookupEnv("SMALLWEB_DISABLE_COMPLETIONS"); ok {
