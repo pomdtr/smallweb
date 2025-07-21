@@ -15,7 +15,8 @@ var embedFS embed.FS
 
 func NewCmdInit() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init",
+		Use:   "init <domain>",
+		Args:  cobra.ExactArgs(1),
 		Short: "Initialize a new workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := k.String("dir")
@@ -28,11 +29,6 @@ func NewCmdInit() *cobra.Command {
 				dir = cwd
 			}
 
-			domain := k.String("domain")
-			if domain == "" {
-				domain = "smallweb.traefik.me"
-			}
-
 			subFS, err := fs.Sub(embedFS, "templates/workspace")
 			if err != nil {
 				return fmt.Errorf("failed to read workspace embed: %w", err)
@@ -40,7 +36,7 @@ func NewCmdInit() *cobra.Command {
 
 			templateFS := gosod.New(subFS)
 			if err := templateFS.Extract(dir, map[string]any{
-				"Domain": domain,
+				"Domain": args[0],
 			}); err != nil {
 				return fmt.Errorf("failed to extract workspace: %w", err)
 			}
