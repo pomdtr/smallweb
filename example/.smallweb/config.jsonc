@@ -1,6 +1,6 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "domain": "smallweb.live",
+    "domain": "smallweb.traefik.me",
     "oidc": {
         "issuer": "https://lastlogin.net"
     },
@@ -8,11 +8,6 @@
         "achille.lacoin@gmail.com"
     ],
     "apps": {
-        "www": {
-            "additionalDomains": [
-                "smallweb.live"
-            ]
-        },
         "ls": {
             "admin": true
         }

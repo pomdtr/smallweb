@@ -30,7 +30,7 @@ func NewCmdInit() *cobra.Command {
 
 			domain := k.String("domain")
 			if domain == "" {
-				domain = "smallweb.live"
+				domain = "smallweb.traefik.me"
 			}
 
 			subFS, err := fs.Sub(embedFS, "templates/workspace")
