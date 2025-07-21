@@ -263,6 +263,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdCrons())
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdConfig())
+	rootCmd.AddCommand(NewCmdOpen())
 
 	if _, ok := os.LookupEnv("SMALLWEB_DISABLE_COMPLETIONS"); ok {
 		rootCmd.CompletionOptions.DisableDefaultCmd = true
@@ -271,6 +272,11 @@ func NewCmdRoot() *cobra.Command {
 	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
 		disabledCommands := strings.Split(env, ",")
 		for _, commandName := range disabledCommands {
+			if commandName == "completion" {
+				rootCmd.CompletionOptions.DisableDefaultCmd = true
+				continue // Skip disabling the completion command
+			}
+
 			if command, ok := GetCommand(rootCmd, commandName); ok {
 				rootCmd.RemoveCommand(command)
 			}
@@ -332,15 +338,11 @@ func completeCommands(cmd *cobra.Command, args []string, toComplete string) ([]s
 
 func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) > 0 {
-		return nil, cobra.ShellCompDirectiveDefault
+		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
 	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 	_ = k.Load(flagProvider, nil)
-
-	if len(args) > 0 {
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
 
 	apps, err := app.LookupApps(k.String("dir"))
 	if err != nil {

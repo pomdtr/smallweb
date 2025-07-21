@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -30,14 +27,13 @@ func NewCmdCrons() *cobra.Command {
 	var flags struct {
 		json bool
 		app  string
-		all  bool
 	}
 
 	cmd := &cobra.Command{
-		Use:     "crons",
-		Aliases: []string{"cron"},
-		Args:    cobra.NoArgs,
-		Short:   "List cron jobs",
+		Use:               "crons [app]",
+		Aliases:           []string{"cron"},
+		Short:             "List cron jobs",
+		ValidArgsFunction: completeApp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var crons []CronItem
 			apps, err := app.LookupApps(k.String("dir"))
@@ -46,30 +42,8 @@ func NewCmdCrons() *cobra.Command {
 			}
 
 			for _, appname := range apps {
-				if len(args) > 0 && appname != args[0] {
+				if flags.app != "" && flags.app != appname {
 					continue
-				} else if len(args) == 0 && !flags.all {
-					cwd, err := os.Getwd()
-					if err != nil {
-						return fmt.Errorf("failed to get current directory: %w", err)
-					}
-
-					if cwd == path.Clean(k.String("dir")) {
-						return fmt.Errorf("not in an app directory")
-					}
-
-					if !strings.HasPrefix(cwd, k.String("dir")) {
-						return fmt.Errorf("not in an app directory")
-					}
-
-					appDir := cwd
-					for filepath.Dir(appDir) != k.String("dir") {
-						appDir = filepath.Dir(appDir)
-					}
-
-					if appname != filepath.Base(appDir) {
-						continue
-					}
 				}
 
 				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
@@ -139,10 +113,8 @@ func NewCmdCrons() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	cmd.Flags().BoolVar(&flags.all, "all", false, "show all cron jobs")
-	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "the app to show cron jobs for")
+	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app name")
 	cmd.RegisterFlagCompletionFunc("app", completeApp)
-	cmd.MarkFlagsMutuallyExclusive("app", "all")
 
 	return cmd
 }

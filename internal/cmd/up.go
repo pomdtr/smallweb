@@ -372,6 +372,7 @@ func NewCmdUp() *cobra.Command {
 									cmd.Args = append(cmd.Args, sess.Command()...)
 									cmd.Env = os.Environ()
 									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
+									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLED_COMMANDS=up,config,init,doctor,completion,open")
 								}
 
 								ptyReq, winCh, isPty := sess.Pty()
