@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,17 +37,20 @@ func NewCmdConfig() *cobra.Command {
 			if flags.json || !isatty.IsTerminal(os.Stdout.Fd()) {
 				configBytes, err := os.ReadFile(configPath)
 				if err != nil {
-					return fmt.Errorf("failed to read config file: %w", err)
+					cmd.PrintErrf("failed to read config file: %v\n", err)
+					return ExitError{1}
 				}
 
 				jsonBytes, err := hujson.Standardize(configBytes)
 				if err != nil {
-					return fmt.Errorf("failed to standardize config file: %w", err)
+					cmd.PrintErrf("failed to standardize config file: %v\n", err)
+					return ExitError{1}
 				}
 
 				var config map[string]any
 				if err := json.Unmarshal(jsonBytes, &config); err != nil {
-					return fmt.Errorf("failed to unmarshal config file: %w", err)
+					cmd.PrintErrf("failed to unmarshal config file: %v\n", err)
+					return ExitError{1}
 				}
 
 				encoder := json.NewEncoder(os.Stdout)
@@ -57,7 +61,8 @@ func NewCmdConfig() *cobra.Command {
 				}
 
 				if err := encoder.Encode(config); err != nil {
-					return fmt.Errorf("failed to encode config file: %w", err)
+					cmd.PrintErrf("failed to encode config file: %v\n", err)
+					return ExitError{1}
 				}
 
 				return nil
@@ -75,7 +80,12 @@ func NewCmdConfig() *cobra.Command {
 			editCmd.Stdin = os.Stdin
 
 			if err := editCmd.Run(); err != nil {
-				return fmt.Errorf("failed to open editor: %w", err)
+				var exitErr *exec.ExitError
+				if errors.As(err, &exitErr) {
+					return ExitError{exitErr.ExitCode()}
+				}
+
+				return ExitError{1}
 			}
 
 			return nil

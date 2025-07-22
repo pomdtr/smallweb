@@ -104,22 +104,24 @@ func NewCmdUp() *cobra.Command {
 				logger = slog.New(slog.NewTextHandler(logOutput, &slog.HandlerOptions{}))
 			case "pretty":
 				logger = slog.New(tint.NewHandler(logOutput, &tint.Options{}))
-			case "":
+			default:
 				if flags.logOutput == "stderr" && isatty.IsTerminal(os.Stderr.Fd()) || flags.logOutput == "stdout" && isatty.IsTerminal(os.Stdout.Fd()) {
 					logger = slog.New(tint.NewHandler(logOutput, &tint.Options{}))
 				} else {
 					logger = slog.New(slog.NewJSONHandler(logOutput, &slog.HandlerOptions{}))
 				}
-			default:
-				return fmt.Errorf("invalid log format: %s", flags.logFormat)
 			}
 
+			sysLogger := logger.With("logger", "system")
+
 			if k.String("dir") == "" {
-				return fmt.Errorf("dir cannot be empty")
+				sysLogger.Error("dir cannot be empty")
+				return ExitError{1}
 			}
 
 			if k.String("domain") == "" {
-				return fmt.Errorf("domain cannot be empty")
+				sysLogger.Error("domain cannot be empty")
+				return ExitError{1}
 			}
 
 			handler := &Handler{
@@ -130,7 +132,8 @@ func NewCmdUp() *cobra.Command {
 			if issuer := k.String("oidc.issuer"); issuer != "" {
 				issuerUrl, err := url.Parse(issuer)
 				if err != nil {
-					return fmt.Errorf("failed to parse issuer url: %w", err)
+					sysLogger.Error("failed to parse issuer url", "url", k.String("oidc.issuer"))
+					return ExitError{1}
 				}
 
 				handler.oidcIssuerUrl = issuerUrl
@@ -167,7 +170,8 @@ func NewCmdUp() *cobra.Command {
 				k = conf
 			})
 			if err != nil {
-				return fmt.Errorf("failed to create watcher: %w", err)
+				logger.Error("failed to create watcher", "err", err)
+				return ExitError{1}
 			}
 
 			handler.watcher = watcher
@@ -181,7 +185,8 @@ func NewCmdUp() *cobra.Command {
 			if flags.tlsCert != "" && flags.tlsKey != "" {
 				cert, err := tls.LoadX509KeyPair(flags.tlsCert, flags.tlsKey)
 				if err != nil {
-					return fmt.Errorf("failed to load tls certificate: %w", err)
+					sysLogger.Error("failed to load tls certificate", "error", err)
+					return ExitError{1}
 				}
 
 				tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
@@ -194,7 +199,8 @@ func NewCmdUp() *cobra.Command {
 
 				ln, err := getListener(addr, tlsConfig)
 				if err != nil {
-					return fmt.Errorf("failed to get listener: %w", err)
+					sysLogger.Error("failed to get listener", "error", err)
+					return ExitError{1}
 				}
 
 				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
@@ -220,7 +226,8 @@ func NewCmdUp() *cobra.Command {
 
 				ln, err := getListener(addr, nil)
 				if err != nil {
-					return fmt.Errorf("failed to get listener: %w", err)
+					sysLogger.Error("failed to get listener", "error", err)
+					return ExitError{1}
 				}
 
 				logger.Info("serving http", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
@@ -278,7 +285,8 @@ func NewCmdUp() *cobra.Command {
 				if flags.sshPrivateKey == "" {
 					homeDir, err := os.UserHomeDir()
 					if err != nil {
-						return fmt.Errorf("failed to get home directory: %w", err)
+						sysLogger.Error("failed to get home directory", "error", err)
+						return ExitError{1}
 					}
 
 					for _, keyType := range []string{"id_rsa", "id_ed25519"} {
@@ -290,22 +298,26 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				if sshPrivateKeyPath == "" {
-					return fmt.Errorf("ssh private key not found")
+					sysLogger.Error("ssh private key not found")
+					return ExitError{1}
 				}
 
 				privateKeyBytes, err := os.ReadFile(sshPrivateKeyPath)
 				if err != nil {
-					return fmt.Errorf("failed to read private key: %w", err)
+					sysLogger.Error("failed to read private key", "error", err)
+					return ExitError{1}
 				}
 
 				privateKey, err := gossh.ParseRawPrivateKey(privateKeyBytes)
 				if err != nil {
-					return fmt.Errorf("failed to parse private key: %w", err)
+					sysLogger.Error("failed to parse private key", "error", err)
+					return ExitError{1}
 				}
 
 				signer, err := gossh.NewSignerFromKey(privateKey)
 				if err != nil {
-					return fmt.Errorf("failed to create signer: %w", err)
+					sysLogger.Error("failed to create signer", "error", err)
+					return ExitError{1}
 				}
 
 				authorizedKey := string(gossh.MarshalAuthorizedKey(signer.PublicKey()))
@@ -458,8 +470,8 @@ func NewCmdUp() *cobra.Command {
 				)
 
 				if err != nil {
-					logger.Error("failed to create ssh server", "error", err)
-					return fmt.Errorf("failed to create ssh server: %w", err)
+					sysLogger.Error("failed to create ssh server", "error", err)
+					return ExitError{1}
 				}
 
 				logger.Info("serving ssh", "addr", flags.sshAddr)

@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"os/exec"
 
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/worker"
@@ -38,7 +40,17 @@ func NewCmdRun() *cobra.Command {
 			command.Stdin = cmd.InOrStdin()
 			command.Stdout = cmd.OutOrStdout()
 			command.Stderr = cmd.ErrOrStderr()
-			return command.Run()
+			if err := command.Run(); err != nil {
+				var exitErr *exec.ExitError
+				if errors.As(err, &exitErr) {
+					return ExitError{exitErr.ExitCode()}
+				}
+
+				return ExitError{1}
+			}
+
+			return nil
+
 		},
 	}
 

@@ -16,7 +16,8 @@ func NewCmdDocs() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			doc, err := buildDoc(cmd.Root())
 			if err != nil {
-				return fmt.Errorf("failed to generate docs: %w", err)
+				cmd.PrintErrf("failed to generate docs: %v\n", err)
+				return ExitError{1}
 			}
 
 			fmt.Println("# CLI Reference")

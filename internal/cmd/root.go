@@ -25,6 +25,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type ExitError struct {
+	Code int
+}
+
+func (e ExitError) Error() string {
+	return fmt.Sprintf("exit with code %d", e)
+}
+
 var (
 	k = koanf.New(".")
 )
@@ -66,9 +74,10 @@ func (f fakeReadCloser) Close() error {
 func NewCmdRoot() *cobra.Command {
 	_ = k.Load(envProvider, nil)
 	rootCmd := &cobra.Command{
-		Use:     "smallweb",
-		Short:   "Host websites from your internet folder",
-		Version: build.Version,
+		Use:           "smallweb",
+		Short:         "Host websites from your internet folder",
+		Version:       build.Version,
+		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 			_ = k.Load(confmap.Provider(map[string]interface{}{

@@ -25,15 +25,18 @@ func NewCmdOpen() *cobra.Command {
 			} else {
 				cwd, err := os.Getwd()
 				if err != nil {
-					return fmt.Errorf("could not get current working directory: %v", err)
+					cmd.PrintErrln("could not get current working directory:", err)
+					return ExitError{1}
 				}
 
 				if cwd == path.Clean(k.String("dir")) {
-					return fmt.Errorf("not in an app directory")
+					cmd.PrintErrln("not in an app directory")
+					return ExitError{1}
 				}
 
 				if !strings.HasPrefix(cwd, k.String("dir")) {
-					return fmt.Errorf("not in an app directory")
+					cmd.PrintErrln("not in an app directory")
+					return ExitError{1}
 				}
 
 				appDir := cwd
@@ -46,11 +49,13 @@ func NewCmdOpen() *cobra.Command {
 
 			a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 			if err != nil {
-				return fmt.Errorf("failed to load app: %w", err)
+				cmd.PrintErrf("could not load app %q: %v\n", appname, err)
+				return ExitError{1}
 			}
 
 			if err := browser.OpenURL(fmt.Sprintf("http://%s/", a.Domain)); err != nil {
-				return fmt.Errorf("failed to open browser: %w", err)
+				cmd.PrintErrf("could not open browser for app %q: %v\n", appname, err)
+				return ExitError{1}
 			}
 
 			return nil

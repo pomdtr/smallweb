@@ -38,7 +38,8 @@ func NewCmdCrons() *cobra.Command {
 			var crons []CronItem
 			apps, err := app.LookupApps(k.String("dir"))
 			if err != nil {
-				return fmt.Errorf("failed to list apps: %w", err)
+				cmd.PrintErrf("failed to list apps: %v\n", err)
+				return ExitError{1}
 			}
 
 			for _, appname := range apps {
@@ -48,7 +49,8 @@ func NewCmdCrons() *cobra.Command {
 
 				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 				if err != nil {
-					return fmt.Errorf("failed to load app %s: %w", appname, err)
+					cmd.PrintErrf("failed to load app %s: %v\n", appname, err)
+					return ExitError{1}
 				}
 
 				for _, job := range a.Config.Crons {
@@ -68,7 +70,8 @@ func NewCmdCrons() *cobra.Command {
 				}
 
 				if err := encoder.Encode(crons); err != nil {
-					return fmt.Errorf("failed to encode cron jobs: %w", err)
+					cmd.PrintErrf("failed to encode cron jobs: %v\n", err)
+					return ExitError{1}
 				}
 				return nil
 			}
@@ -82,7 +85,8 @@ func NewCmdCrons() *cobra.Command {
 			if isatty.IsTerminal(os.Stdout.Fd()) {
 				width, _, err := term.GetSize(int(os.Stdout.Fd()))
 				if err != nil {
-					return fmt.Errorf("failed to get terminal size: %w", err)
+					cmd.PrintErrf("failed to get terminal size: %v\n", err)
+					return ExitError{1}
 				}
 
 				printer = tableprinter.New(cmd.OutOrStdout(), true, width)
@@ -96,7 +100,8 @@ func NewCmdCrons() *cobra.Command {
 				printer.AddField(item.App)
 				args, err := json.Marshal(item.Args)
 				if err != nil {
-					return fmt.Errorf("failed to marshal args: %w", err)
+					cmd.PrintErrf("failed to marshal args for app %s: %v\n", item.App, err)
+					return ExitError{1}
 				}
 
 				printer.AddField(string(args))
@@ -105,7 +110,8 @@ func NewCmdCrons() *cobra.Command {
 			}
 
 			if err := printer.Render(); err != nil {
-				return fmt.Errorf("failed to render table: %w", err)
+				cmd.PrintErrf("failed to render table: %v\n", err)
+				return ExitError{1}
 			}
 
 			return nil
