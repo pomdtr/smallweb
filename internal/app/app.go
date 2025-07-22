@@ -138,7 +138,14 @@ func LoadApp(appname string, rootDir string, domain string) (App, error) {
 		}
 	}
 
-	if secretPath := filepath.Join(appDir, "secrets.enc.env"); utils.FileExists(secretPath) {
+	for _, secretPath := range []string{
+		filepath.Join(appDir, "secrets.enc.env"),
+		filepath.Join(appDir, "secrets.env"),
+	} {
+		if !utils.FileExists(secretPath) {
+			continue
+		}
+
 		rawBytes, err := os.ReadFile(secretPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read file: %v", err)
@@ -157,6 +164,8 @@ func LoadApp(appname string, rootDir string, domain string) (App, error) {
 		for key, value := range dotenv {
 			app.Env[key] = value
 		}
+
+		break
 	}
 
 	if configPath := filepath.Join(appDir, "smallweb.json"); utils.FileExists(configPath) {
