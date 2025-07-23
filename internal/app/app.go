@@ -28,6 +28,10 @@ type AppConfig struct {
 	PublicRoutes  []string  `json:"publicRoutes"`
 }
 
+type DenoConfig struct {
+	Smallweb AppConfig `json:"smallweb"`
+}
+
 type CronJob struct {
 	Description string   `json:"description"`
 	Schedule    string   `json:"schedule"`
@@ -197,6 +201,41 @@ func LoadApp(appname string, rootDir string) (App, error) {
 			return App{}, fmt.Errorf("could not unmarshal smallweb.json: %v", err)
 		}
 
+		return app, nil
+	}
+
+	if configPath := filepath.Join(appDir, "deno.json"); utils.FileExists(configPath) {
+		rawBytes, err := os.ReadFile(configPath)
+		if err != nil {
+			return App{}, fmt.Errorf("could not read deno.json: %v", err)
+		}
+
+		var denoConfig DenoConfig
+		if err := json.Unmarshal(rawBytes, &denoConfig); err != nil {
+			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err
+		}
+
+		app.Config = denoConfig.Smallweb
+		return app, nil
+	}
+
+	if configPath := filepath.Join(appDir, "deno.jsonc"); utils.FileExists(configPath) {
+		rawBytes, err := os.ReadFile(config, configPath)
+		if err != nil {
+			return App{}, fmt.Errorf("could not read deno.jsonc: %v", err)
+		}
+
+		configBytes, err := hujson.Standardize(rawBytes)
+		if err != nil {
+			return App{}, fmt.Errorf("could not standardize deno.jsonc: %v", err)
+		}
+
+		var denoConfig DenoConfig
+		if err := json.Unmarshal(configBytes, &denoConfig); err != nil {
+			return App{}, fmt.Errorf("could not unmarshal deno.jsonc: %v", err)
+		}
+
+		app.Config = denoConfig.Smallweb
 		return app, nil
 	}
 
