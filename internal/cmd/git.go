@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -15,13 +16,12 @@ func NewCmdGitReceivePack() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			appDir := filepath.Join(k.String("dir"), args[0])
-			if _, err := os.Stat(appDir); os.IsNotExist(err) {
-				cmd.PrintErrln("app not found:", args[0])
-				return ExitError{1}
+			a, err := app.LoadApp(args[0], k.String("dir"))
+			if err != nil {
+
 			}
 
-			gitCmd := exec.Command("git-receive-pack", appDir)
+			gitCmd := exec.Command("git-receive-pack", a.BaseDir)
 
 			gitCmd.Stdin = cmd.InOrStdin()
 			gitCmd.Stdout = cmd.OutOrStdout()

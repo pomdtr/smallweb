@@ -65,10 +65,6 @@ func commandEnv(a app.App, admin bool) []string {
 
 	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
 	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", a.RootDir))
-	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", a.RootDomain))
-	env = append(env, fmt.Sprintf("SMALLWEB_APP_NAME=%s", a.Name))
-	env = append(env, fmt.Sprintf("SMALLWEB_APP_DOMAIN=%s", a.Domain))
-	env = append(env, fmt.Sprintf("SMALLWEB_APP_DIR=%s", a.BaseDir))
 	if admin {
 		env = append(env, "SMALLWEB_ADMIN=1")
 	}
@@ -79,7 +75,7 @@ func commandEnv(a app.App, admin bool) []string {
 			env = append(env, value)
 		}
 	}
-	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", a.Domain))
+	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", a.Name))
 
 	return env
 }

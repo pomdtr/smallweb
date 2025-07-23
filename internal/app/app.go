@@ -35,13 +35,11 @@ type CronJob struct {
 }
 
 type App struct {
-	Name       string            `json:"name"`
-	RootDir    string            `json:"-"`
-	RootDomain string            `json:"-"`
-	BaseDir    string            `json:"dir,omitempty"`
-	Domain     string            `json:"-"`
-	Env        map[string]string `json:"domain,omitempty"`
-	Config     AppConfig         `json:"-"`
+	Name    string            `json:"name"`
+	RootDir string            `json:"-"`
+	BaseDir string            `json:"dir,omitempty"`
+	Env     map[string]string `json:"domain,omitempty"`
+	Config  AppConfig         `json:"-"`
 }
 
 func (me *App) Dir() string {
@@ -112,19 +110,17 @@ func LookupApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func LoadApp(appname string, rootDir string, domain string) (App, error) {
+func LoadApp(appname string, rootDir string) (App, error) {
 	appDir := filepath.Join(rootDir, appname)
 	if !utils.FileExists(filepath.Join(rootDir, appname)) {
 		return App{}, ErrAppNotFound
 	}
 
 	app := App{
-		Name:       appname,
-		RootDir:    rootDir,
-		RootDomain: domain,
-		BaseDir:    filepath.Join(rootDir, appname),
-		Domain:     fmt.Sprintf("%s.%s", appname, domain),
-		Env:        make(map[string]string),
+		Name:    appname,
+		RootDir: rootDir,
+		BaseDir: filepath.Join(rootDir, appname),
+		Env:     make(map[string]string),
 	}
 
 	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {

@@ -256,7 +256,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						a, err := app.LoadApp(account, k.String("dir"), k.String("domain"))
+						a, err := app.LoadApp(account, k.String("dir"))
 						if err != nil {
 							logger.Error("failed to load app", "error", err)
 							continue
@@ -356,7 +356,7 @@ func NewCmdUp() *cobra.Command {
 							return func(sess ssh.Session) {
 								var cmd *exec.Cmd
 								if sess.User() != "_" {
-									a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"))
+									a, err := app.LoadApp(sess.User(), k.String("dir"))
 									if err != nil {
 										fmt.Fprintf(sess, "failed to load app: %v\n", err)
 										sess.Exit(1)
@@ -384,7 +384,7 @@ func NewCmdUp() *cobra.Command {
 									cmd.Args = append(cmd.Args, sess.Command()...)
 									cmd.Env = os.Environ()
 									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
-									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLED_COMMANDS=up,config,init,doctor,completion,open")
+									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLED_COMMANDS=up,config,init,doctor,completion")
 								}
 
 								ptyReq, winCh, isPty := sess.Pty()
@@ -1050,7 +1050,7 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 	me.workerMu.Lock()
 	defer me.workerMu.Unlock()
 
-	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+	a, err := app.LoadApp(appname, k.String("dir"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
