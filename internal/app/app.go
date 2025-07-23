@@ -212,7 +212,7 @@ func LoadApp(appname string, rootDir string) (App, error) {
 
 		var denoConfig DenoConfig
 		if err := json.Unmarshal(rawBytes, &denoConfig); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err
+			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err)
 		}
 
 		app.Config = denoConfig.Smallweb
@@ -220,7 +220,7 @@ func LoadApp(appname string, rootDir string) (App, error) {
 	}
 
 	if configPath := filepath.Join(appDir, "deno.jsonc"); utils.FileExists(configPath) {
-		rawBytes, err := os.ReadFile(config, configPath)
+		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read deno.jsonc: %v", err)
 		}

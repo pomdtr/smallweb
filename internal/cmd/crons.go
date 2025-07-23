@@ -119,7 +119,7 @@ func NewCmdCrons() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	cmd.Flags().StringVar(&flags.app, "app", "", "filter by app name")
+	cmd.Flags().StringVarP(&flags.app, "app", "a", "", "filter by app name")
 	cmd.RegisterFlagCompletionFunc("app", completeApp)
 
 	return cmd
