@@ -319,7 +319,7 @@ func completeCommands(cmd *cobra.Command, args []string, toComplete string) ([]s
 	_ = k.Load(flagProvider, nil)
 
 	if len(args) > 0 {
-		return nil, cobra.ShellCompDirectiveNoFileComp
+		return nil, cobra.ShellCompDirectiveDefault
 	}
 
 	var completions []string
