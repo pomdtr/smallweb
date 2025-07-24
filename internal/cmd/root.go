@@ -272,7 +272,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdCrons())
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdConfig())
-	rootCmd.AddCommand(NewCmdRoot())
+	rootCmd.AddCommand(NewCmdLink())
 	rootCmd.AddCommand(NewCmdGitReceivePack())
 	rootCmd.AddCommand(NewCmdGitUploadPack())
 
