@@ -12,7 +12,7 @@
         },
         "admin": {
             "description": "Give app read/write access to the whole smallweb folder",
-            "type": "string"
+            "type": "boolean"
         },
         "private": {
             "description": "Protect all routes behind authentication",
