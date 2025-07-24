@@ -80,12 +80,13 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir", "Admin"})
+			printer.AddHeader([]string{"Name", "Dir", "Domain", "Admin"})
 			for _, a := range apps {
 				printer.AddField(a.Name)
 				printer.AddField(strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(a.Domain)
 
-				if k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)) {
+				if a.Config.Admin {
 					printer.AddField("Yes")
 				} else {
 					printer.AddField("No")
