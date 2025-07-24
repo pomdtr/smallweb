@@ -14,10 +14,16 @@ var embedFS embed.FS
 
 func NewCmdInit() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init <domain>",
-		Args:  cobra.ExactArgs(1),
+		Use:   "init",
+		Args:  cobra.NoArgs,
 		Short: "Initialize a new workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			domain := k.String("domain")
+			if domain == "" {
+				cmd.PrintErrf("--domain flag is required for init command")
+				return ExitError{1}
+			}
+
 			dir := k.String("dir")
 			if dir == "" {
 				cwd, err := os.Getwd()
