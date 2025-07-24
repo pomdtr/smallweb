@@ -42,10 +42,8 @@ func init() {
 
 type Worker struct {
 	App       app.App
-	Env       map[string]string
 	StartedAt time.Time
 	Logger    *slog.Logger
-	Admin     bool
 
 	port           int
 	idleTimer      *time.Timer
@@ -53,38 +51,10 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func commandEnv(a app.App, admin bool) []string {
-	env := []string{}
-
-	for k, v := range a.Env {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
-	env = append(env, "DENO_NO_UPDATE_CHECK=1")
-
-	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
-	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", a.RootDir))
-	if admin {
-		env = append(env, "SMALLWEB_ADMIN=1")
-	}
-
-	// open telemetry
-	for _, value := range os.Environ() {
-		if strings.HasPrefix(value, "OTEL_") {
-			env = append(env, value)
-		}
-	}
-	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", a.Name))
-
-	return env
-}
-
-func NewWorker(app app.App, admin bool, logger *slog.Logger) *Worker {
+func NewWorker(app app.App, logger *slog.Logger) *Worker {
 	worker := &Worker{
 		App:    app,
 		Logger: logger,
-		Admin:  admin,
 	}
 
 	return worker
@@ -113,7 +83,7 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
-	if me.Admin {
+	if me.App.Config.Admin {
 		args = append(
 			args,
 			fmt.Sprintf("--allow-read=%s,%s,%s", me.App.RootDir, deno, npmCache),
@@ -187,7 +157,7 @@ func (me *Worker) Start() error {
 
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Dir()
-	command.Env = commandEnv(me.App, me.Admin)
+	command.Env = me.App.Env()
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -504,7 +474,7 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
 	command.Dir = me.App.Dir()
 
-	command.Env = commandEnv(me.App, me.Admin)
+	command.Env = me.App.Env()
 
 	return command, nil
 }
@@ -542,7 +512,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	command.Stdout = os.Stdout
 	command.Dir = me.App.Dir()
 
-	command.Env = commandEnv(me.App, me.Admin)
+	command.Env = me.App.Env()
 
 	return command.Run()
 }

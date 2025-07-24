@@ -24,12 +24,12 @@ func NewCmdRun() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(args[0], k.String("dir"))
+			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
+			wk := worker.NewWorker(a, nil)
 			command, err := wk.Command(cmd.Context(), args[1:])
 			if err != nil {
 				return fmt.Errorf("failed to create command: %w", err)

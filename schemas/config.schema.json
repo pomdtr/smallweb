@@ -67,10 +67,6 @@
         "appConfig": {
             "type": "object",
             "properties": {
-                "admin": {
-                    "description": "Give the app admin privileges",
-                    "type": "boolean"
-                },
                 "additionalDomains": {
                     "description": "Additional app domains",
                     "type": "array",

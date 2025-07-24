@@ -250,19 +250,19 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						account, domain := parts[0], parts[1]
+						appname, domain := parts[0], parts[1]
 						if domain != k.String("domain") {
 							logger.Error("invalid domain", "domain", domain)
 							continue
 						}
 
-						a, err := app.LoadApp(account, k.String("dir"))
+						a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 						if err != nil {
 							logger.Error("failed to load app", "error", err)
 							continue
 						}
 
-						worker := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
+						worker := worker.NewWorker(a, nil)
 						if err := worker.SendEmail(context.Background(), data); err != nil {
 							logger.Error("failed to send email", "error", err)
 							continue
@@ -356,14 +356,14 @@ func NewCmdUp() *cobra.Command {
 							return func(sess ssh.Session) {
 								var cmd *exec.Cmd
 								if sess.User() != "_" {
-									a, err := app.LoadApp(sess.User(), k.String("dir"))
+									a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"))
 									if err != nil {
 										fmt.Fprintf(sess, "failed to load app: %v\n", err)
 										sess.Exit(1)
 										return
 									}
 
-									wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
+									wk := worker.NewWorker(a, nil)
 									c, err := wk.Command(sess.Context(), sess.Command())
 									if err != nil {
 										fmt.Fprintf(sess, "failed to get command: %v\n", err)
@@ -1050,12 +1050,12 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 	me.workerMu.Lock()
 	defer me.workerMu.Unlock()
 
-	a, err := app.LoadApp(appname, k.String("dir"))
+	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), me.logger.With("logger", "console", "app", appname))
+	wk := worker.NewWorker(a, me.logger.With("logger", "console", "app", appname))
 	if err := wk.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}

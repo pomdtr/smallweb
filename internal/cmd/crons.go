@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"os"
 	"time"
@@ -47,7 +46,7 @@ func NewCmdCrons() *cobra.Command {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"))
+				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 				if err != nil {
 					cmd.PrintErrf("failed to load app %s: %v\n", appname, err)
 					return ExitError{1}
@@ -136,7 +135,7 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 		}
 
 		for _, appname := range apps {
-			a, err := app.LoadApp(appname, k.String("dir"))
+			a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 			if err != nil {
 				logger.Error("failed to load app", "app", appname, "error", err)
 				continue
@@ -154,12 +153,12 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"))
+				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 				if err != nil {
 					logger.Error("failed to load app", "app", appname, "error", err)
 					continue
 				}
-				wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
+				wk := worker.NewWorker(a, nil)
 
 				command, err := wk.Command(context.Background(), job.Args)
 				if err != nil {

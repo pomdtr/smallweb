@@ -175,13 +175,13 @@ func NewCmdRoot() *cobra.Command {
 						Name: appname,
 						Help: fmt.Sprintf("run %s app", appname),
 						Func: func(c *ishell.Context) {
-							a, err := app.LoadApp(appname, k.String("dir"))
+							a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
 							if err != nil {
 								c.Err(fmt.Errorf("failed to load app %s: %w", appname, err))
 								return
 							}
 
-							wk := worker.NewWorker(a, k.Bool(fmt.Sprintf("apps.%s.admin", a.Name)), nil)
+							wk := worker.NewWorker(a, nil)
 
 							command, err := wk.Command(cmd.Context(), c.Args)
 							if err != nil {

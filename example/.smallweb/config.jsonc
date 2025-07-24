@@ -6,10 +6,5 @@
     },
     "authorizedEmails": [
         "achille.lacoin@gmail.com"
-    ],
-    "apps": {
-        "ls": {
-            "admin": true
-        }
-    }
+    ]
 }

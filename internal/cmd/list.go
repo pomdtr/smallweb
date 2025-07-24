@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -38,14 +37,15 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
-				if cmd.Flags().Changed("admin") && k.Bool(fmt.Sprintf("apps.%s.admin", name)) != flags.admin {
+				a, err := app.LoadApp(name, k.String("dir"), k.String("domain"))
+				if err != nil {
+					continue
+				}
+				if cmd.Flags().Changed("admin") && a.Config.Admin != flags.admin {
 					continue
 				}
 
-				apps = append(apps, app.App{
-					Name:    name,
-					BaseDir: filepath.Join(k.String("dir"), name),
-				})
+				apps = append(apps, a)
 			}
 
 			if flags.json {

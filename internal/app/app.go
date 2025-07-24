@@ -11,6 +11,7 @@ import (
 
 	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
+	"github.com/pomdtr/smallweb/internal/build"
 	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/tailscale/hujson"
 )
@@ -23,6 +24,7 @@ type AppConfig struct {
 	Entrypoint    string    `json:"entrypoint,omitempty"`
 	Root          string    `json:"root,omitempty"`
 	Crons         []CronJob `json:"crons,omitempty"`
+	Admin         bool      `json:"admin"`
 	Private       bool      `json:"private"`
 	PrivateRoutes []string  `json:"privateRoutes"`
 	PublicRoutes  []string  `json:"publicRoutes"`
@@ -39,11 +41,13 @@ type CronJob struct {
 }
 
 type App struct {
-	Name    string            `json:"name"`
-	RootDir string            `json:"-"`
-	BaseDir string            `json:"dir,omitempty"`
-	Env     map[string]string `json:"domain,omitempty"`
-	Config  AppConfig         `json:"-"`
+	Name       string            `json:"name"`
+	RootDir    string            `json:"-"`
+	RootDomain string            `json:"-"`
+	Domain     string            `json:"domain,omitempty"`
+	BaseDir    string            `json:"dir,omitempty"`
+	Config     AppConfig         `json:"-"`
+	env        map[string]string `json:"-"`
 }
 
 func (me *App) Dir() string {
@@ -114,17 +118,19 @@ func LookupApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func LoadApp(appname string, rootDir string) (App, error) {
+func LoadApp(appname string, rootDir string, rootDomain string) (App, error) {
 	appDir := filepath.Join(rootDir, appname)
 	if !utils.FileExists(filepath.Join(rootDir, appname)) {
 		return App{}, ErrAppNotFound
 	}
 
 	app := App{
-		Name:    appname,
-		RootDir: rootDir,
-		BaseDir: filepath.Join(rootDir, appname),
-		Env:     make(map[string]string),
+		Name:       appname,
+		RootDir:    rootDir,
+		BaseDir:    filepath.Join(rootDir, appname),
+		RootDomain: rootDomain,
+		Domain:     fmt.Sprintf("%s.%s", appname, rootDomain),
+		env:        make(map[string]string),
 	}
 
 	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {
@@ -134,7 +140,7 @@ func LoadApp(appname string, rootDir string) (App, error) {
 		}
 
 		for key, value := range dotenv {
-			app.Env[key] = value
+			app.env[key] = value
 		}
 	}
 
@@ -162,80 +168,31 @@ func LoadApp(appname string, rootDir string) (App, error) {
 		}
 
 		for key, value := range dotenv {
-			app.Env[key] = value
+			app.env[key] = value
 		}
 
 		break
 	}
 
-	if configPath := filepath.Join(appDir, "smallweb.json"); utils.FileExists(configPath) {
-		rawBytes, err := os.ReadFile(configPath)
+	for _, configName := range []string{"smallweb.json", "smallweb.jsonc"} {
+		if configPath := filepath.Join(appDir, "smallweb.json"); utils.FileExists(configPath) {
+			continue
+		}
+
+		rawBytes, err := os.ReadFile(configName)
 		if err != nil {
-			return App{}, fmt.Errorf("could not read smallweb.json: %v", err)
+			return App{}, fmt.Errorf("could not read %s: %v", configName, err)
 		}
 
 		configBytes, err := hujson.Standardize(rawBytes)
 		if err != nil {
-			return App{}, fmt.Errorf("could not standardize smallweb.jsonc: %v", err)
+			return App{}, fmt.Errorf("could not standardize %s: %v", configName, err)
 		}
 
 		if err := json.Unmarshal(configBytes, &app.Config); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal smallweb.json: %v", err)
+			return App{}, fmt.Errorf("could not unmarshal %s: %v", configName, err)
 		}
 
-		return app, nil
-	}
-
-	if configPath := filepath.Join(appDir, "smallweb.jsonc"); utils.FileExists(configPath) {
-		rawBytes, err := os.ReadFile(configPath)
-		if err != nil {
-			return App{}, fmt.Errorf("could not read smallweb.json: %v", err)
-		}
-
-		configBytes, err := hujson.Standardize(rawBytes)
-		if err != nil {
-			return App{}, fmt.Errorf("could not standardize smallweb.jsonc: %v", err)
-		}
-
-		if err := json.Unmarshal(configBytes, &app.Config); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal smallweb.json: %v", err)
-		}
-
-		return app, nil
-	}
-
-	if configPath := filepath.Join(appDir, "deno.json"); utils.FileExists(configPath) {
-		rawBytes, err := os.ReadFile(configPath)
-		if err != nil {
-			return App{}, fmt.Errorf("could not read deno.json: %v", err)
-		}
-
-		var denoConfig DenoConfig
-		if err := json.Unmarshal(rawBytes, &denoConfig); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal deno.json: %v", err)
-		}
-
-		app.Config = denoConfig.Smallweb
-		return app, nil
-	}
-
-	if configPath := filepath.Join(appDir, "deno.jsonc"); utils.FileExists(configPath) {
-		rawBytes, err := os.ReadFile(configPath)
-		if err != nil {
-			return App{}, fmt.Errorf("could not read deno.jsonc: %v", err)
-		}
-
-		configBytes, err := hujson.Standardize(rawBytes)
-		if err != nil {
-			return App{}, fmt.Errorf("could not standardize deno.jsonc: %v", err)
-		}
-
-		var denoConfig DenoConfig
-		if err := json.Unmarshal(configBytes, &denoConfig); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal deno.jsonc: %v", err)
-		}
-
-		app.Config = denoConfig.Smallweb
 		return app, nil
 	}
 
@@ -263,4 +220,32 @@ func (me App) Entrypoint() string {
 	}
 
 	return "jsr:@smallweb/file-server@0.8.2"
+}
+
+func (me App) Env() []string {
+	env := []string{}
+
+	for k, v := range me.env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+	env = append(env, "DENO_NO_UPDATE_CHECK=1")
+
+	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
+	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", me.RootDir))
+	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.RootDomain))
+	if me.Config.Admin {
+		env = append(env, "SMALLWEB_ADMIN=1")
+	}
+
+	// open telemetry
+	for _, value := range os.Environ() {
+		if strings.HasPrefix(value, "OTEL_") {
+			env = append(env, value)
+		}
+	}
+	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.Name))
+
+	return env
 }

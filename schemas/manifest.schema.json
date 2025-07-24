@@ -10,6 +10,10 @@
             "description": "The root directory of the project",
             "type": "string"
         },
+        "admin": {
+            "description": "Give app read/write access to the whole smallweb folder",
+            "type": "string"
+        },
         "private": {
             "description": "Protect all routes behind authentication",
             "type": "boolean"
