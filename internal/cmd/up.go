@@ -570,10 +570,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if redirect {
 		target := r.URL
-		target.Scheme = r.Header.Get("X-Forwarded-Proto")
-		if target.Scheme == "" {
-			target.Scheme = "http"
-		}
+		target.Scheme = ExtractScheme(r)
 
 		target.Host = fmt.Sprintf("%s.%s", appname, r.Host)
 		http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
@@ -604,7 +601,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		oauth2Config, err := me.Oauth2Config(r.Host)
+		oauth2Config, err := me.Oauth2Config(r)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to get oauth2 config: %v", err), http.StatusInternalServerError)
 			return
@@ -612,11 +609,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		var successURL string
 		if param := r.URL.Query().Get("success_url"); param != "" {
-			successURL = fmt.Sprintf("https://%s%s", r.Host, param)
+			successURL = fmt.Sprintf("%s://%s%s", ExtractScheme(r), r.Host, param)
 		} else if r.Header.Get("Referer") != "" {
 			successURL = r.Header.Get("Referer")
 		} else {
-			successURL = fmt.Sprintf("https://%s/", r.Host)
+			successURL = fmt.Sprintf("%s://%s/", ExtractScheme(r), r.Host)
 		}
 
 		state := rand.Text()
@@ -638,8 +635,8 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name:     "oauth_data",
 			Value:    encodedData,
-			Secure:   true,
 			HttpOnly: true,
+			Secure:   ExtractScheme(r) == "https",
 			MaxAge:   5 * 60,
 			SameSite: http.SameSiteLaxMode,
 		})
@@ -656,7 +653,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     "id_token",
-			Secure:   true,
+			Secure:   ExtractScheme(r) == "https",
 			HttpOnly: true,
 			Path:     "/",
 			MaxAge:   -1,
@@ -664,7 +661,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     "refresh_token",
-			Secure:   true,
+			Secure:   ExtractScheme(r) == "https",
 			HttpOnly: true,
 			Path:     "/",
 			MaxAge:   -1,
@@ -672,11 +669,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		var successUrl string
 		if param := r.URL.Query().Get("success_url"); param != "" {
-			successUrl = fmt.Sprintf("https://%s%s", r.Host, param)
+			successUrl = fmt.Sprintf("%s://%s%s", ExtractScheme(r), r.Host, param)
 		} else if r.Header.Get("Referer") != "" {
 			successUrl = r.Header.Get("Referer")
 		} else {
-			successUrl = fmt.Sprintf("https://%s/", r.Host)
+			successUrl = fmt.Sprintf("%s://%s/", ExtractScheme(r), r.Host)
 		}
 
 		http.Redirect(w, r, successUrl, http.StatusTemporaryRedirect)
@@ -689,7 +686,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		oauth2Config, err := me.Oauth2Config(r.Host)
+		oauth2Config, err := me.Oauth2Config(r)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to get oauth2 config: %v", err), http.StatusInternalServerError)
 			return
@@ -703,7 +700,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     "oauth_data",
-			Secure:   true,
+			Secure:   ExtractScheme(r) == "https",
 			HttpOnly: true,
 			Path:     "/",
 			MaxAge:   -1,
@@ -748,7 +745,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Name:     "id_token",
 			Value:    idToken,
 			SameSite: http.SameSiteLaxMode,
-			Secure:   true,
+			Secure:   ExtractScheme(r) == "https",
 			HttpOnly: true,
 			Path:     "/",
 			MaxAge:   34560000,
@@ -759,7 +756,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Name:     "refresh_token",
 				Value:    oauth2Token.RefreshToken,
 				SameSite: http.SameSiteLaxMode,
-				Secure:   true,
+				Secure:   ExtractScheme(r) == "https",
 				HttpOnly: true,
 				Path:     "/",
 				MaxAge:   34560000,
@@ -791,7 +788,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !errors.Is(err, &oidc.TokenExpiredError{}) {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("%s://%s/_smallweb/signin?success_url=%s", ExtractScheme(r), r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -799,11 +796,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if errors.As(err, &expiredErr) {
 			refreshTokenCookie, err := r.Cookie("refresh_token")
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("%s://%s/_smallweb/signin?success_url=%s", ExtractScheme(r), r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
-			oauth2Config, err := me.Oauth2Config(r.Host)
+			oauth2Config, err := me.Oauth2Config(r)
 			if err != nil {
 				http.Error(w, fmt.Sprintf("failed to get oauth2 config: %v", err), http.StatusInternalServerError)
 				return
@@ -812,13 +809,13 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			tokenSource := oauth2Config.TokenSource(context.Background(), &oauth2.Token{RefreshToken: refreshTokenCookie.Value})
 			oauth2Token, err := tokenSource.Token()
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("%s://%s/_smallweb/signin?success_url=%s", ExtractScheme(r), r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
 			rawIdToken, ok := oauth2Token.Extra("id_token").(string)
 			if !ok {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("%s://%s/_smallweb/signin?success_url=%s", ExtractScheme(r), r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
@@ -831,12 +828,12 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			verifier := provider.Verifier(&oidc.Config{ClientID: r.Host})
 			idToken, err := verifier.Verify(r.Context(), rawIdToken)
 			if err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("%s://%s/_smallweb/signin?success_url=%s", ExtractScheme(r), r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
 			if err := idToken.Claims(&claims); err != nil {
-				http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+				http.Redirect(w, r, fmt.Sprintf("%s://%s/_smallweb/signin?success_url=%s", ExtractScheme(r), r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 				return
 			}
 
@@ -844,7 +841,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Name:     "id_token",
 				Value:    rawIdToken,
 				SameSite: http.SameSiteLaxMode,
-				Secure:   true,
+				Secure:   ExtractScheme(r) == "https",
 				HttpOnly: true,
 				Path:     "/",
 				MaxAge:   34560000,
@@ -855,7 +852,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					Name:     "refresh_token",
 					Value:    oauth2Token.RefreshToken,
 					SameSite: http.SameSiteLaxMode,
-					Secure:   true,
+					Secure:   ExtractScheme(r) == "https",
 					HttpOnly: true,
 					Path:     "/",
 					MaxAge:   34560000,
@@ -866,7 +863,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if isRoutePrivate(wk.App, r.URL.Path) && !isAuthorized(appname, claims.Email, claims.Group) {
 		if claims.Email == "" {
-			http.Redirect(w, r, fmt.Sprintf("https://%s/_smallweb/signin?success_url=%s", r.Host, r.URL.Path), http.StatusTemporaryRedirect)
+			http.Redirect(w, r, fmt.Sprintf("%s://%s/_smallweb/signin?success_url=%s", ExtractScheme(r), r.Host, r.URL.Path), http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -964,7 +961,7 @@ func (me *Handler) extractClaims(r *http.Request) (Claims, error) {
 		rawIdToken = idTokenCookie.Value
 	}
 
-	verifier := provider.Verifier(&oidc.Config{ClientID: fmt.Sprintf("https://%s", r.Host)})
+	verifier := provider.Verifier(&oidc.Config{ClientID: fmt.Sprintf("%s://%s", ExtractScheme(r), r.Host)})
 	idToken, err := verifier.Verify(r.Context(), rawIdToken)
 	if err != nil {
 		return Claims{}, fmt.Errorf("failed to verify id token: %v", err)
@@ -1027,8 +1024,8 @@ func (me *Handler) Provider() (*oidc.Provider, bool) {
 	return me.oidcProvider, true
 }
 
-func (me *Handler) Oauth2Config(host string) (*oauth2.Config, error) {
-	clientID := fmt.Sprintf("https://%s", host)
+func (me *Handler) Oauth2Config(r *http.Request) (*oauth2.Config, error) {
+	clientID := fmt.Sprintf("%s://%s", ExtractScheme(r), r.Host)
 	provider, ok := me.Provider()
 	if !ok {
 		return nil, fmt.Errorf("oidc provider not set")
@@ -1037,9 +1034,21 @@ func (me *Handler) Oauth2Config(host string) (*oauth2.Config, error) {
 	return &oauth2.Config{
 		ClientID:    clientID,
 		Scopes:      []string{"openid", "email", "profile", "groups"},
-		RedirectURL: fmt.Sprintf("https://%s/_smallweb/oauth/callback", host),
+		RedirectURL: fmt.Sprintf("%s://%s/_smallweb/oauth/callback", ExtractScheme(r), r.Host),
 		Endpoint:    provider.Endpoint(),
 	}, nil
+}
+
+func ExtractScheme(r *http.Request) string {
+	if scheme := r.URL.Query().Get("X-Forwarded-Proto"); scheme != "" {
+		return scheme
+	}
+
+	if r.TLS != nil {
+		return "https"
+	}
+
+	return "http"
 }
 
 func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Worker, error) {

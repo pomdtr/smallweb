@@ -361,7 +361,11 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if request.Header.Get("x-forwarded-proto") == "" {
-		request.Header.Set("x-forwarded-proto", "https")
+		if r.TLS != nil {
+			request.Header.Set("x-forwarded-proto", "https")
+		} else {
+			request.Header.Set("x-forwarded-proto", "http")
+		}
 	}
 
 	client := &http.Client{

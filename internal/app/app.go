@@ -175,11 +175,12 @@ func LoadApp(appname string, rootDir string, rootDomain string) (App, error) {
 	}
 
 	for _, configName := range []string{"smallweb.json", "smallweb.jsonc"} {
-		if configPath := filepath.Join(appDir, "smallweb.json"); utils.FileExists(configPath) {
+		configPath := filepath.Join(appDir, configName)
+		if !utils.FileExists(configPath) {
 			continue
 		}
 
-		rawBytes, err := os.ReadFile(configName)
+		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
 			return App{}, fmt.Errorf("could not read %s: %v", configName, err)
 		}
