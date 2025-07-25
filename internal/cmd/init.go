@@ -43,7 +43,7 @@ func NewCmdInit() *cobra.Command {
 
 			templateFS := gosod.New(subFS)
 			if err := templateFS.Extract(dir, map[string]any{
-				"Domain": args[0],
+				"Domain": domain,
 			}); err != nil {
 				cmd.PrintErrf("failed to extract workspace: %v\n", err)
 				return ExitError{1}
