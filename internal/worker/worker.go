@@ -83,16 +83,6 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
-	if me.App.Config.Admin {
-		args = append(
-			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", me.App.RootDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.RootDir),
-		)
-
-		return args, nil
-	}
-
 	// if root is not a symlink
 	appDir := me.App.Dir()
 	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
