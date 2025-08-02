@@ -156,7 +156,7 @@ func NewCmdUp() *cobra.Command {
 				_ = conf.Load(envProvider, nil)
 				_ = conf.Load(flagProvider, nil)
 
-				if issuer := conf.String("oidc.issuer"); issuer != handler.oidcIssuerUrl.String() {
+				if issuer := conf.String("oidc.issuer"); issuer != "" {
 					issuerUrl, err := url.Parse(issuer)
 					if err != nil {
 						logger.Error("failed to parse issuer url")
@@ -164,6 +164,9 @@ func NewCmdUp() *cobra.Command {
 					}
 
 					handler.oidcIssuerUrl = issuerUrl
+					handler.oidcProvider = nil
+				} else {
+					handler.oidcIssuerUrl = nil
 					handler.oidcProvider = nil
 				}
 
