@@ -76,11 +76,10 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir", "Domain"})
+			printer.AddHeader([]string{"Name", "Dir"})
 			for _, a := range apps {
 				printer.AddField(a.Name)
 				printer.AddField(strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1))
-				printer.AddField(a.Domain)
 
 				printer.EndRow()
 			}
