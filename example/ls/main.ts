@@ -1,6 +1,6 @@
 async function handleRequest() {
-    const { SMALLWEB_DOMAIN, SMALLWEB_DIR } = Deno.env.toObject()
-    const entries = await Array.fromAsync(Deno.readDir(SMALLWEB_DIR))
+    const { SMALLWEB_DOMAIN } = Deno.env.toObject()
+    const entries = await Array.fromAsync(Deno.readDir("./data"))
     const html = /* html */`
     <style>
         body {

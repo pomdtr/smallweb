@@ -15,8 +15,7 @@ import (
 
 func NewCmdList() *cobra.Command {
 	var flags struct {
-		json  bool
-		admin bool
+		json bool
 	}
 
 	cmd := &cobra.Command{
@@ -39,9 +38,6 @@ func NewCmdList() *cobra.Command {
 			for _, name := range names {
 				a, err := app.LoadApp(name, k.String("dir"), k.String("domain"))
 				if err != nil {
-					continue
-				}
-				if cmd.Flags().Changed("admin") && a.Config.Admin != flags.admin {
 					continue
 				}
 
@@ -80,17 +76,11 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir", "Domain", "Admin"})
+			printer.AddHeader([]string{"Name", "Dir", "Domain"})
 			for _, a := range apps {
 				printer.AddField(a.Name)
 				printer.AddField(strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1))
 				printer.AddField(a.Domain)
-
-				if a.Config.Admin {
-					printer.AddField("Yes")
-				} else {
-					printer.AddField("No")
-				}
 
 				printer.EndRow()
 			}
@@ -100,7 +90,6 @@ func NewCmdList() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	cmd.Flags().BoolVar(&flags.admin, "admin", false, "filter by admin")
 
 	return cmd
 }
