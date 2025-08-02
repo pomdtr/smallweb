@@ -330,6 +330,23 @@ func NewCmdUp() *cobra.Command {
 					wish.WithHostKeyPath(sshPrivateKeyPath),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
 						authorizedKeys := []string{authorizedKey}
+						homedir, err := os.UserHomeDir()
+						if err != nil {
+							sshLogger.Error("failed to get home directory", "error", err)
+							return false
+						}
+
+						if authorizedKeyBytes, err := os.ReadFile(filepath.Join(homedir, ".ssh", "authorized_keys")); err == nil {
+							for len(authorizedKeyBytes) > 0 {
+								pubKey, _, _, rest, err := gossh.ParseAuthorizedKey(authorizedKeyBytes)
+								if err != nil {
+									break
+								}
+								authorizedKeys = append(authorizedKeys, string(gossh.MarshalAuthorizedKey(pubKey)))
+								authorizedKeyBytes = rest
+							}
+						}
+
 						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
 
 						if ctx.User() != "_" {
