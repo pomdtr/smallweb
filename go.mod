@@ -21,11 +21,11 @@ require (
 require (
 	github.com/abiosoft/ishell/v2 v2.0.2
 	github.com/abiosoft/readline v0.0.0-20180607040430-155bce2042db
-	github.com/bmatcuk/doublestar/v4 v4.9.0
+	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/caddyserver/certmagic v0.23.0
 	github.com/charmbracelet/ssh v0.0.0-20250213143314-8712ec3ff3ef
 	github.com/charmbracelet/wish v1.4.7
-	github.com/coreos/go-oidc/v3 v3.14.1
+	github.com/coreos/go-oidc/v3 v3.15.0
 	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/getsops/sops/v3 v3.10.2
