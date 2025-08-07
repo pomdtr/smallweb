@@ -1,4 +1,4 @@
 smallweb.live, *.smallweb.live {
-    tls internal
-    reverse_proxy localhost:7777
+	tls internal
+	reverse_proxy localhost:7777
 }
