@@ -1,0 +1,215 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/encoding@1.0.8": "1.0.8",
+    "jsr:@std/encoding@^1.0.5": "1.0.8",
+    "jsr:@std/fs@^1.0.5": "1.0.18",
+    "jsr:@std/html@1.0.3": "1.0.3",
+    "jsr:@std/html@^1.0.3": "1.0.3",
+    "jsr:@std/http@1.0.12": "1.0.12",
+    "jsr:@std/internal@^1.0.9": "1.0.9",
+    "jsr:@std/path@^1.0.8": "1.1.1",
+    "jsr:@std/path@^1.1.0": "1.1.1",
+    "npm:@scalar/hono-api-reference@~0.5.163": "0.5.184_hono@4.8.4",
+    "npm:hono-openapi@~0.2.1": "0.2.1_arktype@2.0.0-rc.25_hono@4.8.4_@sinclair+typebox@0.34.37_valibot@1.1.0_zod@3.25.73",
+    "npm:hono@^4.6.10": "4.8.4",
+    "npm:zod-openapi@^4.1.0": "4.2.4_zod@3.25.73",
+    "npm:zod@^3.23.8": "3.25.73"
+  },
+  "jsr": {
+    "@std/encoding@1.0.8": {
+      "integrity": "a6c8f3f933ab1bed66244f435d1dc0fd23a888e07195532122ddc3d5f8f0e6b4"
+    },
+    "@std/fs@1.0.18": {
+      "integrity": "24bcad99eab1af4fde75e05da6e9ed0e0dce5edb71b7e34baacf86ffe3969f3a",
+      "dependencies": [
+        "jsr:@std/path@^1.1.0"
+      ]
+    },
+    "@std/html@1.0.3": {
+      "integrity": "7a0ac35e050431fb49d44e61c8b8aac1ebd55937e0dc9ec6409aa4bab39a7988"
+    },
+    "@std/http@1.0.12": {
+      "integrity": "85246d8bfe9c8e2538518725b158bdc31f616e0869255f4a8d9e3de919cab2aa"
+    },
+    "@std/internal@1.0.9": {
+      "integrity": "bdfb97f83e4db7a13e8faab26fb1958d1b80cc64366501af78a0aee151696eb8"
+    },
+    "@std/path@1.1.1": {
+      "integrity": "fe00026bd3a7e6a27f73709b83c607798be40e20c81dde655ce34052fd82ec76",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    }
+  },
+  "npm": {
+    "@apidevtools/json-schema-ref-parser@11.9.3": {
+      "integrity": "sha512-60vepv88RwcJtSHrD6MjIL6Ta3SOYbgfnkHb+ppAVK+o9mXprRtulx7VlRl3lN3bbvysAfCS7WMVfhUYemB0IQ==",
+      "dependencies": [
+        "@jsdevtools/ono",
+        "@types/json-schema",
+        "js-yaml"
+      ]
+    },
+    "@ark/schema@0.25.0": {
+      "integrity": "sha512-1Air2M9Je8C/4+YNhJ1QPkoFbERX3PhulDVNW1RmpOpyUjUSM5lcuuyq357jp3a7+M3a5RV2PNdI1XZ/ah8l8Q==",
+      "dependencies": [
+        "@ark/util"
+      ]
+    },
+    "@ark/util@0.25.0": {
+      "integrity": "sha512-yo2Me+tYnmr6E0E3maZzu643/rL07oR25yBHkH24gllssqYcd6EPCvZE23GEKgbk0iac9J73GlJ9pkgZj43Q2g=="
+    },
+    "@hono/arktype-validator@2.0.1_arktype@2.0.0-rc.25_hono@4.8.4": {
+      "integrity": "sha512-Z4PQFtzgbGneBap+TTViRIBAoUWbwEwg8PaKNqALAP6z9N2ksJI81PfcsSQNUzwtrn8LipkMvBb8/D9Pei2GJw==",
+      "dependencies": [
+        "arktype",
+        "hono"
+      ]
+    },
+    "@hono/typebox-validator@0.2.6_@sinclair+typebox@0.34.37_hono@4.8.4": {
+      "integrity": "sha512-x+Q7RWiw6rJmJs7MDgtvRbS7ViXXEzqimC0duY4or7y1f89f5Z3KCQSdUSVka+Uv0HZ/O0ZNt+ixNDxfJLi4hA==",
+      "dependencies": [
+        "@sinclair/typebox",
+        "hono"
+      ]
+    },
+    "@hono/valibot-validator@0.5.2_hono@4.8.4_valibot@1.1.0": {
+      "integrity": "sha512-WbTr8PCFNAME0ale62rmmq+E8bGp5a7VPiVNmNT+Ue12GJE3Ax+CWBGtHhR0TzAEiloPvJND3IbjHIgtNtsqhw==",
+      "dependencies": [
+        "hono",
+        "valibot"
+      ]
+    },
+    "@hono/zod-validator@0.4.3_hono@4.8.4_zod@3.25.73": {
+      "integrity": "sha512-xIgMYXDyJ4Hj6ekm9T9Y27s080Nl9NXHcJkOvkXPhubOLj8hZkOL8pDnnXfvCf5xEE8Q4oMFenQUZZREUY2gqQ==",
+      "dependencies": [
+        "hono",
+        "zod"
+      ]
+    },
+    "@jsdevtools/ono@7.1.3": {
+      "integrity": "sha512-4JQNk+3mVzK3xh2rqd6RB4J46qUR19azEHBneZyTZM+c456qOrbbM/5xcR8huNCCcbVt7+UmizG6GuUvPvKUYg=="
+    },
+    "@scalar/core@0.1.1": {
+      "integrity": "sha512-7qnZp8ykrXoKScFIZcwt638CuFFyj7G3SsgVfD5liNgb533K8/lhWqdmp1vK2u4BKKJ9GBAPKMlWZE/+yA8WTw==",
+      "dependencies": [
+        "@scalar/types"
+      ]
+    },
+    "@scalar/hono-api-reference@0.5.184_hono@4.8.4": {
+      "integrity": "sha512-vRSRwJkN1Xo5dW9KYQJlGpKZ+Nh9qH+x1sn0qf6/Lx8QLPyyEpNm1EEddKaIN6qd5wrtVjDN6adQhfAfcYGHzw==",
+      "dependencies": [
+        "@scalar/core",
+        "hono"
+      ]
+    },
+    "@scalar/openapi-types@0.1.9": {
+      "integrity": "sha512-HQQudOSQBU7ewzfnBW9LhDmBE2XOJgSfwrh5PlUB7zJup/kaRkBGNgV2wMjNz9Af/uztiU/xNrO179FysmUT+g=="
+    },
+    "@scalar/types@0.0.40": {
+      "integrity": "sha512-0J6o+yZzgZEvl3KhvLTAGiXXyrCeEPKvs9gUWQDf1Rb5NfFxF0lA10ougCQCwVJIguWNEzZfOUiSoAFzGy2EqQ==",
+      "dependencies": [
+        "@scalar/openapi-types",
+        "@unhead/schema",
+        "zod"
+      ]
+    },
+    "@sinclair/typebox@0.34.37": {
+      "integrity": "sha512-2TRuQVgQYfy+EzHRTIvkhv2ADEouJ2xNS/Vq+W5EuuewBdOrvATvljZTxHWZSTYr2sTjTHpGvucaGAt67S2akw=="
+    },
+    "@types/json-schema@7.0.15": {
+      "integrity": "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="
+    },
+    "@unhead/schema@1.11.20": {
+      "integrity": "sha512-0zWykKAaJdm+/Y7yi/Yds20PrUK7XabLe9c3IRcjnwYmSWY6z0Cr19VIs3ozCj8P+GhR+/TI2mwtGlueCEYouA==",
+      "dependencies": [
+        "hookable",
+        "zhead"
+      ]
+    },
+    "@valibot/to-json-schema@1.3.0_valibot@1.1.0": {
+      "integrity": "sha512-82Vv6x7sOYhv5YmTRgSppSqj1nn2pMCk5BqCMGWYp0V/fq+qirrbGncqZAtZ09/lrO40ne/7z8ejwE728aVreg==",
+      "dependencies": [
+        "valibot"
+      ]
+    },
+    "argparse@2.0.1": {
+      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="
+    },
+    "arktype@2.0.0-rc.25": {
+      "integrity": "sha512-ck1kRLda55Pv6L3vIIjRb6A22LqUcjitxPGS3OscOKwFcxNReaj+ItJJiysebBbbUy+ESouXTJ+vvck33spGDQ==",
+      "dependencies": [
+        "@ark/schema",
+        "@ark/util"
+      ]
+    },
+    "clone@2.1.2": {
+      "integrity": "sha512-3Pe/CF1Nn94hyhIYpjtiLhdCoEoz0DqQ+988E9gmeEdQZlojxnOb74wctFyuwWQHzqyf9X7C7MG8juUpqBJT8w=="
+    },
+    "hono-openapi@0.2.1_arktype@2.0.0-rc.25_hono@4.8.4_@sinclair+typebox@0.34.37_valibot@1.1.0_zod@3.25.73": {
+      "integrity": "sha512-UMvo8c9Mlms17kUMe5KIr+uZgulpZ6PhAKC6/yPywhH3Ih/hFi1bAxmt8iMrUc6Rl5Neh/QQYnMSAZBwkfF0Gw==",
+      "dependencies": [
+        "json-schema-walker"
+      ],
+      "optionalDependencies": [
+        "@hono/arktype-validator",
+        "@hono/typebox-validator",
+        "@hono/valibot-validator",
+        "@hono/zod-validator",
+        "@sinclair/typebox",
+        "@valibot/to-json-schema",
+        "arktype",
+        "hono",
+        "openapi-types",
+        "valibot",
+        "zod",
+        "zod-openapi"
+      ]
+    },
+    "hono@4.8.4": {
+      "integrity": "sha512-KOIBp1+iUs0HrKztM4EHiB2UtzZDTBihDtOF5K6+WaJjCPeaW4Q92R8j63jOhvJI5+tZSMuKD9REVEXXY9illg=="
+    },
+    "hookable@5.5.3": {
+      "integrity": "sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ=="
+    },
+    "js-yaml@4.1.0": {
+      "integrity": "sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==",
+      "dependencies": [
+        "argparse"
+      ],
+      "bin": true
+    },
+    "json-schema-walker@2.0.0": {
+      "integrity": "sha512-nXN2cMky0Iw7Af28w061hmxaPDaML5/bQD9nwm1lOoIKEGjHcRGxqWe4MfrkYThYAPjSUhmsp4bJNoLAyVn9Xw==",
+      "dependencies": [
+        "@apidevtools/json-schema-ref-parser",
+        "clone"
+      ]
+    },
+    "openapi-types@12.1.3": {
+      "integrity": "sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw=="
+    },
+    "valibot@1.1.0": {
+      "integrity": "sha512-Nk8lX30Qhu+9txPYTwM0cFlWLdPFsFr6LblzqIySfbZph9+BFsAHsNvHOymEviUepeIW6KFHzpX8TKhbptBXXw=="
+    },
+    "zhead@2.2.4": {
+      "integrity": "sha512-8F0OI5dpWIA5IGG5NHUg9staDwz/ZPxZtvGVf01j7vHqSyZ0raHY+78atOVxRqb73AotX22uV1pXt3gYSstGag=="
+    },
+    "zod-openapi@4.2.4_zod@3.25.73": {
+      "integrity": "sha512-tsrQpbpqFCXqVXUzi3TPwFhuMtLN3oNZobOtYnK6/5VkXsNdnIgyNr4r8no4wmYluaxzN3F7iS+8xCW8BmMQ8g==",
+      "dependencies": [
+        "zod"
+      ]
+    },
+    "zod@3.25.73": {
+      "integrity": "sha512-fuIKbQAWQl22Ba5d1quwEETQYjqnpKVyZIWAhbnnHgnDd3a+z4YgEfkI5SZ2xMELnLAXo/Flk2uXgysZNf0uaA=="
+    }
+  },
+  "remote": {
+    "https://esm.smallweb.run/vscode@e47af46/pkg/api.ts": "bbe0d848edfa525f9293b9f8638de597f03f1dbfcee97e8a98466a91f86f3be7",
+    "https://esm.smallweb.run/vscode@e47af46/pkg/mod.ts": "67b9da63d9bc3cade2f69e5bf910258956189ea1ea062b90c340bf8fa17377e1",
+    "https://esm.smallweb.run/vscode@e47af46/pkg/server.ts": "4eb104c9622d0215e745ce133e4ef8ae76bf546521fc5932ba48b0eb591aa03b",
+    "https://esm.smallweb.run/vscode@e47af46/pkg/static/manifest.json": "48f0d23b275247614b5e82f75ece68294e16c9393c8ef3e95f3ead815be2219f"
+  }
+}
