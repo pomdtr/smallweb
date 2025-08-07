@@ -1,6 +1,6 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "domain": "smallweb.traefik.me",
+    "domain": "smallweb.live",
     "oidc": {
         "issuer": "https://lastlogin.net"
     },
