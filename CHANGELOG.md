@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.29.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.29>.
+
+- Smallweb now automatically trust keys from the `~/.ssh/authorized_keys` file
+- Removal of the `admin` field, you should instead symlink the root dir to your `data` dir
+- Removal of the `SMALLWEB_DOMAIN` and `SMALLWEB_DIR` environment variables
+
+## 0.28.0
+
+Full release notes at <https://blog.smallweb.run/posts/v0.28>.
+
+- add support for git pull / git push to smallweb
+
 ## 0.27.0
 
 Full release notes at <https://blog.smallweb.run/posts/v0.27>.
