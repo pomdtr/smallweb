@@ -11,7 +11,6 @@ import (
 
 	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
-	"github.com/pomdtr/smallweb/internal/build"
 	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/tailscale/hujson"
 )
@@ -40,13 +39,10 @@ type CronJob struct {
 }
 
 type App struct {
-	Name       string            `json:"name"`
-	RootDir    string            `json:"-"`
-	RootDomain string            `json:"-"`
-	Domain     string            `json:"domain,omitempty"`
-	BaseDir    string            `json:"dir,omitempty"`
-	Config     AppConfig         `json:"-"`
-	env        map[string]string `json:"-"`
+	Name    string            `json:"name"`
+	BaseDir string            `json:"dir,omitempty"`
+	Config  AppConfig         `json:"-"`
+	env     map[string]string `json:"-"`
 }
 
 func (me *App) Dir() string {
@@ -117,19 +113,15 @@ func LookupApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func LoadApp(appname string, rootDir string, rootDomain string) (App, error) {
-	appDir := filepath.Join(rootDir, appname)
-	if !utils.FileExists(filepath.Join(rootDir, appname)) {
+func LoadApp(appDir string) (App, error) {
+	if !utils.FileExists(appDir) {
 		return App{}, ErrAppNotFound
 	}
 
 	app := App{
-		Name:       appname,
-		RootDir:    rootDir,
-		BaseDir:    filepath.Join(rootDir, appname),
-		RootDomain: rootDomain,
-		Domain:     fmt.Sprintf("%s.%s", appname, rootDomain),
-		env:        make(map[string]string),
+		Name:    filepath.Base(appDir),
+		BaseDir: appDir,
+		env:     make(map[string]string),
 	}
 
 	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {
@@ -231,10 +223,6 @@ func (me App) Env() []string {
 
 	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
 	env = append(env, "DENO_NO_UPDATE_CHECK=1")
-
-	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
-	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", me.RootDir))
-	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.RootDomain))
 
 	// open telemetry
 	for _, value := range os.Environ() {

@@ -259,7 +259,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+						a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
 						if err != nil {
 							logger.Error("failed to load app", "error", err)
 							continue
@@ -376,7 +376,7 @@ func NewCmdUp() *cobra.Command {
 							return func(sess ssh.Session) {
 								var cmd *exec.Cmd
 								if sess.User() != "_" {
-									a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"))
+									a, err := app.LoadApp(filepath.Join(k.String("dir"), sess.User()))
 									if err != nil {
 										fmt.Fprintf(sess, "failed to load app: %v\n", err)
 										sess.Exit(1)
@@ -1080,7 +1080,7 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 	me.workerMu.Lock()
 	defer me.workerMu.Unlock()
 
-	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+	a, err := app.LoadApp(filepath.Join(rootDir, appname))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}

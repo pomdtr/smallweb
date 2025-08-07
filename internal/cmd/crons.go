@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -46,7 +47,7 @@ func NewCmdCrons() *cobra.Command {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+				a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
 				if err != nil {
 					cmd.PrintErrf("failed to load app %s: %v\n", appname, err)
 					return ExitError{1}
@@ -135,7 +136,7 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 		}
 
 		for _, appname := range apps {
-			a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+			a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
 			if err != nil {
 				logger.Error("failed to load app", "app", appname, "error", err)
 				continue
@@ -153,7 +154,7 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+				a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
 				if err != nil {
 					logger.Error("failed to load app", "app", appname, "error", err)
 					continue

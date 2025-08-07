@@ -175,7 +175,7 @@ func NewCmdRoot() *cobra.Command {
 						Name: appname,
 						Help: fmt.Sprintf("run %s app", appname),
 						Func: func(c *ishell.Context) {
-							a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+							a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
 							if err != nil {
 								c.Err(fmt.Errorf("failed to load app %s: %w", appname, err))
 								return
