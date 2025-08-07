@@ -1,5 +1,7 @@
+import * as jsonc from "jsr:@std/jsonc"
+
 async function handleRequest() {
-    const { SMALLWEB_DOMAIN } = Deno.env.toObject()
+    const { domain } = jsonc.parse(await Deno.readTextFile("data/.smallweb/config.jsonc")) as { domain: string }
     const entries = await Array.fromAsync(Deno.readDir("./data"))
     const html = /* html */`
     <style>
@@ -34,7 +36,7 @@ async function handleRequest() {
             ${entries.filter(entry => !entry.name.startsWith(".")).map(entry => `
                 <tr>
                     <td>${entry.name}</td>
-                    <td><a href="https://${entry.name}.${SMALLWEB_DOMAIN}">https://${entry.name}.${SMALLWEB_DOMAIN}</a></td>
+                    <td><a href="https://${entry.name}.${domain}">https://${entry.name}.${domain}</a></td>
                 </tr>
             `).join('')}
         </tbody>
