@@ -1,7 +1,5 @@
-import * as jsonc from "jsr:@std/jsonc"
-
 async function handleRequest() {
-    const { domain } = jsonc.parse(await Deno.readTextFile("data/.smallweb/config.jsonc")) as { domain: string }
+    const { domain } = JSON.parse(await Deno.readTextFile("data/.smallweb/config.json")) as { domain: string }
     const entries = await Array.fromAsync(Deno.readDir("./data"))
     const html = /* html */`
     <style>
