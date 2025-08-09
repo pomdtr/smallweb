@@ -1,6 +1,8 @@
+import { Smallweb } from "https://esm.smallweb.run/sdk@bdf6a3f/pkg/mod.ts"
+
 async function handleRequest() {
-    const { domain } = JSON.parse(await Deno.readTextFile("data/.smallweb/config.json")) as { domain: string }
-    const entries = await Array.fromAsync(Deno.readDir("./data"))
+    const smallweb = new Smallweb("./data")
+    const apps = await smallweb.apps.list()
     const html = /* html */`
     <style>
         body {
@@ -31,10 +33,10 @@ async function handleRequest() {
             </tr>
         </thead>
         <tbody>
-            ${entries.filter(entry => !entry.name.startsWith(".")).map(entry => `
+            ${apps.map(app => `
                 <tr>
-                    <td>${entry.name}</td>
-                    <td><a href="https://${entry.name}.${domain}">https://${entry.name}.${domain}</a></td>
+                    <td>${app.name}</td>
+                    <td><a href="${app.url}">${app.url}</a></td>
                 </tr>
             `).join('')}
         </tbody>
