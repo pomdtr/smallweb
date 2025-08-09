@@ -39,10 +39,10 @@ type CronJob struct {
 }
 
 type App struct {
-	Name    string            `json:"name"`
-	BaseDir string            `json:"dir,omitempty"`
-	Config  AppConfig         `json:"-"`
-	env     map[string]string `json:"-"`
+	Name    string
+	BaseDir string
+	Config  AppConfig
+	env     map[string]string
 }
 
 func (me *App) Dir() string {

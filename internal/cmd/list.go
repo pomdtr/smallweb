@@ -14,6 +14,12 @@ import (
 	"golang.org/x/term"
 )
 
+type AppEntry struct {
+	Name string `json:"name"`
+	Dir  string `json:"dir"`
+	Url  string `json:"url"`
+}
+
 func NewCmdList() *cobra.Command {
 	var flags struct {
 		json bool
@@ -46,13 +52,23 @@ func NewCmdList() *cobra.Command {
 			}
 
 			if flags.json {
+				var entries []AppEntry
+
+				for _, a := range apps {
+					entries = append(entries, AppEntry{
+						Name: a.Name,
+						Dir:  strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1),
+						Url:  fmt.Sprintf("https://%s.%s", a.Name, k.String("domain")),
+					})
+				}
+
 				encoder := json.NewEncoder(cmd.OutOrStdout())
 				encoder.SetEscapeHTML(false)
 				if isatty.IsTerminal(os.Stdout.Fd()) {
 					encoder.SetIndent("", "  ")
 				}
 
-				if err := encoder.Encode(apps); err != nil {
+				if err := encoder.Encode(entries); err != nil {
 					cmd.PrintErrf("failed to encode apps as json: %v\n", err)
 					return ExitError{1}
 				}
@@ -77,10 +93,11 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir"})
+			printer.AddHeader([]string{"Name", "Dir", "Url"})
 			for _, a := range apps {
 				printer.AddField(a.Name)
 				printer.AddField(strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(fmt.Sprintf("https://%s.%s", a.Name, k.String("domain")))
 
 				printer.EndRow()
 			}
