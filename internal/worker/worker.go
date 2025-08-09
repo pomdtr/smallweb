@@ -75,7 +75,7 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	}
 
 	for _, configName := range []string{"deno.json", "deno.jsonc"} {
-		configPath := filepath.Join(me.App.Dir(), configName)
+		configPath := filepath.Join(me.App.Root(), configName)
 		if _, err := os.Stat(configPath); err == nil {
 			args = append(args, fmt.Sprintf("--config=%s", configPath))
 			break
@@ -84,7 +84,7 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
 	// if root is not a symlink
-	appDir := me.App.Dir()
+	appDir := me.App.Root()
 	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
 		args = append(
 			args,
@@ -146,7 +146,7 @@ func (me *Worker) Start() error {
 	args = append(args, sandboxPath, input.String())
 
 	command := exec.Command(deno, args...)
-	command.Dir = me.App.Dir()
+	command.Dir = me.App.Root()
 	command.Env = me.App.Env()
 
 	stdoutPipe, err := command.StdoutPipe()
@@ -466,7 +466,7 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 	cmdArgs = append(cmdArgs, sandboxPath, payload.String())
 
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
-	command.Dir = me.App.Dir()
+	command.Dir = me.App.Root()
 
 	command.Env = me.App.Env()
 
@@ -504,7 +504,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 
 	command.Stderr = os.Stderr
 	command.Stdout = os.Stdout
-	command.Dir = me.App.Dir()
+	command.Dir = me.App.Root()
 
 	command.Env = me.App.Env()
 

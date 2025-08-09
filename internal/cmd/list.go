@@ -57,7 +57,7 @@ func NewCmdList() *cobra.Command {
 				for _, a := range apps {
 					entries = append(entries, AppEntry{
 						Name: a.Name,
-						Dir:  strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1),
+						Dir:  strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1),
 						Url:  fmt.Sprintf("https://%s.%s", a.Name, k.String("domain")),
 					})
 				}
@@ -96,7 +96,7 @@ func NewCmdList() *cobra.Command {
 			printer.AddHeader([]string{"Name", "Dir", "Url"})
 			for _, a := range apps {
 				printer.AddField(a.Name)
-				printer.AddField(strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1))
 				printer.AddField(fmt.Sprintf("https://%s.%s", a.Name, k.String("domain")))
 
 				printer.EndRow()

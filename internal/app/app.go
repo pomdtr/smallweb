@@ -39,14 +39,14 @@ type CronJob struct {
 }
 
 type App struct {
-	Name    string
-	BaseDir string
-	Config  AppConfig
-	env     map[string]string
+	Name   string
+	Dir    string
+	Config AppConfig
+	env    map[string]string
 }
 
-func (me *App) Dir() string {
-	dir := me.BaseDir
+func (me *App) Root() string {
+	dir := me.Dir
 	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
 		if root, err := os.Readlink(dir); err == nil {
 			dir = filepath.Join(filepath.Dir(dir), root)
@@ -81,7 +81,7 @@ func (me *App) Dir() string {
 }
 
 func (me *App) DataDir() string {
-	dir := filepath.Join(me.Dir(), "data")
+	dir := filepath.Join(me.Root(), "data")
 	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
 		if root, err := os.Readlink(dir); err == nil {
 			dir = filepath.Join(filepath.Dir(dir), root)
@@ -119,9 +119,9 @@ func LoadApp(appDir string) (App, error) {
 	}
 
 	app := App{
-		Name:    filepath.Base(appDir),
-		BaseDir: appDir,
-		env:     make(map[string]string),
+		Name: filepath.Base(appDir),
+		Dir:  appDir,
+		env:  make(map[string]string),
 	}
 
 	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {
@@ -201,11 +201,11 @@ func (me App) Entrypoint() string {
 	}
 
 	if me.Config.Entrypoint != "" {
-		return filepath.Join(me.Dir(), me.Config.Entrypoint)
+		return filepath.Join(me.Root(), me.Config.Entrypoint)
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(me.Dir(), candidate)
+		path := filepath.Join(me.Root(), candidate)
 		if utils.FileExists(path) {
 			return fmt.Sprintf("file://%s", path)
 		}
