@@ -47,7 +47,7 @@ func NewCmdOpen() *cobra.Command {
 				appname = filepath.Base(appDir)
 			}
 
-			a, err := app.LoadApp(appname)
+			a, err := app.LoadApp(path.Join(k.String("dir"), appname))
 			if err != nil {
 				cmd.PrintErrf("could not load app %q: %v\n", appname, err)
 				return ExitError{1}
