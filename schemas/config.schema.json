@@ -5,42 +5,17 @@
         "domain"
     ],
     "properties": {
-        "oidc": {
-            "type": "object",
-            "description": "OpenID Connect configuration",
-            "required": [
-                "issuer"
-            ],
-            "properties": {
-                "issuer": {
-                    "description": "OpenID Connect issuer",
-                    "type": "string"
-                }
-            }
-        },
         "domain": {
             "description": "Domain name",
             "type": "string"
         },
         "additionalDomains": {
             "description": "Additional wildcard domains",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
-        "authorizedEmails": {
-            "description": "Authorized email addresses",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
-        "authorizedGroups": {
-            "description": "Authorized groups",
-            "type": "array",
-            "items": {
-                "type": "string"
+            "type": "object",
+            "patternProperties": {
+                "^[a-zA-Z0-9.-]+$": {
+                    "type": "string"
+                }
             }
         },
         "authorizedKeys": {
@@ -48,65 +23,6 @@
             "type": "array",
             "items": {
                 "type": "string"
-            }
-        },
-        "apps": {
-            "type": "object",
-            "additionalProperties": {
-                "$ref": "#/definitions/appConfig"
-            }
-        },
-        "repos": {
-            "type": "object",
-            "additionalProperties": {
-                "$ref": "#/definitions/repoConfig"
-            }
-        }
-    },
-    "definitions": {
-        "appConfig": {
-            "type": "object",
-            "properties": {
-                "additionalDomains": {
-                    "description": "Additional app domains",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "authorizedEmails": {
-                    "description": "Authorized email addresses",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "authorizedGroups": {
-                    "description": "Authorized groups",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "authorizedKeys": {
-                    "description": "Authorized SSH keys",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "repoConfig": {
-            "type": "object",
-            "properties": {
-                "authorizedKeys": {
-                    "description": "Authorized SSH keys for the repository",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
             }
         }
     }
