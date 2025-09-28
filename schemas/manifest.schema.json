@@ -35,7 +35,7 @@
             }
         },
         "labels": {
-            "description": "Labels for the project",
+            "description": "Labels for the app",
             "type": "object",
             "additionalProperties": {
                 "type": "string"

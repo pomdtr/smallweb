@@ -320,18 +320,6 @@ func NewCmdUp() *cobra.Command {
 							}
 						}
 
-						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
-						for _, authorizedKey := range authorizedKeys {
-							k, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
-							if err != nil {
-								continue
-							}
-
-							if ssh.KeysEqual(k, key) {
-								return true
-							}
-						}
-
 						return false
 					}),
 					sftp.SSHOption(k.String("dir"), nil),
