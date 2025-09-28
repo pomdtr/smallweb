@@ -10,7 +10,7 @@ import (
 )
 
 //go:embed templates/workspace/*
-var embedFS embed.FS
+var workspaceFS embed.FS
 
 func NewCmdInit() *cobra.Command {
 	cmd := &cobra.Command{
@@ -35,7 +35,7 @@ func NewCmdInit() *cobra.Command {
 				dir = cwd
 			}
 
-			subFS, err := fs.Sub(embedFS, "templates/workspace")
+			subFS, err := fs.Sub(workspaceFS, "templates/workspace")
 			if err != nil {
 				cmd.PrintErrf("failed to create sub filesystem: %v\n", err)
 				return ExitError{1}
