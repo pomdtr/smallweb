@@ -11,11 +11,9 @@
         },
         "additionalDomains": {
             "description": "Additional wildcard domains",
-            "type": "object",
-            "patternProperties": {
-                "^[a-zA-Z0-9.-]+$": {
-                    "type": "string"
-                }
+            "type": "array",
+            "items": {
+                "type": "string"
             }
         },
         "authorizedKeys": {

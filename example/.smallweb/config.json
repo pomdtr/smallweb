@@ -1,7 +1,4 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "domain": "smallweb.live",
-    "additionalDomains": {
-        "example.smallweb.live": "www"
-    }
+    "domain": "smallweb.live"
 }

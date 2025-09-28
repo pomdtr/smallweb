@@ -555,20 +555,23 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	wk.ServeHTTP(w, r)
 }
-
 func lookupApp(domain string) (app string, redirect bool, found bool) {
-	for additionalDomain, app := range k.StringMap("additionalDomains") {
-		if additionalDomain == domain {
-			return app, false, true
-		}
-	}
-
 	if domain == k.String("domain") {
 		return "www", true, true
 	}
 
 	if strings.HasSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))) {
 		return strings.TrimSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))), false, true
+	}
+
+	for _, additionalDomain := range k.Strings("additionalDomains") {
+		if domain == additionalDomain {
+			return "www", true, true
+		}
+
+		if strings.HasSuffix(domain, fmt.Sprintf(".%s", additionalDomain)) {
+			return strings.TrimSuffix(domain, fmt.Sprintf(".%s", additionalDomain)), false, true
+		}
 	}
 
 	return "", false, false
