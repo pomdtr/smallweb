@@ -162,8 +162,8 @@ func LoadApp(appDir string) (App, error) {
 		break
 	}
 
-	for _, configName := range []string{"smallweb.json", "smallweb.jsonc"} {
-		configPath := filepath.Join(appDir, configName)
+	for _, configName := range []string{"config.jsonc", "config.json"} {
+		configPath := filepath.Join(appDir, ".smallweb", configName)
 		if !utils.FileExists(configPath) {
 			continue
 		}
@@ -188,27 +188,27 @@ func LoadApp(appDir string) (App, error) {
 	return app, nil
 }
 
-func (me App) Entrypoint() string {
+func (me App) Entrypoint() (string, error) {
 	if strings.HasPrefix(me.Config.Entrypoint, "jsr:") || strings.HasPrefix(me.Config.Entrypoint, "npm:") {
-		return me.Config.Entrypoint
+		return me.Config.Entrypoint, nil
 	}
 
 	if strings.HasPrefix(me.Config.Entrypoint, "https://") || strings.HasPrefix(me.Config.Entrypoint, "http://") {
-		return me.Config.Entrypoint
+		return me.Config.Entrypoint, nil
 	}
 
 	if me.Config.Entrypoint != "" {
-		return filepath.Join(me.Root(), me.Config.Entrypoint)
+		return filepath.Join(me.Root(), me.Config.Entrypoint), nil
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
 		path := filepath.Join(me.Root(), candidate)
 		if utils.FileExists(path) {
-			return fmt.Sprintf("file://%s", path)
+			return fmt.Sprintf("file://%s", path), nil
 		}
 	}
 
-	return "jsr:@smallweb/file-server@0.8.2"
+	return "", fmt.Errorf("could not find entrypoint for app %s", me.Name)
 }
 
 func (me App) Env() []string {

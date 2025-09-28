@@ -1,4 +1,4 @@
 {
-    "$schema": "../../schemas/config.schema.json",
+    "$schema": "../../schemas/global-config.schema.json",
     "domain": "smallweb.live"
 }

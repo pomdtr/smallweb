@@ -131,13 +131,18 @@ func (me *Worker) Start() error {
 		return fmt.Errorf("could not get deno args: %w", err)
 	}
 
+	entrypoint, err := me.App.Entrypoint()
+	if err != nil {
+		return fmt.Errorf("could not get app entrypoint: %w", err)
+	}
+
 	args = append(args, denoArgs...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
 		"command":    "fetch",
-		"entrypoint": me.App.Entrypoint(),
+		"entrypoint": entrypoint,
 		"port":       port,
 	}); err != nil {
 		return fmt.Errorf("could not encode input: %w", err)
@@ -445,6 +450,11 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 		return nil, fmt.Errorf("could not find deno executable")
 	}
 
+	entrypoint, err := me.App.Entrypoint()
+	if err != nil {
+		return nil, fmt.Errorf("could not get app entrypoint: %w", err)
+	}
+
 	cmdArgs := []string{"run"}
 	denoArgs, err := me.DenoArgs(deno)
 	if err != nil {
@@ -457,7 +467,7 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
 		"command":    "run",
-		"entrypoint": me.App.Entrypoint(),
+		"entrypoint": entrypoint,
 		"args":       args,
 	}); err != nil {
 		return nil, fmt.Errorf("could not encode input: %w", err)
@@ -479,6 +489,11 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not find deno executable")
 	}
 
+	entrypoint, err := me.App.Entrypoint()
+	if err != nil {
+		return fmt.Errorf("could not get app entrypoint: %w", err)
+	}
+
 	args := []string{"run"}
 	denoArgs, err := me.DenoArgs(deno)
 	if err != nil {
@@ -492,7 +507,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
 		"command":    "email",
-		"entrypoint": me.App.Entrypoint(),
+		"entrypoint": entrypoint,
 		"msg":        base64.StdEncoding.EncodeToString(msg),
 	}); err != nil {
 		return fmt.Errorf("could not encode input: %w", err)
