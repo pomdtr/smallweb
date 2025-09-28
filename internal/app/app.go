@@ -162,24 +162,28 @@ func LoadApp(appDir string) (App, error) {
 		break
 	}
 
-	for _, configName := range []string{"smallweb.json", "smallweb.jsonc"} {
-		configPath := filepath.Join(appDir, ".smallweb", configName)
+	for _, configPath := range []string{
+		filepath.Join(appDir, ".smallweb", "smallweb.json"),
+		filepath.Join(appDir, ".smallweb", "smallweb.jsonc"),
+		filepath.Join(appDir, "smallweb.json"),
+		filepath.Join(appDir, "smallweb.jsonc"),
+	} {
 		if !utils.FileExists(configPath) {
 			continue
 		}
 
 		rawBytes, err := os.ReadFile(configPath)
 		if err != nil {
-			return App{}, fmt.Errorf("could not read %s: %v", configName, err)
+			return App{}, fmt.Errorf("could not read %s: %v", configPath, err)
 		}
 
 		configBytes, err := hujson.Standardize(rawBytes)
 		if err != nil {
-			return App{}, fmt.Errorf("could not standardize %s: %v", configName, err)
+			return App{}, fmt.Errorf("could not standardize %s: %v", configPath, err)
 		}
 
 		if err := json.Unmarshal(configBytes, &app.Config); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal %s: %v", configName, err)
+			return App{}, fmt.Errorf("could not unmarshal %s: %v", configPath, err)
 		}
 
 		return app, nil
