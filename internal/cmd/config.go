@@ -14,14 +14,14 @@ import (
 )
 
 func findConfigPath(root string) string {
-	for _, filename := range []string{"config.json", "config.jsonc"} {
+	for _, filename := range []string{"settings.json", "settings.jsonc", "config.json", "config.jsonc"} {
 		path := filepath.Join(root, ".smallweb", filename)
 		if _, err := os.Stat(path); err == nil {
 			return path
 		}
 	}
 
-	return filepath.Join(root, ".smallweb", "config.json")
+	return filepath.Join(root, ".smallweb", "settings.json")
 }
 
 func NewCmdConfig() *cobra.Command {

@@ -297,6 +297,10 @@ func NewCmdUp() *cobra.Command {
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKeyPath),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
+						if ctx.User() != "cli" {
+							return false
+						}
+
 						authorizedKeys := []string{authorizedKey}
 						homedir, err := os.UserHomeDir()
 						if err != nil {

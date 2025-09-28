@@ -1,0 +1,4 @@
+- [x] add support for both `smallweb.json` and `.smallweb/config.json` app config files
+- [ ] add support for CNAME files for custom domains
+- [ ] add support for `cli` and `git` username in ssh server
+- [ ] add support for app specific `authorized_keys` in ssh server
