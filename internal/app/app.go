@@ -162,7 +162,7 @@ func LoadApp(appDir string) (App, error) {
 		break
 	}
 
-	for _, configName := range []string{"config.jsonc", "config.json"} {
+	for _, configName := range []string{"smallweb.json", "smallweb.jsonc"} {
 		configPath := filepath.Join(appDir, ".smallweb", configName)
 		if !utils.FileExists(configPath) {
 			continue
