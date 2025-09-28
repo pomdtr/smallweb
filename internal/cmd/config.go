@@ -6,23 +6,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/mattn/go-isatty"
+	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/tailscale/hujson"
 )
-
-func findConfigPath(root string) string {
-	for _, filename := range []string{"settings.json", "settings.jsonc", "config.json", "config.jsonc"} {
-		path := filepath.Join(root, ".smallweb", filename)
-		if _, err := os.Stat(path); err == nil {
-			return path
-		}
-	}
-
-	return filepath.Join(root, ".smallweb", "settings.json")
-}
 
 func NewCmdConfig() *cobra.Command {
 	var flags struct {
@@ -33,7 +22,7 @@ func NewCmdConfig() *cobra.Command {
 		Use:   "config",
 		Short: "Open Smallweb configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			configPath := findConfigPath(k.String("dir"))
+			configPath := utils.FindConfigPath(k.String("dir"))
 			if flags.json || !isatty.IsTerminal(os.Stdout.Fd()) {
 				configBytes, err := os.ReadFile(configPath)
 				if err != nil {

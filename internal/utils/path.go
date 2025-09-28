@@ -6,8 +6,13 @@ import (
 )
 
 func FindConfigPath(rootDir string) string {
-	for _, candidate := range []string{".smallweb/config.jsonc", ".smallweb/config.json"} {
-		configPath := filepath.Join(rootDir, candidate)
+	for _, candidate := range []string{
+		"settings.json",
+		"settings.jsonc",
+		"config.json",
+		"config.jsonc",
+	} {
+		configPath := filepath.Join(rootDir, ".smallweb", candidate)
 		if _, err := os.Stat(configPath); err == nil {
 			return configPath
 		}

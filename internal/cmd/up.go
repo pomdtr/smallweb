@@ -184,6 +184,10 @@ func NewCmdUp() *cobra.Command {
 							return nil
 						}
 
+						if _, ok := watcher.LookupDomain(name); ok {
+							return nil
+						}
+
 						return fmt.Errorf("domain not found")
 					},
 				}
@@ -516,11 +520,15 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hostname = r.Host
 	}
 
-	appname, redirect, ok := lookupApp(hostname)
+	redirect := false
+	appname, ok := me.watcher.LookupDomain(hostname)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(fmt.Sprintf("No app found for hostname %s", hostname)))
-		return
+		appname, redirect, ok = lookupApp(hostname)
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(fmt.Sprintf("No app found for hostname %s", hostname)))
+			return
+		}
 	}
 
 	if redirect {

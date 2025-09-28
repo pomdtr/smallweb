@@ -1,0 +1,3 @@
+{
+    "entrypoint": "jsr:@smallweb/file-server@0.8.4"
+}
