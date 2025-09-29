@@ -44,7 +44,11 @@ func findSmallwebDir() string {
 	}
 
 	for filepath.Dir(currentDir) != currentDir {
-		if _, err := os.Stat(filepath.Join(currentDir, ".smallweb")); err == nil {
+		if _, err := os.Stat(filepath.Join(currentDir, ".smallweb", "config.json")); err == nil {
+			return currentDir
+		}
+
+		if _, err := os.Stat(filepath.Join(currentDir, ".smallweb", "config.jsonc")); err == nil {
 			return currentDir
 		}
 

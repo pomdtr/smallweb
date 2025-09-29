@@ -312,7 +312,15 @@ func NewCmdUp() *cobra.Command {
 							return false
 						}
 
-						if authorizedKeyBytes, err := os.ReadFile(filepath.Join(homedir, ".ssh", "authorizedKeys")); err == nil {
+						for _, authorizedKeysPath := range []string{
+							filepath.Join(homedir, ".ssh", "authorizedKeys"),
+							filepath.Join(k.String("dir"), ".smallweb", "authorized_keys"),
+						} {
+							authorizedKeyBytes, err := os.ReadFile(authorizedKeysPath)
+							if err != nil {
+								continue
+							}
+
 							for len(authorizedKeyBytes) > 0 {
 								pubKey, _, _, rest, err := gossh.ParseAuthorizedKey(authorizedKeyBytes)
 								if err != nil {
@@ -323,7 +331,6 @@ func NewCmdUp() *cobra.Command {
 							}
 						}
 
-						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
 						for _, authorizedKey := range authorizedKeys {
 							k, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
 							if err != nil {

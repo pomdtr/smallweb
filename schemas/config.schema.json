@@ -1,43 +1,25 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
+    "required": [
+        "domain"
+    ],
     "properties": {
-        "entrypoint": {
-            "description": "The file that smallweb will run",
+        "domain": {
+            "description": "Domain name",
             "type": "string"
         },
-        "root": {
-            "description": "The root directory of the project",
-            "type": "string"
-        },
-        "crons": {
-            "description": "Cron jobs",
+        "additionalDomains": {
+            "description": "Additional wildcard domains",
             "type": "array",
             "items": {
-                "type": "object",
-                "required": [
-                    "schedule",
-                    "args"
-                ],
-                "properties": {
-                    "schedule": {
-                        "description": "Cron schedule",
-                        "type": "string"
-                    },
-                    "args": {
-                        "description": "Cron arguments",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
+                "type": "string"
             }
         },
-        "labels": {
-            "description": "Labels for the app",
-            "type": "object",
-            "additionalProperties": {
+        "authorizedKeys": {
+            "description": "List of SSH public keys authorized to access the instance",
+            "type": "array",
+            "items": {
                 "type": "string"
             }
         }
