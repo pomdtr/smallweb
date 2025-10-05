@@ -19,37 +19,12 @@ type Watcher struct {
 	mu           sync.Mutex
 	reloadConfig func()
 	mtimes       map[string]time.Time
-	cnames       map[string]string
 	root         string
 }
 
 func NewWatcher(rootDir string, reloadConfig func()) (*Watcher, error) {
-	apps, err := app.LookupApps(rootDir)
-	if err != nil {
-		return nil, err
-	}
-
-	cnames := make(map[string]string)
-	for _, app := range apps {
-		for _, cnamePath := range []string{
-			filepath.Join(rootDir, app, "CNAME"),
-			filepath.Join(rootDir, app, ".smallweb", "CNAME"),
-		} {
-			cnameBytes, err := os.ReadFile(cnamePath)
-			if err != nil {
-				continue
-			}
-
-			domain := strings.TrimSpace(string(cnameBytes))
-			if domain != "" {
-				cnames[domain] = app
-			}
-		}
-	}
-
 	me := &Watcher{
 		mtimes:       make(map[string]time.Time),
-		cnames:       cnames,
 		root:         rootDir,
 		reloadConfig: reloadConfig,
 	}
@@ -118,23 +93,6 @@ func (me *Watcher) Start() error {
 				continue
 			}
 
-			if event.Name == filepath.Join(me.root, app, "CNAME") || event.Name == filepath.Join(me.root, app, ".smallweb", "CNAME") {
-				cnameBytes, err := os.ReadFile(event.Name)
-				if err != nil {
-					continue
-				}
-
-				domain := strings.TrimSpace(string(cnameBytes))
-				if domain == "" {
-					continue
-				}
-
-				me.mu.Lock()
-				me.cnames[domain] = app
-				me.mu.Unlock()
-				continue
-			}
-
 			me.mu.Lock()
 			me.mtimes[app] = fileinfo.ModTime()
 			me.mu.Unlock()
@@ -158,11 +116,6 @@ func (me *Watcher) Stop() {
 
 	me.watcher.Close()
 	me.watcher = nil
-}
-
-func (me *Watcher) LookupDomain(domain string) (string, bool) {
-	domain, ok := me.cnames[domain]
-	return domain, ok
 }
 
 func (me *Watcher) GetAppMtime(app string) time.Time {

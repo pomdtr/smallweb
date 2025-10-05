@@ -16,6 +16,15 @@
                 "type": "string"
             }
         },
+        "customDomains": {
+            "type": "object",
+            "description": "Custom domain to app name mapping",
+            "patternProperties": {
+                "^[a-zA-Z0-9.-]+$": {
+                    "type": "string"
+                }
+            }
+        },
         "authorizedKeys": {
             "description": "List of SSH public keys authorized to access the instance",
             "type": "array",

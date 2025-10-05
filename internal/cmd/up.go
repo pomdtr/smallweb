@@ -184,10 +184,6 @@ func NewCmdUp() *cobra.Command {
 							return nil
 						}
 
-						if _, ok := watcher.LookupDomain(name); ok {
-							return nil
-						}
-
 						return fmt.Errorf("domain not found")
 					},
 				}
@@ -301,10 +297,6 @@ func NewCmdUp() *cobra.Command {
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKeyPath),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
-						if ctx.User() != "cli" {
-							return false
-						}
-
 						authorizedKeys := []string{authorizedKey}
 						homedir, err := os.UserHomeDir()
 						if err != nil {
@@ -331,6 +323,8 @@ func NewCmdUp() *cobra.Command {
 							}
 						}
 
+						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
+
 						for _, authorizedKey := range authorizedKeys {
 							k, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
 							if err != nil {
@@ -349,19 +343,38 @@ func NewCmdUp() *cobra.Command {
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
 								var cmd *exec.Cmd
-								execPath, err := os.Executable()
-								if err != nil {
-									fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
-									sess.Exit(1)
-									return
-								}
+								if sess.User() != "_" {
+									a, err := app.LoadApp(filepath.Join(k.String("dir"), sess.User()))
+									if err != nil {
+										fmt.Fprintf(sess, "failed to load app: %v\n", err)
+										sess.Exit(1)
+										return
+									}
 
-								cmd = exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
-								cmd.Args = append(cmd.Args, sess.Command()...)
-								cmd.Dir = k.String("dir")
-								cmd.Env = os.Environ()
-								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
-								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLED_COMMANDS=up,config,init,doctor,completion")
+									wk := worker.NewWorker(a, nil)
+									c, err := wk.Command(sess.Context(), sess.Command())
+									if err != nil {
+										fmt.Fprintf(sess, "failed to get command: %v\n", err)
+										sess.Exit(1)
+										return
+									}
+
+									cmd = c
+								} else {
+									execPath, err := os.Executable()
+									if err != nil {
+										fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
+										sess.Exit(1)
+										return
+									}
+
+									cmd = exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
+									cmd.Args = append(cmd.Args, sess.Command()...)
+									cmd.Dir = k.String("dir")
+									cmd.Env = os.Environ()
+									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
+									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLED_COMMANDS=up,config,init,doctor,completion")
+								}
 
 								ptyReq, winCh, isPty := sess.Pty()
 								if isPty {
@@ -535,14 +548,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	redirect := false
-	appname, ok := me.watcher.LookupDomain(hostname)
+	appname, redirect, ok := lookupApp(hostname)
 	if !ok {
-		appname, redirect, ok = lookupApp(hostname)
-		if !ok {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(fmt.Sprintf("No app found for hostname %s", hostname)))
-			return
-		}
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(fmt.Sprintf("No app found for hostname %s", hostname)))
+		return
 	}
 
 	if redirect {
@@ -570,6 +580,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 func lookupApp(domain string) (app string, redirect bool, found bool) {
+	customDomains := k.StringMap("customDomains")
+	if v, ok := customDomains[domain]; ok {
+		return v, false, true
+	}
+
 	if domain == k.String("domain") {
 		return "www", true, true
 	}

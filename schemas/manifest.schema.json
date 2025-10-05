@@ -34,20 +34,6 @@
                 }
             }
         },
-        "authorizedKeys": {
-            "description": "List of SSH public keys authorized to access this app",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
-        "additionalDomains": {
-            "description": "Additional domains for the app",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
         "labels": {
             "description": "Labels for the app",
             "type": "object",
