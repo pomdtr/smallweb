@@ -367,7 +367,14 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
-		Timeout: 5 * time.Minute,
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout:   5 * time.Minute,
+				KeepAlive: 5 * time.Minute,
+			}).DialContext,
+			TLSHandshakeTimeout:   5 * time.Minute,
+			ResponseHeaderTimeout: 5 * time.Minute,
+		},
 	}
 
 	resp, err := client.Do(request)
