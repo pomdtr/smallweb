@@ -522,6 +522,23 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, ok := app.LookupDir(me.rootDir, hostname); !ok {
+		if parts := strings.Split(hostname, "."); parts[0] == "www" {
+			// check without www
+			baseDomain := strings.Join(parts[1:], ".")
+			if _, ok := app.LookupDir(me.rootDir, baseDomain); ok {
+				http.Redirect(w, r, fmt.Sprintf("%s://%s%s", ExtractScheme(r), baseDomain, r.URL.RequestURI()), http.StatusFound)
+				return
+			}
+		} else {
+			// check with www
+			wwwDomain := "www." + hostname
+			if _, ok := app.LookupDir(me.rootDir, wwwDomain); ok {
+				hostname = wwwDomain
+				http.Redirect(w, r, fmt.Sprintf("%s://%s%s", ExtractScheme(r), hostname, r.URL.RequestURI()), http.StatusFound)
+				return
+			}
+		}
+
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
 		return
