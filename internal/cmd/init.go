@@ -5,7 +5,6 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/leaanthony/gosod"
 	"github.com/spf13/cobra"
 )
 
@@ -18,12 +17,6 @@ func NewCmdInit() *cobra.Command {
 		Args:  cobra.NoArgs,
 		Short: "Initialize a new workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domain := k.String("domain")
-			if domain == "" {
-				cmd.PrintErrf("--domain flag is required for init command")
-				return ExitError{1}
-			}
-
 			dir := k.String("dir")
 			if dir == "" {
 				cwd, err := os.Getwd()
@@ -41,11 +34,8 @@ func NewCmdInit() *cobra.Command {
 				return ExitError{1}
 			}
 
-			templateFS := gosod.New(subFS)
-			if err := templateFS.Extract(dir, map[string]any{
-				"Domain": domain,
-			}); err != nil {
-				cmd.PrintErrf("failed to extract workspace: %v\n", err)
+			if err := os.CopyFS(dir, subFS); err != nil {
+				cmd.PrintErrf("failed to copy template files: %v\n", err)
 				return ExitError{1}
 			}
 

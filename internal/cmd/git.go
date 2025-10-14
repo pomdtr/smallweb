@@ -15,7 +15,7 @@ func NewCmdGitReceivePack() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(filepath.Join(k.String("dir"), args[0]))
+			a, err := app.LoadApp(k.String("dir"), filepath.Join(args[0]))
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}
@@ -49,7 +49,7 @@ func NewCmdGitUploadPack() *cobra.Command {
 		Args:   cobra.ExactArgs(1),
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(filepath.Join(k.String("dir"), args[0]))
+			a, err := app.LoadApp(k.String("dir"), filepath.Join(args[0]))
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}

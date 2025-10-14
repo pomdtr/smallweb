@@ -11,7 +11,6 @@ import (
 
 	"github.com/abiosoft/ishell/v2"
 	"github.com/abiosoft/readline"
-	"github.com/adrg/xdg"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -37,27 +36,6 @@ var (
 	k = koanf.New(".")
 )
 
-func findSmallwebDir() string {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-
-	for filepath.Dir(currentDir) != currentDir {
-		if _, err := os.Stat(filepath.Join(currentDir, ".smallweb", "config.json")); err == nil {
-			return currentDir
-		}
-
-		if _, err := os.Stat(filepath.Join(currentDir, ".smallweb", "config.jsonc")); err == nil {
-			return currentDir
-		}
-
-		currentDir = filepath.Dir(currentDir)
-	}
-
-	return ""
-}
-
 var envProvider = env.ProviderWithValue("SMALLWEB_", ".", func(s string, v string) (string, interface{}) {
 	switch s {
 	case "SMALLWEB_DIR":
@@ -77,6 +55,7 @@ func (f fakeReadCloser) Close() error {
 
 func NewCmdRoot() *cobra.Command {
 	_ = k.Load(envProvider, nil)
+
 	rootCmd := &cobra.Command{
 		Use:           "smallweb",
 		Short:         "Host websites from your internet folder",
@@ -84,14 +63,23 @@ func NewCmdRoot() *cobra.Command {
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("failed to get user home directory: %w", err)
+			}
+
 			_ = k.Load(confmap.Provider(map[string]interface{}{
-				"dir": findSmallwebDir(),
+				"dir": filepath.Join(homeDir, "smallweb"),
 			}, "."), nil)
 
 			_ = k.Load(envProvider, nil)
 			_ = k.Load(flagProvider, nil)
 
-			configPath := utils.FindConfigPath(k.String("dir"))
+			configPath, err := utils.FindConfigPath()
+			if err != nil {
+				return fmt.Errorf("failed to find config file: %w", err)
+			}
+
 			fileProvider := file.Provider(configPath)
 
 			_ = k.Load(fileProvider, utils.ConfigParser())
@@ -118,7 +106,7 @@ func NewCmdRoot() *cobra.Command {
 
 				shell.AutoHelp(false)
 
-				appnames, err := app.LookupApps(k.String("dir"))
+				domains, err := ListApps(k.String("dir"))
 				if err != nil {
 					return fmt.Errorf("failed to lookup apps: %w", err)
 				}
@@ -159,12 +147,12 @@ func NewCmdRoot() *cobra.Command {
 					Aliases: []string{"/ls"},
 					Help:    "list available apps",
 					Func: func(c *ishell.Context) {
-						if len(appnames) == 0 {
+						if len(domains) == 0 {
 							cmd.PrintErrln("No apps found.")
 							return
 						}
 
-						for _, appname := range appnames {
+						for _, appname := range domains {
 							cmd.Println(appname)
 						}
 					},
@@ -174,14 +162,14 @@ func NewCmdRoot() *cobra.Command {
 					c.Err(fmt.Errorf("command not found: %s", c.Args[0]))
 				})
 
-				for _, appname := range appnames {
+				for _, domain := range domains {
 					shell.AddCmd(&ishell.Cmd{
-						Name: appname,
-						Help: fmt.Sprintf("run %s app", appname),
+						Name: domain,
+						Help: fmt.Sprintf("run %s app", domain),
 						Func: func(c *ishell.Context) {
-							a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
+							a, err := app.LoadApp(k.String("dir"), domain)
 							if err != nil {
-								c.Err(fmt.Errorf("failed to load app %s: %w", appname, err))
+								c.Err(fmt.Errorf("failed to load app %s: %w", domain, err))
 								return
 							}
 
@@ -189,7 +177,7 @@ func NewCmdRoot() *cobra.Command {
 
 							command, err := wk.Command(cmd.Context(), c.Args)
 							if err != nil {
-								c.Err(fmt.Errorf("failed to create command for app %s: %w", appname, err))
+								c.Err(fmt.Errorf("failed to create command for app %s: %w", domain, err))
 								return
 							}
 
@@ -216,48 +204,49 @@ func NewCmdRoot() *cobra.Command {
 				}
 			}
 
-			for _, pluginDir := range []string{
-				filepath.Join(k.String("dir"), ".smallweb", "commands"),
-				filepath.Join(xdg.ConfigHome, "smallweb", "commands"),
-			} {
-				entries, err := os.ReadDir(pluginDir)
-				if err != nil {
+			configDir, err := os.UserConfigDir()
+			if err != nil {
+				return fmt.Errorf("failed to get user config directory: %w", err)
+			}
+
+			commandDir := filepath.Join(configDir, "commands")
+
+			entries, err := os.ReadDir(commandDir)
+			if err != nil {
+				return nil
+			}
+
+			for _, entry := range entries {
+				if entry.IsDir() {
 					continue
 				}
 
-				for _, entry := range entries {
-					if entry.IsDir() {
-						continue
-					}
-
-					plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-					if plugin != args[0] {
-						continue
-					}
-
-					entrypoint := filepath.Join(pluginDir, entry.Name())
-
-					if ok, err := isExecutable(entrypoint); err != nil {
-						return fmt.Errorf("failed to check if plugin is executable: %w", err)
-					} else if !ok {
-						if err := os.Chmod(entrypoint, 0755); err != nil {
-							return fmt.Errorf("failed to make plugin executable: %w", err)
-						}
-					}
-
-					command := exec.Command(entrypoint, args[1:]...)
-					command.Env = os.Environ()
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", k.String("dir")))
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
-
-					command.Stdin = os.Stdin
-					command.Stdout = cmd.OutOrStdout()
-					command.Stderr = cmd.ErrOrStderr()
-
-					cmd.SilenceErrors = true
-					return command.Run()
+				plugin := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+				if plugin != args[0] {
+					continue
 				}
+
+				entrypoint := filepath.Join(commandDir, entry.Name())
+
+				if ok, err := isExecutable(entrypoint); err != nil {
+					return fmt.Errorf("failed to check if plugin is executable: %w", err)
+				} else if !ok {
+					if err := os.Chmod(entrypoint, 0755); err != nil {
+						return fmt.Errorf("failed to make plugin executable: %w", err)
+					}
+				}
+
+				command := exec.Command(entrypoint, args[1:]...)
+				command.Env = os.Environ()
+				command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
+				command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", k.String("dir")))
+
+				command.Stdin = os.Stdin
+				command.Stdout = cmd.OutOrStdout()
+				command.Stderr = cmd.ErrOrStderr()
+
+				cmd.SilenceErrors = true
+				return command.Run()
 			}
 
 			return fmt.Errorf("unknown command \"%s\" for \"smallweb\"", args[0])
@@ -265,7 +254,6 @@ func NewCmdRoot() *cobra.Command {
 	}
 
 	rootCmd.PersistentFlags().String("dir", "", "The root directory for smallweb")
-	rootCmd.PersistentFlags().String("domain", "", "The domain for smallweb")
 	rootCmd.Flags().SetInterspersed(false)
 
 	rootCmd.AddCommand(NewCmdRun())
@@ -329,25 +317,24 @@ func completeCommands(cmd *cobra.Command, args []string, toComplete string) ([]s
 		return nil, cobra.ShellCompDirectiveDefault
 	}
 
-	var completions []string
-	for _, dir := range []string{
-		filepath.Join(k.String("dir"), ".smallweb", "commands"),
-		filepath.Join(xdg.ConfigHome, "smallweb", "commands"),
-	} {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
 
-		entries, err := os.ReadDir(dir)
-		if err != nil {
+	entries, err := os.ReadDir(filepath.Join(configDir, "commands"))
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	var completions []string
+	for _, entry := range entries {
+		if entry.IsDir() {
 			continue
 		}
 
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-
-			name := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
-			completions = append(completions, fmt.Sprintf("%s\tCustom command", name))
-		}
+		name := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
+		completions = append(completions, fmt.Sprintf("%s\tCustom command", name))
 	}
 
 	return completions, cobra.ShellCompDirectiveNoFileComp
@@ -361,7 +348,7 @@ func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string
 	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 	_ = k.Load(flagProvider, nil)
 
-	apps, err := app.LookupApps(k.String("dir"))
+	apps, err := ListApps(k.String("dir"))
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}

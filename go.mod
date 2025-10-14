@@ -30,7 +30,6 @@ require (
 	github.com/getsops/sops/v3 v3.10.2
 	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/providers/posflag v1.0.1
-	github.com/leaanthony/gosod v1.0.4
 	github.com/lmittmann/tint v1.1.2
 	github.com/mhale/smtpd v0.8.3
 	github.com/pkg/sftp v1.13.9

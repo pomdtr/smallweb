@@ -36,7 +36,7 @@ type CronJob struct {
 }
 
 type App struct {
-	Name   string
+	Id     string
 	Dir    string
 	Config AppConfig
 	env    map[string]string
@@ -88,37 +88,16 @@ func (me *App) DataDir() string {
 	return dir
 }
 
-func LookupApps(rootDir string) ([]string, error) {
-	entries, err := os.ReadDir(rootDir)
-	if err != nil {
-		return nil, fmt.Errorf("could not read directory %s: %v", rootDir, err)
-	}
-
-	apps := make([]string, 0)
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-
-		if !entry.IsDir() {
-			continue
-		}
-
-		apps = append(apps, entry.Name())
-	}
-
-	return apps, nil
-}
-
-func LoadApp(appDir string) (App, error) {
-	if !utils.FileExists(appDir) {
+func LoadApp(rootDir string, domain string) (App, error) {
+	appDir, ok := LookupDir(rootDir, domain)
+	if !ok {
 		return App{}, ErrAppNotFound
 	}
 
 	app := App{
-		Name: filepath.Base(appDir),
-		Dir:  appDir,
-		env:  make(map[string]string),
+		Id:  domain,
+		Dir: appDir,
+		env: make(map[string]string),
 	}
 
 	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {
@@ -163,8 +142,6 @@ func LoadApp(appDir string) (App, error) {
 	}
 
 	for _, configPath := range []string{
-		filepath.Join(appDir, ".smallweb", "smallweb.json"),
-		filepath.Join(appDir, ".smallweb", "smallweb.jsonc"),
 		filepath.Join(appDir, "smallweb.json"),
 		filepath.Join(appDir, "smallweb.jsonc"),
 	} {
@@ -192,6 +169,14 @@ func LoadApp(appDir string) (App, error) {
 	return app, nil
 }
 
+func (me App) URL() string {
+	if strings.HasPrefix(me.Id, "_.") {
+		return fmt.Sprintf("https://%s", strings.TrimPrefix(me.Id, "_."))
+	}
+
+	return fmt.Sprintf("https://%s", me.Id)
+}
+
 func (me App) Entrypoint() (string, error) {
 	if strings.HasPrefix(me.Config.Entrypoint, "jsr:") || strings.HasPrefix(me.Config.Entrypoint, "npm:") {
 		return me.Config.Entrypoint, nil
@@ -212,7 +197,7 @@ func (me App) Entrypoint() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("could not find entrypoint for app %s", me.Name)
+	return "jsr:@smallweb/file-server@0.8.4", nil
 }
 
 func (me App) Env() []string {
@@ -231,7 +216,29 @@ func (me App) Env() []string {
 			env = append(env, value)
 		}
 	}
-	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.Name))
+	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.Id))
 
 	return env
+}
+
+func LookupDir(rootDir string, domain string) (string, bool) {
+	if _, err := os.Stat(filepath.Join(rootDir, domain)); err == nil {
+		if _, err := os.Stat(filepath.Join(rootDir, domain, "_")); err != nil {
+			return "", false
+		}
+
+		return filepath.Join(rootDir, domain, "_"), true
+	}
+
+	parts := strings.Split(domain, ".")
+	if len(parts) < 2 {
+		return "", false
+	}
+
+	subdomain, baseDomain := parts[0], strings.Join(parts[1:], ".")
+	if _, err := os.Stat(filepath.Join(rootDir, baseDomain, subdomain)); err == nil {
+		return filepath.Join(rootDir, baseDomain, subdomain), true
+	}
+
+	return "", false
 }

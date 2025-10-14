@@ -5,10 +5,12 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/pkg/sftp"
+	"github.com/pomdtr/smallweb/internal/app"
 )
 
 func SSHOption(rootPath string, logger *slog.Logger) ssh.Option {
@@ -33,12 +35,22 @@ func SubsystemHandler(dir string, logger *slog.Logger) ssh.SubsystemHandler {
 			}
 		}()
 
-		if session.User() != "_" {
-			wish.Errorln(session, "sftp subsystem is only available for the _ user")
-			return
+		var rootDir string
+		if session.User() == "_" {
+			rootDir = dir
+		} else if _, err := os.Stat(filepath.Join(dir, session.User())); err == nil {
+			rootDir = filepath.Join(dir, session.User())
+		} else {
+			appDir, ok := app.LookupDir(dir, session.User())
+			if !ok {
+				wish.Errorln(session, "app not found")
+				return
+			}
+
+			rootDir = appDir
 		}
 
-		root, err := os.OpenRoot(dir)
+		root, err := os.OpenRoot(rootDir)
 		if err != nil {
 			if logger != nil {
 				logger.Error("Error opening root", "err", err)

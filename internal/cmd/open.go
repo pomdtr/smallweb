@@ -19,9 +19,9 @@ func NewCmdOpen() *cobra.Command {
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completeApp,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var appname string
+			var domain string
 			if len(args) > 0 {
-				appname = args[0]
+				domain = args[0]
 			} else {
 				cwd, err := os.Getwd()
 				if err != nil {
@@ -39,22 +39,29 @@ func NewCmdOpen() *cobra.Command {
 					return ExitError{1}
 				}
 
-				appDir := cwd
-				for filepath.Dir(appDir) != k.String("dir") {
-					appDir = filepath.Dir(appDir)
+				relPath, err := filepath.Rel(k.String("dir"), cwd)
+				if err != nil {
+					cmd.PrintErrln("could not get relative path:", err)
+					return ExitError{1}
 				}
 
-				appname = filepath.Base(appDir)
+				parts := strings.Split(relPath, string(os.PathSeparator))
+				if len(parts) < 2 {
+					cmd.PrintErrln("not in an app directory")
+					return ExitError{1}
+				}
+
+				domain = fmt.Sprintf("%s.%s", parts[1], parts[0])
 			}
 
-			a, err := app.LoadApp(path.Join(k.String("dir"), appname))
+			a, err := app.LoadApp(k.String("dir"), domain)
 			if err != nil {
-				cmd.PrintErrf("could not load app %q: %v\n", appname, err)
+				cmd.PrintErrf("could not load app %q: %v\n", domain, err)
 				return ExitError{1}
 			}
 
-			if err := browser.OpenURL(fmt.Sprintf("http://%s.%s", a.Name, k.String("domain"))); err != nil {
-				cmd.PrintErrf("could not open browser for app %q: %v\n", appname, err)
+			if err := browser.OpenURL(fmt.Sprintf("https://%s", a.Id)); err != nil {
+				cmd.PrintErrf("could not open browser for app %q: %v\n", domain, err)
 				return ExitError{1}
 			}
 

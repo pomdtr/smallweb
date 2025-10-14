@@ -1,17 +1,23 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
 
-func FindConfigPath(rootDir string) string {
+func FindConfigPath() (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user config directory: %w", err)
+	}
+
 	for _, candidate := range []string{"config.json", "config.jsonc"} {
-		configPath := filepath.Join(rootDir, ".smallweb", candidate)
+		configPath := filepath.Join(configDir, "smallweb", candidate)
 		if _, err := os.Stat(configPath); err == nil {
-			return configPath
+			return configPath, nil
 		}
 	}
 
-	return filepath.Join(rootDir, ".smallweb/config.json")
+	return filepath.Join(configDir, ".config", "smallweb", "config.jsonc"), nil
 }

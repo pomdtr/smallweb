@@ -3,6 +3,7 @@ package watcher
 import (
 	"fmt"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,23 +11,19 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/pomdtr/smallweb/internal/app"
-	"github.com/pomdtr/smallweb/internal/utils"
 )
 
 type Watcher struct {
-	watcher      *fsnotify.Watcher
-	mu           sync.Mutex
-	reloadConfig func()
-	mtimes       map[string]time.Time
-	root         string
+	watcher *fsnotify.Watcher
+	mu      sync.Mutex
+	mtimes  map[string]time.Time
+	root    string
 }
 
-func NewWatcher(rootDir string, reloadConfig func()) (*Watcher, error) {
+func NewWatcher(rootDir string) (*Watcher, error) {
 	me := &Watcher{
-		mtimes:       make(map[string]time.Time),
-		root:         rootDir,
-		reloadConfig: reloadConfig,
+		mtimes: make(map[string]time.Time),
+		root:   rootDir,
 	}
 
 	return me, nil
@@ -48,9 +45,11 @@ func (me *Watcher) Start() error {
 			if !ok {
 				return fmt.Errorf("watcher closed")
 			}
+
 			if !event.Has(fsnotify.Create) && !event.Has(fsnotify.Write) && !event.Has(fsnotify.Remove) {
 				continue
 			}
+
 			fileinfo, err := os.Stat(event.Name)
 			if err != nil {
 				continue
@@ -62,39 +61,25 @@ func (me *Watcher) Start() error {
 				continue
 			}
 
-			// if the event is originated from config file, reload the config and update all mtimes
-			if event.Name == utils.FindConfigPath(me.root) {
-				go me.reloadConfig()
-				apps, err := app.LookupApps(me.root)
-				if err != nil {
-					continue
-				}
-
-				me.mu.Lock()
-				for _, app := range apps {
-					me.mtimes[app] = fileinfo.ModTime()
-				}
-				me.mu.Unlock()
+			if filepath.Dir(event.Name) == me.root {
+				// ignore changes in the root dir
 				continue
 			}
 
-			dir := filepath.Dir(event.Name)
-			if dir == me.root {
+			relPath, err := filepath.Rel(me.root, event.Name)
+			if err != nil {
 				continue
 			}
 
-			var app string
-			for dir != me.root {
-				app = filepath.Base(dir)
-				dir = filepath.Dir(dir)
-			}
-
-			if strings.HasPrefix(app, ".") {
+			parts := strings.Split(relPath, string(os.PathSeparator))
+			if len(parts) < 2 {
+				// ignore changes outside of app dirs
 				continue
 			}
 
+			domain := fmt.Sprintf("%s.%s", parts[1], parts[0])
 			me.mu.Lock()
-			me.mtimes[app] = fileinfo.ModTime()
+			me.mtimes[domain] = fileinfo.ModTime()
 			me.mu.Unlock()
 		case err, ok := <-watcher.Errors:
 			if !ok {
@@ -118,11 +103,11 @@ func (me *Watcher) Stop() {
 	me.watcher = nil
 }
 
-func (me *Watcher) GetAppMtime(app string) time.Time {
+func (me *Watcher) GetAppMtime(domain string) time.Time {
 	me.mu.Lock()
 	defer me.mu.Unlock()
 
-	mtime, ok := me.mtimes[app]
+	mtime, ok := me.mtimes[domain]
 	if !ok {
 		return time.Time{}
 	}
@@ -168,4 +153,16 @@ func (me *Watcher) AddDir(dir string) error {
 	})
 
 	return nil
+}
+
+func ExtractScheme(r *http.Request) string {
+	if scheme := r.URL.Query().Get("X-Forwarded-Proto"); scheme != "" {
+		return scheme
+	}
+
+	if r.TLS != nil {
+		return "https"
+	}
+
+	return "http"
 }

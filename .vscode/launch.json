@@ -9,27 +9,11 @@
                 "up",
                 "--addr=:7777",
                 "--ssh-addr=:2222",
-                "--smtp-addr=:2525",
+                // "--smtp-addr=:2525",
                 // "--log-output=${workspaceFolder}/example/logs/data/smallweb.log"
             ],
-            "cwd": "${workspaceFolder}/example",
             "env": {
-                "DENO_TLS_CA_STORE": "system",
-            },
-        },
-        {
-            "name": "smallweb.run up",
-            "type": "go",
-            "request": "launch",
-            "program": "${workspaceFolder}/main.go",
-            "args": [
-                "up",
-                "--domain=smallweb.localhost",
-                "--addr=:7777",
-                "--ssh-addr=:2222"
-            ],
-            "cwd": "${userHome}/smallweb/smallweb.run",
-            "env": {
+                "SMALLWEB_DIR": "${workspaceFolder}/demo",
                 "DENO_TLS_CA_STORE": "system",
             },
         },
@@ -43,23 +27,9 @@
                 "ls"
             ],
             "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/example",
+                "SMALLWEB_DIR": "${workspaceFolder}/demo",
+                "DENO_TLS_CA_STORE": "system",
             },
-        },
-        {
-            "name": "opentelemetry",
-            "type": "go",
-            "request": "launch",
-            "program": "${workspaceFolder}/main.go",
-            "args": [
-                "up",
-                "--addr=:7777",
-                "--ssh-addr=:2222"
-            ],
-            "env": {
-                "SMALLWEB_DIR": "${workspaceFolder}/example",
-                "OTEL_DENO": "true",
-            }
         }
     ]
 }

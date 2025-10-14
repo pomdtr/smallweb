@@ -1,6 +1,5 @@
 {
     "recommendations": [
-        "denoland.vscode-deno",
-        "pomdtr.smallweb"
+        "denoland.vscode-deno"
     ]
 }

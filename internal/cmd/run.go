@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/worker"
@@ -25,7 +24,7 @@ func NewCmdRun() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(filepath.Join(k.String("dir"), args[0]))
+			a, err := app.LoadApp(k.String("dir"), args[0])
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}

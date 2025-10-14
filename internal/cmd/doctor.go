@@ -24,6 +24,7 @@ func NewCmdDoctor() *cobra.Command {
 				fmt.Fprintln(cmd.ErrOrStderr(), "💡 Run `smallweb init` to initialize the workspace")
 				return nil
 			}
+
 			fmt.Fprintln(cmd.ErrOrStderr(), "✅ Smallweb directory found")
 			fmt.Fprintln(cmd.ErrOrStderr())
 
@@ -37,12 +38,6 @@ func NewCmdDoctor() *cobra.Command {
 			fmt.Fprintf(cmd.ErrOrStderr(), "✅ Deno version is compatible (%s)\n", version)
 			fmt.Fprintln(cmd.ErrOrStderr())
 
-			fmt.Fprintln(cmd.ErrOrStderr(), "🔍 Checking domain...")
-			if k.String("domain") == "" {
-				fmt.Fprintln(cmd.ErrOrStderr(), "❌ Domain not set")
-				fmt.Fprintf(cmd.ErrOrStderr(), "💡 Set it using the `domain` field in your smallweb config")
-				return nil
-			}
 			fmt.Fprintln(cmd.ErrOrStderr(), "✅ Domain is set")
 			fmt.Fprintln(cmd.ErrOrStderr())
 

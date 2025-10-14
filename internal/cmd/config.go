@@ -22,7 +22,12 @@ func NewCmdConfig() *cobra.Command {
 		Use:   "config",
 		Short: "Open Smallweb configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			configPath := utils.FindConfigPath(k.String("dir"))
+			configPath, err := utils.FindConfigPath()
+			if err != nil {
+				cmd.PrintErrf("failed to find config file: %v\n", err)
+				return ExitError{1}
+			}
+
 			if flags.json || !isatty.IsTerminal(os.Stdout.Fd()) {
 				configBytes, err := os.ReadFile(configPath)
 				if err != nil {

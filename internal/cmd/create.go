@@ -32,7 +32,13 @@ func NewCmdCreate() *cobra.Command {
 				return ExitError{1}
 			}
 
-			templatesDir := filepath.Join(k.String("dir"), ".smallweb", "templates")
+			configDir, err := os.UserConfigDir()
+			if err != nil {
+				cmd.PrintErrf("failed to get user config directory: %v\n", err)
+				return ExitError{1}
+			}
+
+			templatesDir := filepath.Join(configDir, "templates")
 			var templateFS fs.FS
 			if flags.template != "" {
 				templateDir := filepath.Join(templatesDir, flags.template)
@@ -72,7 +78,12 @@ func completeTemplate(cmd *cobra.Command, args []string, toComplete string) ([]s
 	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 	_ = k.Load(flagProvider, nil)
 
-	entries, err := os.ReadDir(filepath.Join(k.String("dir"), ".smallweb", "templates"))
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	entries, err := os.ReadDir(filepath.Join(configDir, "templates"))
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}

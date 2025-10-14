@@ -85,11 +85,41 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
 	// if root is not a symlink
 	appDir := me.App.Root()
+	// Helper to collect additional read/write paths for symlinked subdirectories in data dir
+	additionalRead := []string{}
+	additionalWrite := []string{}
+
+	dataDir := me.App.DataDir()
+	entries, err := os.ReadDir(dataDir)
+	if err == nil {
+		for _, entry := range entries {
+			fullPath := filepath.Join(dataDir, entry.Name())
+			fi, err := os.Lstat(fullPath)
+			if err != nil || fi.Mode()&os.ModeSymlink == 0 {
+				continue
+			}
+			target, err := os.Readlink(fullPath)
+			if err != nil {
+				continue
+			}
+			if !filepath.IsAbs(target) {
+				target = filepath.Join(filepath.Dir(fullPath), target)
+			}
+			additionalRead = append(additionalRead, target)
+			additionalWrite = append(additionalWrite, target)
+		}
+	}
+
 	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
+		readPaths := []string{appDir, deno, npmCache}
+		writePaths := []string{dataDir}
+		readPaths = append(readPaths, additionalRead...)
+		writePaths = append(writePaths, additionalWrite...)
+
 		args = append(
 			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", appDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
+			fmt.Sprintf("--allow-read=%s", strings.Join(readPaths, ",")),
+			fmt.Sprintf("--allow-write=%s", strings.Join(writePaths, ",")),
 		)
 
 		return args, nil
@@ -104,10 +134,15 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 		target = filepath.Join(filepath.Dir(appDir), target)
 	}
 
+	readPaths := []string{appDir, target, deno, npmCache}
+	writePaths := []string{dataDir, filepath.Join(target, "data")}
+	readPaths = append(readPaths, additionalRead...)
+	writePaths = append(writePaths, additionalWrite...)
+
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, target, deno, npmCache),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
+		fmt.Sprintf("--allow-read=%s", strings.Join(readPaths, ",")),
+		fmt.Sprintf("--allow-write=%s", strings.Join(writePaths, ",")),
 	)
 
 	return args, nil

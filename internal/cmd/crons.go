@@ -3,9 +3,11 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -30,13 +32,13 @@ func NewCmdCrons() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:               "crons [app]",
+		Use:               "crons [domain]",
 		Aliases:           []string{"cron"},
 		Short:             "List cron jobs",
 		ValidArgsFunction: completeApp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var crons []CronItem
-			apps, err := app.LookupApps(k.String("dir"))
+			apps, err := ListApps(k.String("dir"))
 			if err != nil {
 				cmd.PrintErrf("failed to list apps: %v\n", err)
 				return ExitError{1}
@@ -47,7 +49,7 @@ func NewCmdCrons() *cobra.Command {
 					continue
 				}
 
-				a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
+				a, err := app.LoadApp(k.String("dir"), appname)
 				if err != nil {
 					cmd.PrintErrf("failed to load app %s: %v\n", appname, err)
 					return ExitError{1}
@@ -125,20 +127,20 @@ func NewCmdCrons() *cobra.Command {
 	return cmd
 }
 
-func CronRunner(logger *slog.Logger) *cron.Cron {
+func CronRunner(rootDir string, logger *slog.Logger) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
-		apps, err := app.LookupApps(k.String("dir"))
+		domains, err := ListApps(rootDir)
 		if err != nil {
 			logger.Error("failed to list apps", "error", err)
 			return
 		}
 
-		for _, appname := range apps {
-			a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
+		for _, domain := range domains {
+			a, err := app.LoadApp(rootDir, domain)
 			if err != nil {
-				logger.Error("failed to load app", "app", appname, "error", err)
+				logger.Error("failed to load app", "app", domain, "error", err)
 				continue
 			}
 
@@ -146,7 +148,7 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 			for _, job := range a.Config.Crons {
 				sched, err := parser.Parse(job.Schedule)
 				if err != nil {
-					logger.Error("failed to parse cron schedule", "app", appname, "schedule", job.Schedule, "error", err)
+					logger.Error("failed to parse cron schedule", "app", domain, "schedule", job.Schedule, "error", err)
 					continue
 				}
 
@@ -154,23 +156,23 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 					continue
 				}
 
-				a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
+				a, err := app.LoadApp(k.String("dir"), domain)
 				if err != nil {
-					logger.Error("failed to load app", "app", appname, "error", err)
+					logger.Error("failed to load app", "app", domain, "error", err)
 					continue
 				}
 				wk := worker.NewWorker(a, nil)
 
 				command, err := wk.Command(context.Background(), job.Args)
 				if err != nil {
-					logger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
+					logger.Error("failed to create command", "app", domain, "args", job.Args, "error", err)
 					continue
 				}
 
-				logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
+				logger.Info("running cron job", "app", domain, "args", job.Args, "schedule", job.Schedule)
 				go func() {
 					if err := command.Run(); err != nil {
-						logger.Error("failed to run command", "app", appname, "args", job.Args, "error", err)
+						logger.Error("failed to run command", "app", domain, "args", job.Args, "error", err)
 					}
 				}()
 			}
@@ -178,4 +180,41 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 	})
 
 	return c
+}
+
+func ListApps(rootDir string) ([]string, error) {
+	dirs, err := os.ReadDir(rootDir)
+	if err != nil {
+		return nil, fmt.Errorf("could not read directory %s: %v", rootDir, err)
+	}
+
+	domains := make([]string, 0)
+	for _, entry := range dirs {
+		if strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+
+		if !entry.IsDir() {
+			continue
+		}
+
+		subdirs, err := os.ReadDir(filepath.Join(rootDir, entry.Name()))
+		if err != nil {
+			continue
+		}
+
+		for _, subdir := range subdirs {
+			if strings.HasPrefix(subdir.Name(), ".") {
+				continue
+			}
+
+			if !subdir.IsDir() {
+				continue
+			}
+
+			domains = append(domains, fmt.Sprintf("%s.%s", subdir.Name(), entry.Name()))
+		}
+	}
+
+	return domains, nil
 }

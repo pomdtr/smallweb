@@ -11,7 +11,7 @@ const server = new McpServer({
 // Add an addition tool
 server.tool("add",
     { a: z.number(), b: z.number() },
-    async ({ a, b }) => ({
+    ({ a, b }) => ({
         content: [{ type: "text", text: String(a + b) }]
     })
 );
@@ -20,7 +20,7 @@ server.tool("add",
 server.resource(
     "greeting",
     new ResourceTemplate("greeting://{name}", { list: undefined }),
-    async (uri, { name }) => ({
+    (uri, { name }) => ({
         contents: [{
             uri: uri.href,
             text: `Hello, ${name}!`

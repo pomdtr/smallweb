@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -35,15 +34,15 @@ func NewCmdList() *cobra.Command {
 				return ExitError{1}
 			}
 
-			names, err := app.LookupApps(k.String("dir"))
+			domains, err := ListApps(k.String("dir"))
 			if err != nil {
 				cmd.PrintErrln("failed to list apps:", err)
 				return ExitError{1}
 			}
 
 			apps := make([]app.App, 0)
-			for _, name := range names {
-				a, err := app.LoadApp(filepath.Join(k.String("dir"), name))
+			for _, domain := range domains {
+				a, err := app.LoadApp(k.String("dir"), domain)
 				if err != nil {
 					continue
 				}
@@ -56,9 +55,8 @@ func NewCmdList() *cobra.Command {
 
 				for _, a := range apps {
 					entries = append(entries, AppEntry{
-						Name: a.Name,
+						Name: a.Id,
 						Dir:  strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1),
-						Url:  fmt.Sprintf("https://%s.%s", a.Name, k.String("domain")),
 					})
 				}
 
@@ -93,11 +91,11 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir", "Url"})
+			printer.AddHeader([]string{"Id", "Dir", "Url"})
 			for _, a := range apps {
-				printer.AddField(a.Name)
+				printer.AddField(a.Id)
 				printer.AddField(strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1))
-				printer.AddField(fmt.Sprintf("https://%s.%s", a.Name, k.String("domain")))
+				printer.AddField(a.URL())
 
 				printer.EndRow()
 			}
