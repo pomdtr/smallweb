@@ -89,7 +89,10 @@ func NewCmdRoot() *cobra.Command {
 					return nil
 				}
 
-				k.Set("domain", parts[0])
+				domain := parts[0]
+				if !strings.HasPrefix(domain, ".") {
+					k.Set("domain", parts[0])
+				}
 			}
 
 			return nil
