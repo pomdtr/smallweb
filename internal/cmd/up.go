@@ -494,7 +494,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hostname = r.Host
 	}
 
-	domain, appname, ok := ResolveHostname(me.rootDir, hostname)
+	appname, domain, ok := ResolveHostname(me.rootDir, hostname)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
