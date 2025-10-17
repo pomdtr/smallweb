@@ -22,6 +22,7 @@ var (
 type AppConfig struct {
 	Entrypoint string    `json:"entrypoint,omitempty"`
 	Root       string    `json:"root,omitempty"`
+	AtUri      string    `json:"atUri,omitempty"`
 	Crons      []CronJob `json:"crons,omitempty"`
 }
 
@@ -36,7 +37,8 @@ type CronJob struct {
 }
 
 type App struct {
-	Id     string
+	Name   string
+	Domain string
 	Dir    string
 	Config AppConfig
 	env    map[string]string
@@ -88,16 +90,18 @@ func (me *App) DataDir() string {
 	return dir
 }
 
-func LoadApp(rootDir string, domain string) (App, error) {
-	appDir, ok := LookupDir(rootDir, domain)
-	if !ok {
-		return App{}, ErrAppNotFound
+func LoadApp(baseDir string, baseDomain string, name string) (App, error) {
+	appDir := filepath.Join(baseDir, baseDomain, name)
+	app := App{
+		Dir:  appDir,
+		Name: name,
+		env:  make(map[string]string),
 	}
 
-	app := App{
-		Id:  domain,
-		Dir: appDir,
-		env: make(map[string]string),
+	if name == "_" {
+		app.Domain = baseDomain
+	} else {
+		app.Domain = fmt.Sprintf("%s.%s", name, baseDomain)
 	}
 
 	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {
@@ -170,11 +174,7 @@ func LoadApp(rootDir string, domain string) (App, error) {
 }
 
 func (me App) URL() string {
-	if strings.HasPrefix(me.Id, "_.") {
-		return fmt.Sprintf("https://%s", strings.TrimPrefix(me.Id, "_."))
-	}
-
-	return fmt.Sprintf("https://%s", me.Id)
+	return fmt.Sprintf("https://%s/", me.Domain)
 }
 
 func (me App) Entrypoint() (string, error) {
@@ -216,29 +216,7 @@ func (me App) Env() []string {
 			env = append(env, value)
 		}
 	}
-	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.Id))
+	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.Domain))
 
 	return env
-}
-
-func LookupDir(rootDir string, domain string) (string, bool) {
-	if _, err := os.Stat(filepath.Join(rootDir, domain)); err == nil {
-		if _, err := os.Stat(filepath.Join(rootDir, domain, "_")); err != nil {
-			return "", false
-		}
-
-		return filepath.Join(rootDir, domain, "_"), true
-	}
-
-	parts := strings.Split(domain, ".")
-	if len(parts) < 2 {
-		return "", false
-	}
-
-	subdomain, baseDomain := parts[0], strings.Join(parts[1:], ".")
-	if _, err := os.Stat(filepath.Join(rootDir, baseDomain, subdomain)); err == nil {
-		return filepath.Join(rootDir, baseDomain, subdomain), true
-	}
-
-	return "", false
 }

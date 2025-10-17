@@ -3,11 +3,26 @@ package cmd
 import (
 	"errors"
 	"os/exec"
-	"path/filepath"
+	"strings"
 
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/spf13/cobra"
 )
+
+func NewCmdGit() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:    "git",
+		Hidden: true,
+		CompletionOptions: cobra.CompletionOptions{
+			DisableDefaultCmd: true,
+		},
+	}
+
+	cmd.AddCommand(NewCmdGitReceivePack())
+	cmd.AddCommand(NewCmdGitUploadPack())
+
+	return cmd
+}
 
 func NewCmdGitReceivePack() *cobra.Command {
 	cmd := &cobra.Command{
@@ -15,7 +30,13 @@ func NewCmdGitReceivePack() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(k.String("dir"), filepath.Join(args[0]))
+			parts := strings.Split(args[0], "/")
+			if len(parts) != 2 {
+				cmd.PrintErrf("invalid repository name %q\n", args[0])
+				return ExitError{1}
+			}
+
+			a, err := app.LoadApp(k.String("dir"), parts[0], parts[1])
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}
@@ -49,7 +70,13 @@ func NewCmdGitUploadPack() *cobra.Command {
 		Args:   cobra.ExactArgs(1),
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(k.String("dir"), filepath.Join(args[0]))
+			parts := strings.Split(args[0], "/")
+			if len(parts) != 2 {
+				cmd.PrintErrf("invalid repository name %q\n", args[0])
+				return ExitError{1}
+			}
+
+			a, err := app.LoadApp(k.String("dir"), parts[0], parts[1])
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}

@@ -10,7 +10,6 @@ import (
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/pkg/sftp"
-	"github.com/pomdtr/smallweb/internal/app"
 )
 
 func SSHOption(rootPath string, logger *slog.Logger) ssh.Option {
@@ -26,6 +25,11 @@ func SSHOption(rootPath string, logger *slog.Logger) ssh.Option {
 
 func SubsystemHandler(dir string, logger *slog.Logger) ssh.SubsystemHandler {
 	return func(session ssh.Session) {
+		if session.User() == "git" {
+			wish.Errorln(session, "sftp access is not allowed for git user")
+			return
+		}
+
 		defer func() {
 			if r := recover(); r != nil {
 				if logger != nil {
@@ -35,28 +39,14 @@ func SubsystemHandler(dir string, logger *slog.Logger) ssh.SubsystemHandler {
 			}
 		}()
 
-		var rootDir string
-		if session.User() == "_" {
-			rootDir = dir
-		} else if _, err := os.Stat(filepath.Join(dir, session.User())); err == nil {
-			rootDir = filepath.Join(dir, session.User())
-		} else {
-			appDir, ok := app.LookupDir(dir, session.User())
-			if !ok {
-				wish.Errorln(session, "app not found")
-				return
-			}
-
-			rootDir = appDir
-		}
-
-		root, err := os.OpenRoot(rootDir)
+		root, err := os.OpenRoot(filepath.Join(dir, session.User()))
 		if err != nil {
 			if logger != nil {
 				logger.Error("Error opening root", "err", err)
 			}
 
 			wish.Errorln(session, err)
+			return
 		}
 
 		handler := &handlererr{
@@ -80,6 +70,7 @@ func SubsystemHandler(dir string, logger *slog.Logger) ssh.SubsystemHandler {
 				logger.Error("Error serving sftp subsystem", "err", err)
 			}
 			wish.Errorln(session, err)
+			return
 		}
 	}
 }

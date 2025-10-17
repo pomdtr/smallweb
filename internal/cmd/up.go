@@ -18,13 +18,15 @@ import (
 
 	_ "embed"
 
+	gossh "golang.org/x/crypto/ssh"
+
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/ssh"
+	"github.com/creack/pty"
 	"github.com/mhale/smtpd"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/charmbracelet/wish"
-	"github.com/creack/pty"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	sloghttp "github.com/samber/slog-http"
@@ -33,7 +35,6 @@ import (
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/sftp"
 	"github.com/pomdtr/smallweb/internal/watcher"
-	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/pomdtr/smallweb/internal/worker"
@@ -153,7 +154,7 @@ func NewCmdUp() *cobra.Command {
 				certmagic.Default.Logger = zap.NewNop()
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 					DecisionFunc: func(ctx context.Context, name string) error {
-						if _, ok := app.LookupDir(k.String("dir"), name); ok {
+						if _, _, ok := ResolveHostname(k.String("dir"), name); ok {
 							return nil
 						}
 
@@ -188,19 +189,16 @@ func NewCmdUp() *cobra.Command {
 			if flags.smtpAddr != "" {
 				handler := func(remoteAddr net.Addr, from string, to []string, data []byte) error {
 					for _, recipient := range to {
-						parts := strings.Split(recipient, "_")
+						parts := strings.Split(recipient, "@")
 						if len(parts) != 2 {
 							logger.Error("invalid recipient", "recipient", recipient)
 							continue
 						}
 
-						a, err := app.LoadApp(k.String("dir"), parts[1])
+						a, err := app.LoadApp(k.String("dir"), parts[1], parts[0])
 						if err != nil {
-							a, err = app.LoadApp(k.String("dir"), strings.Join(parts, "."))
-							if err != nil {
-								logger.Error("failed to load app for recipient", "recipient", recipient, "error", err)
-								continue
-							}
+							logger.Error("failed to load app for recipient", "recipient", recipient, "error", err)
+							continue
 						}
 
 						worker := worker.NewWorker(a, nil)
@@ -267,6 +265,10 @@ func NewCmdUp() *cobra.Command {
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKeyPath),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
+						if ctx.User() == "git" {
+							return true
+						}
+
 						authorizedKeys := []string{authorizedKey}
 						homedir, err := os.UserHomeDir()
 						if err != nil {
@@ -277,27 +279,7 @@ func NewCmdUp() *cobra.Command {
 						authorizedKeysPaths := []string{
 							filepath.Join(homedir, ".ssh", "authorizedKeys"),
 							filepath.Join(k.String("dir"), ".ssh", "authorized_keys"),
-						}
-
-						if ctx.User() == "_" {
-							// pass
-						} else if _, err := os.Stat(filepath.Join(k.String("dir"), ctx.User())); err == nil {
-							authorizedKeysPaths = append(
-								authorizedKeysPaths,
-								filepath.Join(k.String("dir"), ctx.User(), ".ssh", "authorized_keys"),
-							)
-						} else {
-							appDir, ok := app.LookupDir(k.String("dir"), ctx.User())
-							if !ok {
-								sshLogger.Error("failed to lookup app dir", "user", ctx.User(), "error", err)
-								return false
-							}
-
-							authorizedKeysPaths = append(
-								authorizedKeysPaths,
-								filepath.Join(filepath.Dir(appDir), ".ssh", "authorized_keys"),
-								filepath.Join(appDir, ".ssh", "authorized_keys"),
-							)
+							filepath.Join(k.String("dir"), ctx.User(), ".ssh", "authorized_keys"),
 						}
 
 						for _, authorizedKeysPath := range authorizedKeysPaths {
@@ -316,7 +298,6 @@ func NewCmdUp() *cobra.Command {
 							}
 						}
 
-						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
 						for _, authorizedKey := range authorizedKeys {
 							k, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
 							if err != nil {
@@ -334,20 +315,14 @@ func NewCmdUp() *cobra.Command {
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
-								a, err := app.LoadApp(k.String("dir"), sess.User())
+								execPath, err := os.Executable()
 								if err != nil {
-									fmt.Fprintf(sess, "failed to load app: %v\n", err)
-									sess.Exit(1)
-									return
+									fmt.Fprintf(sess, "failed to get executable path: %v\n", err)
 								}
 
-								wk := worker.NewWorker(a, nil)
-								cmd, err := wk.Command(sess.Context(), sess.Command())
-								if err != nil {
-									fmt.Fprintf(sess, "failed to get command: %v\n", err)
-									sess.Exit(1)
-									return
-								}
+								cmd := exec.Command(execPath, "ssh", "--dir", k.String("dir"), "--domain", sess.User())
+								cmd.Args = append(cmd.Args, sess.Command()...)
+								cmd.Env = os.Environ()
 
 								ptyReq, winCh, isPty := sess.Pty()
 								if isPty {
@@ -415,6 +390,30 @@ func NewCmdUp() *cobra.Command {
 									sess.Exit(1)
 									return
 								}
+
+							}
+						},
+						func(next ssh.Handler) ssh.Handler {
+							return func(sess ssh.Session) {
+								if sess.User() != "git" {
+									next(sess)
+									return
+								}
+
+								// TODO: add authentication for git user
+
+								gitCmd := NewCmdGit()
+								gitCmd.SetIn(sess)
+								gitCmd.SetOut(sess)
+								gitCmd.SetErr(sess.Stderr())
+
+								gitCmd.SetArgs(sess.Command())
+
+								if err := gitCmd.ExecuteContext(sess.Context()); err != nil {
+									sess.Exit(1)
+									return
+								}
+
 							}
 						},
 						func(next ssh.Handler) ssh.Handler {
@@ -449,6 +448,7 @@ func NewCmdUp() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().String("dir", "", "directory containing the apps")
 	cmd.Flags().StringVar(&flags.addr, "addr", "", "address to listen on")
 	cmd.Flags().StringVar(&flags.sshAddr, "ssh-addr", "", "address to listen on for ssh/sftp")
 	cmd.Flags().StringVar(&flags.smtpAddr, "smtp-addr", "", "address to listen on for smtp")
@@ -521,30 +521,14 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hostname = r.Host
 	}
 
-	if _, ok := app.LookupDir(me.rootDir, hostname); !ok {
-		if parts := strings.Split(hostname, "."); parts[0] == "www" {
-			// check without www
-			baseDomain := strings.Join(parts[1:], ".")
-			if _, ok := app.LookupDir(me.rootDir, baseDomain); ok {
-				http.Redirect(w, r, fmt.Sprintf("%s://%s%s", ExtractScheme(r), baseDomain, r.URL.RequestURI()), http.StatusFound)
-				return
-			}
-		} else {
-			// check with www
-			wwwDomain := "www." + hostname
-			if _, ok := app.LookupDir(me.rootDir, wwwDomain); ok {
-				hostname = wwwDomain
-				http.Redirect(w, r, fmt.Sprintf("%s://%s%s", ExtractScheme(r), hostname, r.URL.RequestURI()), http.StatusFound)
-				return
-			}
-		}
-
+	domain, appname, ok := ResolveHostname(me.rootDir, hostname)
+	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
 		return
 	}
 
-	wk, err := me.GetWorker(hostname)
+	wk, err := me.GetWorker(domain, appname)
 	if err != nil {
 		if errors.Is(err, app.ErrAppNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -560,7 +544,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 
-func (me *Handler) GetWorker(domain string) (*worker.Worker, error) {
+func (me *Handler) GetWorker(domain string, appname string) (*worker.Worker, error) {
 	if wk, ok := me.workers[domain]; ok && wk.IsRunning() && me.watcher.GetAppMtime(domain).Before(wk.StartedAt) {
 		return wk, nil
 	}
@@ -568,7 +552,7 @@ func (me *Handler) GetWorker(domain string) (*worker.Worker, error) {
 	me.workerMu.Lock()
 	defer me.workerMu.Unlock()
 
-	a, err := app.LoadApp(me.rootDir, domain)
+	a, err := app.LoadApp(me.rootDir, domain, appname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
@@ -578,8 +562,21 @@ func (me *Handler) GetWorker(domain string) (*worker.Worker, error) {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}
 
-	me.workers[a.Id] = wk
+	me.workers[a.Domain] = wk
 	return wk, nil
+}
+
+func ResolveHostname(dir string, hostname string) (string, string, bool) {
+	if _, err := os.Stat(filepath.Join(dir, hostname, "_")); err == nil {
+		return "_", hostname, true
+	}
+
+	parts := strings.SplitN(hostname, ".", 2)
+	if _, err := os.Stat(filepath.Join(dir, parts[1], parts[0])); err == nil {
+		return parts[0], parts[1], true
+	}
+
+	return "", "", false
 }
 
 func ExtractScheme(r *http.Request) string {

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,9 +18,9 @@ func NewCmdOpen() *cobra.Command {
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: completeApp,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var domain string
+			var appname string
 			if len(args) > 0 {
-				domain = args[0]
+				appname = args[0]
 			} else {
 				cwd, err := os.Getwd()
 				if err != nil {
@@ -51,17 +50,17 @@ func NewCmdOpen() *cobra.Command {
 					return ExitError{1}
 				}
 
-				domain = fmt.Sprintf("%s.%s", parts[1], parts[0])
+				appname = parts[1]
 			}
 
-			a, err := app.LoadApp(k.String("dir"), domain)
+			a, err := app.LoadApp(k.String("dir"), k.String("domain"), appname)
 			if err != nil {
-				cmd.PrintErrf("could not load app %q: %v\n", domain, err)
+				cmd.PrintErrf("could not load app %q: %v\n", appname, err)
 				return ExitError{1}
 			}
 
-			if err := browser.OpenURL(fmt.Sprintf("https://%s", a.Id)); err != nil {
-				cmd.PrintErrf("could not open browser for app %q: %v\n", domain, err)
+			if err := browser.OpenURL(a.URL()); err != nil {
+				cmd.PrintErrf("could not open browser for app %q: %v\n", appname, err)
 				return ExitError{1}
 			}
 
