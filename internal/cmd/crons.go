@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -9,10 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cli/go-gh/v2/pkg/tableprinter"
+	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 type CronItem struct {
@@ -32,93 +36,92 @@ func NewCmdCrons() *cobra.Command {
 		Aliases:           []string{"cron"},
 		Short:             "List cron jobs",
 		ValidArgsFunction: completeApp,
-		// RunE: func(cmd *cobra.Command, args []string) error {
-		// var crons []CronItem
-		// apps, err := ListApps(k.String("dir"), true)
-		// if err != nil {
-		// 	cmd.PrintErrf("failed to list apps: %v\n", err)
-		// 	return ExitError{1}
-		// }
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if k.String("domain") == "" {
+				return fmt.Errorf("domain is required")
+			}
 
-		// for _, appname := range apps {
-		// 	if flags.app != "" && flags.app != appname {
-		// 		continue
-		// 	}
+			var crons []CronItem
+			apps, err := ListApps(k.String("dir"), k.String("domain"))
+			if err != nil {
+				cmd.PrintErrf("failed to list apps: %v\n", err)
+				return ExitError{1}
+			}
 
-		// 	appDir, ok := app.LookupDir(k.String("dir"), appname)
-		// 	if !ok {
-		// 		continue
-		// 	}
+			for _, appname := range apps {
+				if flags.app != "" && flags.app != appname {
+					continue
+				}
 
-		// 	a, err := app.LoadApp(appDir)
-		// 	if err != nil {
-		// 		cmd.PrintErrf("failed to load app %s: %v\n", appname, err)
-		// 		return ExitError{1}
-		// 	}
+				a, err := app.LoadApp(k.String("dir"), k.String("domain"), appname)
+				if err != nil {
+					cmd.PrintErrf("failed to load app %s: %v\n", appname, err)
+					return ExitError{1}
+				}
 
-		// 	for _, job := range a.Config.Crons {
-		// 		crons = append(crons, CronItem{
-		// 			App:      appname,
-		// 			Args:     job.Args,
-		// 			Schedule: job.Schedule,
-		// 		})
-		// 	}
-		// }
+				for _, job := range a.Config.Crons {
+					crons = append(crons, CronItem{
+						App:      appname,
+						Args:     job.Args,
+						Schedule: job.Schedule,
+					})
+				}
+			}
 
-		// if flags.json {
-		// 	encoder := json.NewEncoder(cmd.OutOrStdout())
-		// 	encoder.SetEscapeHTML(false)
-		// 	if isatty.IsTerminal(os.Stdout.Fd()) {
-		// 		encoder.SetIndent("", "  ")
-		// 	}
+			if flags.json {
+				encoder := json.NewEncoder(cmd.OutOrStdout())
+				encoder.SetEscapeHTML(false)
+				if isatty.IsTerminal(os.Stdout.Fd()) {
+					encoder.SetIndent("", "  ")
+				}
 
-		// 	if err := encoder.Encode(crons); err != nil {
-		// 		cmd.PrintErrf("failed to encode cron jobs: %v\n", err)
-		// 		return ExitError{1}
-		// 	}
-		// 	return nil
-		// }
+				if err := encoder.Encode(crons); err != nil {
+					cmd.PrintErrf("failed to encode cron jobs: %v\n", err)
+					return ExitError{1}
+				}
+				return nil
+			}
 
-		// if (len(crons)) == 0 {
-		// 	cmd.Println("No cron jobs found")
-		// 	return nil
-		// }
+			if (len(crons)) == 0 {
+				cmd.Println("No cron jobs found")
+				return nil
+			}
 
-		// var printer tableprinter.TablePrinter
-		// if isatty.IsTerminal(os.Stdout.Fd()) {
-		// 	width, _, err := term.GetSize(int(os.Stdout.Fd()))
-		// 	if err != nil {
-		// 		cmd.PrintErrf("failed to get terminal size: %v\n", err)
-		// 		return ExitError{1}
-		// 	}
+			var printer tableprinter.TablePrinter
+			if isatty.IsTerminal(os.Stdout.Fd()) {
+				width, _, err := term.GetSize(int(os.Stdout.Fd()))
+				if err != nil {
+					cmd.PrintErrf("failed to get terminal size: %v\n", err)
+					return ExitError{1}
+				}
 
-		// 	printer = tableprinter.New(cmd.OutOrStdout(), true, width)
-		// } else {
-		// 	printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
-		// }
+				printer = tableprinter.New(cmd.OutOrStdout(), true, width)
+			} else {
+				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
+			}
 
-		// printer.AddHeader([]string{"Schedule", "App", "Args"})
-		// for _, item := range crons {
-		// 	printer.AddField(item.Schedule)
-		// 	printer.AddField(item.App)
-		// 	args, err := json.Marshal(item.Args)
-		// 	if err != nil {
-		// 		cmd.PrintErrf("failed to marshal args for app %s: %v\n", item.App, err)
-		// 		return ExitError{1}
-		// 	}
+			printer.AddHeader([]string{"Schedule", "App", "Args"})
+			for _, item := range crons {
+				printer.AddField(item.Schedule)
+				printer.AddField(item.App)
+				args, err := json.Marshal(item.Args)
+				if err != nil {
+					cmd.PrintErrf("failed to marshal args for app %s: %v\n", item.App, err)
+					return ExitError{1}
+				}
 
-		// 	printer.AddField(string(args))
+				printer.AddField(string(args))
 
-		// 	printer.EndRow()
-		// }
+				printer.EndRow()
+			}
 
-		// if err := printer.Render(); err != nil {
-		// 	cmd.PrintErrf("failed to render table: %v\n", err)
-		// 	return ExitError{1}
-		// }
+			if err := printer.Render(); err != nil {
+				cmd.PrintErrf("failed to render table: %v\n", err)
+				return ExitError{1}
+			}
 
-		// return nil
-		// },
+			return nil
+		},
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
