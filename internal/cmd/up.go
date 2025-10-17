@@ -265,10 +265,6 @@ func NewCmdUp() *cobra.Command {
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKeyPath),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
-						if ctx.User() == "git" {
-							return true
-						}
-
 						authorizedKeys := []string{authorizedKey}
 						homedir, err := os.UserHomeDir()
 						if err != nil {
@@ -387,29 +383,6 @@ func NewCmdUp() *cobra.Command {
 									}
 
 									fmt.Fprintf(sess, "failed to run command: %v", err)
-									sess.Exit(1)
-									return
-								}
-
-							}
-						},
-						func(next ssh.Handler) ssh.Handler {
-							return func(sess ssh.Session) {
-								if sess.User() != "git" {
-									next(sess)
-									return
-								}
-
-								// TODO: add authentication for git user
-
-								gitCmd := NewCmdGit()
-								gitCmd.SetIn(sess)
-								gitCmd.SetOut(sess)
-								gitCmd.SetErr(sess.Stderr())
-
-								gitCmd.SetArgs(sess.Command())
-
-								if err := gitCmd.ExecuteContext(sess.Context()); err != nil {
 									sess.Exit(1)
 									return
 								}
