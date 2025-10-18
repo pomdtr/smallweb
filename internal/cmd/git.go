@@ -26,8 +26,9 @@ func NewCmdGit() *cobra.Command {
 
 func NewCmdGitReceivePack() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:  "git-receive-pack",
-		Args: cobra.ExactArgs(1),
+		Use:    "git-receive-pack",
+		Args:   cobra.ExactArgs(1),
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			parts := strings.Split(args[0], "/")
 			if len(parts) != 2 {
@@ -65,8 +66,9 @@ func NewCmdGitReceivePack() *cobra.Command {
 
 func NewCmdGitUploadPack() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:  "git-upload-pack",
-		Args: cobra.ExactArgs(1),
+		Use:    "git-upload-pack",
+		Args:   cobra.ExactArgs(1),
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			parts := strings.Split(args[0], "/")
 			if len(parts) != 2 {
