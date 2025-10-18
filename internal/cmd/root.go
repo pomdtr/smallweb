@@ -181,6 +181,8 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdConfig())
 	rootCmd.AddCommand(NewCmdLink())
 	rootCmd.AddCommand(NewCmdSSH())
+	rootCmd.AddCommand(NewCmdCreate())
+	rootCmd.AddCommand(NewCmdInit())
 
 	return rootCmd
 }
