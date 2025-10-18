@@ -1,4 +1,5 @@
 {
+    "lock": false,
     "unstable": [
         "raw-imports"
     ]
