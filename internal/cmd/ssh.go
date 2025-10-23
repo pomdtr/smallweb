@@ -21,7 +21,6 @@ func NewCmdSSH() *cobra.Command {
 
 	cmd.AddCommand(NewCmdRun())
 	cmd.AddCommand(NewCmdList())
-	cmd.AddCommand(NewCmdShell())
 	cmd.AddCommand(NewCmdGitReceivePack())
 	cmd.AddCommand(NewCmdGitUploadPack())
 	cmd.AddCommand(NewCmdCreate())

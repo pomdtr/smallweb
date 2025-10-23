@@ -17,16 +17,56 @@ type Watcher struct {
 	watcher *fsnotify.Watcher
 	mu      sync.Mutex
 	mtimes  map[string]time.Time
+	cnames  map[string]string
 	root    string
 }
 
 func NewWatcher(rootDir string) (*Watcher, error) {
 	me := &Watcher{
 		mtimes: make(map[string]time.Time),
+		cnames: make(map[string]string),
 		root:   rootDir,
 	}
 
+	me.updateCnames()
+
 	return me, nil
+}
+
+func (me *Watcher) updateCnames() error {
+	me.mu.Lock()
+	defer me.mu.Unlock()
+	me.cnames = make(map[string]string)
+
+	domainEntries, err := os.ReadDir(me.root)
+	if err != nil {
+		return err
+	}
+
+	for _, domainEntry := range domainEntries {
+		appEntries, err := os.ReadDir(filepath.Join(me.root, domainEntry.Name()))
+		if err != nil {
+			continue
+		}
+
+		for _, appEntry := range appEntries {
+			stat, err := os.Stat(filepath.Join(me.root, domainEntry.Name(), appEntry.Name(), "CNAME"))
+			if err != nil || stat.IsDir() {
+				continue
+			}
+
+			data, err := os.ReadFile(filepath.Join(me.root, domainEntry.Name(), appEntry.Name(), "CNAME"))
+			if err != nil {
+				continue
+			}
+
+			cname := strings.TrimSpace(string(data))
+			domain := fmt.Sprintf("%s.%s", appEntry.Name(), domainEntry.Name())
+			me.cnames[cname] = domain
+		}
+	}
+
+	return nil
 }
 
 func (me *Watcher) Start() error {
@@ -78,6 +118,10 @@ func (me *Watcher) Start() error {
 			}
 
 			domain := fmt.Sprintf("%s.%s", parts[1], parts[0])
+			if filepath.Base(event.Name) == "CNAME" && event.Has(fsnotify.Write) {
+				_ = me.updateCnames()
+			}
+
 			me.mu.Lock()
 			me.mtimes[domain] = fileinfo.ModTime()
 			me.mu.Unlock()
@@ -165,4 +209,21 @@ func ExtractScheme(r *http.Request) string {
 	}
 
 	return "http"
+}
+
+func (me *Watcher) ResolveHostname(hostname string) (string, string, bool) {
+	if domain, ok := me.cnames[hostname]; ok {
+		hostname = domain
+	}
+
+	if _, err := os.Stat(filepath.Join(me.root, hostname, "_")); err == nil {
+		return "_", hostname, true
+	}
+
+	parts := strings.SplitN(hostname, ".", 2)
+	if _, err := os.Stat(filepath.Join(me.root, parts[1], parts[0])); err == nil {
+		return parts[0], parts[1], true
+	}
+
+	return "", "", false
 }
