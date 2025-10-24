@@ -9,6 +9,7 @@
                 "up",
                 "--addr=:7777",
                 "--ssh-addr=:2222",
+                "--enable-crons",
                 // "--smtp-addr=:2525",
                 // "--log-output=${workspaceFolder}/example/logs/data/smallweb.log"
             ],

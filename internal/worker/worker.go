@@ -43,7 +43,6 @@ func init() {
 type Worker struct {
 	App       app.App
 	StartedAt time.Time
-	Logger    *slog.Logger
 
 	port           int
 	idleTimer      *time.Timer
@@ -51,10 +50,9 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func NewWorker(app app.App, logger *slog.Logger) *Worker {
+func NewWorker(app app.App) *Worker {
 	worker := &Worker{
-		App:    app,
-		Logger: logger,
+		App: app,
 	}
 
 	return worker
@@ -148,7 +146,7 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	return args, nil
 }
 
-func (me *Worker) Start() error {
+func (me *Worker) Start(logger *slog.Logger) error {
 	port, err := GetFreePort()
 	if err != nil {
 		return fmt.Errorf("could not get free port: %w", err)
@@ -231,18 +229,7 @@ func (me *Worker) Start() error {
 	logPipe := func(pipe io.ReadCloser, stream string) {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
-			if me.Logger == nil {
-				if stream == "stderr" {
-					fmt.Fprintln(os.Stderr, scanner.Text())
-				} else {
-					fmt.Fprintln(os.Stdout, scanner.Text())
-				}
-				continue
-			}
-			me.Logger.Info(
-				scanner.Text(),
-				"stream", stream,
-			)
+			logger.Info(scanner.Text(), "stream", stream)
 		}
 	}
 

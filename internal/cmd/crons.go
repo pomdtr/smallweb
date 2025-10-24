@@ -134,44 +134,34 @@ func NewCmdCrons() *cobra.Command {
 }
 
 func CronRunner(rootDir string, logger *slog.Logger) *cron.Cron {
+	cronLogger := logger.With("logger", "cron")
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
-	logPipe := func(pipe io.ReadCloser, stream string) {
+	logPipe := func(pipe io.ReadCloser, logger *slog.Logger) {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
-			if logger == nil {
-				if stream == "stderr" {
-					fmt.Fprintln(os.Stderr, scanner.Text())
-				} else {
-					fmt.Fprintln(os.Stdout, scanner.Text())
-				}
-				continue
-			}
-			logger.Info(
-				scanner.Text(),
-				"stream", stream,
-			)
+			logger.Info(scanner.Text())
 		}
 	}
 
 	_, _ = c.AddFunc("* * * * *", func() {
 		domains, err := ListDomains(rootDir)
 		if err != nil {
-			logger.Error("failed to list domains", "error", err)
+			cronLogger.Error("failed to list domains", "error", err)
 			return
 		}
 
 		for _, domain := range domains {
 			appnames, err := ListApps(rootDir, domain)
 			if err != nil {
-				logger.Error("failed to list apps", "error", err)
+				cronLogger.Error("failed to list apps", "error", err)
 				return
 			}
 
 			for _, appname := range appnames {
 				a, err := app.LoadApp(rootDir, domain, appname)
 				if err != nil {
-					logger.Error("failed to load app", "app", appname, "error", err)
+					cronLogger.Error("failed to load app", "app", fmt.Sprintf("%s.%s", appname, domain), "error", err)
 					continue
 				}
 
@@ -179,12 +169,12 @@ func CronRunner(rootDir string, logger *slog.Logger) *cron.Cron {
 					continue
 				}
 
-				wk := worker.NewWorker(a, logger)
+				wk := worker.NewWorker(a)
 				current := time.Now().Truncate(time.Minute)
 				for _, job := range a.Config.Crons {
 					sched, err := parser.Parse(job.Schedule)
 					if err != nil {
-						logger.Error("failed to parse cron schedule", "app", appname, "schedule", job.Schedule, "error", err)
+						cronLogger.Error("failed to parse cron schedule", "app", a.Domain, "schedule", job.Schedule, "error", err)
 						continue
 					}
 
@@ -194,29 +184,29 @@ func CronRunner(rootDir string, logger *slog.Logger) *cron.Cron {
 
 					command, err := wk.Command(context.Background(), job.Args)
 					if err != nil {
-						logger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
+						cronLogger.Error("failed to create command", "app", a.Domain, "args", job.Args, "error", err)
 						continue
 					}
 
 					stdoutPipe, err := command.StdoutPipe()
 					if err != nil {
-						logger.Error("failed to get stdout pipe", "app", appname, "args", job.Args, "error", err)
+						cronLogger.Error("failed to get stdout pipe", "app", a.Domain, "args", job.Args, "error", err)
 						continue
 					}
 
 					stderrPipe, err := command.StderrPipe()
 					if err != nil {
-						logger.Error("failed to get stderr pipe", "app", appname, "args", job.Args, "error", err)
+						cronLogger.Error("failed to get stderr pipe", "app", a.Domain, "args", job.Args, "error", err)
 						continue
 					}
 
-					go logPipe(stdoutPipe, "stdout")
-					go logPipe(stderrPipe, "stderr")
+					go logPipe(stdoutPipe, logger.With("logger", "console", "stream", "stdout", "app", a.Domain))
+					go logPipe(stderrPipe, logger.With("logger", "console", "stream", "stderr", "app", a.Domain))
 
-					logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
+					logger.Info("running cron job", "app", a.Domain, "args", job.Args, "schedule", job.Schedule)
 					go func() {
 						if err := command.Run(); err != nil {
-							logger.Error("failed to run command", "app", appname, "args", job.Args, "error", err)
+							cronLogger.Error("failed to run command", "app", a.Domain, "args", job.Args, "error", err)
 						}
 					}()
 				}

@@ -148,7 +148,7 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				logger.Info("serving https", "dir", k.String("dir"), "addr", addr)
+				sysLogger.Info("serving https", "addr", addr)
 				go http.Serve(ln, logMiddleware(handler))
 			} else if flags.onDemandTLS {
 				certmagic.Default.Logger = zap.NewNop()
@@ -161,7 +161,7 @@ func NewCmdUp() *cobra.Command {
 						return fmt.Errorf("domain not found")
 					},
 				}
-				logger.Info("serving on-demand https", "dir", k.String("dir"))
+				sysLogger.Info("serving on-demand https", "dir", k.String("dir"))
 				go certmagic.HTTPS(nil, logMiddleware(handler))
 			} else {
 				addr := flags.addr
@@ -175,13 +175,13 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				logger.Info("serving http", "dir", k.String("dir"), "addr", addr)
+				sysLogger.Info("serving http", "addr", addr)
 				go http.Serve(ln, logMiddleware(handler))
 			}
 
 			if flags.enableCrons {
-				logger.Info("starting cron jobs")
-				crons := CronRunner(k.String("dir"), logger.With("logger", "cron"))
+				sysLogger.Info("starting cron jobs")
+				crons := CronRunner(k.String("dir"), logger)
 				crons.Start()
 				defer crons.Stop()
 			}
@@ -201,7 +201,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						worker := worker.NewWorker(a, nil)
+						worker := worker.NewWorker(a)
 						if err := worker.SendEmail(context.Background(), data); err != nil {
 							logger.Error("failed to send email", "error", err)
 							continue
@@ -408,7 +408,7 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				logger.Info("serving ssh", "addr", flags.sshAddr)
+				sysLogger.Info("serving ssh", "addr", flags.sshAddr)
 				go srv.ListenAndServe()
 			}
 
@@ -518,8 +518,8 @@ func (me *Handler) GetWorker(domain string, appname string) (*worker.Worker, err
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a, me.logger.With("logger", "console", "dir", domain))
-	if err := wk.Start(); err != nil {
+	wk := worker.NewWorker(a)
+	if err := wk.Start(me.logger); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}
 
