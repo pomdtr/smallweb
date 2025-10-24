@@ -475,18 +475,6 @@ type Handler struct {
 	workers  map[string]*worker.Worker
 }
 
-type AuthData struct {
-	State        string `json:"state"`
-	SuccessURL   string `json:"success_url"`
-	CodeVerifier string `json:"code_verifier"`
-}
-
-type IssuerConfig struct {
-	AuthorizationEndpoint string `json:"authorization_endpoint"`
-	TokenEndpoint         string `json:"token_endpoint"`
-	JwksUri               string `json:"jwks_uri"`
-}
-
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hostname, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
