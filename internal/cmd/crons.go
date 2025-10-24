@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -134,6 +136,24 @@ func NewCmdCrons() *cobra.Command {
 func CronRunner(rootDir string, logger *slog.Logger) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
+	logPipe := func(pipe io.ReadCloser, stream string) {
+		scanner := bufio.NewScanner(pipe)
+		for scanner.Scan() {
+			if logger == nil {
+				if stream == "stderr" {
+					fmt.Fprintln(os.Stderr, scanner.Text())
+				} else {
+					fmt.Fprintln(os.Stdout, scanner.Text())
+				}
+				continue
+			}
+			logger.Info(
+				scanner.Text(),
+				"stream", stream,
+			)
+		}
+	}
+
 	_, _ = c.AddFunc("* * * * *", func() {
 		domains, err := ListDomains(rootDir)
 		if err != nil {
@@ -159,7 +179,7 @@ func CronRunner(rootDir string, logger *slog.Logger) *cron.Cron {
 					continue
 				}
 
-				wk := worker.NewWorker(a, nil)
+				wk := worker.NewWorker(a, logger)
 				current := time.Now().Truncate(time.Minute)
 				for _, job := range a.Config.Crons {
 					sched, err := parser.Parse(job.Schedule)
@@ -177,6 +197,21 @@ func CronRunner(rootDir string, logger *slog.Logger) *cron.Cron {
 						logger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
 						continue
 					}
+
+					stdoutPipe, err := command.StdoutPipe()
+					if err != nil {
+						logger.Error("failed to get stdout pipe", "app", appname, "args", job.Args, "error", err)
+						continue
+					}
+
+					stderrPipe, err := command.StderrPipe()
+					if err != nil {
+						logger.Error("failed to get stderr pipe", "app", appname, "args", job.Args, "error", err)
+						continue
+					}
+
+					go logPipe(stdoutPipe, "stdout")
+					go logPipe(stderrPipe, "stderr")
 
 					logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
 					go func() {
