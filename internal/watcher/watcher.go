@@ -38,6 +38,9 @@ func (me *Watcher) updateCnames() error {
 	defer me.mu.Unlock()
 	me.cnames = make(map[string]string)
 
+	// track chosen mtime per mtime so we can prefer the oldest one
+	mtimes := make(map[string]time.Time)
+
 	domainEntries, err := os.ReadDir(me.root)
 	if err != nil {
 		return err
@@ -50,19 +53,36 @@ func (me *Watcher) updateCnames() error {
 		}
 
 		for _, appEntry := range appEntries {
-			stat, err := os.Stat(filepath.Join(me.root, domainEntry.Name(), appEntry.Name(), "CNAME"))
+			cnamePath := filepath.Join(me.root, domainEntry.Name(), appEntry.Name(), "CNAME")
+			stat, err := os.Stat(cnamePath)
 			if err != nil || stat.IsDir() {
 				continue
 			}
 
-			data, err := os.ReadFile(filepath.Join(me.root, domainEntry.Name(), appEntry.Name(), "CNAME"))
+			data, err := os.ReadFile(cnamePath)
 			if err != nil {
 				continue
 			}
 
 			cname := strings.TrimSpace(string(data))
+			if cname == "" {
+				continue
+			}
 			domain := fmt.Sprintf("%s.%s", appEntry.Name(), domainEntry.Name())
-			me.cnames[cname] = domain
+
+			mtime := stat.ModTime()
+
+			if prevMTime, ok := mtimes[cname]; !ok {
+				// first seen for this cname
+				me.cnames[cname] = domain
+				mtimes[cname] = mtime
+			} else {
+				// prefer the oldest ctime
+				if mtime.Before(prevMTime) {
+					me.cnames[cname] = domain
+					mtimes[cname] = mtime
+				}
+			}
 		}
 	}
 
@@ -118,7 +138,7 @@ func (me *Watcher) Start() error {
 			}
 
 			domain := fmt.Sprintf("%s.%s", parts[1], parts[0])
-			if filepath.Base(event.Name) == "CNAME" && event.Has(fsnotify.Write) {
+			if filepath.Base(event.Name) == "CNAME" {
 				_ = me.updateCnames()
 			}
 
