@@ -274,6 +274,7 @@ func NewCmdUp() *cobra.Command {
 
 						authorizedKeysPaths := []string{
 							filepath.Join(homedir, ".ssh", "authorized_keys"),
+							filepath.Join(k.String("dir"), ".ssh", "authorized_keys"),
 							filepath.Join(k.String("dir"), ctx.User(), ".ssh", "authorized_keys"),
 						}
 
