@@ -1,8 +1,5 @@
-import { Smallweb } from "https://esm.smallweb.run/sdk@bdf6a3f/pkg/mod.ts"
-
 async function handleRequest() {
-    const smallweb = new Smallweb("./data")
-    const apps = await smallweb.apps.list()
+    const apps = await Array.fromAsync(Deno.readDir("./data"))
     const html = /* html */`
     <style>
         body {
@@ -29,14 +26,12 @@ async function handleRequest() {
         <thead>
             <tr>
                 <th>Name</th>
-                <th>URL</th>
             </tr>
         </thead>
         <tbody>
             ${apps.map(app => `
                 <tr>
                     <td>${app.name}</td>
-                    <td><a href="${app.url}">${app.url}</a></td>
                 </tr>
             `).join('')}
         </tbody>
