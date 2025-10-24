@@ -274,15 +274,7 @@ func NewCmdUp() *cobra.Command {
 
 						authorizedKeysPaths := []string{
 							filepath.Join(homedir, ".ssh", "authorized_keys"),
-						}
-
-						if _, err := os.Stat(filepath.Join(k.String("dir"), ctx.User())); err == nil {
-							authorizedKeysPaths = append(authorizedKeysPaths, filepath.Join(k.String("dir"), ctx.User(), ".ssh", "authorized_keys"))
-						} else if _, domain, ok := watcher.ResolveHostname(ctx.User()); ok {
-							authorizedKeysPaths = append(
-								authorizedKeysPaths,
-								filepath.Join(k.String("dir"), domain, ".ssh", "authorized_keys"),
-							)
+							filepath.Join(k.String("dir"), ctx.User(), ".ssh", "authorized_keys"),
 						}
 
 						for _, authorizedKeysPath := range authorizedKeysPaths {
@@ -318,39 +310,14 @@ func NewCmdUp() *cobra.Command {
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
-								var cmd *exec.Cmd
-								if _, err := os.Stat(filepath.Join(k.String("dir"), sess.User())); err == nil {
-									execPath, err := os.Executable()
-									if err != nil {
-										fmt.Fprintf(sess, "failed to get executable path: %v\n", err)
-									}
-
-									cmd = exec.Command(execPath, "ssh", "--dir", k.String("dir"), "--domain", sess.User())
-									cmd.Args = append(cmd.Args, sess.Command()...)
-									cmd.Env = os.Environ()
-
-								} else if appname, domain, ok := watcher.ResolveHostname(sess.User()); ok {
-									app, err := app.LoadApp(k.String("dir"), domain, appname)
-									if err != nil {
-										fmt.Fprintf(sess, "failed to load app: %v\n", err)
-										sess.Exit(1)
-										return
-									}
-
-									worker := worker.NewWorker(app, nil)
-									c, err := worker.Command(sess.Context(), sess.Command())
-									if err != nil {
-										fmt.Fprintf(sess, "failed to create command: %v\n", err)
-										sess.Exit(1)
-										return
-									}
-
-									cmd = c
-								} else {
-									fmt.Fprintf(sess, "no app found for user: %s\n", sess.User())
-									sess.Exit(1)
-									return
+								execPath, err := os.Executable()
+								if err != nil {
+									fmt.Fprintf(sess, "failed to get executable path: %v\n", err)
 								}
+
+								cmd := exec.Command(execPath, "ssh", "--dir", k.String("dir"), "--domain", sess.User())
+								cmd.Args = append(cmd.Args, sess.Command()...)
+								cmd.Env = os.Environ()
 
 								ptyReq, winCh, isPty := sess.Pty()
 								if isPty {
