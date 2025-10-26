@@ -11,7 +11,6 @@ import (
 
 	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
-	"github.com/pomdtr/smallweb/internal/build"
 	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/tailscale/hujson"
 )
@@ -24,7 +23,6 @@ type AppConfig struct {
 	Entrypoint    string    `json:"entrypoint,omitempty"`
 	Root          string    `json:"root,omitempty"`
 	Crons         []CronJob `json:"crons,omitempty"`
-	Admin         bool      `json:"admin"`
 	Private       bool      `json:"private"`
 	PrivateRoutes []string  `json:"privateRoutes"`
 	PublicRoutes  []string  `json:"publicRoutes"`
@@ -232,13 +230,6 @@ func (me App) Env() []string {
 
 	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
 	env = append(env, "DENO_NO_UPDATE_CHECK=1")
-
-	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
-	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", me.RootDir))
-	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.RootDomain))
-	if me.Config.Admin {
-		env = append(env, "SMALLWEB_ADMIN=1")
-	}
 
 	// open telemetry
 	for _, value := range os.Environ() {
