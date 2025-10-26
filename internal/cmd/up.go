@@ -326,7 +326,7 @@ func NewCmdUp() *cobra.Command {
 
 						return false
 					}),
-					sftp.SSHOption(k.String("dir"), nil),
+					sftp.SSHOption(k.String("dir"), logger.With("logger", "sftp")),
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
