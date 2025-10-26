@@ -14,13 +14,13 @@ func NewCmdGitReceivePack() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"))
+			a, err := app.LoadApp(args[0], k.String("dir"))
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}
 			}
 
-			gitCmd := exec.Command("git-receive-pack", a.BaseDir)
+			gitCmd := exec.Command("git-receive-pack", a.Dir)
 
 			gitCmd.Stdin = cmd.InOrStdin()
 			gitCmd.Stdout = cmd.OutOrStdout()
@@ -48,13 +48,13 @@ func NewCmdGitUploadPack() *cobra.Command {
 		Args:   cobra.ExactArgs(1),
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"))
+			a, err := app.LoadApp(args[0], k.String("dir"))
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}
 			}
 
-			gitCmd := exec.Command("git-upload-pack", a.BaseDir)
+			gitCmd := exec.Command("git-upload-pack", a.Dir)
 
 			gitCmd.Stdin = cmd.InOrStdin()
 			gitCmd.Stdout = cmd.OutOrStdout()

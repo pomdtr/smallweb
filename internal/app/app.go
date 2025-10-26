@@ -20,10 +20,11 @@ var (
 )
 
 type AppConfig struct {
-	Entrypoint     string    `json:"entrypoint,omitempty"`
-	Root           string    `json:"root,omitempty"`
-	Crons          []CronJob `json:"crons,omitempty"`
-	AuthorizedKeys []string  `json:"authorizedKeys,omitempty"`
+	Entrypoint        string    `json:"entrypoint,omitempty"`
+	Root              string    `json:"root,omitempty"`
+	Crons             []CronJob `json:"crons,omitempty"`
+	AuthorizedKeys    []string  `json:"authorizedKeys,omitempty"`
+	AdditionalDomains []string  `json:"additionalDomains,omitempty"`
 }
 
 type DenoConfig struct {
@@ -37,62 +38,59 @@ type CronJob struct {
 }
 
 type App struct {
-	Name       string            `json:"name"`
-	RootDir    string            `json:"-"`
-	RootDomain string            `json:"-"`
-	Domain     string            `json:"domain,omitempty"`
-	BaseDir    string            `json:"dir,omitempty"`
-	Config     AppConfig         `json:"-"`
-	env        map[string]string `json:"-"`
+	Name   string            `json:"name"`
+	Dir    string            `json:"dir,omitempty"`
+	Config AppConfig         `json:"-"`
+	env    map[string]string `json:"-"`
 }
 
-func (me *App) Dir() string {
-	dir := me.BaseDir
-	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-		if root, err := os.Readlink(dir); err == nil {
-			dir = filepath.Join(filepath.Dir(dir), root)
+func (me *App) Root() string {
+	root := me.Dir
+	if fi, err := os.Lstat(root); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		if target, err := os.Readlink(root); err == nil {
+			root = filepath.Join(filepath.Dir(root), target)
 		}
 	}
 
 	if me.Config.Root != "" {
-		return filepath.Join(dir, me.Config.Root)
+		return filepath.Join(root, me.Config.Root)
 	}
 
 	if me.Config.Entrypoint != "" {
-		return dir
+		return root
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		if utils.FileExists(filepath.Join(dir, candidate)) {
-			return dir
+		if utils.FileExists(filepath.Join(root, candidate)) {
+			return root
 		}
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		if utils.FileExists(filepath.Join(dir, "dist", candidate)) {
-			return filepath.Join(dir, "dist")
+		if utils.FileExists(filepath.Join(root, "dist", candidate)) {
+			return filepath.Join(root, "dist")
 		}
 	}
 
-	if utils.FileExists(filepath.Join(dir, "dist", "index.html")) {
-		return filepath.Join(dir, "dist")
+	if utils.FileExists(filepath.Join(root, "dist", "index.html")) {
+		return filepath.Join(root, "dist")
 	}
 
-	return dir
+	return root
 }
 
 func (me *App) DataDir() string {
-	dir := filepath.Join(me.Dir(), "data")
-	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-		if root, err := os.Readlink(dir); err == nil {
-			dir = filepath.Join(filepath.Dir(dir), root)
+	dataDir := filepath.Join(me.Root(), "data")
+	if fi, err := os.Lstat(dataDir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		if root, err := os.Readlink(dataDir); err == nil {
+			dataDir = filepath.Join(filepath.Dir(dataDir), root)
 		}
 	}
 
-	return dir
+	return dataDir
 }
 
-func LookupApps(rootDir string) ([]string, error) {
+func ListApps(rootDir string) ([]string, error) {
 	entries, err := os.ReadDir(rootDir)
 	if err != nil {
 		return nil, fmt.Errorf("could not read directory %s: %v", rootDir, err)
@@ -114,19 +112,16 @@ func LookupApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func LoadApp(appname string, rootDir string, rootDomain string) (App, error) {
+func LoadApp(appname string, rootDir string) (App, error) {
 	appDir := filepath.Join(rootDir, appname)
 	if !utils.FileExists(filepath.Join(rootDir, appname)) {
 		return App{}, ErrAppNotFound
 	}
 
 	app := App{
-		Name:       appname,
-		RootDir:    rootDir,
-		BaseDir:    filepath.Join(rootDir, appname),
-		RootDomain: rootDomain,
-		Domain:     fmt.Sprintf("%s.%s", appname, rootDomain),
-		env:        make(map[string]string),
+		Name: appname,
+		Dir:  filepath.Join(rootDir, appname),
+		env:  make(map[string]string),
 	}
 
 	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {
@@ -206,11 +201,11 @@ func (me App) Entrypoint() string {
 	}
 
 	if me.Config.Entrypoint != "" {
-		return filepath.Join(me.Dir(), me.Config.Entrypoint)
+		return filepath.Join(me.Root(), me.Config.Entrypoint)
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(me.Dir(), candidate)
+		path := filepath.Join(me.Root(), candidate)
 		if utils.FileExists(path) {
 			return fmt.Sprintf("file://%s", path)
 		}

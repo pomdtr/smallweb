@@ -24,7 +24,7 @@ func NewCmdRun() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(args[0], k.String("dir"), k.String("domain"))
+			a, err := app.LoadApp(args[0], k.String("dir"))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}

@@ -24,16 +24,11 @@ import (
 
 	"github.com/charmbracelet/wish"
 	"github.com/creack/pty"
-	"github.com/knadh/koanf/providers/confmap"
-	"github.com/knadh/koanf/providers/file"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/mhale/smtpd"
 	sloghttp "github.com/samber/slog-http"
 	"go.uber.org/zap"
-
-	"github.com/knadh/koanf/providers/posflag"
-	"github.com/knadh/koanf/v2"
 
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/sftp"
@@ -121,27 +116,9 @@ func NewCmdUp() *cobra.Command {
 				logger:  logger,
 			}
 
-			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
-				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
-				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
-
-				conf := koanf.New(".")
-				if err := conf.Load(fileProvider, utils.ConfigParser()); err != nil {
-					logger.Error("failed to reload config file", "error", err)
-					return
-				}
-
-				conf.Load(confmap.Provider(map[string]interface{}{
-					"dir": findSmallwebDir(),
-				}, "."), nil)
-
-				_ = conf.Load(envProvider, nil)
-				_ = conf.Load(flagProvider, nil)
-
-				k = conf
-			})
+			watcher, err := watcher.NewWatcher(k.String("dir"), k.String("domain"))
 			if err != nil {
-				logger.Error("failed to create watcher", "err", err)
+				sysLogger.Error("failed to create watcher", "err", err)
 				return ExitError{1}
 			}
 
@@ -174,20 +151,20 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
+				sysLogger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
 				go http.Serve(ln, logMiddleware(handler))
 			} else if flags.onDemandTLS {
 				certmagic.Default.Logger = zap.NewNop()
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 					DecisionFunc: func(ctx context.Context, name string) error {
-						if _, ok := lookupApp(name); ok {
+						if _, ok := watcher.ResolveDomain(name); ok {
 							return nil
 						}
 
 						return fmt.Errorf("domain not found")
 					},
 				}
-				logger.Info("serving on-demand https", "domain", k.String("domain"), "dir", k.String("dir"))
+				sysLogger.Info("serving on-demand https", "domain", k.String("domain"), "dir", k.String("dir"))
 				go certmagic.HTTPS(nil, logMiddleware(handler))
 			} else {
 				addr := flags.addr
@@ -201,12 +178,12 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				logger.Info("serving http", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
+				sysLogger.Info("serving http", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
 				go http.Serve(ln, logMiddleware(handler))
 			}
 
 			if flags.enableCrons {
-				logger.Info("starting cron jobs")
+				sysLogger.Info("starting cron jobs")
 				crons := CronRunner(logger.With("logger", "cron"))
 				crons.Start()
 				defer crons.Stop()
@@ -217,25 +194,25 @@ func NewCmdUp() *cobra.Command {
 					for _, recipient := range to {
 						parts := strings.Split(recipient, "@")
 						if len(parts) != 2 {
-							logger.Error("invalid recipient", "recipient", recipient)
+							sysLogger.Error("invalid recipient", "recipient", recipient)
 							continue
 						}
 
 						appname, domain := parts[0], parts[1]
 						if domain != k.String("domain") {
-							logger.Error("invalid domain", "domain", domain)
+							sysLogger.Error("invalid domain", "domain", domain)
 							continue
 						}
 
-						a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+						a, err := app.LoadApp(appname, k.String("dir"))
 						if err != nil {
-							logger.Error("failed to load app", "error", err)
+							sysLogger.Error("failed to load app", "error", err)
 							continue
 						}
 
 						worker := worker.NewWorker(a, nil)
 						if err := worker.SendEmail(context.Background(), data); err != nil {
-							logger.Error("failed to send email", "error", err)
+							sysLogger.Error("failed to send email", "error", err)
 							continue
 						}
 					}
@@ -243,7 +220,7 @@ func NewCmdUp() *cobra.Command {
 					return nil
 				}
 
-				logger.Info("starting smtp server", "addr", flags.smtpAddr)
+				sysLogger.Info("starting smtp server", "addr", flags.smtpAddr)
 				if flags.tlsCert != "" && flags.tlsKey != "" {
 					go smtpd.ListenAndServeTLS(flags.smtpAddr, flags.tlsCert, flags.tlsKey, handler, "smallweb", k.String("domain"))
 				} else {
@@ -301,7 +278,7 @@ func NewCmdUp() *cobra.Command {
 						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
 
 						if ctx.User() != "_" {
-							a, err := app.LoadApp(ctx.User(), k.String("dir"), k.String("domain"))
+							a, err := app.LoadApp(ctx.User(), k.String("dir"))
 							if err != nil {
 								return false
 							}
@@ -332,7 +309,7 @@ func NewCmdUp() *cobra.Command {
 							return func(sess ssh.Session) {
 								var cmd *exec.Cmd
 								if sess.User() != "_" {
-									a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"))
+									a, err := app.LoadApp(sess.User(), k.String("dir"))
 									if err != nil {
 										fmt.Fprintf(sess, "failed to load app: %v\n", err)
 										sess.Exit(1)
@@ -533,7 +510,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hostname = r.Host
 	}
 
-	appname, ok := lookupApp(hostname)
+	appname, ok := me.watcher.ResolveDomain(hostname)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte(fmt.Sprintf("No app found for hostname %s", hostname)))
@@ -556,26 +533,6 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 
-func lookupApp(hostname string) (app string, found bool) {
-	parts := strings.SplitN(hostname, ".", 2)
-	if len(parts) < 2 {
-		return "", false
-	}
-
-	subdomain, domain := parts[0], parts[1]
-	for _, additionalDomain := range k.Strings("additionalDomains") {
-		if domain == additionalDomain {
-			return subdomain, true
-		}
-	}
-
-	if domain == k.String("domain") {
-		return subdomain, true
-	}
-
-	return "", false
-}
-
 func ExtractScheme(r *http.Request) string {
 	if scheme := r.URL.Query().Get("X-Forwarded-Proto"); scheme != "" {
 		return scheme
@@ -596,7 +553,7 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 	me.workerMu.Lock()
 	defer me.workerMu.Unlock()
 
-	a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+	a, err := app.LoadApp(appname, k.String("dir"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}

@@ -28,7 +28,7 @@ func NewCmdList() *cobra.Command {
 				return ExitError{1}
 			}
 
-			names, err := app.LookupApps(k.String("dir"))
+			names, err := app.ListApps(k.String("dir"))
 			if err != nil {
 				cmd.PrintErrln("failed to list apps:", err)
 				return ExitError{1}
@@ -36,7 +36,7 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
-				a, err := app.LoadApp(name, k.String("dir"), k.String("domain"))
+				a, err := app.LoadApp(name, k.String("dir"))
 				if err != nil {
 					continue
 				}
@@ -79,8 +79,8 @@ func NewCmdList() *cobra.Command {
 			printer.AddHeader([]string{"Name", "Dir", "Domain"})
 			for _, a := range apps {
 				printer.AddField(a.Name)
-				printer.AddField(strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1))
-				printer.AddField(a.Domain)
+				printer.AddField(strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(fmt.Sprintf("https://%s.%s", a.Name, k.String("domain")))
 
 				printer.EndRow()
 			}

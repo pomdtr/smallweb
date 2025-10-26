@@ -35,7 +35,7 @@ func NewCmdCrons() *cobra.Command {
 		ValidArgsFunction: completeApp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var crons []CronItem
-			apps, err := app.LookupApps(k.String("dir"))
+			apps, err := app.ListApps(k.String("dir"))
 			if err != nil {
 				cmd.PrintErrf("failed to list apps: %v\n", err)
 				return ExitError{1}
@@ -46,7 +46,7 @@ func NewCmdCrons() *cobra.Command {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+				a, err := app.LoadApp(appname, k.String("dir"))
 				if err != nil {
 					cmd.PrintErrf("failed to load app %s: %v\n", appname, err)
 					return ExitError{1}
@@ -128,14 +128,14 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
-		apps, err := app.LookupApps(k.String("dir"))
+		apps, err := app.ListApps(k.String("dir"))
 		if err != nil {
 			logger.Error("failed to list apps", "error", err)
 			return
 		}
 
 		for _, appname := range apps {
-			a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+			a, err := app.LoadApp(appname, k.String("dir"))
 			if err != nil {
 				logger.Error("failed to load app", "app", appname, "error", err)
 				continue
@@ -153,7 +153,7 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+				a, err := app.LoadApp(appname, k.String("dir"))
 				if err != nil {
 					logger.Error("failed to load app", "app", appname, "error", err)
 					continue

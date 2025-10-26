@@ -215,7 +215,7 @@ func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string
 	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 	_ = k.Load(flagProvider, nil)
 
-	apps, err := app.LookupApps(k.String("dir"))
+	apps, err := app.ListApps(k.String("dir"))
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
