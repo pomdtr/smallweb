@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 
@@ -181,7 +180,7 @@ func NewCmdUp() *cobra.Command {
 				certmagic.Default.Logger = zap.NewNop()
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 					DecisionFunc: func(ctx context.Context, name string) error {
-						if _, _, ok := lookupApp(name); ok {
+						if _, ok := lookupApp(name); ok {
 							return nil
 						}
 
@@ -302,7 +301,12 @@ func NewCmdUp() *cobra.Command {
 						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
 
 						if ctx.User() != "_" {
-							authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("apps.%s.authorizedKeys", ctx.User()))...)
+							a, err := app.LoadApp(ctx.User(), k.String("dir"), k.String("domain"))
+							if err != nil {
+								return false
+							}
+
+							authorizedKeys = append(authorizedKeys, a.Config.AuthorizedKeys...)
 						}
 
 						for _, authorizedKey := range authorizedKeys {
@@ -352,11 +356,10 @@ func NewCmdUp() *cobra.Command {
 										return
 									}
 
-									cmd = exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
+									cmd = exec.Command(execPath, "--dir", k.String("dir"))
+									cmd.Args = append(cmd.Args, "ssh-entrypoint")
 									cmd.Args = append(cmd.Args, sess.Command()...)
 									cmd.Env = os.Environ()
-									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
-									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLED_COMMANDS=up,config,init,doctor,completion")
 								}
 
 								ptyReq, winCh, isPty := sess.Pty()
@@ -530,18 +533,10 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hostname = r.Host
 	}
 
-	appname, redirect, ok := lookupApp(hostname)
+	appname, ok := lookupApp(hostname)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte(fmt.Sprintf("No app found for hostname %s", hostname)))
-		return
-	}
-	if redirect {
-		target := r.URL
-		target.Scheme = ExtractScheme(r)
-
-		target.Host = fmt.Sprintf("%s.%s", appname, r.Host)
-		http.Redirect(w, r, target.String(), http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -561,32 +556,24 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 
-func lookupApp(domain string) (app string, redirect bool, found bool) {
-	for _, app := range k.MapKeys("apps") {
-		if slices.Contains(k.Strings(fmt.Sprintf("apps.%s.additionalDomains", app)), domain) {
-			return app, false, true
+func lookupApp(hostname string) (app string, found bool) {
+	parts := strings.SplitN(hostname, ".", 2)
+	if len(parts) < 2 {
+		return "", false
+	}
+
+	subdomain, domain := parts[0], parts[1]
+	for _, additionalDomain := range k.Strings("additionalDomains") {
+		if domain == additionalDomain {
+			return subdomain, true
 		}
 	}
 
 	if domain == k.String("domain") {
-		return "www", true, true
+		return subdomain, true
 	}
 
-	if strings.HasSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))) {
-		return strings.TrimSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))), false, true
-	}
-
-	for _, additionalDomain := range k.Strings("additionalDomains") {
-		if domain == additionalDomain {
-			return "www", true, true
-		}
-
-		if strings.HasSuffix(domain, fmt.Sprintf(".%s", additionalDomain)) {
-			return strings.TrimSuffix(domain, fmt.Sprintf(".%s", additionalDomain)), false, true
-		}
-	}
-
-	return "", false, false
+	return "", false
 }
 
 func ExtractScheme(r *http.Request) string {

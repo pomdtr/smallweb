@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/abiosoft/ishell/v2"
@@ -206,12 +205,6 @@ func NewCmdRoot() *cobra.Command {
 				return nil
 			}
 
-			if env, ok := os.LookupEnv("SMALLWEB_DISABLE_CUSTOM_COMMANDS"); ok {
-				if disableCustomCommands, _ := strconv.ParseBool(env); disableCustomCommands {
-					return fmt.Errorf("unknown command \"%s\" for \"smallweb\"", args[0])
-				}
-			}
-
 			for _, pluginDir := range []string{
 				filepath.Join(k.String("dir"), ".smallweb", "commands"),
 				filepath.Join(xdg.ConfigHome, "smallweb", "commands"),
@@ -273,26 +266,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdConfig())
 	rootCmd.AddCommand(NewCmdLink())
-	rootCmd.AddCommand(NewCmdGitReceivePack())
-	rootCmd.AddCommand(NewCmdGitUploadPack())
-
-	if _, ok := os.LookupEnv("SMALLWEB_DISABLE_COMPLETIONS"); ok {
-		rootCmd.CompletionOptions.DisableDefaultCmd = true
-	}
-
-	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
-		disabledCommands := strings.Split(env, ",")
-		for _, commandName := range disabledCommands {
-			if commandName == "completion" {
-				rootCmd.CompletionOptions.DisableDefaultCmd = true
-				continue // Skip disabling the completion command
-			}
-
-			if command, ok := GetCommand(rootCmd, commandName); ok {
-				rootCmd.RemoveCommand(command)
-			}
-		}
-	}
+	rootCmd.AddCommand(NewCmdSSHEntrypoint())
 
 	return rootCmd
 }

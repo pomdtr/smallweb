@@ -20,9 +20,10 @@ var (
 )
 
 type AppConfig struct {
-	Entrypoint string    `json:"entrypoint,omitempty"`
-	Root       string    `json:"root,omitempty"`
-	Crons      []CronJob `json:"crons,omitempty"`
+	Entrypoint     string    `json:"entrypoint,omitempty"`
+	Root           string    `json:"root,omitempty"`
+	Crons          []CronJob `json:"crons,omitempty"`
+	AuthorizedKeys []string  `json:"authorizedKeys,omitempty"`
 }
 
 type DenoConfig struct {
