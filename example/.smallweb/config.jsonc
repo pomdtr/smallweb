@@ -1,4 +1,4 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "domain": "smallweb.traefik.me"
+    "domain": "smallweb.live"
 }
