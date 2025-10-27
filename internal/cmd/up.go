@@ -184,7 +184,7 @@ func NewCmdUp() *cobra.Command {
 
 			if flags.enableCrons {
 				sysLogger.Info("starting cron jobs")
-				crons := CronRunner(logger.With("logger", "cron"))
+				crons := CronRunner(logger)
 				crons.Start()
 				defer crons.Stop()
 			}
@@ -210,7 +210,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						worker := worker.NewWorker(a, nil)
+						worker := worker.NewWorker(a)
 						if err := worker.SendEmail(context.Background(), data); err != nil {
 							sysLogger.Error("failed to send email", "error", err)
 							continue
@@ -316,7 +316,7 @@ func NewCmdUp() *cobra.Command {
 										return
 									}
 
-									wk := worker.NewWorker(a, nil)
+									wk := worker.NewWorker(a)
 									c, err := wk.Command(sess.Context(), sess.Command())
 									if err != nil {
 										fmt.Fprintf(sess, "failed to get command: %v\n", err)
@@ -558,8 +558,8 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a, me.logger.With("logger", "console", "app", appname))
-	if err := wk.Start(); err != nil {
+	wk := worker.NewWorker(a)
+	if err := wk.Start(me.logger); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
@@ -125,19 +126,21 @@ func NewCmdCrons() *cobra.Command {
 }
 
 func CronRunner(logger *slog.Logger) *cron.Cron {
+	cronLogger := logger.With(slog.String("logger", "cron"))
+
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
 		apps, err := app.ListApps(k.String("dir"))
 		if err != nil {
-			logger.Error("failed to list apps", "error", err)
+			cronLogger.Error("failed to list apps", "error", err)
 			return
 		}
 
 		for _, appname := range apps {
 			a, err := app.LoadApp(appname, k.String("dir"))
 			if err != nil {
-				logger.Error("failed to load app", "app", appname, "error", err)
+				cronLogger.Error("failed to load app", "app", appname, "error", err)
 				continue
 			}
 
@@ -145,7 +148,7 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 			for _, job := range a.Config.Crons {
 				sched, err := parser.Parse(job.Schedule)
 				if err != nil {
-					logger.Error("failed to parse cron schedule", "app", appname, "schedule", job.Schedule, "error", err)
+					cronLogger.Error("failed to parse cron schedule", "app", appname, "schedule", job.Schedule, "error", err)
 					continue
 				}
 
@@ -155,21 +158,39 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 
 				a, err := app.LoadApp(appname, k.String("dir"))
 				if err != nil {
-					logger.Error("failed to load app", "app", appname, "error", err)
+					cronLogger.Error("failed to load app", "app", appname, "error", err)
 					continue
 				}
-				wk := worker.NewWorker(a, nil)
+				wk := worker.NewWorker(a)
 
 				command, err := wk.Command(context.Background(), job.Args)
 				if err != nil {
-					logger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
+					cronLogger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
 					continue
 				}
 
-				logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
+				cronLogger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
+
+				consoleLogger := logger.With("logger", "console", "app", appname)
+
+				stdoutPipe, err := command.StdoutPipe()
+				if err != nil {
+					cronLogger.Error("failed to get stdout pipe", "app", appname, "args", job.Args, "error", err)
+					continue
+				}
+
+				stderrPipe, err := command.StderrPipe()
+				if err != nil {
+					cronLogger.Error("failed to get stderr pipe", "app", appname, "args", job.Args, "error", err)
+					continue
+				}
+
+				go utils.LogPipe(stdoutPipe, consoleLogger.With("stream", "stdout"))
+				go utils.LogPipe(stderrPipe, consoleLogger.With("stream", "stderr"))
+
 				go func() {
 					if err := command.Run(); err != nil {
-						logger.Error("failed to run command", "app", appname, "args", job.Args, "error", err)
+						cronLogger.Error("failed to run command", "app", appname, "args", job.Args, "error", err)
 					}
 				}()
 			}
