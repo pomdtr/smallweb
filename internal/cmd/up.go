@@ -204,7 +204,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						a, err := app.LoadApp(appname, k.String("dir"))
+						a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
 						if err != nil {
 							sysLogger.Error("failed to load app", "error", err)
 							continue
@@ -278,7 +278,7 @@ func NewCmdUp() *cobra.Command {
 						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
 
 						if ctx.User() != "_" {
-							a, err := app.LoadApp(ctx.User(), k.String("dir"))
+							a, err := app.LoadApp(filepath.Join(k.String("dir"), ctx.User()))
 							if err != nil {
 								return false
 							}
@@ -309,7 +309,7 @@ func NewCmdUp() *cobra.Command {
 							return func(sess ssh.Session) {
 								var cmd *exec.Cmd
 								if sess.User() != "_" {
-									a, err := app.LoadApp(sess.User(), k.String("dir"))
+									a, err := app.LoadApp(filepath.Join(k.String("dir"), sess.User()))
 									if err != nil {
 										fmt.Fprintf(sess, "failed to load app: %v\n", err)
 										sess.Exit(1)
@@ -513,7 +513,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	appname, ok := me.watcher.ResolveDomain(hostname)
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(fmt.Sprintf("No app found for hostname %s", hostname)))
+		fmt.Fprintf(w, "No app found for hostname %s", hostname)
 		return
 	}
 
@@ -521,7 +521,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, app.ErrAppNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte(fmt.Sprintf("No app found for host %s", r.Host)))
+			fmt.Fprintf(w, "App %s not found", appname)
 			return
 		}
 
@@ -553,7 +553,7 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 	me.workerMu.Lock()
 	defer me.workerMu.Unlock()
 
-	a, err := app.LoadApp(appname, k.String("dir"))
+	a, err := app.LoadApp(filepath.Join(k.String("dir"), appname))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}

@@ -47,13 +47,21 @@ func (me *Watcher) RefreshAppDomains() {
 
 	me.appDomains = make(map[string]string)
 	for _, appName := range appList {
-		app, err := app.LoadApp(me.root, appName)
+		app, err := app.LoadApp(filepath.Join(me.root, appName))
 		if err != nil {
 			continue
 		}
 
 		for _, domain := range app.Config.AdditionalDomains {
-			me.appDomains[domain] = appName
+			if existingApp, ok := me.appDomains[domain]; ok {
+				existingMtime := me.mtimes[existingApp]
+				currentMtime := me.mtimes[appName]
+				if currentMtime.Before(existingMtime) {
+					me.appDomains[domain] = appName
+				}
+			} else {
+				me.appDomains[domain] = appName
+			}
 		}
 	}
 }
@@ -74,18 +82,16 @@ func (me *Watcher) Start() error {
 			if !ok {
 				return fmt.Errorf("watcher closed")
 			}
-			if !event.Has(fsnotify.Create) && !event.Has(fsnotify.Write) && !event.Has(fsnotify.Remove) {
-				continue
-			}
-			fileinfo, err := os.Stat(event.Name)
-			if err != nil {
-				continue
-			}
-			if fileinfo.IsDir() {
-				if event.Has(fsnotify.Create) {
+
+			if event.Op == fsnotify.Create {
+				fileinfo, err := os.Stat(event.Name)
+				if err != nil {
+					continue
+				}
+
+				if fileinfo.IsDir() {
 					_ = me.AddDir(event.Name)
 				}
-				continue
 			}
 
 			var base string
@@ -103,13 +109,13 @@ func (me *Watcher) Start() error {
 				continue
 			}
 
-			if filepath.Base(event.Name) == "smallweb.json" || filepath.Base(event.Name) == "smallweb.jsonc" {
+			me.mu.Lock()
+			me.mtimes[base] = time.Now()
+			me.mu.Unlock()
+
+			if filepath.Dir(event.Name) == me.root || filepath.Base(event.Name) == "smallweb.json" || filepath.Base(event.Name) == "smallweb.jsonc" {
 				me.RefreshAppDomains()
 			}
-
-			me.mu.Lock()
-			me.mtimes[base] = fileinfo.ModTime()
-			me.mu.Unlock()
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				return fmt.Errorf("watcher closed")

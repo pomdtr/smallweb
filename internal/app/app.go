@@ -112,15 +112,10 @@ func ListApps(rootDir string) ([]string, error) {
 	return apps, nil
 }
 
-func LoadApp(appname string, rootDir string) (App, error) {
-	appDir := filepath.Join(rootDir, appname)
-	if !utils.FileExists(filepath.Join(rootDir, appname)) {
-		return App{}, ErrAppNotFound
-	}
-
+func LoadApp(appDir string) (App, error) {
 	app := App{
-		Name: appname,
-		Dir:  filepath.Join(rootDir, appname),
+		Name: filepath.Base(appDir),
+		Dir:  appDir,
 		env:  make(map[string]string),
 	}
 
