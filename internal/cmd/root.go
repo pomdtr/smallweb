@@ -153,6 +153,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdConfig())
 	rootCmd.AddCommand(NewCmdLink())
 	rootCmd.AddCommand(NewCmdSSHEntrypoint())
+	rootCmd.AddCommand(NewCmdCreate())
 
 	return rootCmd
 }
