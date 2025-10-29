@@ -20,6 +20,8 @@ import (
 
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/ssh"
+	"github.com/go-viper/mapstructure/v2"
+	"github.com/knadh/koanf/v2"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/charmbracelet/wish"
@@ -31,6 +33,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/config"
 	"github.com/pomdtr/smallweb/internal/sftp"
 	"github.com/pomdtr/smallweb/internal/watcher"
 	gossh "golang.org/x/crypto/ssh"
@@ -42,17 +45,18 @@ import (
 
 func NewCmdUp() *cobra.Command {
 	var flags struct {
-		enableCrons   bool
-		onDemandTLS   bool
-		addr          string
-		apiAddr       string
-		sshAddr       string
-		smtpAddr      string
-		sshPrivateKey string
-		tlsCert       string
-		tlsKey        string
-		logFormat     string
-		logOutput     string
+		enableCrons               bool
+		onDemandTLS               bool
+		addr                      string
+		apiAddr                   string
+		sshAddr                   string
+		smtpAddr                  string
+		sshPrivateKey             string
+		tlsCert                   string
+		tlsKey                    string
+		logFormat                 string
+		logOutput                 string
+		enableCustomPermissionSet []string
 	}
 
 	cmd := &cobra.Command{
@@ -210,7 +214,19 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						worker := worker.NewWorker(a)
+						var permissionSet config.PermissionSet
+						if key := fmt.Sprintf("permissions.%s", appname); k.Exists(key) {
+							if err := k.UnmarshalWithConf(key, &permissionSet, koanf.UnmarshalConf{
+								DecoderConfig: &mapstructure.DecoderConfig{
+									DecodeHook: config.PermissionConfigDecodeHook(),
+								},
+							}); err != nil {
+								sysLogger.Error("failed to unmarshal permission set from config", "error", err)
+								continue
+							}
+						}
+
+						worker := worker.NewWorker(a, &permissionSet)
 						if err := worker.SendEmail(context.Background(), data); err != nil {
 							sysLogger.Error("failed to send email", "error", err)
 							continue
@@ -315,8 +331,19 @@ func NewCmdUp() *cobra.Command {
 										sess.Exit(1)
 										return
 									}
-
-									wk := worker.NewWorker(a)
+									var permissionSet config.PermissionSet
+									if key := fmt.Sprintf("permissions.%s", a.Name); k.Exists(key) {
+										if err := k.UnmarshalWithConf(key, &permissionSet, koanf.UnmarshalConf{
+											DecoderConfig: &mapstructure.DecoderConfig{
+												DecodeHook: config.PermissionConfigDecodeHook(),
+											},
+										}); err != nil {
+											sysLogger.Error("failed to unmarshal permission set from config", "app", a.Name, "error", err)
+											sess.Exit(1)
+											return
+										}
+									}
+									wk := worker.NewWorker(a, &permissionSet)
 									c, err := wk.Command(sess.Context(), sess.Command())
 									if err != nil {
 										fmt.Fprintf(sess, "failed to get command: %v\n", err)
@@ -449,6 +476,7 @@ func NewCmdUp() *cobra.Command {
 	cmd.Flags().BoolVar(&flags.onDemandTLS, "on-demand-tls", false, "enable on-demand tls")
 	cmd.Flags().StringVar(&flags.logFormat, "log-format", "", "log format (json, text or pretty)")
 	cmd.Flags().StringVar(&flags.logOutput, "log-output", "stderr", "log output (stdout, stderr or filepath)")
+	cmd.Flags().StringSliceVar(&flags.enableCustomPermissionSet, "enable-custom-permission-set", nil, "enable custom permission set for apps")
 	cmd.Flags().BoolVar(&flags.enableCrons, "enable-crons", false, "enable cron jobs")
 
 	cmd.MarkFlagsMutuallyExclusive("on-demand-tls", "tls-cert")
@@ -558,7 +586,18 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a)
+	var permissionSet config.PermissionSet
+	if key := fmt.Sprintf("permissions.%s", appname); k.Exists(key) {
+		if err := k.UnmarshalWithConf(key, &permissionSet, koanf.UnmarshalConf{
+			DecoderConfig: &mapstructure.DecoderConfig{
+				DecodeHook: config.PermissionConfigDecodeHook(),
+			},
+		}); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal permission set from config: %w", err)
+		}
+	}
+
+	wk := worker.NewWorker(a, &permissionSet)
 	if err := wk.Start(me.logger); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}

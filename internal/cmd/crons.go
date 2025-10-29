@@ -3,14 +3,18 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
+	"github.com/go-viper/mapstructure/v2"
+	"github.com/knadh/koanf/v2"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/internal/app"
+	"github.com/pomdtr/smallweb/internal/config"
 	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/robfig/cron/v3"
@@ -162,7 +166,18 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 					cronLogger.Error("failed to load app", "app", appname, "error", err)
 					continue
 				}
-				wk := worker.NewWorker(a)
+				var permissionSet config.PermissionSet
+				if key := fmt.Sprintf("permissions.%s", a.Name); k.Exists(key) {
+					if err := k.UnmarshalWithConf(key, &permissionSet, koanf.UnmarshalConf{
+						DecoderConfig: &mapstructure.DecoderConfig{
+							DecodeHook: config.PermissionConfigDecodeHook(),
+						},
+					}); err != nil {
+						cronLogger.Error("failed to unmarshal permission set from config", "app", appname, "error", err)
+						continue
+					}
+				}
+				wk := worker.NewWorker(a, &permissionSet)
 
 				command, err := wk.Command(context.Background(), job.Args)
 				if err != nil {

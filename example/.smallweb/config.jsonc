@@ -1,4 +1,11 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "domain": "smallweb.live"
+    "domain": "smallweb.live",
+    "permissions": {
+        "ls": {
+            "read": [
+                ".."
+            ]
+        }
+    }
 }

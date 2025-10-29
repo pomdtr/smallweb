@@ -23,12 +23,48 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/build"
+	"github.com/pomdtr/smallweb/internal/config"
 	"github.com/pomdtr/smallweb/internal/utils"
 )
 
 //go:embed sandbox.ts
 var sandboxBytes []byte
 var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", build.Version, "mod.ts")
+
+func DefaultPermissionSet(a app.App) *config.PermissionSet {
+	return &config.PermissionSet{
+		Net: config.PermissionConfig{
+			AllowAll: true,
+		},
+		Import: config.PermissionConfig{
+			AllowAll: true,
+		},
+		Env: config.PermissionConfig{
+			AllowAll: true,
+		},
+		Sys: config.PermissionConfig{
+			AllowAll: true,
+		},
+		Read: config.PermissionConfig{
+			Allow: []string{
+				a.Root(),
+				filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org"),
+			},
+			Deny: []string{
+				utils.FindConfigPath(filepath.Dir(a.Dir)),
+			},
+		},
+		Write: config.PermissionConfig{
+			Allow: []string{
+				a.DataDir(),
+			},
+		},
+	}
+}
+
+type DenoConfig struct {
+	Permissions map[string]any `json:"permissions"`
+}
 
 func init() {
 	if err := os.MkdirAll(filepath.Dir(sandboxPath), 0o755); err != nil {
@@ -41,8 +77,9 @@ func init() {
 }
 
 type Worker struct {
-	App       app.App
-	StartedAt time.Time
+	App           app.App
+	StartedAt     time.Time
+	PermissionSet *config.PermissionSet
 
 	port           int
 	idleTimer      *time.Timer
@@ -50,66 +87,21 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func NewWorker(app app.App) *Worker {
+func NewWorker(app app.App, permissions *config.PermissionSet) *Worker {
 	worker := &Worker{
 		App: app,
+	}
+
+	if permissions != nil {
+		worker.PermissionSet = config.MergePermissionSets(permissions, DefaultPermissionSet(app))
+	} else {
+		worker.PermissionSet = DefaultPermissionSet(app)
 	}
 
 	return worker
 }
 
 var upgrader = websocket.Upgrader{} // use default options
-
-type SandboxMethod string
-
-func (me *Worker) DenoArgs(deno string) ([]string, error) {
-	args := []string{
-		"--allow-net",
-		"--allow-import",
-		"--allow-env",
-		"--allow-sys",
-		"--no-prompt",
-		"--quiet",
-	}
-
-	for _, configName := range []string{"deno.json", "deno.jsonc"} {
-		configPath := filepath.Join(me.App.Root(), configName)
-		if _, err := os.Stat(configPath); err == nil {
-			args = append(args, fmt.Sprintf("--config=%s", configPath))
-			break
-		}
-	}
-
-	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
-	// if root is not a symlink
-	appDir := me.App.Root()
-	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
-		args = append(
-			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", appDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
-		)
-
-		return args, nil
-	}
-
-	target, err := os.Readlink(appDir)
-	if err != nil {
-		return nil, fmt.Errorf("could not read symlink: %w", err)
-	}
-
-	if !filepath.IsAbs(target) {
-		target = filepath.Join(filepath.Dir(appDir), target)
-	}
-
-	args = append(
-		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, target, deno, npmCache),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
-	)
-
-	return args, nil
-}
 
 func (me *Worker) Start(logger *slog.Logger) error {
 	port, err := GetFreePort()
@@ -123,13 +115,16 @@ func (me *Worker) Start(logger *slog.Logger) error {
 		return fmt.Errorf("could not find deno executable")
 	}
 
-	args := []string{"run"}
-	denoArgs, err := me.DenoArgs(deno)
-	if err != nil {
-		return fmt.Errorf("could not get deno args: %w", err)
+	args := []string{"run", "--quiet", "--no-prompt"}
+	for _, configName := range []string{"deno.json", "deno.jsonc"} {
+		configPath := filepath.Join(me.App.Root(), configName)
+		if _, err := os.Stat(configPath); err == nil {
+			args = append(args, fmt.Sprintf("--config=%s", configPath))
+			break
+		}
 	}
+	args = append(args, me.PermissionSet.Flags()...)
 
-	args = append(args, denoArgs...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
@@ -435,12 +430,16 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 		return nil, fmt.Errorf("could not find deno executable")
 	}
 
-	cmdArgs := []string{"run"}
-	denoArgs, err := me.DenoArgs(deno)
-	if err != nil {
-		return nil, fmt.Errorf("could not get deno args: %w", err)
+	cmdArgs := []string{"run", "--quiet", "--no-prompt"}
+	for _, configName := range []string{"deno.json", "deno.jsonc"} {
+		configPath := filepath.Join(me.App.Root(), configName)
+		if _, err := os.Stat(configPath); err == nil {
+			args = append(args, fmt.Sprintf("--config=%s", configPath))
+			break
+		}
 	}
-	cmdArgs = append(cmdArgs, denoArgs...)
+
+	cmdArgs = append(cmdArgs, me.PermissionSet.Flags()...)
 
 	payload := strings.Builder{}
 	encoder := json.NewEncoder(&payload)
@@ -469,13 +468,16 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not find deno executable")
 	}
 
-	args := []string{"run"}
-	denoArgs, err := me.DenoArgs(deno)
-	if err != nil {
-		return fmt.Errorf("could not get deno args: %w", err)
+	args := []string{"run", "--quiet", "--no-prompt"}
+	for _, configName := range []string{"deno.json", "deno.jsonc"} {
+		configPath := filepath.Join(me.App.Root(), configName)
+		if _, err := os.Stat(configPath); err == nil {
+			args = append(args, fmt.Sprintf("--config=%s", configPath))
+			break
+		}
 	}
 
-	args = append(args, denoArgs...)
+	args = append(args, me.PermissionSet.Flags()...)
 
 	payload := strings.Builder{}
 	encoder := json.NewEncoder(&payload)
@@ -488,9 +490,8 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	denoArgs = append(args, sandboxPath, payload.String())
-
-	command := exec.CommandContext(ctx, deno, denoArgs...)
+	args = append(args, sandboxPath, payload.String())
+	command := exec.CommandContext(ctx, deno, args...)
 
 	command.Stderr = os.Stderr
 	command.Stdout = os.Stdout
