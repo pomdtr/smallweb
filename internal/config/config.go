@@ -191,18 +191,20 @@ func MergePermissionConfig(base, override PermissionConfig) PermissionConfig {
 		return PermissionConfig{DenyAll: true}
 	}
 
+	if base.AllowAll {
+		return PermissionConfig{AllowAll: true}
+	}
+
+	if base.DenyAll {
+		return PermissionConfig{DenyAll: true}
+	}
+
 	// Otherwise merge the lists
 	if len(override.Allow) > 0 {
-		result.AllowAll = false
-		result.DenyAll = false
-
 		result.Allow = append(result.Allow, override.Allow...)
 	}
 
 	if len(override.Deny) > 0 {
-		result.AllowAll = false
-		result.DenyAll = false
-
 		result.Deny = append(result.Deny, override.Deny...)
 	}
 
