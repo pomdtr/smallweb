@@ -1,5 +1,0 @@
-From: sender@example.com
-To: email@smallweb.localhost
-Subject: Test Email
-
-This is a test email sent via curl.
