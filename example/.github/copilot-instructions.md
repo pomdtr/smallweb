@@ -183,55 +183,6 @@ for (const row of rows) {
 db.close();
 ```
 
-## Private Apps
-
-Apps can be protected behind authentication. To do this, you'll first need to make sure than an oidc provider is configured in the `.smallweb/config.json[c]` file.
-
-```json
-{
-    "oidc": {
-        // use lastlogin.net as the oidc provider if none is specified
-        "issuer": "https://lastlogin.net"
-    },
-    "authorizedEmails": [
-        "pomdtr@example.com"
-    ]
-}
-```
-
-Then, you can set the `private` property in the `smallweb.json` file to `true`:
-
-```json
-{
-    "private": true
-}
-```
-
-Or protect only specific routes:
-
-```json
-{
-    "privateRoutes": [
-        "/admin/*"
-    ]
-}
-```
-
-The user email can then be retrieved using the `Remote-Email` header:
-
-```ts
-export default {
-  fetch(req: Request) {
-    const email = req.headers.get("Remote-Email");
-    if (!email) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    return new Response(`Hello ${email}`);
-  },
-}
-```
-
 ## Dependencies
 
 Smallweb supports importing dependencies from urls, or npm/jsr packages. You can use the `npm:` prefix to import npm packages.

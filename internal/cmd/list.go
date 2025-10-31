@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -15,8 +16,7 @@ import (
 
 func NewCmdList() *cobra.Command {
 	var flags struct {
-		json  bool
-		admin bool
+		json bool
 	}
 
 	cmd := &cobra.Command{
@@ -29,7 +29,7 @@ func NewCmdList() *cobra.Command {
 				return ExitError{1}
 			}
 
-			names, err := app.LookupApps(k.String("dir"))
+			names, err := app.ListApps(k.String("dir"))
 			if err != nil {
 				cmd.PrintErrln("failed to list apps:", err)
 				return ExitError{1}
@@ -37,11 +37,8 @@ func NewCmdList() *cobra.Command {
 
 			apps := make([]app.App, 0)
 			for _, name := range names {
-				a, err := app.LoadApp(name, k.String("dir"), k.String("domain"))
+				a, err := app.LoadApp(filepath.Join(k.String("dir"), name))
 				if err != nil {
-					continue
-				}
-				if cmd.Flags().Changed("admin") && a.Config.Admin != flags.admin {
 					continue
 				}
 
@@ -80,17 +77,11 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Name", "Dir", "Domain", "Admin"})
+			printer.AddHeader([]string{"Name", "Dir", "Domain"})
 			for _, a := range apps {
 				printer.AddField(a.Name)
-				printer.AddField(strings.Replace(a.BaseDir, os.Getenv("HOME"), "~", 1))
-				printer.AddField(a.Domain)
-
-				if a.Config.Admin {
-					printer.AddField("Yes")
-				} else {
-					printer.AddField("No")
-				}
+				printer.AddField(strings.Replace(a.Dir, os.Getenv("HOME"), "~", 1))
+				printer.AddField(fmt.Sprintf("https://%s.%s", a.Name, k.String("domain")))
 
 				printer.EndRow()
 			}
@@ -100,7 +91,6 @@ func NewCmdList() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&flags.json, "json", false, "output as json")
-	cmd.Flags().BoolVar(&flags.admin, "admin", false, "filter by admin")
 
 	return cmd
 }

@@ -11,25 +11,59 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/pomdtr/smallweb/internal/app"
-	"github.com/pomdtr/smallweb/internal/utils"
 )
 
 type Watcher struct {
-	watcher      *fsnotify.Watcher
-	mu           sync.Mutex
-	reloadConfig func()
-	mtimes       map[string]time.Time
-	root         string
+	watcher     *fsnotify.Watcher
+	mu          sync.Mutex
+	mtimes      map[string]time.Time
+	baseDomains []string
+	appDomains  map[string]string
+	root        string
 }
 
-func NewWatcher(rootDir string, reloadConfig func()) (*Watcher, error) {
+func NewWatcher(rootDir string, domain string, additionalDomains ...string) (*Watcher, error) {
 	me := &Watcher{
-		mtimes:       make(map[string]time.Time),
-		root:         rootDir,
-		reloadConfig: reloadConfig,
+		mtimes:     make(map[string]time.Time),
+		appDomains: make(map[string]string),
+		root:       rootDir,
 	}
 
+	me.baseDomains = append(me.baseDomains, domain)
+	me.baseDomains = append(me.baseDomains, additionalDomains...)
+	me.RefreshAppDomains()
+
 	return me, nil
+}
+
+func (me *Watcher) RefreshAppDomains() {
+	appList, err := app.ListApps(me.root)
+	if err != nil {
+		return
+	}
+
+	me.mu.Lock()
+	defer me.mu.Unlock()
+
+	me.appDomains = make(map[string]string)
+	for _, appName := range appList {
+		app, err := app.LoadApp(filepath.Join(me.root, appName))
+		if err != nil {
+			continue
+		}
+
+		for _, domain := range app.Config.AdditionalDomains {
+			if existingApp, ok := me.appDomains[domain]; ok {
+				existingMtime := me.mtimes[existingApp]
+				currentMtime := me.mtimes[appName]
+				if currentMtime.Before(existingMtime) {
+					me.appDomains[domain] = appName
+				}
+			} else {
+				me.appDomains[domain] = appName
+			}
+		}
+	}
 }
 
 func (me *Watcher) Start() error {
@@ -48,34 +82,16 @@ func (me *Watcher) Start() error {
 			if !ok {
 				return fmt.Errorf("watcher closed")
 			}
-			if !event.Has(fsnotify.Create) && !event.Has(fsnotify.Write) && !event.Has(fsnotify.Remove) {
-				continue
-			}
-			fileinfo, err := os.Stat(event.Name)
-			if err != nil {
-				continue
-			}
-			if fileinfo.IsDir() {
-				if event.Has(fsnotify.Create) {
-					_ = me.AddDir(event.Name)
-				}
-				continue
-			}
 
-			// if the event is originated from config file, reload the config and update all mtimes
-			if event.Name == utils.FindConfigPath(me.root) {
-				go me.reloadConfig()
-				apps, err := app.LookupApps(me.root)
+			if event.Op == fsnotify.Create {
+				fileinfo, err := os.Stat(event.Name)
 				if err != nil {
 					continue
 				}
 
-				me.mu.Lock()
-				for _, app := range apps {
-					me.mtimes[app] = fileinfo.ModTime()
+				if fileinfo.IsDir() {
+					_ = me.AddDir(event.Name)
 				}
-				me.mu.Unlock()
-				continue
 			}
 
 			var base string
@@ -94,8 +110,12 @@ func (me *Watcher) Start() error {
 			}
 
 			me.mu.Lock()
-			me.mtimes[base] = fileinfo.ModTime()
+			me.mtimes[base] = time.Now()
 			me.mu.Unlock()
+
+			if filepath.Dir(event.Name) == me.root || filepath.Base(event.Name) == "smallweb.json" || filepath.Base(event.Name) == "smallweb.jsonc" {
+				me.RefreshAppDomains()
+			}
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				return fmt.Errorf("watcher closed")
@@ -168,4 +188,26 @@ func (me *Watcher) AddDir(dir string) error {
 	})
 
 	return nil
+}
+
+func (me *Watcher) ResolveDomain(domain string) (string, bool) {
+	me.mu.Lock()
+	defer me.mu.Unlock()
+
+	if appname, ok := me.appDomains[domain]; ok {
+		return appname, true
+	}
+
+	parts := strings.SplitN(domain, ".", 2)
+	if len(parts) != 2 {
+		return "", false
+	}
+
+	for _, baseDomain := range me.baseDomains {
+		if parts[1] == baseDomain {
+			return parts[0], true
+		}
+	}
+
+	return "", false
 }

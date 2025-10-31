@@ -43,7 +43,6 @@ func init() {
 type Worker struct {
 	App       app.App
 	StartedAt time.Time
-	Logger    *slog.Logger
 
 	port           int
 	idleTimer      *time.Timer
@@ -51,10 +50,9 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func NewWorker(app app.App, logger *slog.Logger) *Worker {
+func NewWorker(app app.App) *Worker {
 	worker := &Worker{
-		App:    app,
-		Logger: logger,
+		App: app,
 	}
 
 	return worker
@@ -75,7 +73,7 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	}
 
 	for _, configName := range []string{"deno.json", "deno.jsonc"} {
-		configPath := filepath.Join(me.App.Dir(), configName)
+		configPath := filepath.Join(me.App.Root(), configName)
 		if _, err := os.Stat(configPath); err == nil {
 			args = append(args, fmt.Sprintf("--config=%s", configPath))
 			break
@@ -83,18 +81,8 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
-	if me.App.Config.Admin {
-		args = append(
-			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", me.App.RootDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.RootDir),
-		)
-
-		return args, nil
-	}
-
 	// if root is not a symlink
-	appDir := me.App.Dir()
+	appDir := me.App.Root()
 	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
 		args = append(
 			args,
@@ -123,7 +111,7 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	return args, nil
 }
 
-func (me *Worker) Start() error {
+func (me *Worker) Start(logger *slog.Logger) error {
 	port, err := GetFreePort()
 	if err != nil {
 		return fmt.Errorf("could not get free port: %w", err)
@@ -156,7 +144,7 @@ func (me *Worker) Start() error {
 	args = append(args, sandboxPath, input.String())
 
 	command := exec.Command(deno, args...)
-	command.Dir = me.App.Dir()
+	command.Dir = me.App.Root()
 	command.Env = me.App.Env()
 
 	stdoutPipe, err := command.StdoutPipe()
@@ -198,29 +186,14 @@ func (me *Worker) Start() error {
 	}
 
 	// Function to handle logging for both stdout and stderr
-	logPipe := func(pipe io.ReadCloser, stream string) {
-		scanner := bufio.NewScanner(pipe)
-		for scanner.Scan() {
-			if me.Logger == nil {
-				if stream == "stderr" {
-					fmt.Fprintln(os.Stderr, scanner.Text())
-				} else {
-					fmt.Fprintln(os.Stdout, scanner.Text())
-				}
-				continue
-			}
-			me.Logger.Info(
-				scanner.Text(),
-				"stream", stream,
-			)
-		}
-	}
+
+	consoleLogger := logger.With("logger", "console", "app", me.App.Name)
 
 	// Start goroutine for stdout
-	go logPipe(stdoutPipe, "stdout")
+	go utils.LogPipe(stdoutPipe, consoleLogger.With("stream", "stdout"))
 
 	// Start goroutine for stderr
-	go logPipe(stderrPipe, "stderr")
+	go utils.LogPipe(stderrPipe, consoleLogger.With("stream", "stderr"))
 
 	me.command = command
 	me.StartedAt = time.Now()
@@ -483,7 +456,7 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 	cmdArgs = append(cmdArgs, sandboxPath, payload.String())
 
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
-	command.Dir = me.App.Dir()
+	command.Dir = me.App.Root()
 
 	command.Env = me.App.Env()
 
@@ -521,7 +494,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 
 	command.Stderr = os.Stderr
 	command.Stdout = os.Stdout
-	command.Dir = me.App.Dir()
+	command.Dir = me.App.Root()
 
 	command.Env = me.App.Env()
 
