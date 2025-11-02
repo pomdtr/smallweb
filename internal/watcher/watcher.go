@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/utils"
 )
 
@@ -37,10 +36,13 @@ func (me *Watcher) Start() error {
 	if err != nil {
 		return err
 	}
+
 	me.watcher = watcher
 	if err := me.AddDir(me.root); err != nil {
 		return err
 	}
+
+	appDir := filepath.Join(me.root, ".smallweb", "apps")
 
 	for {
 		select {
@@ -48,13 +50,16 @@ func (me *Watcher) Start() error {
 			if !ok {
 				return fmt.Errorf("watcher closed")
 			}
-			if !event.Has(fsnotify.Create) && !event.Has(fsnotify.Write) && !event.Has(fsnotify.Remove) {
+
+			if !event.Has(fsnotify.Create) && !event.Has(fsnotify.Write) {
 				continue
 			}
+
 			fileinfo, err := os.Stat(event.Name)
 			if err != nil {
 				continue
 			}
+
 			if fileinfo.IsDir() {
 				if event.Has(fsnotify.Create) {
 					_ = me.AddDir(event.Name)
@@ -65,32 +70,29 @@ func (me *Watcher) Start() error {
 			// if the event is originated from config file, reload the config and update all mtimes
 			if event.Name == utils.FindConfigPath(me.root) {
 				go me.reloadConfig()
-				apps, err := app.LookupApps(me.root)
-				if err != nil {
-					continue
-				}
 
 				me.mu.Lock()
-				for _, app := range apps {
-					me.mtimes[app] = fileinfo.ModTime()
+				for k := range me.mtimes {
+					me.mtimes[k] = fileinfo.ModTime()
 				}
+
 				me.mu.Unlock()
+				continue
+			}
+
+			if strings.HasPrefix(event.Name, appDir) {
 				continue
 			}
 
 			var base string
 			parent := filepath.Dir(event.Name)
-			if parent == me.root {
+			if parent == appDir {
 				continue
 			}
 
-			for parent != me.root {
+			for parent != appDir {
 				base = filepath.Base(parent)
 				parent = filepath.Dir(parent)
-			}
-
-			if strings.HasPrefix(base, ".") {
-				continue
 			}
 
 			me.mu.Lock()

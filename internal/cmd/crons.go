@@ -3,8 +3,10 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
@@ -29,24 +31,25 @@ func NewCmdCrons() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:               "crons [app]",
+		Use:               "crons",
 		Aliases:           []string{"cron"},
 		Short:             "List cron jobs",
 		ValidArgsFunction: completeApp,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var crons []CronItem
-			apps, err := app.LookupApps(k.String("dir"))
+			apps, err := app.List(k.String("dir"))
 			if err != nil {
 				cmd.PrintErrf("failed to list apps: %v\n", err)
 				return ExitError{1}
 			}
 
 			for _, appname := range apps {
-				if flags.app != "" && flags.app != appname {
+				var appConfig app.Config
+				if err := k.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+				a, err := app.LoadApp(filepath.Join(k.String("dir"), appname), appConfig)
 				if err != nil {
 					cmd.PrintErrf("failed to load app %s: %v\n", appname, err)
 					return ExitError{1}
@@ -128,14 +131,19 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
-		apps, err := app.LookupApps(k.String("dir"))
+		apps, err := app.List(filepath.Join(k.String("dir")))
 		if err != nil {
 			logger.Error("failed to list apps", "error", err)
 			return
 		}
 
 		for _, appname := range apps {
-			a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+			var appConfig app.Config
+			if err := k.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
+				continue
+			}
+
+			a, err := app.LoadApp(filepath.Join(k.String("dir"), appname), appConfig)
 			if err != nil {
 				logger.Error("failed to load app", "app", appname, "error", err)
 				continue
@@ -153,12 +161,17 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+				var appConfig app.Config
+				if err := k.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
+					continue
+				}
+
+				a, err := app.LoadApp(filepath.Join(k.String("dir"), appname), appConfig)
 				if err != nil {
 					logger.Error("failed to load app", "app", appname, "error", err)
 					continue
 				}
-				wk := worker.NewWorker(a, nil)
+				wk := worker.NewWorker(a)
 
 				command, err := wk.Command(context.Background(), job.Args)
 				if err != nil {

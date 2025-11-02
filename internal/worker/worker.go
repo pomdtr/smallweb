@@ -43,7 +43,6 @@ func init() {
 type Worker struct {
 	App       app.App
 	StartedAt time.Time
-	Logger    *slog.Logger
 
 	port           int
 	idleTimer      *time.Timer
@@ -51,10 +50,9 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func NewWorker(app app.App, logger *slog.Logger) *Worker {
+func NewWorker(app app.App) *Worker {
 	worker := &Worker{
-		App:    app,
-		Logger: logger,
+		App: app,
 	}
 
 	return worker
@@ -64,7 +62,7 @@ var upgrader = websocket.Upgrader{} // use default options
 
 type SandboxMethod string
 
-func (me *Worker) DenoArgs(deno string) ([]string, error) {
+func (me *Worker) DenoArgs() ([]string, error) {
 	args := []string{
 		"--allow-net",
 		"--allow-import",
@@ -75,7 +73,7 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	}
 
 	for _, configName := range []string{"deno.json", "deno.jsonc"} {
-		configPath := filepath.Join(me.App.Dir(), configName)
+		configPath := filepath.Join(me.App.Root(), configName)
 		if _, err := os.Stat(configPath); err == nil {
 			args = append(args, fmt.Sprintf("--config=%s", configPath))
 			break
@@ -83,47 +81,16 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
-	if me.App.Config.Admin {
-		args = append(
-			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", me.App.RootDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.RootDir),
-		)
-
-		return args, nil
-	}
-
-	// if root is not a symlink
-	appDir := me.App.Dir()
-	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
-		args = append(
-			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", appDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
-		)
-
-		return args, nil
-	}
-
-	target, err := os.Readlink(appDir)
-	if err != nil {
-		return nil, fmt.Errorf("could not read symlink: %w", err)
-	}
-
-	if !filepath.IsAbs(target) {
-		target = filepath.Join(filepath.Dir(appDir), target)
-	}
-
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, target, deno, npmCache),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
+		fmt.Sprintf("--allow-read=%s,%s", me.App.Root(), npmCache),
+		fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
 	)
 
 	return args, nil
 }
 
-func (me *Worker) Start() error {
+func (me *Worker) Start(logger *slog.Logger) error {
 	port, err := GetFreePort()
 	if err != nil {
 		return fmt.Errorf("could not get free port: %w", err)
@@ -136,7 +103,7 @@ func (me *Worker) Start() error {
 	}
 
 	args := []string{"run"}
-	denoArgs, err := me.DenoArgs(deno)
+	denoArgs, err := me.DenoArgs()
 	if err != nil {
 		return fmt.Errorf("could not get deno args: %w", err)
 	}
@@ -156,7 +123,7 @@ func (me *Worker) Start() error {
 	args = append(args, sandboxPath, input.String())
 
 	command := exec.Command(deno, args...)
-	command.Dir = me.App.Dir()
+	command.Dir = me.App.Root()
 	command.Env = me.App.Env()
 
 	stdoutPipe, err := command.StdoutPipe()
@@ -198,29 +165,22 @@ func (me *Worker) Start() error {
 	}
 
 	// Function to handle logging for both stdout and stderr
-	logPipe := func(pipe io.ReadCloser, stream string) {
+	logPipe := func(pipe io.ReadCloser, logger *slog.Logger) {
 		scanner := bufio.NewScanner(pipe)
 		for scanner.Scan() {
-			if me.Logger == nil {
-				if stream == "stderr" {
-					fmt.Fprintln(os.Stderr, scanner.Text())
-				} else {
-					fmt.Fprintln(os.Stdout, scanner.Text())
-				}
-				continue
-			}
-			me.Logger.Info(
+			logger.Info(
 				scanner.Text(),
-				"stream", stream,
 			)
 		}
 	}
 
-	// Start goroutine for stdout
-	go logPipe(stdoutPipe, "stdout")
+	if logger != nil {
+		// Start goroutine for stdout
+		go logPipe(stdoutPipe, logger.With("stream", "stdout"))
 
-	// Start goroutine for stderr
-	go logPipe(stderrPipe, "stderr")
+		// Start goroutine for stderr
+		go logPipe(stderrPipe, logger.With("stream", "stderr"))
+	}
 
 	me.command = command
 	me.StartedAt = time.Now()
@@ -463,7 +423,7 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 	}
 
 	cmdArgs := []string{"run"}
-	denoArgs, err := me.DenoArgs(deno)
+	denoArgs, err := me.DenoArgs()
 	if err != nil {
 		return nil, fmt.Errorf("could not get deno args: %w", err)
 	}
@@ -483,7 +443,7 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 	cmdArgs = append(cmdArgs, sandboxPath, payload.String())
 
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
-	command.Dir = me.App.Dir()
+	command.Dir = me.App.Root()
 
 	command.Env = me.App.Env()
 
@@ -497,7 +457,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	}
 
 	args := []string{"run"}
-	denoArgs, err := me.DenoArgs(deno)
+	denoArgs, err := me.DenoArgs()
 	if err != nil {
 		return fmt.Errorf("could not get deno args: %w", err)
 	}
@@ -521,7 +481,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 
 	command.Stderr = os.Stderr
 	command.Stdout = os.Stdout
-	command.Dir = me.App.Dir()
+	command.Dir = me.App.Root()
 
 	command.Env = me.App.Env()
 

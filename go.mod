@@ -19,13 +19,9 @@ require (
 )
 
 require (
-	github.com/abiosoft/ishell/v2 v2.0.2
-	github.com/abiosoft/readline v0.0.0-20180607040430-155bce2042db
-	github.com/bmatcuk/doublestar/v4 v4.9.0
 	github.com/caddyserver/certmagic v0.23.0
 	github.com/charmbracelet/ssh v0.0.0-20250213143314-8712ec3ff3ef
 	github.com/charmbracelet/wish v1.4.7
-	github.com/coreos/go-oidc/v3 v3.14.1
 	github.com/creack/pty v1.1.24
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/getsops/sops/v3 v3.10.2
@@ -39,7 +35,6 @@ require (
 	github.com/samber/slog-http v1.7.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.40.0
-	golang.org/x/oauth2 v0.30.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
@@ -66,7 +61,6 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.51.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.51.0 // indirect
 	github.com/ProtonMail/go-crypto v1.2.0 // indirect
-	github.com/abiosoft/ishell v2.0.0+incompatible // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.10 // indirect
@@ -113,7 +107,6 @@ require (
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/flynn-archive/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/getsops/gopgagent v0.0.0-20241224165529-7044f28e491e // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
@@ -186,6 +179,7 @@ require (
 	go.uber.org/zap/exp v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.27.0 // indirect

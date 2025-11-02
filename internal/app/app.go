@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,82 +10,66 @@ import (
 
 	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
-	"github.com/pomdtr/smallweb/internal/build"
 	"github.com/pomdtr/smallweb/internal/utils"
-	"github.com/tailscale/hujson"
 )
 
 var (
 	ErrAppNotFound = errors.New("app not found")
 )
 
-type AppConfig struct {
-	Entrypoint    string    `json:"entrypoint,omitempty"`
-	Root          string    `json:"root,omitempty"`
-	Crons         []CronJob `json:"crons,omitempty"`
-	Admin         bool      `json:"admin"`
-	Private       bool      `json:"private"`
-	PrivateRoutes []string  `json:"privateRoutes"`
-	PublicRoutes  []string  `json:"publicRoutes"`
-}
-
-type DenoConfig struct {
-	Smallweb AppConfig `json:"smallweb"`
+type Config struct {
+	Entrypoint        string            `json:"entrypoint,omitempty" mapstructure:"entrypoint"`
+	Root              string            `json:"root,omitempty" mapstructure:"root"`
+	Crons             []CronJob         `json:"crons,omitempty" mapstructure:"crons"`
+	AdditionalDomains []string          `json:"additionalDomains" mapstructure:"additionalDomains"`
+	AuthorizedKeys    []string          `json:"authorizedKeys" mapstructure:"authorizedKeys"`
+	Env               map[string]string `json:"env,omitempty" mapstructure:"env"`
 }
 
 type CronJob struct {
-	Description string   `json:"description"`
-	Schedule    string   `json:"schedule"`
-	Args        []string `json:"args"`
+	Description string   `json:"description" mapstructure:"description"`
+	Schedule    string   `json:"schedule" mapstructure:"schedule"`
+	Args        []string `json:"args" mapstructure:"args"`
 }
 
 type App struct {
-	Name       string            `json:"name"`
-	RootDir    string            `json:"-"`
-	RootDomain string            `json:"-"`
-	Domain     string            `json:"domain,omitempty"`
-	BaseDir    string            `json:"dir,omitempty"`
-	Config     AppConfig         `json:"-"`
-	env        map[string]string `json:"-"`
+	Name   string
+	Dir    string
+	Config Config
+	dotenv map[string]string
 }
 
-func (me *App) Dir() string {
-	dir := me.BaseDir
-	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-		if root, err := os.Readlink(dir); err == nil {
-			dir = filepath.Join(filepath.Dir(dir), root)
-		}
-	}
-
+func (me *App) Root() string {
+	root := me.Dir
 	if me.Config.Root != "" {
-		return filepath.Join(dir, me.Config.Root)
+		return filepath.Join(root, me.Config.Root)
 	}
 
 	if me.Config.Entrypoint != "" {
-		return dir
+		return root
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		if utils.FileExists(filepath.Join(dir, candidate)) {
-			return dir
+		if utils.FileExists(filepath.Join(root, candidate)) {
+			return root
 		}
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		if utils.FileExists(filepath.Join(dir, "dist", candidate)) {
-			return filepath.Join(dir, "dist")
+		if utils.FileExists(filepath.Join(root, "dist", candidate)) {
+			return filepath.Join(root, "dist")
 		}
 	}
 
-	if utils.FileExists(filepath.Join(dir, "dist", "index.html")) {
-		return filepath.Join(dir, "dist")
+	if utils.FileExists(filepath.Join(root, "dist", "index.html")) {
+		return filepath.Join(root, "dist")
 	}
 
-	return dir
+	return root
 }
 
 func (me *App) DataDir() string {
-	dir := filepath.Join(me.Dir(), "data")
+	dir := filepath.Join(me.Root(), "data")
 	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
 		if root, err := os.Readlink(dir); err == nil {
 			dir = filepath.Join(filepath.Dir(dir), root)
@@ -96,41 +79,12 @@ func (me *App) DataDir() string {
 	return dir
 }
 
-func LookupApps(rootDir string) ([]string, error) {
-	entries, err := os.ReadDir(rootDir)
-	if err != nil {
-		return nil, fmt.Errorf("could not read directory %s: %v", rootDir, err)
-	}
-
-	apps := make([]string, 0)
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-
-		if !entry.IsDir() {
-			continue
-		}
-
-		apps = append(apps, entry.Name())
-	}
-
-	return apps, nil
-}
-
-func LoadApp(appname string, rootDir string, rootDomain string) (App, error) {
-	appDir := filepath.Join(rootDir, appname)
-	if !utils.FileExists(filepath.Join(rootDir, appname)) {
-		return App{}, ErrAppNotFound
-	}
-
+func LoadApp(appDir string, config Config) (App, error) {
 	app := App{
-		Name:       appname,
-		RootDir:    rootDir,
-		BaseDir:    filepath.Join(rootDir, appname),
-		RootDomain: rootDomain,
-		Domain:     fmt.Sprintf("%s.%s", appname, rootDomain),
-		env:        make(map[string]string),
+		Name:   filepath.Base(appDir),
+		Dir:    appDir,
+		dotenv: make(map[string]string),
+		Config: config,
 	}
 
 	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {
@@ -140,7 +94,7 @@ func LoadApp(appname string, rootDir string, rootDomain string) (App, error) {
 		}
 
 		for key, value := range dotenv {
-			app.env[key] = value
+			app.dotenv[key] = value
 		}
 	}
 
@@ -168,33 +122,10 @@ func LoadApp(appname string, rootDir string, rootDomain string) (App, error) {
 		}
 
 		for key, value := range dotenv {
-			app.env[key] = value
+			app.dotenv[key] = value
 		}
 
 		break
-	}
-
-	for _, configName := range []string{"smallweb.json", "smallweb.jsonc"} {
-		configPath := filepath.Join(appDir, configName)
-		if !utils.FileExists(configPath) {
-			continue
-		}
-
-		rawBytes, err := os.ReadFile(configPath)
-		if err != nil {
-			return App{}, fmt.Errorf("could not read %s: %v", configName, err)
-		}
-
-		configBytes, err := hujson.Standardize(rawBytes)
-		if err != nil {
-			return App{}, fmt.Errorf("could not standardize %s: %v", configName, err)
-		}
-
-		if err := json.Unmarshal(configBytes, &app.Config); err != nil {
-			return App{}, fmt.Errorf("could not unmarshal %s: %v", configName, err)
-		}
-
-		return app, nil
 	}
 
 	return app, nil
@@ -210,11 +141,11 @@ func (me App) Entrypoint() string {
 	}
 
 	if me.Config.Entrypoint != "" {
-		return filepath.Join(me.Dir(), me.Config.Entrypoint)
+		return filepath.Join(me.Root(), me.Config.Entrypoint)
 	}
 
 	for _, candidate := range []string{"main.js", "main.ts", "main.jsx", "main.tsx"} {
-		path := filepath.Join(me.Dir(), candidate)
+		path := filepath.Join(me.Root(), candidate)
 		if utils.FileExists(path) {
 			return fmt.Sprintf("file://%s", path)
 		}
@@ -226,19 +157,16 @@ func (me App) Entrypoint() string {
 func (me App) Env() []string {
 	env := []string{}
 
-	for k, v := range me.env {
+	for k, v := range me.Config.Env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	for k, v := range me.dotenv {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
 	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
 	env = append(env, "DENO_NO_UPDATE_CHECK=1")
-
-	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
-	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", me.RootDir))
-	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.RootDomain))
-	if me.Config.Admin {
-		env = append(env, "SMALLWEB_ADMIN=1")
-	}
 
 	// open telemetry
 	for _, value := range os.Environ() {
@@ -246,7 +174,30 @@ func (me App) Env() []string {
 			env = append(env, value)
 		}
 	}
+
 	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.Name))
 
 	return env
+}
+
+func List(rootDir string) ([]string, error) {
+	entries, err := os.ReadDir(rootDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory: %w", err)
+	}
+
+	var apps []string
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), ".") {
+			continue
+		}
+
+		if !entry.IsDir() {
+			continue
+		}
+
+		apps = append(apps, entry.Name())
+	}
+
+	return apps, nil
 }

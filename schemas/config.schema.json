@@ -5,39 +5,12 @@
         "domain"
     ],
     "properties": {
-        "oidc": {
-            "type": "object",
-            "description": "OpenID Connect configuration",
-            "required": [
-                "issuer"
-            ],
-            "properties": {
-                "issuer": {
-                    "description": "OpenID Connect issuer",
-                    "type": "string"
-                }
-            }
-        },
         "domain": {
             "description": "Domain name",
             "type": "string"
         },
         "additionalDomains": {
             "description": "Additional wildcard domains",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
-        "authorizedEmails": {
-            "description": "Authorized email addresses",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
-        "authorizedGroups": {
-            "description": "Authorized groups",
             "type": "array",
             "items": {
                 "type": "string"
@@ -51,15 +24,10 @@
             }
         },
         "apps": {
+            "description": "Application specific configurations",
             "type": "object",
             "additionalProperties": {
                 "$ref": "#/definitions/appConfig"
-            }
-        },
-        "repos": {
-            "type": "object",
-            "additionalProperties": {
-                "$ref": "#/definitions/repoConfig"
             }
         }
     },
@@ -67,6 +35,13 @@
         "appConfig": {
             "type": "object",
             "properties": {
+                "env": {
+                    "description": "Environment variables for the app",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "additionalDomains": {
                     "description": "Additional app domains",
                     "type": "array",
@@ -74,37 +49,41 @@
                         "type": "string"
                     }
                 },
-                "authorizedEmails": {
-                    "description": "Authorized email addresses",
+                "authorizedKeys": {
+                    "description": "Authorized SSH keys for the app",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
-                "authorizedGroups": {
-                    "description": "Authorized groups",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "root": {
+                    "type": "string"
                 },
-                "authorizedKeys": {
-                    "description": "Authorized SSH keys",
+                "entrypoint": {
+                    "type": "string"
+                },
+                "crons": {
+                    "description": "Cron jobs",
                     "type": "array",
                     "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "repoConfig": {
-            "type": "object",
-            "properties": {
-                "authorizedKeys": {
-                    "description": "Authorized SSH keys for the repository",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
+                        "type": "object",
+                        "required": [
+                            "schedule",
+                            "args"
+                        ],
+                        "properties": {
+                            "schedule": {
+                                "description": "Cron schedule",
+                                "type": "string"
+                            },
+                            "args": {
+                                "description": "Cron arguments",
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
                     }
                 }
             }
