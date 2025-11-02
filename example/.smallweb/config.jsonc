@@ -2,16 +2,14 @@
     "$schema": "../../schemas/config.schema.json",
     "domain": "smallweb.live",
     "apps": {
-        "cron-example": {
+        "example-cron": {
             "crons": [
                 {
                     "schedule": "* * * * *",
+                    // ceci est un test
                     "args": []
                 }
             ]
-        },
-        "custom-entrypoint": {
-            "entrypoint": "./server.ts"
         }
     }
 }
