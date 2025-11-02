@@ -267,9 +267,14 @@ func NewCmdUp() *cobra.Command {
 						return ExitError{1}
 					}
 
-					for _, keyType := range []string{"id_rsa", "id_ed25519"} {
-						if _, err := os.Stat(filepath.Join(homeDir, ".ssh", keyType)); err == nil {
-							sshPrivateKeyPath = filepath.Join(homeDir, ".ssh", keyType)
+					for _, keyPath := range []string{
+						filepath.Join(homeDir, ".ssh", "smallweb", "id_ed25519"),
+						filepath.Join(homeDir, ".ssh", "smallweb", "id_rsa"),
+						filepath.Join(homeDir, ".ssh", "id_ed25519"),
+						filepath.Join(homeDir, ".ssh", "id_rsa"),
+					} {
+						if _, err := os.Stat(keyPath); err == nil {
+							sshPrivateKeyPath = filepath.Join(keyPath)
 							break
 						}
 					}
