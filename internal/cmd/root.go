@@ -87,6 +87,10 @@ func NewCmdRoot() *cobra.Command {
 		SilenceUsage:      true,
 		Args:              cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return cmd.Help()
+			}
+
 			for _, pluginDir := range []string{
 				filepath.Join(k.String("dir"), ".smallweb", "commands"),
 				filepath.Join(xdg.ConfigHome, "smallweb", "commands"),
