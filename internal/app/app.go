@@ -173,6 +173,10 @@ func (me App) Env() []string {
 		if strings.HasPrefix(value, "OTEL_") {
 			env = append(env, value)
 		}
+
+		if strings.HasPrefix(value, "DENO_") {
+			env = append(env, value)
+		}
 	}
 
 	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.Name))
