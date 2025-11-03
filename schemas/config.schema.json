@@ -42,6 +42,13 @@
                         "type": "string"
                     }
                 },
+                "labels": {
+                    "description": "Labels for the app",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "additionalDomains": {
                     "description": "Additional app domains",
                     "type": "array",

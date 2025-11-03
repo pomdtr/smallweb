@@ -81,10 +81,16 @@ func (me *Worker) DenoArgs() ([]string, error) {
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return nil, fmt.Errorf("could not get user cache dir: %w", err)
+	}
+
+	socketPath := filepath.Join(cacheDir, "smallweb", "smallweb.sock")
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s", me.App.Root(), npmCache),
-		fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
+		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), npmCache, socketPath),
+		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), socketPath),
 	)
 
 	return args, nil
@@ -124,7 +130,7 @@ func (me *Worker) Start(logger *slog.Logger) error {
 
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Root()
-	command.Env = me.App.Env()
+	command.Env = Env(me.App)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -445,7 +451,7 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
 	command.Dir = me.App.Root()
 
-	command.Env = me.App.Env()
+	command.Env = Env(me.App)
 
 	return command, nil
 }
@@ -483,7 +489,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	command.Stdout = os.Stdout
 	command.Dir = me.App.Root()
 
-	command.Env = me.App.Env()
+	command.Env = Env(me.App)
 
 	return command.Run()
 }
@@ -501,4 +507,38 @@ func GetFreePort() (int, error) {
 	}
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port, nil
+}
+
+func Env(a app.App) []string {
+	env := []string{}
+
+	for k, v := range a.Config.Env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	for k, v := range a.Env {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+	env = append(env, "DENO_NO_UPDATE_CHECK=1")
+
+	// open telemetry
+	for _, value := range os.Environ() {
+		if strings.HasPrefix(value, "OTEL_") {
+			env = append(env, value)
+		}
+
+		if strings.HasPrefix(value, "DENO_") {
+			env = append(env, value)
+		}
+	}
+
+	cacheDir, _ := os.UserCacheDir()
+
+	env = append(env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", filepath.Join(cacheDir, "smallweb", "smallweb.sock")))
+
+	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", a.Name))
+
+	return env
 }

@@ -1,0 +1,222 @@
+# yaml-language-server: $schema=https://spec.openapis.org/oas/3.0/schema/2021-09-28
+
+openapi: "3.0.4"
+info:
+  version: 1.0.0
+  title: Smallweb API
+  description: API for Smallweb blob storage and SQLite operations
+servers:
+  - url: /v1
+    description: API v1
+
+paths:
+  /blob/{key}:
+    get:
+      summary: Get or list blob items
+      operationId: getBlob
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: "The blob key. Suffix with / or colon to list keys."
+          schema:
+            type: string
+        - name: Accept
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+            text/plain:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+
+    head:
+      summary: Check if blob item exists
+      operationId: hasBlob
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Item exists
+        "404":
+          description: Item not found
+
+    put:
+      summary: Set blob item
+      operationId: setBlob
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          description: Internal Server Error
+
+    delete:
+      summary: Remove blob item or clear with prefix
+      operationId: deleteBlob
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: "The blob key. Suffix with / or colon to clear all with prefix."
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          description: Internal Server Error
+
+  /sqlite/execute:
+    post:
+      summary: Execute a single SQLite statement
+      operationId: executeSQLite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecuteRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteResult"
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+
+  /sqlite/batch:
+    post:
+      summary: Execute a batch of SQLite statements in a transaction
+      operationId: batchSQLite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchRequest"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExecuteResult"
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+
+components:
+  schemas:
+    ExecuteRequest:
+      type: object
+      required:
+        - statement
+      properties:
+        statement:
+          oneOf:
+            - type: string
+              description: Simple SQL statement string
+            - $ref: "#/components/schemas/StatementObject"
+              description: Statement object with SQL and arguments
+
+    StatementObject:
+      type: object
+      required:
+        - sql
+      properties:
+        sql:
+          type: string
+        args:
+          oneOf:
+            - type: array
+              items: {}
+            - type: object
+              additionalProperties: {}
+
+    BatchRequest:
+      type: object
+      required:
+        - statements
+      properties:
+        statements:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - $ref: "#/components/schemas/StatementObject"
+        mode:
+          type: string
+          enum: [read, write, deferred]
+
+    ExecuteResult:
+      type: object
+      properties:
+        columns:
+          type: array
+          items:
+            type: string
+        columnTypes:
+          type: array
+          items:
+            type: string
+        rows:
+          type: array
+          items:
+            type: array
+            items: {}
+        rowsAffected:
+          type: integer
+          format: int64
+        lastInsertRowid:
+          type: integer
+          format: int64
+          nullable: true

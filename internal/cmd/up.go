@@ -36,6 +36,7 @@ import (
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
 
+	"github.com/pomdtr/smallweb/internal/api"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/sftp"
 	"github.com/pomdtr/smallweb/internal/watcher"
@@ -465,6 +466,31 @@ func NewCmdUp() *cobra.Command {
 				logger.Info("serving ssh", "addr", flags.sshAddr)
 				go srv.ListenAndServe()
 			}
+
+			api := api.NewApi(k.String("dir"))
+
+			cacheDir, err := os.UserCacheDir()
+			if err != nil {
+				sysLogger.Error("failed to get user cache dir", "error", err)
+				return ExitError{1}
+			}
+
+			socketPath := filepath.Join(cacheDir, "smallweb", "smallweb.sock")
+			if utils.FileExists(socketPath) {
+				if err := os.Remove(socketPath); err != nil {
+					sysLogger.Error("failed to remove existing socket", "error", err)
+					return ExitError{1}
+				}
+			}
+
+			ln, err := net.Listen("unix", socketPath)
+			if err != nil {
+				sysLogger.Error("failed to listen on api socket", "error", err)
+				return ExitError{1}
+			}
+
+			logger.Info("serving api", "socket", socketPath)
+			go http.Serve(ln, api)
 
 			// sigint handling
 			sigint := make(chan os.Signal, 1)

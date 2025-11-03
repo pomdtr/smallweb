@@ -36,7 +36,7 @@ type App struct {
 	Name   string
 	Dir    string
 	Config Config
-	dotenv map[string]string
+	Env    map[string]string
 }
 
 func (me *App) Root() string {
@@ -83,7 +83,7 @@ func LoadApp(appDir string, config Config) (App, error) {
 	app := App{
 		Name:   filepath.Base(appDir),
 		Dir:    appDir,
-		dotenv: make(map[string]string),
+		Env:    make(map[string]string),
 		Config: config,
 	}
 
@@ -94,7 +94,7 @@ func LoadApp(appDir string, config Config) (App, error) {
 		}
 
 		for key, value := range dotenv {
-			app.dotenv[key] = value
+			app.Env[key] = value
 		}
 	}
 
@@ -122,7 +122,7 @@ func LoadApp(appDir string, config Config) (App, error) {
 		}
 
 		for key, value := range dotenv {
-			app.dotenv[key] = value
+			app.Env[key] = value
 		}
 
 		break
@@ -152,36 +152,6 @@ func (me App) Entrypoint() string {
 	}
 
 	return "jsr:@smallweb/file-server@0.8.2"
-}
-
-func (me App) Env() []string {
-	env := []string{}
-
-	for k, v := range me.Config.Env {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	for k, v := range me.dotenv {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
-	env = append(env, "DENO_NO_UPDATE_CHECK=1")
-
-	// open telemetry
-	for _, value := range os.Environ() {
-		if strings.HasPrefix(value, "OTEL_") {
-			env = append(env, value)
-		}
-
-		if strings.HasPrefix(value, "DENO_") {
-			env = append(env, value)
-		}
-	}
-
-	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.Name))
-
-	return env
 }
 
 func List(rootDir string) ([]string, error) {

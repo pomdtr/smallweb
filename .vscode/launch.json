@@ -29,9 +29,6 @@
                 "--ssh-addr=:2222"
             ],
             "cwd": "${userHome}/smallweb/smallweb.run",
-            "env": {
-                "DENO_TLS_CA_STORE": "system",
-            },
         },
         {
             "name": "smallweb cli",
