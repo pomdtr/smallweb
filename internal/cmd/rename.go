@@ -49,7 +49,7 @@ func NewCmdRename() *cobra.Command {
 
 			configPath := utils.FindConfigPath(k.String("dir"))
 
-			patch := JsonPath{
+			patch := utils.JsonPatch{
 				{
 					Op:   "move",
 					From: fmt.Sprintf("/apps/%s", oldName),
@@ -57,7 +57,7 @@ func NewCmdRename() *cobra.Command {
 				},
 			}
 
-			if err := PatchFile(configPath, patch); err != nil {
+			if err := utils.PatchFile(configPath, patch); err != nil {
 				return fmt.Errorf("updating config file: %w", err)
 			}
 

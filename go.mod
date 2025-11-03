@@ -13,7 +13,6 @@ require (
 	github.com/knadh/koanf/v2 v2.2.2
 	github.com/mattn/go-isatty v0.0.20
 	github.com/spf13/cobra v1.9.1
-	github.com/tailscale/hujson v0.0.0-20250226034555-ec1d1c113d33
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/term v0.33.0
 )
@@ -29,6 +28,7 @@ require (
 	github.com/knadh/koanf/providers/posflag v1.0.1
 	github.com/leaanthony/gosod v1.0.4
 	github.com/lmittmann/tint v1.1.2
+	github.com/matthewmueller/jsonc v0.1.0
 	github.com/mhale/smtpd v0.8.3
 	github.com/pkg/sftp v1.13.9
 	github.com/robfig/cron/v3 v3.0.1
