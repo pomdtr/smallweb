@@ -574,6 +574,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	appname, ok := lookupApp(hostname)
 	if !ok {
+		if appname, ok := lookupApp("www." + hostname); ok {
+			http.Redirect(w, r, fmt.Sprintf("%s://%s%s", ExtractScheme(r), appname+"."+k.String("domain"), r.URL.RequestURI()), http.StatusFound)
+			return
+		}
+
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte(fmt.Sprintf("No app found for hostname %s", hostname)))
 		return
@@ -646,4 +651,16 @@ func (me *Handler) GetWorker(rootDir string, appname string) (*worker.Worker, er
 
 	me.workers[a.Name] = wk
 	return wk, nil
+}
+
+func ExtractScheme(r *http.Request) string {
+	if scheme := r.URL.Query().Get("X-Forwarded-Proto"); scheme != "" {
+		return scheme
+	}
+
+	if r.TLS != nil {
+		return "https"
+	}
+
+	return "http"
 }
