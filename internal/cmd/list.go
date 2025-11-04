@@ -19,7 +19,7 @@ func NewCmdList() *cobra.Command {
 		Short:   "List all smallweb apps",
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if k.String("dir") == "" {
+			if conf.String("dir") == "" {
 				cmd.PrintErrln("smallweb directory not set")
 				return ExitError{1}
 			}
@@ -36,7 +36,7 @@ func NewCmdList() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			apps, err := app.List(k.String("dir"))
+			apps, err := app.List(conf.String("dir"))
 			if err != nil {
 				cmd.PrintErrf("failed to list apps: %v\n", err)
 				return ExitError{1}
@@ -50,8 +50,8 @@ func NewCmdList() *cobra.Command {
 			printer.AddHeader([]string{"Name", "Dir", "Url"})
 			for _, appname := range apps {
 				printer.AddField(appname)
-				printer.AddField(strings.Replace(filepath.Join(k.String("dir"), appname), os.Getenv("HOME"), "~", 1))
-				printer.AddField(fmt.Sprintf("https://%s.%s", appname, k.String("domain")))
+				printer.AddField(strings.Replace(filepath.Join(conf.String("dir"), appname), os.Getenv("HOME"), "~", 1))
+				printer.AddField(fmt.Sprintf("https://%s.%s", appname, conf.String("domain")))
 
 				printer.EndRow()
 			}

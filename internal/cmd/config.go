@@ -33,7 +33,7 @@ func NewCmdConfig() *cobra.Command {
 		Use:   "config",
 		Short: "Open Smallweb configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			configPath := findConfigPath(k.String("dir"))
+			configPath := findConfigPath(conf.String("dir"))
 			if flags.json || !isatty.IsTerminal(os.Stdout.Fd()) {
 				configBytes, err := os.ReadFile(configPath)
 				if err != nil {

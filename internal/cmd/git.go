@@ -17,10 +17,10 @@ func NewCmdGitReceivePack() *cobra.Command {
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var appConfig app.Config
-			if err := k.Unmarshal(fmt.Sprintf("apps.%s", args[0]), &appConfig); err != nil {
+			if err := conf.Unmarshal(fmt.Sprintf("apps.%s", args[0]), &appConfig); err != nil {
 				return ExitError{1}
 			}
-			a, err := app.LoadApp(filepath.Join(k.String("dir"), args[0]), appConfig)
+			a, err := app.LoadApp(filepath.Join(conf.String("dir"), args[0]), appConfig)
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}
@@ -55,11 +55,11 @@ func NewCmdGitUploadPack() *cobra.Command {
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var appConfig app.Config
-			if err := k.Unmarshal(fmt.Sprintf("apps.%s", args[0]), &appConfig); err != nil {
+			if err := conf.Unmarshal(fmt.Sprintf("apps.%s", args[0]), &appConfig); err != nil {
 				return ExitError{1}
 			}
 
-			a, err := app.LoadApp(filepath.Join(k.String("dir"), args[0]), appConfig)
+			a, err := app.LoadApp(filepath.Join(conf.String("dir"), args[0]), appConfig)
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}

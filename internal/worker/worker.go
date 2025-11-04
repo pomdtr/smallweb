@@ -41,8 +41,9 @@ func init() {
 }
 
 type Worker struct {
-	App       app.App
-	StartedAt time.Time
+	App        app.App
+	StartedAt  time.Time
+	socketPath string
 
 	port           int
 	idleTimer      *time.Timer
@@ -50,9 +51,10 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func NewWorker(app app.App) *Worker {
+func NewWorker(app app.App, socketPath string) *Worker {
 	worker := &Worker{
-		App: app,
+		App:        app,
+		socketPath: socketPath,
 	}
 
 	return worker
@@ -81,16 +83,11 @@ func (me *Worker) DenoArgs() ([]string, error) {
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
-	cacheDir, err := os.UserCacheDir()
-	if err != nil {
-		return nil, fmt.Errorf("could not get user cache dir: %w", err)
-	}
 
-	socketPath := filepath.Join(cacheDir, "smallweb", "smallweb.sock")
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), npmCache, socketPath),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), socketPath),
+		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), npmCache, me.socketPath),
+		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), me.socketPath),
 	)
 
 	return args, nil
@@ -130,7 +127,7 @@ func (me *Worker) Start(logger *slog.Logger) error {
 
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Root()
-	command.Env = Env(me.App)
+	command.Env = me.Env()
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -451,7 +448,7 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
 	command.Dir = me.App.Root()
 
-	command.Env = Env(me.App)
+	command.Env = me.Env()
 
 	return command, nil
 }
@@ -489,7 +486,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	command.Stdout = os.Stdout
 	command.Dir = me.App.Root()
 
-	command.Env = Env(me.App)
+	command.Env = me.Env()
 
 	return command.Run()
 }
@@ -509,14 +506,14 @@ func GetFreePort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
-func Env(a app.App) []string {
+func (me *Worker) Env() []string {
 	env := []string{}
 
-	for k, v := range a.Config.Env {
+	for k, v := range me.App.Config.Env {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	for k, v := range a.Env {
+	for k, v := range me.App.Env {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
@@ -534,11 +531,8 @@ func Env(a app.App) []string {
 		}
 	}
 
-	cacheDir, _ := os.UserCacheDir()
-
-	env = append(env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", filepath.Join(cacheDir, "smallweb", "smallweb.sock")))
-
-	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", a.Name))
+	env = append(env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", me.socketPath))
+	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.App.Name))
 
 	return env
 }

@@ -22,7 +22,7 @@ func NewCmdCreate() *cobra.Command {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			appDir := filepath.Join(k.String("dir"), args[0])
+			appDir := filepath.Join(conf.String("dir"), args[0])
 
 			if _, err := os.Stat(appDir); err == nil {
 				cmd.PrintErrf("app %q already exists\n", args[0])

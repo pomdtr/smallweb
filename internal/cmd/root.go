@@ -12,7 +12,6 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/posflag"
-	"github.com/knadh/koanf/v2"
 
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/build"
@@ -29,7 +28,7 @@ func (e ExitError) Error() string {
 }
 
 var (
-	k = koanf.New(".")
+	conf = utils.NewConfig()
 )
 
 func findSmallwebDir() string {
@@ -59,27 +58,27 @@ var envProvider = env.ProviderWithValue("SMALLWEB_", ".", func(s string, v strin
 })
 
 func NewCmdRoot() *cobra.Command {
-	_ = k.Load(envProvider, nil)
+	_ = conf.Load(envProvider, nil)
 	rootCmd := &cobra.Command{
 		Use:           "smallweb",
 		Short:         "Host websites from your internet folder",
 		Version:       build.Version,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
-			_ = k.Load(confmap.Provider(map[string]interface{}{
+			flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", conf)
+			_ = conf.Load(confmap.Provider(map[string]interface{}{
 				"dir": findSmallwebDir(),
 			}, "."), nil)
 
-			_ = k.Load(envProvider, nil)
-			_ = k.Load(flagProvider, nil)
+			_ = conf.Load(envProvider, nil)
+			_ = conf.Load(flagProvider, nil)
 
-			configPath := utils.FindConfigPath(k.String("dir"))
+			configPath := utils.FindConfigPath(conf.String("dir"))
 			fileProvider := file.Provider(configPath)
 
-			_ = k.Load(fileProvider, utils.ConfigParser())
-			_ = k.Load(envProvider, nil)
-			_ = k.Load(flagProvider, nil)
+			_ = conf.Load(fileProvider, utils.ConfigParser())
+			_ = conf.Load(envProvider, nil)
+			_ = conf.Load(flagProvider, nil)
 
 			return nil
 		},
@@ -92,7 +91,7 @@ func NewCmdRoot() *cobra.Command {
 			}
 
 			for _, pluginDir := range []string{
-				filepath.Join(k.String("dir"), ".smallweb", "commands"),
+				filepath.Join(conf.String("dir"), ".smallweb", "commands"),
 				filepath.Join(xdg.ConfigHome, "smallweb", "commands"),
 			} {
 				entries, err := os.ReadDir(pluginDir)
@@ -123,8 +122,8 @@ func NewCmdRoot() *cobra.Command {
 					command := exec.Command(entrypoint, args[1:]...)
 					command.Env = os.Environ()
 					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", k.String("dir")))
-					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", k.String("domain")))
+					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DIR=%s", conf.String("dir")))
+					command.Env = append(command.Env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", conf.String("domain")))
 
 					command.Stdin = os.Stdin
 					command.Stdout = cmd.OutOrStdout()
@@ -146,6 +145,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdCreate())
 	rootCmd.AddCommand(NewCmdDelete())
 	rootCmd.AddCommand(NewCmdRename())
+	rootCmd.AddCommand(NewCmdApi())
 	rootCmd.AddCommand(NewCmdRun())
 	rootCmd.AddCommand(NewCmdDocs())
 	rootCmd.AddCommand(NewCmdUp())
@@ -180,8 +180,8 @@ func isExecutable(path string) (bool, error) {
 }
 
 func completeCommands(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
-	_ = k.Load(flagProvider, nil)
+	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", conf)
+	_ = conf.Load(flagProvider, nil)
 
 	if len(args) > 0 {
 		return nil, cobra.ShellCompDirectiveDefault
@@ -189,7 +189,7 @@ func completeCommands(cmd *cobra.Command, args []string, toComplete string) ([]s
 
 	var completions []string
 	for _, dir := range []string{
-		filepath.Join(k.String("dir"), ".smallweb", "commands"),
+		filepath.Join(conf.String("dir"), ".smallweb", "commands"),
 		filepath.Join(xdg.ConfigHome, "smallweb", "commands"),
 	} {
 
@@ -216,10 +216,10 @@ func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
-	_ = k.Load(flagProvider, nil)
+	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", conf)
+	_ = conf.Load(flagProvider, nil)
 
-	apps, err := app.List(k.String("dir"))
+	apps, err := app.List(conf.String("dir"))
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}

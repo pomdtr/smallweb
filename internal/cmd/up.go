@@ -34,7 +34,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/knadh/koanf/providers/posflag"
-	"github.com/knadh/koanf/v2"
 
 	"github.com/pomdtr/smallweb/internal/api"
 	"github.com/pomdtr/smallweb/internal/app"
@@ -108,26 +107,46 @@ func NewCmdUp() *cobra.Command {
 
 			sysLogger := logger.With("logger", "system")
 
-			if k.String("dir") == "" {
+			if conf.String("dir") == "" {
 				sysLogger.Error("dir cannot be empty")
 				return ExitError{1}
 			}
 
-			if k.String("domain") == "" {
+			if conf.String("domain") == "" {
 				sysLogger.Error("domain cannot be empty")
 				return ExitError{1}
 			}
 
-			handler := &Handler{
-				workers: make(map[string]*worker.Worker),
-				logger:  logger,
+			cacheDir, err := os.UserCacheDir()
+			if err != nil {
+				sysLogger.Error("failed to get user cache dir", "error", err)
+				return ExitError{1}
 			}
 
-			watcher, err := watcher.NewWatcher(k.String("dir"), func() {
-				fileProvider := file.Provider(utils.FindConfigPath(k.String("dir")))
-				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
+			apiSocketPath := filepath.Join(cacheDir, "smallweb", "domains", conf.String("domain"), "smallweb.sock")
+			if err := os.MkdirAll(filepath.Dir(apiSocketPath), 0o755); err != nil {
+				sysLogger.Error("failed to create socket dir", "error", err)
+				return ExitError{1}
+			}
 
-				conf := koanf.New(".")
+			if utils.FileExists(apiSocketPath) {
+				if err := os.Remove(apiSocketPath); err != nil {
+					sysLogger.Error("failed to remove existing socket", "error", err)
+					return ExitError{1}
+				}
+			}
+
+			handler := &Handler{
+				workers:       make(map[string]*worker.Worker),
+				apiSocketPath: apiSocketPath,
+				logger:        logger,
+			}
+
+			watcher, err := watcher.NewWatcher(conf.String("dir"), func() {
+				fileProvider := file.Provider(utils.FindConfigPath(conf.String("dir")))
+				flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", conf)
+
+				conf.Reset()
 				if err := conf.Load(fileProvider, utils.ConfigParser()); err != nil {
 					logger.Error("failed to reload config file", "error", err)
 					return
@@ -140,7 +159,6 @@ func NewCmdUp() *cobra.Command {
 				_ = conf.Load(envProvider, nil)
 				_ = conf.Load(flagProvider, nil)
 
-				k = conf
 			})
 			if err != nil {
 				logger.Error("failed to create watcher", "err", err)
@@ -176,7 +194,7 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				logger.Info("serving https", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
+				logger.Info("serving https", "domain", conf.String("domain"), "dir", conf.String("dir"), "addr", addr)
 				go http.Serve(ln, logMiddleware(handler))
 			} else if flags.onDemandTLS {
 				certmagic.Default.Logger = zap.NewNop()
@@ -189,7 +207,7 @@ func NewCmdUp() *cobra.Command {
 						return fmt.Errorf("domain not found")
 					},
 				}
-				logger.Info("serving on-demand https", "domain", k.String("domain"), "dir", k.String("dir"))
+				logger.Info("serving on-demand https", "domain", conf.String("domain"), "dir", conf.String("dir"))
 				go certmagic.HTTPS(nil, logMiddleware(handler))
 			} else {
 				addr := flags.addr
@@ -203,13 +221,13 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				logger.Info("serving http", "domain", k.String("domain"), "dir", k.String("dir"), "addr", addr)
+				logger.Info("serving http", "domain", conf.String("domain"), "dir", conf.String("dir"), "addr", addr)
 				go http.Serve(ln, logMiddleware(handler))
 			}
 
 			if flags.enableCrons {
 				logger.Info("starting cron jobs")
-				crons := CronRunner(logger.With("logger", "cron"))
+				crons := CronRunner(apiSocketPath, logger.With("logger", "cron"))
 				crons.Start()
 				defer crons.Stop()
 			}
@@ -224,24 +242,24 @@ func NewCmdUp() *cobra.Command {
 						}
 
 						appname, domain := parts[0], parts[1]
-						if domain != k.String("domain") {
+						if domain != conf.String("domain") {
 							logger.Error("invalid domain", "domain", domain)
 							continue
 						}
 
 						var appConfig app.Config
-						if err := k.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
+						if err := conf.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
 							logger.Error("failed to get app config", "error", err)
 							continue
 						}
 
-						a, err := app.LoadApp(filepath.Join(k.String("dir"), appname), appConfig)
+						a, err := app.LoadApp(filepath.Join(conf.String("dir"), appname), appConfig)
 						if err != nil {
 							logger.Error("failed to load app", "error", err)
 							continue
 						}
 
-						worker := worker.NewWorker(a)
+						worker := worker.NewWorker(a, apiSocketPath)
 						if err := worker.SendEmail(context.Background(), data); err != nil {
 							logger.Error("failed to send email", "error", err)
 							continue
@@ -253,9 +271,9 @@ func NewCmdUp() *cobra.Command {
 
 				logger.Info("starting smtp server", "addr", flags.smtpAddr)
 				if flags.tlsCert != "" && flags.tlsKey != "" {
-					go smtpd.ListenAndServeTLS(flags.smtpAddr, flags.tlsCert, flags.tlsKey, handler, "smallweb", k.String("domain"))
+					go smtpd.ListenAndServeTLS(flags.smtpAddr, flags.tlsCert, flags.tlsKey, handler, "smallweb", conf.String("domain"))
 				} else {
-					go smtpd.ListenAndServe(flags.smtpAddr, handler, "smallweb", k.String("domain"))
+					go smtpd.ListenAndServe(flags.smtpAddr, handler, "smallweb", conf.String("domain"))
 				}
 			}
 
@@ -311,10 +329,10 @@ func NewCmdUp() *cobra.Command {
 					wish.WithHostKeyPath(sshPrivateKeyPath),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
 						authorizedKeys := []string{authorizedKey}
-						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
+						authorizedKeys = append(authorizedKeys, conf.Strings("authorizedKeys")...)
 
 						if ctx.User() != "_" {
-							authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("apps.%s.authorizedKeys", ctx.User()))...)
+							authorizedKeys = append(authorizedKeys, conf.Strings(fmt.Sprintf("apps.%s.authorizedKeys", ctx.User()))...)
 						}
 
 						for _, authorizedKey := range authorizedKeys {
@@ -334,27 +352,27 @@ func NewCmdUp() *cobra.Command {
 
 						return false
 					}),
-					sftp.SSHOption(k.String("dir"), nil),
+					sftp.SSHOption(conf.String("dir"), nil),
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
 								var cmd *exec.Cmd
 								if sess.User() != "_" {
 									var appConfig app.Config
-									if err := k.Unmarshal(fmt.Sprintf("apps.%s", sess.User()), &appConfig); err != nil {
+									if err := conf.Unmarshal(fmt.Sprintf("apps.%s", sess.User()), &appConfig); err != nil {
 										fmt.Fprintf(sess, "failed to get app config: %v\n", err)
 										sess.Exit(1)
 										return
 									}
 
-									a, err := app.LoadApp(filepath.Join(k.String("dir"), sess.User()), appConfig)
+									a, err := app.LoadApp(filepath.Join(conf.String("dir"), sess.User()), appConfig)
 									if err != nil {
 										fmt.Fprintf(sess, "failed to load app: %v\n", err)
 										sess.Exit(1)
 										return
 									}
 
-									wk := worker.NewWorker(a)
+									wk := worker.NewWorker(a, apiSocketPath)
 									c, err := wk.Command(sess.Context(), sess.Command())
 									if err != nil {
 										fmt.Fprintf(sess, "failed to get command: %v\n", err)
@@ -371,7 +389,7 @@ func NewCmdUp() *cobra.Command {
 										return
 									}
 
-									cmd = exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
+									cmd = exec.Command(execPath, "--dir", conf.String("dir"), "--domain", conf.String("domain"))
 									cmd.Args = append(cmd.Args, sess.Command()...)
 									cmd.Env = os.Environ()
 								}
@@ -467,29 +485,17 @@ func NewCmdUp() *cobra.Command {
 				go srv.ListenAndServe()
 			}
 
-			api := api.NewApi(k.String("dir"))
+			api := api.NewHandler(conf)
 
-			cacheDir, err := os.UserCacheDir()
-			if err != nil {
-				sysLogger.Error("failed to get user cache dir", "error", err)
-				return ExitError{1}
-			}
-
-			socketPath := filepath.Join(cacheDir, "smallweb", "smallweb.sock")
-			if utils.FileExists(socketPath) {
-				if err := os.Remove(socketPath); err != nil {
-					sysLogger.Error("failed to remove existing socket", "error", err)
-					return ExitError{1}
-				}
-			}
-
-			ln, err := net.Listen("unix", socketPath)
+			ln, err := net.Listen("unix", apiSocketPath)
 			if err != nil {
 				sysLogger.Error("failed to listen on api socket", "error", err)
 				return ExitError{1}
 			}
+			defer ln.Close()
+			defer os.Remove(apiSocketPath)
 
-			logger.Info("serving api", "socket", socketPath)
+			logger.Info("serving api", "socket", apiSocketPath)
 			go http.Serve(ln, api)
 
 			// sigint handling
@@ -548,22 +554,11 @@ func getListener(addr string, config *tls.Config) (net.Listener, error) {
 }
 
 type Handler struct {
-	watcher  *watcher.Watcher
-	logger   *slog.Logger
-	workerMu sync.Mutex
-	workers  map[string]*worker.Worker
-}
-
-type OAuthState struct {
-	State        string `json:"state"`
-	SuccessURL   string `json:"success_url"`
-	CodeVerifier string `json:"code_verifier"`
-}
-
-type IssuerConfig struct {
-	AuthorizationEndpoint string `json:"authorization_endpoint"`
-	TokenEndpoint         string `json:"token_endpoint"`
-	JwksUri               string `json:"jwks_uri"`
+	watcher       *watcher.Watcher
+	logger        *slog.Logger
+	apiSocketPath string
+	workerMu      sync.Mutex
+	workers       map[string]*worker.Worker
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -575,7 +570,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	appname, ok := lookupApp(hostname)
 	if !ok {
 		if appname, ok := lookupApp("www." + hostname); ok {
-			http.Redirect(w, r, fmt.Sprintf("%s://%s%s", ExtractScheme(r), appname+"."+k.String("domain"), r.URL.RequestURI()), http.StatusFound)
+			http.Redirect(w, r, fmt.Sprintf("%s://%s%s", ExtractScheme(r), appname+"."+conf.String("domain"), r.URL.RequestURI()), http.StatusFound)
 			return
 		}
 
@@ -584,7 +579,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wk, err := me.GetWorker(k.String("dir"), appname)
+	wk, err := me.GetWorker(conf.String("dir"), appname)
 	if err != nil {
 		if errors.Is(err, app.ErrAppNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -601,8 +596,8 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func lookupApp(hostname string) (app string, found bool) {
-	for _, app := range k.MapKeys("apps") {
-		if slices.Contains(k.Strings(fmt.Sprintf("apps.%s.additionalDomains", app)), hostname) {
+	for _, app := range conf.MapKeys("apps") {
+		if slices.Contains(conf.Strings(fmt.Sprintf("apps.%s.additionalDomains", app)), hostname) {
 			return app, true
 		}
 	}
@@ -613,11 +608,11 @@ func lookupApp(hostname string) (app string, found bool) {
 	}
 
 	subdomain, basedomain := parts[0], parts[1]
-	if basedomain == k.String("domain") {
+	if basedomain == conf.String("domain") {
 		return subdomain, true
 	}
 
-	for _, additionalDomain := range k.Strings("additionalDomains") {
+	for _, additionalDomain := range conf.Strings("additionalDomains") {
 		if basedomain == additionalDomain {
 			return subdomain, true
 		}
@@ -635,7 +630,7 @@ func (me *Handler) GetWorker(rootDir string, appname string) (*worker.Worker, er
 	defer me.workerMu.Unlock()
 
 	var appConfig app.Config
-	if err := k.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
+	if err := conf.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
 		return nil, fmt.Errorf("failed to get app config: %w", err)
 	}
 
@@ -644,7 +639,7 @@ func (me *Handler) GetWorker(rootDir string, appname string) (*worker.Worker, er
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a)
+	wk := worker.NewWorker(a, me.apiSocketPath)
 	if err := wk.Start(me.logger.With("logger", "console", "app", appname)); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}

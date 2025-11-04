@@ -1,218 +1,333 @@
 export default {
-    "components": {
-        "schemas": {
-            "BatchRequest": {
-                "properties": {
-                    "mode": { "enum": ["read", "write", "deferred"], "type": "string" },
-                    "statements": {
-                        "items": {
-                            "oneOf": [{ "type": "string" }, {
-                                "$ref": "#/components/schemas/StatementObject",
-                            }],
-                        },
-                        "type": "array",
-                    },
-                },
-                "required": ["statements"],
-                "type": "object",
-            },
-            "ExecuteRequest": {
-                "properties": {
-                    "statement": {
-                        "oneOf": [{
-                            "description": "Simple SQL statement string",
-                            "type": "string",
-                        }, { "$ref": "#/components/schemas/StatementObject" }],
-                    },
-                },
-                "required": ["statement"],
-                "type": "object",
-            },
-            "ExecuteResult": {
-                "properties": {
-                    "columnTypes": { "items": { "type": "string" }, "type": "array" },
-                    "columns": { "items": { "type": "string" }, "type": "array" },
-                    "lastInsertRowid": {
-                        "format": "int64",
-                        "nullable": true,
-                        "type": "integer",
-                    },
-                    "rows": {
-                        "items": { "items": {}, "type": "array" },
-                        "type": "array",
-                    },
-                    "rowsAffected": { "format": "int64", "type": "integer" },
-                },
-                "type": "object",
-            },
-            "StatementObject": {
-                "properties": {
-                    "args": {
-                        "oneOf": [{ "items": {}, "type": "array" }, {
-                            "additionalProperties": {},
-                            "type": "object",
-                        }],
-                    },
-                    "sql": { "type": "string" },
-                },
-                "required": ["sql"],
-                "type": "object",
-            },
+  "components": {
+    "schemas": {
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "description": "Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'",
+            "type": "string"
+          },
+          "message": {
+            "description": "Error message text",
+            "type": "string"
+          },
+          "value": {
+            "description": "The value at the given location"
+          }
         },
+        "type": "object"
+      },
+      "ErrorModel": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ErrorModel.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "detail": {
+            "description": "A human-readable explanation specific to this occurrence of the problem.",
+            "examples": [
+              "Property foo is required but is missing."
+            ],
+            "type": "string"
+          },
+          "errors": {
+            "description": "Optional list of individual error details",
+            "items": {
+              "$ref": "#/components/schemas/ErrorDetail"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "instance": {
+            "description": "A URI reference that identifies the specific occurrence of the problem.",
+            "examples": [
+              "https://example.com/error-log/abc123"
+            ],
+            "format": "uri",
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              400
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short, human-readable summary of the problem type. This value should not change between occurrences of the error.",
+            "examples": [
+              "Bad Request"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "default": "about:blank",
+            "description": "A URI reference to human-readable documentation for the error.",
+            "examples": [
+              "https://example.com/errors/example"
+            ],
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "GetAppOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/GetAppOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "GetAppsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/GetAppsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "apps": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "apps"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "My API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/apps": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAppsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
     },
-    "info": {
-        "description": "API for Smallweb blob storage and SQLite operations",
-        "title": "Smallweb API",
-        "version": "1.0.0",
+    "/v1/apps/{app}": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAppOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
     },
-    "openapi": "3.0.3",
-    "paths": {
-        "/blob/{key}": {
-            "delete": {
-                "operationId": "DeleteBlob",
-                "parameters": [{
-                    "description":
-                        "The blob key. Suffix with / or colon to clear all with prefix.",
-                    "in": "path",
-                    "name": "key",
-                    "required": true,
-                    "schema": { "type": "string" },
-                }],
-                "responses": {
-                    "200": {
-                        "content": { "text/plain": { "schema": { "type": "string" } } },
-                        "description": "Success",
-                    },
-                    "500": { "description": "Internal Server Error" },
-                },
-                "summary": "Remove blob item or clear with prefix",
+    "/v1/blobs": {
+      "get": {
+        "description": "List Blobs",
+        "parameters": [
+          {
+            "description": "Filter blobs by prefix",
+            "explode": false,
+            "in": "query",
+            "name": "prefix",
+            "schema": {
+              "description": "Filter blobs by prefix",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              }
             },
-            "get": {
-                "operationId": "GetBlob",
-                "parameters": [{
-                    "description": "The blob key. Suffix with / or colon to list keys.",
-                    "in": "path",
-                    "name": "key",
-                    "required": true,
-                    "schema": { "type": "string" },
-                }, {
-                    "in": "header",
-                    "name": "Accept",
-                    "schema": { "type": "string" },
-                }],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": { "items": { "type": "string" }, "type": "array" },
-                            },
-                            "application/octet-stream": {
-                                "schema": { "format": "binary", "type": "string" },
-                            },
-                            "text/plain": { "schema": { "type": "string" } },
-                        },
-                        "description": "Success",
-                    },
-                    "404": { "description": "Not Found" },
-                    "500": { "description": "Internal Server Error" },
-                },
-                "summary": "Get or list blob items",
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
             },
-            "head": {
-                "operationId": "HasBlob",
-                "parameters": [{
-                    "in": "path",
-                    "name": "key",
-                    "required": true,
-                    "schema": { "type": "string" },
-                }],
-                "responses": {
-                    "200": { "description": "Item exists" },
-                    "404": { "description": "Item not found" },
-                },
-                "summary": "Check if blob item exists",
-            },
-            "put": {
-                "operationId": "SetBlob",
-                "parameters": [{
-                    "in": "path",
-                    "name": "key",
-                    "required": true,
-                    "schema": { "type": "string" },
-                }],
-                "requestBody": {
-                    "content": {
-                        "application/octet-stream": {
-                            "schema": { "format": "binary", "type": "string" },
-                        },
-                    },
-                    "required": true,
-                },
-                "responses": {
-                    "200": {
-                        "content": { "text/plain": { "schema": { "type": "string" } } },
-                        "description": "Success",
-                    },
-                    "500": { "description": "Internal Server Error" },
-                },
-                "summary": "Set blob item",
-            },
-        },
-        "/sqlite/batch": {
-            "post": {
-                "operationId": "BatchSQLite",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": { "$ref": "#/components/schemas/BatchRequest" },
-                        },
-                    },
-                    "required": true,
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "items": { "$ref": "#/components/schemas/ExecuteResult" },
-                                    "type": "array",
-                                },
-                            },
-                        },
-                        "description": "Success",
-                    },
-                    "400": { "description": "Bad Request" },
-                    "500": { "description": "Internal Server Error" },
-                },
-                "summary": "Execute a batch of SQLite statements in a transaction",
-            },
-        },
-        "/sqlite/execute": {
-            "post": {
-                "operationId": "ExecuteSQLite",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": { "$ref": "#/components/schemas/ExecuteRequest" },
-                        },
-                    },
-                    "required": true,
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": { "$ref": "#/components/schemas/ExecuteResult" },
-                            },
-                        },
-                        "description": "Success",
-                    },
-                    "400": { "description": "Bad Request" },
-                    "500": { "description": "Internal Server Error" },
-                },
-                "summary": "Execute a single SQLite statement",
-            },
-        },
+            "description": "Error"
+          }
+        }
+      }
     },
-    "servers": [{ "description": "API v1", "url": "/v1" }],
-} as const
+    "/v1/blobs/{key}": {
+      "get": {
+        "description": "Retrieve a blob by its key",
+        "operationId": "getBlob",
+        "parameters": [
+          {
+            "description": "The blob key",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "description": "The blob key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {}
+            },
+            "description": "Blob Content",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/v1/email": {
+      "post": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/v1/sqlite/batch": {
+      "post": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
+    },
+    "/v1/sqlite/query": {
+      "post": {
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        }
+      }
+    }
+  }
+} as const;

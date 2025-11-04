@@ -21,8 +21,8 @@ func NewCmdRename() *cobra.Command {
 			oldName := args[0]
 			newName := args[1]
 
-			oldPath := filepath.Join(k.String("dir"), oldName)
-			newPath := filepath.Join(k.String("dir"), newName)
+			oldPath := filepath.Join(conf.String("dir"), oldName)
+			newPath := filepath.Join(conf.String("dir"), newName)
 
 			// Check if old path exists
 			if _, err := os.Stat(oldPath); os.IsNotExist(err) {
@@ -42,12 +42,12 @@ func NewCmdRename() *cobra.Command {
 			}
 
 			// If the app is not in the config, we're done
-			if !slices.Contains(k.MapKeys("apps"), oldName) {
+			if !slices.Contains(conf.MapKeys("apps"), oldName) {
 				fmt.Fprintf(cmd.OutOrStdout(), "Renamed %s to %s\n", oldName, newName)
 				return nil
 			}
 
-			configPath := utils.FindConfigPath(k.String("dir"))
+			configPath := utils.FindConfigPath(conf.String("dir"))
 
 			patch := utils.JsonPatch{
 				{

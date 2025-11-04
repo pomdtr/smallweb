@@ -18,7 +18,7 @@ func NewCmdDelete() *cobra.Command {
 		ValidArgsFunction: completeApp,
 		Short:             "Delete a file or directory",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			appDir := filepath.Join(k.String("dir"), args[0])
+			appDir := filepath.Join(conf.String("dir"), args[0])
 			if _, err := os.Stat(appDir); os.IsNotExist(err) {
 				cmd.PrintErrf("path %q does not exist\n", args[0])
 				return ExitError{1}
@@ -28,7 +28,7 @@ func NewCmdDelete() *cobra.Command {
 				return fmt.Errorf("failed to delete %q: %w", args[0], err)
 			}
 
-			if !slices.Contains(k.MapKeys("apps"), args[0]) {
+			if !slices.Contains(conf.MapKeys("apps"), args[0]) {
 				fmt.Fprintf(cmd.OutOrStdout(), "Deleted %s\n", args[0])
 				return nil
 			}
@@ -41,7 +41,7 @@ func NewCmdDelete() *cobra.Command {
 				},
 			}
 
-			configPath := utils.FindConfigPath(k.String("dir"))
+			configPath := utils.FindConfigPath(conf.String("dir"))
 			if err := utils.PatchFile(configPath, patch); err != nil {
 				return fmt.Errorf("updating config file: %w", err)
 			}

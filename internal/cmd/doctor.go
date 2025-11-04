@@ -19,7 +19,7 @@ func NewCmdDoctor() *cobra.Command {
 		Short: "Check the system for potential problems",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Fprintln(cmd.ErrOrStderr(), "🔍 Checking smallweb directory...")
-			if _, err := os.Stat(k.String("dir")); os.IsNotExist(err) {
+			if _, err := os.Stat(conf.String("dir")); os.IsNotExist(err) {
 				fmt.Fprintln(cmd.ErrOrStderr(), "❌ Smallweb directory not found")
 				fmt.Fprintln(cmd.ErrOrStderr(), "💡 Run `smallweb init` to initialize the workspace")
 				return nil
@@ -38,7 +38,7 @@ func NewCmdDoctor() *cobra.Command {
 			fmt.Fprintln(cmd.ErrOrStderr())
 
 			fmt.Fprintln(cmd.ErrOrStderr(), "🔍 Checking domain...")
-			if k.String("domain") == "" {
+			if conf.String("domain") == "" {
 				fmt.Fprintln(cmd.ErrOrStderr(), "❌ Domain not set")
 				fmt.Fprintf(cmd.ErrOrStderr(), "💡 Set it using the `domain` field in your smallweb config")
 				return nil

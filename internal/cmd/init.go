@@ -18,13 +18,13 @@ func NewCmdInit() *cobra.Command {
 		Args:  cobra.NoArgs,
 		Short: "Initialize a new workspace",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			domain := k.String("domain")
+			domain := conf.String("domain")
 			if domain == "" {
 				cmd.PrintErrf("--domain flag is required for init command")
 				return ExitError{1}
 			}
 
-			dir := k.String("dir")
+			dir := conf.String("dir")
 			if dir == "" {
 				cwd, err := os.Getwd()
 				if err != nil {
