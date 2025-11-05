@@ -1,4 +1,5 @@
 import { cli } from 'npm:gunshi@0.17.0'
+import * as path from "jsr:@std/path@1.1.2"
 
 export default {
     async run(args: string[]) {
@@ -9,8 +10,8 @@ export default {
                     default: "world",
                 }
             },
-            run: (ctx) => {
-                console.log(`Hello ${ctx.values.name}!`)
+            run: () => {
+                console.log(path.basename(Deno.cwd()));
             }
         })
     }

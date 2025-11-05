@@ -3,15 +3,14 @@ package api
 import (
 	"context"
 	"net/http"
-	"net/url"
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/adapters/humago"
+	"github.com/danielgtaylor/huma/v2/adapters/humachi"
+	"github.com/go-chi/chi/v5"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/utils"
+	"golang.org/x/net/webdav"
 )
 
 type GetBlobsOutput struct {
@@ -37,179 +36,70 @@ type GetAppsOutput struct {
 
 func NewHandler(conf *utils.Config) http.Handler {
 	// Create a new router & API.
-	router := http.NewServeMux()
-	api := humago.New(router, huma.DefaultConfig("My API", "1.0.0"))
+	mux := chi.NewMux()
+	mux.Handle("/webdav", &webdav.Handler{
+		Prefix:     "/webdav/",
+		FileSystem: webdav.Dir(filepath.Join(conf.String("dir"), ".smallweb", "data")),
+		LockSystem: webdav.NewMemLS(),
+	})
 
-	blobsDir := filepath.Join(conf.String("dir"), ".smallweb", "data", "blobs")
+	mux.Route("/api", func(r chi.Router) {
+		config := huma.DefaultConfig("Smallweb API", "v1.0.0")
+		api := humachi.New(r, config)
 
-	huma.Register(api, huma.Operation{
-		Method:      http.MethodGet,
-		Path:        "/v1/blobs",
-		Description: "Get Blobs",
-		Tags:        []string{"Blobs"},
-		OperationID: "getBlobs",
-	}, func(ctx context.Context, input *struct {
-		Prefix string `query:"prefix" doc:"Filter blobs by prefix"`
-	}) (*GetBlobsOutput, error) {
-		// walk the blobs directory and list all blobs
-		matches, err := filepath.Glob(filepath.Join(blobsDir, "*"))
-		if err != nil {
-			return nil, err
-		}
-
-		var keys []string
-		prefix := ""
-		if input != nil {
-			prefix = input.Prefix
-		}
-
-		for _, p := range matches {
-			name := filepath.Base(p)
-			if prefix != "" {
-				if !strings.HasPrefix(name, prefix) {
-					continue
-				}
-			}
-
-			key, err := url.PathUnescape(name)
+		huma.Register(api, huma.Operation{
+			Method: http.MethodGet,
+			Tags:   []string{"Apps"},
+			Path:   "/v1/apps",
+		}, func(ctx context.Context, i *struct {
+		}) (*GetAppsOutput, error) {
+			appList, err := app.List(conf.String("dir"))
 			if err != nil {
-				continue
+				return nil, err
 			}
 
-			keys = append(keys, key)
-		}
+			resp := &GetAppsOutput{}
+			resp.Body.Apps = appList
 
-		return &GetBlobsOutput{Body: keys}, nil
+			return resp, nil
+		})
+
+		huma.Register(api, huma.Operation{
+			Method: http.MethodPost,
+			Tags:   []string{"Apps"},
+			Path:   "/v1/apps",
+		}, func(ctx context.Context, i *struct{}) (*struct{}, error) {
+			return nil, nil
+		})
+
+		huma.Register(api, huma.Operation{
+			Method: http.MethodGet,
+			Tags:   []string{"Apps"},
+			Path:   "/v1/apps/{app}",
+		}, func(ctx context.Context, i *struct {
+		}) (*GetAppOutput, error) {
+			return nil, nil
+		})
+
+		huma.Register(api, huma.Operation{
+			Method: http.MethodPut,
+			Tags:   []string{"Apps"},
+			Path:   "/v1/apps/{app}",
+		}, func(ctx context.Context, i *struct {
+			App string `path:"app" doc:"The app name"`
+		}) (*struct{}, error) {
+			return nil, nil
+		})
+
+		huma.Register(api, huma.Operation{
+			Method: http.MethodDelete,
+			Path:   "/v1/apps/{app}",
+			Tags:   []string{"Apps"},
+		}, func(ctx context.Context, i *struct {
+		}) (*struct{}, error) {
+			return nil, nil
+		})
 	})
 
-	huma.Register(api, huma.Operation{
-		Method:      http.MethodGet,
-		Path:        "/v1/blobs/{key}",
-		Description: "Retrieve a blob by its key",
-		OperationID: "getBlob",
-		Tags:        []string{"Blobs"},
-		Responses: map[string]*huma.Response{
-			"200": {
-				Description: "Blob Content",
-				Content: map[string]*huma.MediaType{
-					"application/octet-stream": {},
-				},
-			},
-		},
-	}, func(ctx context.Context, input *struct {
-		Key string `path:"key" doc:"The blob key"`
-	}) (*GetBlobOutput, error) {
-		fp := filepath.Join(blobsDir, url.PathEscape(input.Key))
-		content, err := os.ReadFile(fp)
-		if err != nil {
-			return nil, err
-		}
-
-		return &GetBlobOutput{
-			ContentType: "application/octet-stream",
-			Body:        content,
-		}, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		Method: http.MethodPut,
-		Path:   "/v1/blobs/{key}",
-		Tags:   []string{"Blobs"},
-	}, func(ctx context.Context, i *struct {
-		Key     string `path:"key" doc:"The blob key"`
-		RawBody []byte `contentType:"application/octet-stream"`
-	}) (o *struct{}, err error) {
-		fp := filepath.Join(blobsDir, url.PathEscape(i.Key))
-		if err := os.WriteFile(fp, i.RawBody, 0644); err != nil {
-			return nil, err
-		}
-
-		return &struct{}{}, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		Method: http.MethodDelete,
-		Path:   "/v1/blobs/{key}",
-		Tags:   []string{"Blobs"},
-	}, func(ctx context.Context, i *struct {
-		Key string `path:"key" doc:"The blob key"`
-	}) (o *struct{}, err error) {
-		fp := filepath.Join(blobsDir, url.PathEscape(i.Key))
-		if err := os.Remove(fp); err != nil {
-			return nil, err
-		}
-
-		return &struct{}{}, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		Method: http.MethodGet,
-		Tags:   []string{"Apps"},
-		Path:   "/v1/apps",
-	}, func(ctx context.Context, i *struct {
-	}) (*GetAppsOutput, error) {
-		appList, err := app.List(conf.String("dir"))
-		if err != nil {
-			return nil, err
-		}
-
-		resp := &GetAppsOutput{}
-		resp.Body.Apps = appList
-
-		return resp, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		Method: http.MethodPost,
-		Tags:   []string{"Apps"},
-		Path:   "/v1/apps",
-	}, func(ctx context.Context, i *struct{}) (*struct{}, error) {
-		return nil, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		Method: http.MethodGet,
-		Tags:   []string{"Apps"},
-		Path:   "/v1/apps/{app}",
-	}, func(ctx context.Context, i *struct {
-	}) (*GetAppOutput, error) {
-		return nil, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		Method: http.MethodPut,
-		Tags:   []string{"Apps"},
-		Path:   "/v1/apps/{app}",
-	}, func(ctx context.Context, i *struct {
-		App string `path:"app" doc:"The app name"`
-	}) (*struct{}, error) {
-		return nil, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		Method: http.MethodDelete,
-		Path:   "/v1/apps/{app}",
-		Tags:   []string{"Apps"},
-	}, func(ctx context.Context, i *struct {
-	}) (*struct{}, error) {
-		return nil, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		Method: http.MethodPost,
-		Tags:   []string{"SQLite"},
-		Path:   "/v1/sqlite/query",
-	}, func(ctx context.Context, i *struct{}) (o *struct{}, err error) {
-		return nil, nil
-	})
-
-	huma.Register(api, huma.Operation{
-		Method: http.MethodPost,
-		Tags:   []string{"SQLite"},
-		Path:   "/v1/sqlite/batch",
-	}, func(ctx context.Context, i *struct{}) (o *struct{}, err error) {
-		return nil, nil
-	})
-
-	return router
+	return mux
 }

@@ -31,10 +31,12 @@ func NewCmdApi() *cobra.Command {
 			ts := httptest.NewServer(apiHandler)
 			defer ts.Close()
 
-			path := args[0]
-			if !strings.HasPrefix(path, "/") {
-				path = "/" + path
+			pathname := args[0]
+			if !strings.HasPrefix(pathname, "/") {
+				pathname = "/" + pathname
 			}
+
+			pathname = "/api" + pathname
 
 			var body io.Reader
 			if flags.Data != "" {
@@ -45,7 +47,7 @@ func NewCmdApi() *cobra.Command {
 				}
 			}
 
-			req, err := http.NewRequest(flags.Method, ts.URL+path, body)
+			req, err := http.NewRequest(flags.Method, ts.URL+pathname, body)
 			if err != nil {
 				return err
 			}

@@ -1,27 +1,19 @@
-import smallweb from './client.ts'
-
-const { SMALLWEB_SOCKET_PATH } = Deno.env.toObject()
+import * as path from "jsr:@std/path/posix";
+const { SMALLWEB_SOCKET_PATH } = Deno.env.toObject();
 
 const client = Deno.createHttpClient({
     proxy: {
         transport: "unix",
         path: SMALLWEB_SOCKET_PATH,
-    }
-})
-
-
+    },
+});
 
 export default {
     fetch: (req: Request) => {
-        return fetch(req, { client })
+        const url = new URL(req.url);
+        return fetch(
+            new URL(path.join("/api", url.pathname), req.url),
+            { client, method: req.method, headers: req.headers, body: req.body },
+        );
     },
-    async run() {
-        const resp = await smallweb["/v1/apps"].get({})
-        if (!resp.ok) {
-            console.error('Error fetching apps:', resp.statusText)
-            return
-        }
-        const body = await resp.json()
-        console.log(body)
-    }
-}
+};
