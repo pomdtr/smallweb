@@ -26,7 +26,7 @@ func NewCmdGitReceivePack() *cobra.Command {
 				return ExitError{1}
 			}
 
-			gitCmd := exec.Command("git-receive-pack", a.Dir)
+			gitCmd := exec.Command("git", "receive-pack", a.Dir)
 
 			gitCmd.Stdin = cmd.InOrStdin()
 			gitCmd.Stdout = cmd.OutOrStdout()
@@ -65,7 +65,7 @@ func NewCmdGitUploadPack() *cobra.Command {
 				return ExitError{1}
 			}
 
-			gitCmd := exec.Command("git-upload-pack", a.Dir)
+			gitCmd := exec.Command("git", "upload-pack", a.Dir)
 
 			gitCmd.Stdin = cmd.InOrStdin()
 			gitCmd.Stdout = cmd.OutOrStdout()
