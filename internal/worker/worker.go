@@ -437,6 +437,7 @@ func (me *Worker) Command(handler http.Handler) (*exec.Cmd, func() error, error)
 	go http.Serve(ln, handler)
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
+	smallwebDataDir := filepath.Join(me.App.Dir, "..", ".smallweb", "data")
 	cmd := exec.Command(execPath,
 		"run",
 		"--allow-net",
@@ -445,8 +446,8 @@ func (me *Worker) Command(handler http.Handler) (*exec.Cmd, func() error, error)
 		"--allow-sys",
 		"--no-prompt",
 		"--quiet",
-		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), npmCache, socketPath),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), socketPath),
+		fmt.Sprintf("--allow-read=%s,%s,%s,%s", smallwebDataDir, me.App.Root(), npmCache, socketPath),
+		fmt.Sprintf("--allow-write=%s,%s,%s", smallwebDataDir, me.App.DataDir(), socketPath),
 		"-",
 	)
 	cmd.Stdin = bytes.NewReader(sandboxBytes)
@@ -470,6 +471,8 @@ func (me *Worker) Command(handler http.Handler) (*exec.Cmd, func() error, error)
 		}
 	}
 
+	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_APP_NAME=%s", me.App.Name))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_DATA_DIR=%s", smallwebDataDir))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", socketPath))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.App.Name))
 
