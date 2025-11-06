@@ -14,6 +14,8 @@ import (
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/hostrouter"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/utils"
 )
@@ -46,6 +48,7 @@ func NewHandler(conf *utils.Config) http.Handler {
 
 	hr.Map("api.localhost", apiRouter(conf))
 	hr.Map("git.localhost", gitRouter(conf))
+	hr.Map("raw.localhost", rawRouter(conf))
 	hr.Map("*", catchAllRouter())
 
 	r.Mount("/", hr)
@@ -141,12 +144,6 @@ func gitRouter(conf *utils.Config) chi.Router {
 	}
 
 	r.HandleFunc("/{app}/*", func(w http.ResponseWriter, r *http.Request) {
-		appname := chi.URLParam(r, "app")
-		if conf.String(fmt.Sprintf("apps.%s.privacy", appname)) != "public" {
-			http.Error(w, "Not found", http.StatusNotFound)
-			return
-		}
-
 		if strings.HasSuffix(r.URL.Path, "/git-receive-pack") {
 			http.Error(w, "pushes are disabled", http.StatusForbidden)
 			return
@@ -180,4 +177,148 @@ func fixChunked(req *http.Request) {
 		// let cgi use Body.
 		req.ContentLength = -1
 	}
+}
+
+func serveRawFile(w http.ResponseWriter, conf *utils.Config, appname, ref, filePath string) {
+	// Check app privacy
+	if conf.String(fmt.Sprintf("apps.%s.privacy", appname)) != "public" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	// Open the git repository
+	repoPath := filepath.Join(conf.String("dir"), appname)
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		http.Error(w, "Repository not found", http.StatusNotFound)
+		return
+	}
+
+	// Resolve the reference (branch, tag, or commit hash)
+	var hash plumbing.Hash
+
+	if ref == "" {
+		// Use HEAD if no ref is specified
+		headRef, err := repo.Head()
+		if err != nil {
+			http.Error(w, "Failed to resolve HEAD", http.StatusInternalServerError)
+			return
+		}
+		hash = headRef.Hash()
+	} else {
+		// Try as a branch first
+		branchRef, err := repo.Reference(plumbing.NewBranchReferenceName(ref), true)
+		if err == nil {
+			hash = branchRef.Hash()
+		} else {
+			// Try as a tag
+			tagRef, err := repo.Reference(plumbing.NewTagReferenceName(ref), true)
+			if err == nil {
+				hash = tagRef.Hash()
+			} else {
+				// Try as a commit hash
+				h := plumbing.NewHash(ref)
+				_, err := repo.CommitObject(h)
+				if err == nil {
+					hash = h
+				} else {
+					http.Error(w, "Reference not found", http.StatusNotFound)
+					return
+				}
+			}
+		}
+	}
+
+	// Get the commit
+	commit, err := repo.CommitObject(hash)
+	if err != nil {
+		http.Error(w, "Commit not found", http.StatusNotFound)
+		return
+	}
+
+	// Get the tree
+	tree, err := commit.Tree()
+	if err != nil {
+		http.Error(w, "Failed to read tree", http.StatusInternalServerError)
+		return
+	}
+
+	// Get the file from the tree
+	file, err := tree.File(filePath)
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	// Read file contents
+	contents, err := file.Contents()
+	if err != nil {
+		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+		return
+	}
+
+	// Set headers and write response
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(contents))
+}
+
+func rawRouter(conf *utils.Config) chi.Router {
+	r := chi.NewRouter()
+
+	// Handle pattern with ref: /{app}@{ref}/{filepath...}
+	r.Get("/{app}@{ref}/*", func(w http.ResponseWriter, r *http.Request) {
+		appname := chi.URLParam(r, "app")
+		ref := chi.URLParam(r, "ref")
+		filePath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
+
+		if filePath == "" {
+			http.Error(w, "File path is required", http.StatusBadRequest)
+			return
+		}
+
+		serveRawFile(w, conf, appname, ref, filePath)
+	})
+
+	// Handle pattern without ref (redirects to default branch): /{app}/{filepath...}
+	r.Get("/{app}/*", func(w http.ResponseWriter, r *http.Request) {
+		appname := chi.URLParam(r, "app")
+		filePath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
+
+		if filePath == "" {
+			http.Error(w, "File path is required", http.StatusBadRequest)
+			return
+		}
+
+		// Check app privacy
+		if conf.String(fmt.Sprintf("apps.%s.privacy", appname)) != "public" {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+
+		// Open the git repository
+		repoPath := filepath.Join(conf.String("dir"), appname)
+		repo, err := git.PlainOpen(repoPath)
+		if err != nil {
+			http.Error(w, "Repository not found", http.StatusNotFound)
+			return
+		}
+
+		// Get HEAD reference
+		headRef, err := repo.Head()
+		if err != nil {
+			http.Error(w, "Failed to resolve HEAD", http.StatusInternalServerError)
+			return
+		}
+
+		// Get the branch name or use the commit hash
+		refName := headRef.Name().Short()
+
+		// Redirect to the URL with the explicit ref
+		redirectURL := fmt.Sprintf("/%s@%s/%s", appname, refName, filePath)
+		http.Redirect(w, r, redirectURL, http.StatusFound)
+	})
+
+	return r
 }

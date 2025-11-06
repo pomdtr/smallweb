@@ -10,11 +10,11 @@ const client = Deno.createHttpClient({
 export default {
     fetch: (req: Request) => {
         const url = new URL(req.url);
-        url.host = "webdav.localhost";
+        url.host = "raw.localhost";
 
         return fetch(
             new Request(url, req),
-            { client },
+            { client, redirect: "manual" },
         );
     },
 };

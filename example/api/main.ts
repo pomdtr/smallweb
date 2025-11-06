@@ -14,7 +14,7 @@ export default {
 
         return fetch(
             new Request(url, req),
-            { client },
+            { client, redirect: "manual" },
         );
     },
     run: async () => {
