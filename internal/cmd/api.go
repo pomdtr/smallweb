@@ -36,8 +36,6 @@ func NewCmdApi() *cobra.Command {
 				pathname = "/" + pathname
 			}
 
-			pathname = "/api" + pathname
-
 			var body io.Reader
 			if flags.Data != "" {
 				if flags.Data == "@-" {
@@ -51,6 +49,8 @@ func NewCmdApi() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			req.Header.Set("X-Forwarded-Host", "api.localhost")
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {

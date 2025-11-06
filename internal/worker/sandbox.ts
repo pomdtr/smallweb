@@ -125,11 +125,13 @@ if (payload.command === "fetch") {
                 const url = new URL(req.url);
                 const proto = req.headers.get("x-forwarded-proto");
                 const host = req.headers.get("x-forwarded-host");
-                const resp = await handler(new Request(`${proto}://${host}${url.pathname}${url.search}`, {
-                    method: req.method,
-                    headers: req.headers,
-                    body: req.body,
-                }));
+
+                const req2 = new Request(`${proto}://${host}${url.pathname}${url.search}`, req);
+                req2.headers.delete("x-forwarded-proto");
+                req2.headers.delete("x-forwarded-host");
+                req2.headers.delete("x-forwarded-for");
+
+                const resp = await handler(req2);
                 if (!(resp instanceof Response)) {
                     throw new Error("Fetch handler must return a Response object.");
                 }

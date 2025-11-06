@@ -1,4 +1,3 @@
-import * as path from "jsr:@std/path/posix";
 const { SMALLWEB_SOCKET_PATH } = Deno.env.toObject();
 
 const client = Deno.createHttpClient({
@@ -11,9 +10,11 @@ const client = Deno.createHttpClient({
 export default {
     fetch: (req: Request) => {
         const url = new URL(req.url);
+        url.host = "api.localhost";
+
         return fetch(
-            new URL(path.join("/api", url.pathname), req.url),
-            { client, method: req.method, headers: req.headers, body: req.body },
+            new Request(url, req),
+            { client },
         );
     },
 };

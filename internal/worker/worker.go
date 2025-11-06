@@ -3,6 +3,7 @@ package worker
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
@@ -43,7 +44,7 @@ func init() {
 type Worker struct {
 	App        app.App
 	StartedAt  time.Time
-	socketPath string
+	apiHandler http.Handler
 
 	port           int
 	idleTimer      *time.Timer
@@ -51,10 +52,10 @@ type Worker struct {
 	activeRequests atomic.Int32
 }
 
-func NewWorker(app app.App, socketPath string) *Worker {
+func NewWorker(app app.App, apiHandler http.Handler) *Worker {
 	worker := &Worker{
 		App:        app,
-		socketPath: socketPath,
+		apiHandler: apiHandler,
 	}
 
 	return worker
@@ -64,7 +65,7 @@ var upgrader = websocket.Upgrader{} // use default options
 
 type SandboxMethod string
 
-func (me *Worker) DenoArgs() ([]string, error) {
+func (me *Worker) DenoArgs(socketPath string) ([]string, error) {
 	args := []string{
 		"--allow-net",
 		"--allow-import",
@@ -86,8 +87,8 @@ func (me *Worker) DenoArgs() ([]string, error) {
 
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), npmCache, me.socketPath),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), me.socketPath),
+		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), npmCache, socketPath),
+		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), socketPath),
 	)
 
 	return args, nil
@@ -105,8 +106,16 @@ func (me *Worker) Start(logger *slog.Logger) error {
 		return fmt.Errorf("could not find deno executable")
 	}
 
+	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("smallweb-%s.sock", rand.Text()))
+	ln, err := net.Listen("unix", socketPath)
+	if err != nil {
+		return fmt.Errorf("could not create unix socket: %w", err)
+	}
+
+	go http.Serve(ln, me.apiHandler)
+
 	args := []string{"run"}
-	denoArgs, err := me.DenoArgs()
+	denoArgs, err := me.DenoArgs(socketPath)
 	if err != nil {
 		return fmt.Errorf("could not get deno args: %w", err)
 	}
@@ -127,7 +136,7 @@ func (me *Worker) Start(logger *slog.Logger) error {
 
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Root()
-	command.Env = me.Env()
+	command.Env = me.Env(socketPath)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -188,7 +197,20 @@ func (me *Worker) Start(logger *slog.Logger) error {
 	me.command = command
 	me.StartedAt = time.Now()
 	me.idleTimer = time.NewTimer(10 * time.Second)
-	go me.monitorIdleTimer()
+	go func() {
+		for {
+			<-me.idleTimer.C
+			// if there are no active requests, stop the worker
+			if me.activeRequests.Load() == 0 {
+				defer ln.Close()
+				defer os.Remove(socketPath)
+				_ = me.Stop()
+				return
+			} else {
+				me.idleTimer.Reset(10 * time.Second)
+			}
+		}
+	}()
 
 	return nil
 }
@@ -222,17 +244,6 @@ func (me *Worker) Stop() error {
 		return fmt.Errorf("process did not exit after 5 seconds")
 	case <-done:
 		return nil
-	}
-}
-
-func (me *Worker) monitorIdleTimer() {
-	for {
-		<-me.idleTimer.C
-		// if there are no active requests, stop the worker
-		if me.activeRequests.Load() == 0 {
-			_ = me.Stop()
-			return
-		}
 	}
 }
 
@@ -415,20 +426,37 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error) {
+type RunParams struct {
+	Args   []string
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+func (me *Worker) Run(ctx context.Context, params RunParams) error {
+	args := params.Args
 	if args == nil {
 		args = []string{}
 	}
 
 	deno, err := DenoExecutable()
 	if err != nil {
-		return nil, fmt.Errorf("could not find deno executable")
+		return fmt.Errorf("could not find deno executable")
 	}
 
-	cmdArgs := []string{"run"}
-	denoArgs, err := me.DenoArgs()
+	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("smallweb-%s.sock", rand.Text()))
+	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
-		return nil, fmt.Errorf("could not get deno args: %w", err)
+		return fmt.Errorf("could not create unix socket: %w", err)
+	}
+
+	go http.Serve(ln, me.apiHandler)
+	defer ln.Close()
+	defer os.Remove(socketPath)
+
+	cmdArgs := []string{"run"}
+	denoArgs, err := me.DenoArgs(socketPath)
+	if err != nil {
+		return fmt.Errorf("could not get deno args: %w", err)
 	}
 	cmdArgs = append(cmdArgs, denoArgs...)
 
@@ -440,17 +468,19 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 		"entrypoint": me.App.Entrypoint(),
 		"args":       args,
 	}); err != nil {
-		return nil, fmt.Errorf("could not encode input: %w", err)
+		return fmt.Errorf("could not encode input: %w", err)
 	}
 
 	cmdArgs = append(cmdArgs, sandboxPath, payload.String())
 
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
 	command.Dir = me.App.Root()
+	command.Stdout = params.Stdout
+	command.Stderr = params.Stderr
 
-	command.Env = me.Env()
+	command.Env = me.Env(socketPath)
 
-	return command, nil
+	return nil
 }
 
 func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
@@ -459,8 +489,18 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not find deno executable")
 	}
 
+	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("smallweb-%s.sock", rand.Text()))
+	ln, err := net.Listen("unix", socketPath)
+	if err != nil {
+		return fmt.Errorf("could not create unix socket: %w", err)
+	}
+
+	go http.Serve(ln, me.apiHandler)
+	defer ln.Close()
+	defer os.Remove(socketPath)
+
 	args := []string{"run"}
-	denoArgs, err := me.DenoArgs()
+	denoArgs, err := me.DenoArgs(socketPath)
 	if err != nil {
 		return fmt.Errorf("could not get deno args: %w", err)
 	}
@@ -486,7 +526,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	command.Stdout = os.Stdout
 	command.Dir = me.App.Root()
 
-	command.Env = me.Env()
+	command.Env = me.Env(socketPath)
 
 	return command.Run()
 }
@@ -506,7 +546,7 @@ func GetFreePort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
-func (me *Worker) Env() []string {
+func (me *Worker) Env(socketPath string) []string {
 	env := []string{}
 
 	for k, v := range me.App.Config.Env {
@@ -531,7 +571,7 @@ func (me *Worker) Env() []string {
 		}
 	}
 
-	env = append(env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", me.socketPath))
+	env = append(env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", socketPath))
 	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.App.Name))
 
 	return env

@@ -117,29 +117,9 @@ func NewCmdUp() *cobra.Command {
 				return ExitError{1}
 			}
 
-			cacheDir, err := os.UserCacheDir()
-			if err != nil {
-				sysLogger.Error("failed to get user cache dir", "error", err)
-				return ExitError{1}
-			}
-
-			apiSocketPath := filepath.Join(cacheDir, "smallweb", "domains", conf.String("domain"), "smallweb.sock")
-			if err := os.MkdirAll(filepath.Dir(apiSocketPath), 0o755); err != nil {
-				sysLogger.Error("failed to create socket dir", "error", err)
-				return ExitError{1}
-			}
-
-			if utils.FileExists(apiSocketPath) {
-				if err := os.Remove(apiSocketPath); err != nil {
-					sysLogger.Error("failed to remove existing socket", "error", err)
-					return ExitError{1}
-				}
-			}
-
 			handler := &Handler{
-				workers:       make(map[string]*worker.Worker),
-				apiSocketPath: apiSocketPath,
-				logger:        logger,
+				workers: make(map[string]*worker.Worker),
+				logger:  logger,
 			}
 
 			watcher, err := watcher.NewWatcher(conf.String("dir"), func() {
@@ -227,7 +207,7 @@ func NewCmdUp() *cobra.Command {
 
 			if flags.enableCrons {
 				logger.Info("starting cron jobs")
-				crons := CronRunner(apiSocketPath, logger.With("logger", "cron"))
+				crons := CronRunner(logger.With("logger", "cron"))
 				crons.Start()
 				defer crons.Stop()
 			}
@@ -259,7 +239,7 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						worker := worker.NewWorker(a, apiSocketPath)
+						worker := worker.NewWorker(a, api.NewHandler(conf))
 						if err := worker.SendEmail(context.Background(), data); err != nil {
 							logger.Error("failed to send email", "error", err)
 							continue
@@ -356,43 +336,16 @@ func NewCmdUp() *cobra.Command {
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
-								var cmd *exec.Cmd
-								if sess.User() != "_" {
-									var appConfig app.Config
-									if err := conf.Unmarshal(fmt.Sprintf("apps.%s", sess.User()), &appConfig); err != nil {
-										fmt.Fprintf(sess, "failed to get app config: %v\n", err)
-										sess.Exit(1)
-										return
-									}
-
-									a, err := app.LoadApp(filepath.Join(conf.String("dir"), sess.User()), appConfig)
-									if err != nil {
-										fmt.Fprintf(sess, "failed to load app: %v\n", err)
-										sess.Exit(1)
-										return
-									}
-
-									wk := worker.NewWorker(a, apiSocketPath)
-									c, err := wk.Command(sess.Context(), sess.Command())
-									if err != nil {
-										fmt.Fprintf(sess, "failed to get command: %v\n", err)
-										sess.Exit(1)
-										return
-									}
-
-									cmd = c
-								} else {
-									execPath, err := os.Executable()
-									if err != nil {
-										fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
-										sess.Exit(1)
-										return
-									}
-
-									cmd = exec.Command(execPath, "--dir", conf.String("dir"), "--domain", conf.String("domain"))
-									cmd.Args = append(cmd.Args, sess.Command()...)
-									cmd.Env = os.Environ()
+								execPath, err := os.Executable()
+								if err != nil {
+									fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
+									sess.Exit(1)
+									return
 								}
+
+								cmd := exec.Command(execPath, "--dir", conf.String("dir"), "--domain", conf.String("domain"), "ssh-entrypoint")
+								cmd.Args = append(cmd.Args, sess.Command()...)
+								cmd.Env = os.Environ()
 
 								ptyReq, winCh, isPty := sess.Pty()
 								if isPty {
@@ -412,43 +365,14 @@ func NewCmdUp() *cobra.Command {
 										}
 									}()
 
-									go func() {
-										io.Copy(sess, f)
-									}()
-
-									go func() {
-										io.Copy(f, sess)
-									}()
-
-									if err := cmd.Wait(); err != nil {
-										var exitErr *exec.ExitError
-										if errors.As(err, &exitErr) {
-											sess.Exit(exitErr.ExitCode())
-											return
-										}
-
-										fmt.Fprintf(sess, "failed to run command: %v", err)
-										sess.Exit(1)
-										return
-									}
+									go io.Copy(sess, f)
+									go io.Copy(f, sess)
 
 									return
 								}
 
 								cmd.Stdout = sess
 								cmd.Stderr = sess.Stderr()
-								stdin, err := cmd.StdinPipe()
-								if err != nil {
-									fmt.Fprintf(sess, "failed to get stdin: %v\n", err)
-									sess.Exit(1)
-									return
-								}
-
-								go func() {
-									defer stdin.Close()
-									io.Copy(stdin, sess)
-								}()
-
 								if err := cmd.Run(); err != nil {
 									var exitErr *exec.ExitError
 									if errors.As(err, &exitErr) {
@@ -484,19 +408,6 @@ func NewCmdUp() *cobra.Command {
 				logger.Info("serving ssh", "addr", flags.sshAddr)
 				go srv.ListenAndServe()
 			}
-
-			api := api.NewHandler(conf)
-
-			ln, err := net.Listen("unix", apiSocketPath)
-			if err != nil {
-				sysLogger.Error("failed to listen on api socket", "error", err)
-				return ExitError{1}
-			}
-			defer ln.Close()
-			defer os.Remove(apiSocketPath)
-
-			logger.Info("serving api", "socket", apiSocketPath)
-			go http.Serve(ln, api)
 
 			// sigint handling
 			sigint := make(chan os.Signal, 1)
@@ -554,11 +465,10 @@ func getListener(addr string, config *tls.Config) (net.Listener, error) {
 }
 
 type Handler struct {
-	watcher       *watcher.Watcher
-	logger        *slog.Logger
-	apiSocketPath string
-	workerMu      sync.Mutex
-	workers       map[string]*worker.Worker
+	watcher  *watcher.Watcher
+	logger   *slog.Logger
+	workerMu sync.Mutex
+	workers  map[string]*worker.Worker
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -639,7 +549,7 @@ func (me *Handler) GetWorker(rootDir string, appname string) (*worker.Worker, er
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a, me.apiSocketPath)
+	wk := worker.NewWorker(a, api.NewHandler(conf))
 	if err := wk.Start(me.logger.With("logger", "console", "app", appname)); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}

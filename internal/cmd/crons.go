@@ -11,6 +11,7 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
+	"github.com/pomdtr/smallweb/internal/api"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/robfig/cron/v3"
@@ -127,7 +128,7 @@ func NewCmdCrons() *cobra.Command {
 	return cmd
 }
 
-func CronRunner(socketPath string, logger *slog.Logger) *cron.Cron {
+func CronRunner(logger *slog.Logger) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
@@ -161,27 +162,25 @@ func CronRunner(socketPath string, logger *slog.Logger) *cron.Cron {
 					continue
 				}
 
-				var appConfig app.Config
-				if err := conf.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
-					continue
-				}
-
-				a, err := app.LoadApp(filepath.Join(conf.String("dir"), appname), appConfig)
-				if err != nil {
-					logger.Error("failed to load app", "app", appname, "error", err)
-					continue
-				}
-				wk := worker.NewWorker(a, socketPath)
-
-				command, err := wk.Command(context.Background(), job.Args)
-				if err != nil {
-					logger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
-					continue
-				}
-
-				logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
 				go func() {
-					if err := command.Run(); err != nil {
+					var appConfig app.Config
+					if err := conf.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
+						logger.Error("failed to get app config", "app", appname, "error", err)
+						return
+					}
+
+					a, err := app.LoadApp(filepath.Join(conf.String("dir"), appname), appConfig)
+					if err != nil {
+						logger.Error("failed to load app", "app", appname, "error", err)
+						return
+					}
+
+					wk := worker.NewWorker(a, api.NewHandler(conf))
+					logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
+
+					if err := wk.Run(context.Background(), worker.RunParams{
+						Args: job.Args,
+					}); err != nil {
 						logger.Error("failed to run command", "app", appname, "args", job.Args, "error", err)
 					}
 				}()

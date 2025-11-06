@@ -155,8 +155,7 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdConfig())
 	rootCmd.AddCommand(NewCmdLink())
-	rootCmd.AddCommand(NewCmdGitReceivePack())
-	rootCmd.AddCommand(NewCmdGitUploadPack())
+	rootCmd.AddCommand(NewCmdSSHEntrypoint())
 
 	return rootCmd
 }

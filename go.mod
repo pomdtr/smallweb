@@ -15,7 +15,7 @@ require (
 	github.com/knadh/koanf/v2 v2.2.2
 	github.com/mattn/go-isatty v0.0.20
 	github.com/spf13/cobra v1.9.1
-	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/net v0.43.0
 	golang.org/x/term v0.34.0
 )
 
@@ -27,6 +27,8 @@ require (
 	github.com/danielgtaylor/huma/v2 v2.34.1
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/getsops/sops/v3 v3.10.2
+	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-chi/hostrouter v0.3.0
 	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/providers/posflag v1.0.1
 	github.com/leaanthony/gosod v1.0.4
@@ -114,7 +116,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/getkin/kin-openapi v0.133.0 // indirect
 	github.com/getsops/gopgagent v0.0.0-20241224165529-7044f28e491e // indirect
-	github.com/go-chi/chi/v5 v5.2.3 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
