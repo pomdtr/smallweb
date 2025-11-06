@@ -3,9 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 
+	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/internal/api"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/worker"
@@ -26,7 +28,6 @@ func NewCmdRun() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			var appConfig app.Config
 			if err := conf.Unmarshal(fmt.Sprintf("apps.%s", args[0]), &appConfig); err != nil {
 				fmt.Fprintf(cmd.ErrOrStderr(), "failed to get app config: %v\n", err)
@@ -42,11 +43,17 @@ func NewCmdRun() *cobra.Command {
 
 			cmd.SilenceErrors = true
 
-			if err := wk.Run(cmd.Context(), worker.RunParams{
+			params := worker.RunParams{
 				Args:   args[1:],
 				Stdout: cmd.OutOrStdout(),
 				Stderr: cmd.ErrOrStderr(),
-			}); err != nil {
+			}
+
+			if !isatty.IsTerminal(os.Stdin.Fd()) {
+				params.Stdin = cmd.InOrStdin()
+			}
+
+			if err := wk.Run(cmd.Context(), params); err != nil {
 				var exitErr *exec.ExitError
 				if errors.As(err, &exitErr) {
 					return ExitError{exitErr.ExitCode()}

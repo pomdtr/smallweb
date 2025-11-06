@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -240,7 +241,7 @@ func NewCmdUp() *cobra.Command {
 						}
 
 						worker := worker.NewWorker(a, api.NewHandler(conf))
-						if err := worker.SendEmail(context.Background(), data); err != nil {
+						if err := worker.SendEmail(context.Background(), bytes.NewReader(data)); err != nil {
 							logger.Error("failed to send email", "error", err)
 							continue
 						}

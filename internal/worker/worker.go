@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/rand"
 	_ "embed"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,11 +30,11 @@ import (
 var sandboxBytes []byte
 
 type Worker struct {
-	App        app.App
-	StartedAt  time.Time
-	apiHandler http.Handler
+	App       app.App
+	StartedAt time.Time
 
 	port           int
+	apiHandler     http.Handler
 	idleTimer      *time.Timer
 	command        *exec.Cmd
 	activeRequests atomic.Int32
@@ -61,31 +60,30 @@ func (me *Worker) Start(logger *slog.Logger) error {
 	}
 	me.port = port
 
-	deno, err := DenoExecutable()
+	readyChan := make(chan bool)
+	command, cleanup, err := me.Command(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Host == "worker.localhost" && r.URL.Path == "/ready" {
+			readyChan <- true
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		if r.Host == "worker.localhost" && r.URL.Path == "/payload" {
+			encoder := json.NewEncoder(w)
+			encoder.SetEscapeHTML(false)
+			encoder.Encode(map[string]any{
+				"command":    "fetch",
+				"entrypoint": me.App.Entrypoint(),
+				"port":       me.port,
+			})
+			return
+		}
+
+		me.apiHandler.ServeHTTP(w, r)
+	}))
 	if err != nil {
-		return fmt.Errorf("could not find deno executable")
+		return fmt.Errorf("could not create command: %w", err)
 	}
-
-	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("smallweb-%s.sock", rand.Text()))
-	ln, err := net.Listen("unix", socketPath)
-	if err != nil {
-		return fmt.Errorf("could not create unix socket: %w", err)
-	}
-
-	go http.Serve(ln, me.apiHandler)
-
-	payload := strings.Builder{}
-	encoder := json.NewEncoder(&payload)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(map[string]any{
-		"command":    "fetch",
-		"entrypoint": me.App.Entrypoint(),
-		"port":       port,
-	}); err != nil {
-		return fmt.Errorf("could not encode input: %w", err)
-	}
-
-	command := me.Command(deno, payload.String(), socketPath)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -101,40 +99,6 @@ func (me *Worker) Start(logger *slog.Logger) error {
 		return fmt.Errorf("could not start server: %w", err)
 	}
 
-	readyChan := make(chan bool)
-	go func() {
-		scanner := bufio.NewScanner(stderrPipe)
-		for scanner.Scan() {
-			if scanner.Text() == "READY" {
-				readyChan <- true
-				return
-			}
-
-			os.Stderr.WriteString(scanner.Text() + "\n")
-		}
-
-		readyChan <- false
-	}()
-
-	select {
-	case ready := <-readyChan:
-		if !ready {
-			return fmt.Errorf("server did not start correctly")
-		}
-	case <-time.After(30 * time.Second):
-		return fmt.Errorf("server start timed out")
-	}
-
-	// Function to handle logging for both stdout and stderr
-	logPipe := func(pipe io.ReadCloser, logger *slog.Logger) {
-		scanner := bufio.NewScanner(pipe)
-		for scanner.Scan() {
-			logger.Info(
-				scanner.Text(),
-			)
-		}
-	}
-
 	if logger != nil {
 		// Start goroutine for stdout
 		go logPipe(stdoutPipe, logger.With("stream", "stdout"))
@@ -144,6 +108,15 @@ func (me *Worker) Start(logger *slog.Logger) error {
 	}
 
 	me.command = command
+	select {
+	case ready := <-readyChan:
+		if !ready {
+			return fmt.Errorf("server did not start correctly")
+		}
+	case <-time.After(30 * time.Second):
+		return fmt.Errorf("server start timed out")
+	}
+
 	me.StartedAt = time.Now()
 	me.idleTimer = time.NewTimer(10 * time.Second)
 	go func() {
@@ -151,9 +124,8 @@ func (me *Worker) Start(logger *slog.Logger) error {
 			<-me.idleTimer.C
 			// if there are no active requests, stop the worker
 			if me.activeRequests.Load() == 0 {
-				defer ln.Close()
-				defer os.Remove(socketPath)
 				_ = me.Stop()
+				cleanup()
 				return
 			} else {
 				me.idleTimer.Reset(10 * time.Second)
@@ -376,14 +348,95 @@ func DenoExecutable() (string, error) {
 }
 
 type RunParams struct {
-	Args   []string
+	Args []string
+
+	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
 }
 
-func (me *Worker) Command(execPath string, payload string, socketPath string) *exec.Cmd {
-	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
+func (me *Worker) Run(ctx context.Context, params RunParams) error {
+	args := params.Args
+	if args == nil {
+		args = []string{}
+	}
 
+	command, cleanup, err := me.Command(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Host == "worker.localhost" && r.URL.Path == "/payload" {
+			encoder := json.NewEncoder(w)
+			encoder.SetEscapeHTML(false)
+			encoder.Encode(map[string]any{
+				"command":    "run",
+				"entrypoint": me.App.Entrypoint(),
+				"args":       args,
+			})
+			return
+		}
+
+		if r.Host == "worker.localhost" && r.URL.Path == "/command/stdin" {
+			if params.Stdin != nil {
+				io.Copy(w, params.Stdin)
+			} else {
+				w.WriteHeader(http.StatusOK)
+			}
+
+			return
+		}
+
+		me.apiHandler.ServeHTTP(w, r)
+	}))
+	if err != nil {
+		return fmt.Errorf("could not create command: %w", err)
+	}
+	defer cleanup()
+
+	command.Stdout = params.Stdout
+	command.Stderr = params.Stderr
+	return command.Run()
+}
+
+func (me *Worker) SendEmail(ctx context.Context, msg io.Reader) error {
+	command, clean, err := me.Command(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Host == "worker.localhost" && r.URL.Path == "/payload" {
+			encoder := json.NewEncoder(w)
+			encoder.SetEscapeHTML(false)
+			encoder.Encode(map[string]any{
+				"command":    "email",
+				"entrypoint": me.App.Entrypoint(),
+			})
+			return
+		}
+
+		if r.Host == "worker.localhost" && r.URL.Path == "/email/msg" {
+			io.Copy(w, msg)
+			return
+		}
+
+		me.apiHandler.ServeHTTP(w, r)
+	}))
+	if err != nil {
+		return fmt.Errorf("could not create command: %w", err)
+	}
+	defer clean()
+
+	return command.Run()
+}
+
+func (me *Worker) Command(handler http.Handler) (*exec.Cmd, func() error, error) {
+	execPath, err := DenoExecutable()
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not find deno executable")
+	}
+
+	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("smallweb-%s.sock", rand.Text()))
+	ln, err := net.Listen("unix", socketPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not create unix socket: %w", err)
+	}
+
+	go http.Serve(ln, handler)
+
+	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
 	cmd := exec.Command(execPath,
 		"run",
 		"--allow-net",
@@ -395,7 +448,6 @@ func (me *Worker) Command(execPath string, payload string, socketPath string) *e
 		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), npmCache, socketPath),
 		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), socketPath),
 		"-",
-		payload,
 	)
 	cmd.Stdin = bytes.NewReader(sandboxBytes)
 
@@ -421,77 +473,20 @@ func (me *Worker) Command(execPath string, payload string, socketPath string) *e
 	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", socketPath))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.App.Name))
 
-	return cmd
+	return cmd, func() error {
+		ln.Close()
+		return os.Remove(socketPath)
+	}, nil
 }
 
-func (me *Worker) Run(ctx context.Context, params RunParams) error {
-	args := params.Args
-	if args == nil {
-		args = []string{}
+// Function to handle logging for both stdout and stderr
+func logPipe(pipe io.ReadCloser, logger *slog.Logger) {
+	scanner := bufio.NewScanner(pipe)
+	for scanner.Scan() {
+		logger.Info(
+			scanner.Text(),
+		)
 	}
-
-	payload := strings.Builder{}
-	encoder := json.NewEncoder(&payload)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(map[string]any{
-		"command":    "run",
-		"entrypoint": me.App.Entrypoint(),
-		"args":       args,
-	}); err != nil {
-		return fmt.Errorf("could not encode input: %w", err)
-	}
-
-	execPath, err := DenoExecutable()
-	if err != nil {
-		return fmt.Errorf("could not find deno executable")
-	}
-
-	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("smallweb-%s.sock", rand.Text()))
-	ln, err := net.Listen("unix", socketPath)
-	if err != nil {
-		return fmt.Errorf("could not create unix socket: %w", err)
-	}
-
-	go http.Serve(ln, me.apiHandler)
-	defer ln.Close()
-	defer os.Remove(socketPath)
-
-	command := me.Command(execPath, payload.String(), socketPath)
-	command.Stdout = params.Stdout
-	command.Stderr = params.Stderr
-
-	return command.Run()
-}
-
-func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
-	deno, err := DenoExecutable()
-	if err != nil {
-		return fmt.Errorf("could not find deno executable")
-	}
-
-	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("smallweb-%s.sock", rand.Text()))
-	ln, err := net.Listen("unix", socketPath)
-	if err != nil {
-		return fmt.Errorf("could not create unix socket: %w", err)
-	}
-
-	go http.Serve(ln, me.apiHandler)
-	defer ln.Close()
-	defer os.Remove(socketPath)
-
-	payload := strings.Builder{}
-	encoder := json.NewEncoder(&payload)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(map[string]any{
-		"command":    "email",
-		"entrypoint": me.App.Entrypoint(),
-		"msg":        base64.StdEncoding.EncodeToString(msg),
-	}); err != nil {
-		return fmt.Errorf("could not encode input: %w", err)
-	}
-
-	command := me.Command(deno, payload.String(), socketPath)
-	return command.Run()
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.

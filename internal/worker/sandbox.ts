@@ -1,6 +1,5 @@
 import { accepts } from "jsr:@std/http@1.0.12/negotiation"
 import { escape } from "jsr:@std/html@1.0.3"
-import { decodeBase64 } from "jsr:@std/encoding@1.0.8/base64"
 
 function cleanStack(str?: string) {
     if (!str) return undefined;
@@ -78,7 +77,27 @@ function respondWithError(request: Request, error: Error) {
     );
 }
 
-const payload = JSON.parse(Deno.args[0]);
+const { SMALLWEB_SOCKET_PATH } = Deno.env.toObject();
+
+if (!SMALLWEB_SOCKET_PATH) {
+    console.error("SMALLWEB_SOCKET is not set.");
+    Deno.exit(1);
+}
+
+const client = Deno.createHttpClient({
+    proxy: {
+        transport: "unix",
+        path: SMALLWEB_SOCKET_PATH,
+    }
+});
+
+const resp = await fetch("http://worker.localhost/payload", { client })
+if (!resp.ok) {
+    console.error("Could not get worker payload:", resp.statusText);
+    Deno.exit(1);
+}
+
+const payload = await resp.json();
 
 if (!payload || !payload.command) {
     console.error("Invalid input.");
@@ -89,10 +108,9 @@ if (payload.command === "fetch") {
     Deno.serve(
         {
             port: parseInt(payload.port),
-            onListen: () => {
-                // This line will signal that the server is ready to the go
-                console.error("READY");
-            },
+            onListen: async () => {
+                await fetch("http://worker.localhost/ready", { client });
+            }
         },
         async (req) => {
             try {
@@ -162,7 +180,13 @@ if (payload.command === "fetch") {
         Deno.exit(1);
     }
 
-    await handler.run(payload.args);
+    const resp = await fetch("http://worker.localhost/command/stdin", { client });
+    if (!resp.ok) {
+        console.error("Could not get command input:", resp.statusText);
+        Deno.exit(1);
+    }
+
+    await handler.run(payload.args, await resp.body);
 } else if (payload.command === "email") {
     const mod = await import(payload.entrypoint);
     if (!mod.default || typeof mod.default !== "object") {
@@ -178,9 +202,13 @@ if (payload.command === "fetch") {
         Deno.exit(1);
     }
 
-    const data = decodeBase64(payload.msg)
-    const blob = new Blob([data]);
-    await handler.email(blob.stream());
+    const resp = await fetch("http://worker.localhost/email/msg", { client });
+    if (!resp.ok) {
+        console.error("Could not get email message:", resp.statusText);
+        Deno.exit(1);
+    }
+
+    await handler.email(await resp.body);
 } else {
     console.error("Unknown command: ", payload.command);
     Deno.exit(1);
