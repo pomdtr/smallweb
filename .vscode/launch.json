@@ -38,7 +38,7 @@
             "console": "integratedTerminal",
             "args": [
                 "run",
-                "cli"
+                "api"
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/example",

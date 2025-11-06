@@ -16,13 +16,6 @@
                 "type": "string"
             }
         },
-        "authorizedKeys": {
-            "description": "Authorized SSH keys",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
         "apps": {
             "description": "Application specific configurations",
             "type": "object",
@@ -51,13 +44,6 @@
                 },
                 "additionalDomains": {
                     "description": "Additional app domains",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "authorizedKeys": {
-                    "description": "Authorized SSH keys for the app",
                     "type": "array",
                     "items": {
                         "type": "string"

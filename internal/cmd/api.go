@@ -20,8 +20,9 @@ func NewCmdApi() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:  "api <path>",
-		Args: cobra.ExactArgs(1),
+		Use:   "api <path>",
+		Short: "Make API requests to the smallweb API server",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiHandler := api.NewHandler(conf)
 			if apiHandler == nil {

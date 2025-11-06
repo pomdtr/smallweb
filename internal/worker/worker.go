@@ -2,6 +2,7 @@ package worker
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/rand"
 	_ "embed"
@@ -23,23 +24,11 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/internal/app"
-	"github.com/pomdtr/smallweb/internal/build"
 	"github.com/pomdtr/smallweb/internal/utils"
 )
 
 //go:embed sandbox.ts
 var sandboxBytes []byte
-var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", build.Version, "mod.ts")
-
-func init() {
-	if err := os.MkdirAll(filepath.Dir(sandboxPath), 0o755); err != nil {
-		panic(fmt.Errorf("could not create sandbox directory: %w", err))
-	}
-
-	if err := os.WriteFile(sandboxPath, sandboxBytes, 0o644); err != nil {
-		panic(fmt.Errorf("could not write sandbox file: %w", err))
-	}
-}
 
 type Worker struct {
 	App        app.App
@@ -65,35 +54,6 @@ var upgrader = websocket.Upgrader{} // use default options
 
 type SandboxMethod string
 
-func (me *Worker) DenoArgs(socketPath string) ([]string, error) {
-	args := []string{
-		"--allow-net",
-		"--allow-import",
-		"--allow-env",
-		"--allow-sys",
-		"--no-prompt",
-		"--quiet",
-	}
-
-	for _, configName := range []string{"deno.json", "deno.jsonc"} {
-		configPath := filepath.Join(me.App.Root(), configName)
-		if _, err := os.Stat(configPath); err == nil {
-			args = append(args, fmt.Sprintf("--config=%s", configPath))
-			break
-		}
-	}
-
-	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
-
-	args = append(
-		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), npmCache, socketPath),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), socketPath),
-	)
-
-	return args, nil
-}
-
 func (me *Worker) Start(logger *slog.Logger) error {
 	port, err := GetFreePort()
 	if err != nil {
@@ -114,15 +74,8 @@ func (me *Worker) Start(logger *slog.Logger) error {
 
 	go http.Serve(ln, me.apiHandler)
 
-	args := []string{"run"}
-	denoArgs, err := me.DenoArgs(socketPath)
-	if err != nil {
-		return fmt.Errorf("could not get deno args: %w", err)
-	}
-
-	args = append(args, denoArgs...)
-	input := strings.Builder{}
-	encoder := json.NewEncoder(&input)
+	payload := strings.Builder{}
+	encoder := json.NewEncoder(&payload)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
 		"command":    "fetch",
@@ -132,11 +85,7 @@ func (me *Worker) Start(logger *slog.Logger) error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	args = append(args, sandboxPath, input.String())
-
-	command := exec.Command(deno, args...)
-	command.Dir = me.App.Root()
-	command.Env = me.Env(socketPath)
+	command := me.Command(deno, payload.String(), socketPath)
 
 	stdoutPipe, err := command.StdoutPipe()
 	if err != nil {
@@ -432,13 +381,67 @@ type RunParams struct {
 	Stderr io.Writer
 }
 
+func (me *Worker) Command(execPath string, payload string, socketPath string) *exec.Cmd {
+	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
+
+	cmd := exec.Command(execPath,
+		"run",
+		"--allow-net",
+		"--allow-import",
+		"--allow-env",
+		"--allow-sys",
+		"--no-prompt",
+		"--quiet",
+		fmt.Sprintf("--allow-read=%s,%s,%s", me.App.Root(), npmCache, socketPath),
+		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), socketPath),
+		"-",
+		payload,
+	)
+	cmd.Stdin = bytes.NewReader(sandboxBytes)
+
+	cmd.Dir = me.App.Root()
+	for k, v := range me.App.Env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+	cmd.Env = append(cmd.Env, "DENO_NO_UPDATE_CHECK=1")
+
+	// open telemetry
+	for _, value := range os.Environ() {
+		if strings.HasPrefix(value, "OTEL_") {
+			cmd.Env = append(cmd.Env, value)
+		}
+
+		if strings.HasPrefix(value, "DENO_") {
+			cmd.Env = append(cmd.Env, value)
+		}
+	}
+
+	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", socketPath))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.App.Name))
+
+	return cmd
+}
+
 func (me *Worker) Run(ctx context.Context, params RunParams) error {
 	args := params.Args
 	if args == nil {
 		args = []string{}
 	}
 
-	deno, err := DenoExecutable()
+	payload := strings.Builder{}
+	encoder := json.NewEncoder(&payload)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(map[string]any{
+		"command":    "run",
+		"entrypoint": me.App.Entrypoint(),
+		"args":       args,
+	}); err != nil {
+		return fmt.Errorf("could not encode input: %w", err)
+	}
+
+	execPath, err := DenoExecutable()
 	if err != nil {
 		return fmt.Errorf("could not find deno executable")
 	}
@@ -453,34 +456,11 @@ func (me *Worker) Run(ctx context.Context, params RunParams) error {
 	defer ln.Close()
 	defer os.Remove(socketPath)
 
-	cmdArgs := []string{"run"}
-	denoArgs, err := me.DenoArgs(socketPath)
-	if err != nil {
-		return fmt.Errorf("could not get deno args: %w", err)
-	}
-	cmdArgs = append(cmdArgs, denoArgs...)
-
-	payload := strings.Builder{}
-	encoder := json.NewEncoder(&payload)
-	encoder.SetEscapeHTML(false)
-	if err := encoder.Encode(map[string]any{
-		"command":    "run",
-		"entrypoint": me.App.Entrypoint(),
-		"args":       args,
-	}); err != nil {
-		return fmt.Errorf("could not encode input: %w", err)
-	}
-
-	cmdArgs = append(cmdArgs, sandboxPath, payload.String())
-
-	command := exec.CommandContext(ctx, deno, cmdArgs...)
-	command.Dir = me.App.Root()
+	command := me.Command(execPath, payload.String(), socketPath)
 	command.Stdout = params.Stdout
 	command.Stderr = params.Stderr
 
-	command.Env = me.Env(socketPath)
-
-	return nil
+	return command.Run()
 }
 
 func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
@@ -499,14 +479,6 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	defer ln.Close()
 	defer os.Remove(socketPath)
 
-	args := []string{"run"}
-	denoArgs, err := me.DenoArgs(socketPath)
-	if err != nil {
-		return fmt.Errorf("could not get deno args: %w", err)
-	}
-
-	args = append(args, denoArgs...)
-
 	payload := strings.Builder{}
 	encoder := json.NewEncoder(&payload)
 	encoder.SetEscapeHTML(false)
@@ -518,16 +490,7 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	denoArgs = append(args, sandboxPath, payload.String())
-
-	command := exec.CommandContext(ctx, deno, denoArgs...)
-
-	command.Stderr = os.Stderr
-	command.Stdout = os.Stdout
-	command.Dir = me.App.Root()
-
-	command.Env = me.Env(socketPath)
-
+	command := me.Command(deno, payload.String(), socketPath)
 	return command.Run()
 }
 
@@ -544,35 +507,4 @@ func GetFreePort() (int, error) {
 	}
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port, nil
-}
-
-func (me *Worker) Env(socketPath string) []string {
-	env := []string{}
-
-	for k, v := range me.App.Config.Env {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	for k, v := range me.App.Env {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	env = append(env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
-	env = append(env, "DENO_NO_UPDATE_CHECK=1")
-
-	// open telemetry
-	for _, value := range os.Environ() {
-		if strings.HasPrefix(value, "OTEL_") {
-			env = append(env, value)
-		}
-
-		if strings.HasPrefix(value, "DENO_") {
-			env = append(env, value)
-		}
-	}
-
-	env = append(env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", socketPath))
-	env = append(env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.App.Name))
-
-	return env
 }

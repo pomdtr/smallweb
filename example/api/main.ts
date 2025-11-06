@@ -17,4 +17,8 @@ export default {
             { client },
         );
     },
+    run: async () => {
+        const resp = await fetch("http://api.localhost/openapi.json", { client })
+        console.log(JSON.stringify(await resp.json(), null, 2));
+    }
 };

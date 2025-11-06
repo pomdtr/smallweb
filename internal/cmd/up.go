@@ -258,14 +258,14 @@ func NewCmdUp() *cobra.Command {
 			}
 
 			if flags.sshAddr != "" {
+				homeDir, err := os.UserHomeDir()
+				if err != nil {
+					sysLogger.Error("failed to get home directory", "error", err)
+					return ExitError{1}
+				}
+
 				sshPrivateKeyPath := flags.sshPrivateKey
 				if flags.sshPrivateKey == "" {
-					homeDir, err := os.UserHomeDir()
-					if err != nil {
-						sysLogger.Error("failed to get home directory", "error", err)
-						return ExitError{1}
-					}
-
 					for _, keyPath := range []string{
 						filepath.Join(homeDir, ".ssh", "smallweb", "id_ed25519"),
 						filepath.Join(homeDir, ".ssh", "smallweb", "id_rsa"),
@@ -302,31 +302,39 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				authorizedKey := string(gossh.MarshalAuthorizedKey(signer.PublicKey()))
+				pubKey := signer.PublicKey()
 				sshLogger := logger.With("logger", "ssh")
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKeyPath),
 					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
-						authorizedKeys := []string{authorizedKey}
-						authorizedKeys = append(authorizedKeys, conf.Strings("authorizedKeys")...)
-
-						if ctx.User() != "_" {
-							authorizedKeys = append(authorizedKeys, conf.Strings(fmt.Sprintf("apps.%s.authorizedKeys", ctx.User()))...)
+						if ssh.KeysEqual(pubKey, key) {
+							return true
 						}
 
-						for _, authorizedKey := range authorizedKeys {
-							if authorizedKey == "*" {
-								return true
-							}
+						authorizedKeyPaths := []string{
+							filepath.Join(homeDir, ".ssh", "authorized_keys"),
+							filepath.Join(homeDir, ".ssh", "smallweb", "authorized_keys"),
+							filepath.Join(conf.String("dir"), ".smallweb", "ssh_authorized_keys"),
+						}
 
-							k, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
+						for _, authorizedKeyPath := range authorizedKeyPaths {
+							authorizedKeysBytes, err := os.ReadFile(authorizedKeyPath)
 							if err != nil {
 								continue
 							}
 
-							if ssh.KeysEqual(k, key) {
-								return true
+							rest := authorizedKeysBytes
+							for {
+								var pubKey gossh.PublicKey
+								pubKey, _, _, rest, err = gossh.ParseAuthorizedKey(rest)
+								if err != nil {
+									break
+								}
+
+								if ssh.KeysEqual(pubKey, key) {
+									return true
+								}
 							}
 						}
 
@@ -348,32 +356,44 @@ func NewCmdUp() *cobra.Command {
 								cmd.Env = os.Environ()
 
 								ptyReq, winCh, isPty := sess.Pty()
-								if isPty {
-									cmd.Env = append(cmd.Env, "TERM="+ptyReq.Term)
-									f, err := pty.Start(cmd)
-									if err != nil {
-										fmt.Fprintf(sess, "failed to start command: %v\n", err)
-										sess.Exit(1)
-									}
-
-									go func() {
-										for win := range winCh {
-											pty.Setsize(f, &pty.Winsize{
-												Rows: uint16(win.Height),
-												Cols: uint16(win.Width),
-											})
+								if !isPty {
+									cmd.Stdout = sess
+									cmd.Stderr = sess.Stderr()
+									if err := cmd.Run(); err != nil {
+										var exitErr *exec.ExitError
+										if errors.As(err, &exitErr) {
+											sess.Exit(exitErr.ExitCode())
+											return
 										}
-									}()
 
-									go io.Copy(sess, f)
-									go io.Copy(f, sess)
+										fmt.Fprintf(sess, "failed to run command: %v", err)
+										sess.Exit(1)
+										return
+									}
 
 									return
 								}
 
-								cmd.Stdout = sess
-								cmd.Stderr = sess.Stderr()
-								if err := cmd.Run(); err != nil {
+								cmd.Env = append(cmd.Env, "TERM="+ptyReq.Term)
+								f, err := pty.Start(cmd)
+								if err != nil {
+									fmt.Fprintf(sess, "failed to start command: %v\n", err)
+									sess.Exit(1)
+								}
+
+								go func() {
+									for win := range winCh {
+										pty.Setsize(f, &pty.Winsize{
+											Rows: uint16(win.Height),
+											Cols: uint16(win.Width),
+										})
+									}
+								}()
+
+								go io.Copy(sess, f)
+								go io.Copy(f, sess)
+
+								if err := cmd.Wait(); err != nil {
 									var exitErr *exec.ExitError
 									if errors.As(err, &exitErr) {
 										sess.Exit(exitErr.ExitCode())
