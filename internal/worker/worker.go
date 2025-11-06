@@ -184,7 +184,29 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		defer serverConn.Close()
 
-		clientConn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://127.0.0.1:%d%s", me.port, r.URL.Path), nil)
+		// Create a custom dialer that connects to localhost but preserves the wss:// scheme
+		dialer := *websocket.DefaultDialer
+		dialer.NetDialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			// Always connect to localhost sandbox regardless of the hostname
+			return (&net.Dialer{
+				Timeout:   5 * time.Minute,
+				KeepAlive: 5 * time.Minute,
+			}).DialContext(ctx, network, fmt.Sprintf("127.0.0.1:%d", me.port))
+		}
+		dialer.NetDialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			// For wss:// URLs, still connect with plain connection to localhost
+			return (&net.Dialer{
+				Timeout:   5 * time.Minute,
+				KeepAlive: 5 * time.Minute,
+			}).DialContext(ctx, network, fmt.Sprintf("127.0.0.1:%d", me.port))
+		}
+
+		// Build websocket URL with original hostname
+		wsURL := *r.URL
+		wsURL.Scheme = "wss"
+		wsURL.Host = r.Host
+
+		clientConn, _, err := dialer.Dial(wsURL.String(), nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -239,7 +261,12 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request, err := http.NewRequestWithContext(r.Context(), r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", me.port, r.URL.String()), r.Body)
+	// Clone the original request URL to preserve the hostname
+	requestURL := *r.URL
+	requestURL.Scheme = "https"
+	requestURL.Host = r.Host
+
+	request, err := http.NewRequestWithContext(r.Context(), r.Method, requestURL.String(), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -251,27 +278,29 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if request.Header.Get("x-forwarded-host") == "" {
-		request.Header.Set("x-forwarded-host", r.Host)
-	}
-
-	if request.Header.Get("x-forwarded-proto") == "" {
-		if r.TLS != nil {
-			request.Header.Set("x-forwarded-proto", "https")
-		} else {
-			request.Header.Set("x-forwarded-proto", "http")
-		}
-	}
+	request.Header.Del("X-Forwarded-Host")
+	request.Header.Del("X-Forwarded-Proto")
+	request.Header.Del("X-Forwarded-For")
 
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout:   5 * time.Minute,
-				KeepAlive: 5 * time.Minute,
-			}).DialContext,
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				// Always connect to localhost sandbox regardless of the hostname in the request
+				return (&net.Dialer{
+					Timeout:   5 * time.Minute,
+					KeepAlive: 5 * time.Minute,
+				}).DialContext(ctx, network, fmt.Sprintf("127.0.0.1:%d", me.port))
+			},
+			DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				// For HTTPS URLs, still connect with plain HTTP to localhost
+				return (&net.Dialer{
+					Timeout:   5 * time.Minute,
+					KeepAlive: 5 * time.Minute,
+				}).DialContext(ctx, network, fmt.Sprintf("127.0.0.1:%d", me.port))
+			},
 			TLSHandshakeTimeout:   5 * time.Minute,
 			ResponseHeaderTimeout: 5 * time.Minute,
 		},

@@ -122,34 +122,17 @@ if (payload.command === "fetch") {
                 if (typeof mod.default !== "object") {
                     return new Response("The app default export must be an object.", { status: 500 });
                 }
+
+                const handler = mod.default.fetch;
                 if (
-                    !("fetch" in mod.default) ||
-                    typeof mod.default.fetch !== "function"
+                    handler === undefined ||
+                    typeof handler !== "function"
                 ) {
                     return new Response("The app default export does not have a fetch method.", { status: 500 });
                 }
 
-                const handler = mod.default.fetch;
-                // Websocket requests are stateful and should be handled differently
-                if (req.headers.get("upgrade") === "websocket") {
-                    const resp = await handler(req);
-                    if (!(resp instanceof Response)) {
-                        return new Response("Fetch handler must return a Response object.", { status: 500 });
-                    }
 
-                    return resp;
-                }
-
-                const url = new URL(req.url);
-                const proto = req.headers.get("x-forwarded-proto");
-                const host = req.headers.get("x-forwarded-host");
-
-                const req2 = new Request(`${proto}://${host}${url.pathname}${url.search}`, req);
-                req2.headers.delete("x-forwarded-proto");
-                req2.headers.delete("x-forwarded-host");
-                req2.headers.delete("x-forwarded-for");
-
-                const resp = await handler(req2);
+                const resp = await handler(req);
                 if (!(resp instanceof Response)) {
                     throw new Error("Fetch handler must return a Response object.");
                 }
