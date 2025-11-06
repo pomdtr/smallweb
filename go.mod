@@ -15,7 +15,7 @@ require (
 	github.com/knadh/koanf/v2 v2.2.2
 	github.com/mattn/go-isatty v0.0.20
 	github.com/spf13/cobra v1.9.1
-	golang.org/x/net v0.43.0
+	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/term v0.34.0
 )
 

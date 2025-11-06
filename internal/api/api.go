@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/cgi"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"github.com/go-chi/hostrouter"
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/utils"
-	"golang.org/x/net/webdav"
 )
 
 type GetBlobsOutput struct {
@@ -44,23 +44,11 @@ func NewHandler(conf *utils.Config) http.Handler {
 	r := chi.NewRouter()
 	hr := hostrouter.New()
 
-	hr.Map("webdav.localhost", webdavRouter(conf))
 	hr.Map("api.localhost", apiRouter(conf))
 	hr.Map("git.localhost", gitRouter(conf))
 	hr.Map("*", catchAllRouter())
 
 	r.Mount("/", hr)
-
-	return r
-}
-
-func webdavRouter(conf *utils.Config) chi.Router {
-	r := chi.NewRouter()
-
-	r.Handle("/*", &webdav.Handler{
-		FileSystem: webdav.Dir(conf.String("dir")),
-		LockSystem: webdav.NewMemLS(),
-	})
 
 	return r
 }
@@ -152,7 +140,13 @@ func gitRouter(conf *utils.Config) chi.Router {
 		},
 	}
 
-	r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/{app}/*", func(w http.ResponseWriter, r *http.Request) {
+		appname := chi.URLParam(r, "app")
+		if conf.String(fmt.Sprintf("apps.%s.privacy", appname)) != "public" {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+
 		if strings.HasSuffix(r.URL.Path, "/git-receive-pack") {
 			http.Error(w, "pushes are disabled", http.StatusForbidden)
 			return

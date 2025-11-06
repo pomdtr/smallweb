@@ -2,6 +2,9 @@
     "$schema": "../../schemas/config.schema.json",
     "domain": "smallweb.live",
     "apps": {
+        "example-repo": {
+            "privacy": "public"
+        },
         "example-cron": {
             "crons": [
                 {

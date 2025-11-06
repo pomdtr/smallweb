@@ -1,0 +1,6 @@
+{
+    "lock": false,
+    "imports": {
+        "unstorage": "npm:unstorage@^2.0.0-alpha.4"
+    }
+}
