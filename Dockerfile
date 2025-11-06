@@ -15,7 +15,7 @@ COPY --from=builder /build/smallweb /usr/local/bin/smallweb
 RUN apt update && apt install -y git unzip curl gosu && rm -rf /var/lib/apt/lists/*
 
 # Install Deno
-ARG DENO_VERSION=v2.4.0
+ARG DENO_VERSION=v2.5.6
 RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh -s "$DENO_VERSION"
 
 # Set up default user with ID 1000
