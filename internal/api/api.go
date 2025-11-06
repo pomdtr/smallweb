@@ -58,7 +58,7 @@ func webdavRouter(conf *utils.Config) chi.Router {
 	r := chi.NewRouter()
 
 	r.Handle("/*", &webdav.Handler{
-		FileSystem: webdav.Dir(filepath.Join(conf.String("dir"), ".smallweb", "data")),
+		FileSystem: webdav.Dir(conf.String("dir")),
 		LockSystem: webdav.NewMemLS(),
 	})
 
