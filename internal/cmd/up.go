@@ -358,6 +358,7 @@ func NewCmdUp() *cobra.Command {
 
 								ptyReq, winCh, isPty := sess.Pty()
 								if !isPty {
+									cmd.Stdin = sess
 									cmd.Stdout = sess
 									cmd.Stderr = sess.Stderr()
 									if err := cmd.Run(); err != nil {
