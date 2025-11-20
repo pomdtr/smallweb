@@ -28,18 +28,12 @@ func NewCmdRun() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var appConfig app.Config
-			if err := conf.Unmarshal(fmt.Sprintf("apps.%s", args[0]), &appConfig); err != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "failed to get app config: %v\n", err)
-				return ExitError{1}
-			}
-
-			a, err := app.LoadApp(filepath.Join(conf.String("dir"), args[0]), appConfig)
+			a, err := app.LoadApp(filepath.Join(conf.String("dir"), args[0]))
 			if err != nil {
 				return fmt.Errorf("failed to load app: %w", err)
 			}
 
-			wk := worker.NewWorker(a, api.NewHandler(conf))
+			wk := worker.NewWorker(a, api.NewHandler("http://api.localhost", conf))
 
 			cmd.SilenceErrors = true
 

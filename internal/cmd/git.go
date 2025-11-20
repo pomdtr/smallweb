@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"os/exec"
 	"path/filepath"
 
@@ -16,11 +15,7 @@ func NewCmdGitReceivePack() *cobra.Command {
 		Hidden: true,
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var appConfig app.Config
-			if err := conf.Unmarshal(fmt.Sprintf("apps.%s", args[0]), &appConfig); err != nil {
-				return ExitError{1}
-			}
-			a, err := app.LoadApp(filepath.Join(conf.String("dir"), args[0]), appConfig)
+			a, err := app.LoadApp(filepath.Join(conf.String("dir"), args[0]))
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}
@@ -54,12 +49,7 @@ func NewCmdGitUploadPack() *cobra.Command {
 		Args:   cobra.ExactArgs(1),
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var appConfig app.Config
-			if err := conf.Unmarshal(fmt.Sprintf("apps.%s", args[0]), &appConfig); err != nil {
-				return ExitError{1}
-			}
-
-			a, err := app.LoadApp(filepath.Join(conf.String("dir"), args[0]), appConfig)
+			a, err := app.LoadApp(filepath.Join(conf.String("dir"), args[0]))
 			if err != nil {
 				cmd.PrintErrf("failed to load app %s: %v\n", args[0], err)
 				return ExitError{1}

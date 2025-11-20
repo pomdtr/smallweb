@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -19,10 +18,10 @@ import (
 	"golang.org/x/term"
 )
 
-type CronItem struct {
-	App      string   `json:"app"`
-	Args     []string `json:"args"`
-	Schedule string   `json:"schedule"`
+type CronJob struct {
+	App      string   `json:"app" mapstructure:"app"`
+	Args     []string `json:"args" mapstructure:"args"`
+	Schedule string   `json:"schedule" mapstructure:"schedule"`
 }
 
 func NewCmdCrons() *cobra.Command {
@@ -37,32 +36,19 @@ func NewCmdCrons() *cobra.Command {
 		Short:             "List cron jobs",
 		ValidArgsFunction: completeApp,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var crons []CronItem
-			apps, err := app.List(conf.String("dir"))
-			if err != nil {
-				cmd.PrintErrf("failed to list apps: %v\n", err)
-				return ExitError{1}
-			}
-
-			for _, appname := range apps {
-				var appConfig app.Config
-				if err := conf.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
-					continue
-				}
-
-				a, err := app.LoadApp(filepath.Join(conf.String("dir"), appname), appConfig)
-				if err != nil {
-					cmd.PrintErrf("failed to load app %s: %v\n", appname, err)
+			var crons []CronJob
+			for _, jobConf := range conf.Slices("crons") {
+				var cronItem CronJob
+				if err := jobConf.Unmarshal("", &cronItem); err != nil {
+					cmd.PrintErrf("failed to unmarshal cron job: %v\n", err)
 					return ExitError{1}
 				}
 
-				for _, job := range a.Config.Crons {
-					crons = append(crons, CronItem{
-						App:      appname,
-						Args:     job.Args,
-						Schedule: job.Schedule,
-					})
+				if flags.app != "" && cronItem.App != flags.app {
+					continue
 				}
+
+				crons = append(crons, cronItem)
 			}
 
 			if flags.json {
@@ -97,18 +83,16 @@ func NewCmdCrons() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Schedule", "App", "Args"})
+			printer.AddHeader([]string{"App", "Args", "Schedule"})
 			for _, item := range crons {
-				printer.AddField(item.Schedule)
 				printer.AddField(item.App)
 				args, err := json.Marshal(item.Args)
 				if err != nil {
 					cmd.PrintErrf("failed to marshal args for app %s: %v\n", item.App, err)
 					return ExitError{1}
 				}
-
 				printer.AddField(string(args))
-
+				printer.AddField(item.Schedule)
 				printer.EndRow()
 			}
 
@@ -132,59 +116,40 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
-		apps, err := app.List(filepath.Join(conf.String("dir")))
-		if err != nil {
-			logger.Error("failed to list apps", "error", err)
-			return
-		}
-
-		for _, appname := range apps {
-			var appConfig app.Config
-			if err := conf.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
-				continue
-			}
-
-			a, err := app.LoadApp(filepath.Join(conf.String("dir"), appname), appConfig)
-			if err != nil {
-				logger.Error("failed to load app", "app", appname, "error", err)
+		for _, jobConf := range conf.Slices("crons") {
+			var job CronJob
+			if err := jobConf.Unmarshal("", &job); err != nil {
+				logger.Error("failed to unmarshal cron job", "error", err)
 				continue
 			}
 
 			current := time.Now().Truncate(time.Minute)
-			for _, job := range a.Config.Crons {
-				sched, err := parser.Parse(job.Schedule)
-				if err != nil {
-					logger.Error("failed to parse cron schedule", "app", appname, "schedule", job.Schedule, "error", err)
-					continue
-				}
-
-				if sched.Next(current.Add(-1*time.Second)) != current {
-					continue
-				}
-
-				go func() {
-					var appConfig app.Config
-					if err := conf.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
-						logger.Error("failed to get app config", "app", appname, "error", err)
-						return
-					}
-
-					a, err := app.LoadApp(filepath.Join(conf.String("dir"), appname), appConfig)
-					if err != nil {
-						logger.Error("failed to load app", "app", appname, "error", err)
-						return
-					}
-
-					wk := worker.NewWorker(a, api.NewHandler(conf))
-					logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
-
-					if err := wk.Run(context.Background(), worker.RunParams{
-						Args: job.Args,
-					}); err != nil {
-						logger.Error("failed to run command", "app", appname, "args", job.Args, "error", err)
-					}
-				}()
+			sched, err := parser.Parse(job.Schedule)
+			if err != nil {
+				logger.Error("failed to parse cron schedule", "app", job.App, "schedule", job.Schedule, "error", err)
+				continue
 			}
+
+			if sched.Next(current.Add(-1*time.Second)) != current {
+				continue
+			}
+
+			go func() {
+				a, err := app.LoadApp(filepath.Join(conf.String("dir"), job.App))
+				if err != nil {
+					logger.Error("failed to load app", "app", job.App, "error", err)
+					return
+				}
+
+				wk := worker.NewWorker(a, api.NewHandler("http://api.localhost", conf))
+				logger.Info("running cron job", "app", job.App, "args", job.Args, "schedule", job.Schedule)
+
+				if err := wk.Run(context.Background(), worker.RunParams{
+					Args: job.Args,
+				}); err != nil {
+					logger.Error("failed to run command", "app", job.App, "args", job.Args, "error", err)
+				}
+			}()
 		}
 	})
 

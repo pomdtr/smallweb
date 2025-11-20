@@ -1,18 +1,15 @@
 {
     "$schema": "../../schemas/config.schema.json",
     "domain": "smallweb.live",
-    "apps": {
-        "example-repo": {
-            "privacy": "public"
-        },
-        "example-cron": {
-            "crons": [
-                {
-                    "schedule": "* * * * *",
-                    // ceci est un test
-                    "args": []
-                }
-            ]
+    "additionalDomains": {
+        "smallweb.local.gd": "*",
+        "custom.smallweb.live": "hono"
+    },
+    "crons": [
+        {
+            "app": "cron",
+            "args": [],
+            "schedule": "* * * * *"
         }
-    }
+    ]
 }

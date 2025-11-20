@@ -1,82 +1,54 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "required": [
         "domain"
     ],
     "properties": {
         "domain": {
-            "description": "Domain name",
+            "description": "Root domain",
             "type": "string"
         },
-        "additionalDomains": {
-            "description": "Additional wildcard domains",
+        "authorizedKeys": {
+            "description": "Authorized SSH keys",
             "type": "array",
             "items": {
                 "type": "string"
             }
         },
-        "apps": {
-            "description": "Application specific configurations",
+        "additionalDomains": {
+            "description": "Additional domains",
             "type": "object",
-            "additionalProperties": {
-                "$ref": "#/definitions/appConfig"
+            "patternProperties": {
+                "^[*.a-zA-Z0-9-]+$": {
+                    "type": "string"
+                }
             }
-        }
-    },
-    "definitions": {
-        "appConfig": {
-            "type": "object",
-            "properties": {
-                "env": {
-                    "description": "Environment variables for the app",
-                    "type": "object",
-                    "additionalProperties": {
+        },
+        "crons": {
+            "description": "Cron jobs",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "app",
+                    "args",
+                    "schedule"
+                ],
+                "properties": {
+                    "app": {
+                        "description": "App to run the cron job",
                         "type": "string"
-                    }
-                },
-                "labels": {
-                    "description": "Labels for the app",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "additionalDomains": {
-                    "description": "Additional app domains",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "root": {
-                    "type": "string"
-                },
-                "entrypoint": {
-                    "type": "string"
-                },
-                "crons": {
-                    "description": "Cron jobs",
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "required": [
-                            "schedule",
-                            "args"
-                        ],
-                        "properties": {
-                            "schedule": {
-                                "description": "Cron schedule",
-                                "type": "string"
-                            },
-                            "args": {
-                                "description": "Cron arguments",
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
+                    },
+                    "args": {
+                        "description": "Cron arguments",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
                         }
+                    },
+                    "schedule": {
+                        "description": "Cron schedule",
+                        "type": "string"
                     }
                 }
             }

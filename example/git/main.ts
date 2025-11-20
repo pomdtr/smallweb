@@ -1,20 +1,16 @@
-const { SMALLWEB_SOCKET_PATH } = Deno.env.toObject();
+const { SMALLWEB_SOCK } = Deno.env.toObject();
 
 const client = Deno.createHttpClient({
     proxy: {
         transport: "unix",
-        path: SMALLWEB_SOCKET_PATH,
+        path: SMALLWEB_SOCK,
     },
 });
 
 export default {
     fetch: (req: Request) => {
         const url = new URL(req.url);
-        url.host = "git.localhost";
-
-        return fetch(
-            new Request(url, req),
-            { client },
-        );
+        url.pathname = `/git/${url.pathname}`
+        return fetch(url, { client, redirect: "manual" });
     },
 };

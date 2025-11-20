@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 
-	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -26,24 +24,6 @@ func NewCmdDelete() *cobra.Command {
 
 			if err := os.RemoveAll(appDir); err != nil {
 				return fmt.Errorf("failed to delete %q: %w", args[0], err)
-			}
-
-			if !slices.Contains(conf.MapKeys("apps"), args[0]) {
-				fmt.Fprintf(cmd.OutOrStdout(), "Deleted %s\n", args[0])
-				return nil
-			}
-
-			jsonPath := fmt.Sprintf("/%s/%s", "apps", args[0])
-			patch := utils.JsonPatch{
-				{
-					Op:   "remove",
-					Path: jsonPath,
-				},
-			}
-
-			configPath := utils.FindConfigPath(conf.String("dir"))
-			if err := utils.PatchFile(configPath, patch); err != nil {
-				return fmt.Errorf("updating config file: %w", err)
 			}
 
 			fmt.Fprintln(cmd.OutOrStdout(), "Deleted", args[0])

@@ -1,24 +1,20 @@
-const { SMALLWEB_SOCKET_PATH } = Deno.env.toObject();
+const { SMALLWEB_SOCK } = Deno.env.toObject();
 
 const client = Deno.createHttpClient({
     proxy: {
         transport: "unix",
-        path: SMALLWEB_SOCKET_PATH,
+        path: SMALLWEB_SOCK,
     },
 });
 
 export default {
     fetch: (req: Request) => {
-        const url = new URL(req.url);
-        url.host = "api.localhost";
-
-        return fetch(
-            new Request(url, req),
-            { client, redirect: "manual" },
-        );
+        return fetch(new Request(req), {
+            client, redirect: "manual"
+        });
     },
     run: async () => {
-        const resp = await fetch("http://api.localhost/openapi.json", { client })
+        const resp = await fetch("http://api.localhost/v1/apps", { client });
         console.log(JSON.stringify(await resp.json(), null, 2));
     }
 };

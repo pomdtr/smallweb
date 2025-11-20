@@ -24,18 +24,13 @@ func NewCmdApi() *cobra.Command {
 		Short: "Make API requests to the smallweb API server",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiHandler := api.NewHandler(conf)
+			apiHandler := api.NewHandler("http://api.localhost", conf)
 			if apiHandler == nil {
 				return fmt.Errorf("api handler is nil")
 			}
 
 			ts := httptest.NewServer(apiHandler)
 			defer ts.Close()
-
-			pathname := args[0]
-			if !strings.HasPrefix(pathname, "/") {
-				pathname = "/" + pathname
-			}
 
 			var body io.Reader
 			if flags.Data != "" {
@@ -46,12 +41,10 @@ func NewCmdApi() *cobra.Command {
 				}
 			}
 
-			req, err := http.NewRequest(flags.Method, ts.URL+pathname, body)
+			req, err := http.NewRequest(flags.Method, ts.URL+args[0], body)
 			if err != nil {
 				return err
 			}
-
-			req.Header.Set("X-Forwarded-Host", "api.localhost")
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {

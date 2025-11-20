@@ -502,7 +502,7 @@ func (me *Worker) Command(handler http.Handler) (*exec.Cmd, func() error, error)
 
 	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_APP_NAME=%s", me.App.Name))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_DATA_DIR=%s", smallwebDataDir))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_SOCKET_PATH=%s", socketPath))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("SMALLWEB_SOCK=%s", socketPath))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("OTEL_SERVICE_NAME=%s", me.App.Name))
 
 	return cmd, func() error {

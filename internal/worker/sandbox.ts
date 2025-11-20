@@ -77,9 +77,9 @@ function respondWithError(request: Request, error: Error) {
     );
 }
 
-const { SMALLWEB_SOCKET_PATH } = Deno.env.toObject();
+const { SMALLWEB_SOCK } = Deno.env.toObject();
 
-if (!SMALLWEB_SOCKET_PATH) {
+if (!SMALLWEB_SOCK) {
     console.error("SMALLWEB_SOCKET is not set.");
     Deno.exit(1);
 }
@@ -87,7 +87,7 @@ if (!SMALLWEB_SOCKET_PATH) {
 const client = Deno.createHttpClient({
     proxy: {
         transport: "unix",
-        path: SMALLWEB_SOCKET_PATH,
+        path: SMALLWEB_SOCK,
     }
 });
 

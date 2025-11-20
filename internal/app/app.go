@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/getsops/sops/v3/decrypt"
 	"github.com/joho/godotenv"
+	"github.com/matthewmueller/jsonc"
 	"github.com/pomdtr/smallweb/internal/utils"
 )
 
@@ -18,18 +20,8 @@ var (
 )
 
 type Config struct {
-	Entrypoint        string            `json:"entrypoint,omitempty" mapstructure:"entrypoint"`
-	Root              string            `json:"root,omitempty" mapstructure:"root"`
-	Crons             []CronJob         `json:"crons,omitempty" mapstructure:"crons"`
-	AdditionalDomains []string          `json:"additionalDomains" mapstructure:"additionalDomains"`
-	AuthorizedKeys    []string          `json:"authorizedKeys" mapstructure:"authorizedKeys"`
-	Env               map[string]string `json:"env,omitempty" mapstructure:"env"`
-}
-
-type CronJob struct {
-	Description string   `json:"description" mapstructure:"description"`
-	Schedule    string   `json:"schedule" mapstructure:"schedule"`
-	Args        []string `json:"args" mapstructure:"args"`
+	Entrypoint string `json:"entrypoint,omitempty"`
+	Root       string `json:"root,omitempty"`
 }
 
 type App struct {
@@ -79,12 +71,40 @@ func (me *App) DataDir() string {
 	return dir
 }
 
-func LoadApp(appDir string, config Config) (App, error) {
+func LoadApp(appDir string) (App, error) {
+	if _, err := os.Stat(appDir); os.IsNotExist(err) {
+		return App{}, ErrAppNotFound
+	}
+
 	app := App{
-		Name:   filepath.Base(appDir),
-		Dir:    appDir,
-		Env:    make(map[string]string),
-		Config: config,
+		Name: filepath.Base(appDir),
+		Dir:  appDir,
+		Env:  make(map[string]string),
+	}
+
+	for _, filename := range []string{"smallweb.json", "smallweb.jsonc"} {
+		configPath := filepath.Join(appDir, filename)
+		if !utils.FileExists(configPath) {
+			continue
+		}
+
+		configBytes, err := os.ReadFile(configPath)
+		if err != nil {
+			return App{}, fmt.Errorf("could not read config file: %v", err)
+		}
+
+		configBytes, err = jsonc.Standardize(configBytes)
+		if err != nil {
+			return App{}, fmt.Errorf("could not standardize config file: %v", err)
+		}
+
+		var config Config
+		if err := json.Unmarshal(configBytes, &config); err != nil {
+			return App{}, fmt.Errorf("could not unmarshal config file: %v", err)
+		}
+
+		app.Config = config
+		break
 	}
 
 	if dotenvPath := filepath.Join(appDir, ".env"); utils.FileExists(dotenvPath) {

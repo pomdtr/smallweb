@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 
@@ -22,19 +21,18 @@ import (
 
 	"github.com/caddyserver/certmagic"
 	"github.com/charmbracelet/ssh"
+	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/posflag"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/charmbracelet/wish"
 	"github.com/creack/pty"
-	"github.com/knadh/koanf/providers/confmap"
-	"github.com/knadh/koanf/providers/file"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/mhale/smtpd"
 	sloghttp "github.com/samber/slog-http"
 	"go.uber.org/zap"
-
-	"github.com/knadh/koanf/providers/posflag"
 
 	"github.com/pomdtr/smallweb/internal/api"
 	"github.com/pomdtr/smallweb/internal/app"
@@ -181,7 +179,7 @@ func NewCmdUp() *cobra.Command {
 				certmagic.Default.Logger = zap.NewNop()
 				certmagic.Default.OnDemand = &certmagic.OnDemandConfig{
 					DecisionFunc: func(ctx context.Context, name string) error {
-						if _, ok := lookupApp(name); ok {
+						if _, ok := lookupAppByDomain(name); ok {
 							return nil
 						}
 
@@ -228,19 +226,13 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						var appConfig app.Config
-						if err := conf.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
-							logger.Error("failed to get app config", "error", err)
-							continue
-						}
-
-						a, err := app.LoadApp(filepath.Join(conf.String("dir"), appname), appConfig)
+						a, err := app.LoadApp(filepath.Join(conf.String("dir"), appname))
 						if err != nil {
 							logger.Error("failed to load app", "error", err)
 							continue
 						}
 
-						worker := worker.NewWorker(a, api.NewHandler(conf))
+						worker := worker.NewWorker(a, api.NewHandler("http://api.localhost", conf))
 						if err := worker.SendEmail(context.Background(), bytes.NewReader(data)); err != nil {
 							logger.Error("failed to send email", "error", err)
 							continue
@@ -266,23 +258,22 @@ func NewCmdUp() *cobra.Command {
 				}
 
 				sshPrivateKeyPath := flags.sshPrivateKey
-				if flags.sshPrivateKey == "" {
-					for _, keyPath := range []string{
+				if sshPrivateKeyPath == "" {
+					for _, privateKeyPath := range []string{
 						filepath.Join(homeDir, ".ssh", "smallweb", "id_ed25519"),
 						filepath.Join(homeDir, ".ssh", "smallweb", "id_rsa"),
 						filepath.Join(homeDir, ".ssh", "id_ed25519"),
 						filepath.Join(homeDir, ".ssh", "id_rsa"),
 					} {
-						if _, err := os.Stat(keyPath); err == nil {
-							sshPrivateKeyPath = filepath.Join(keyPath)
+						if _, err := os.Stat(privateKeyPath); err == nil {
+							sshPrivateKeyPath = privateKeyPath
 							break
 						}
 					}
-				}
 
-				if sshPrivateKeyPath == "" {
-					sysLogger.Error("ssh private key not found")
-					return ExitError{1}
+					if sshPrivateKeyPath == "" {
+						return ExitError{1}
+					}
 				}
 
 				privateKeyBytes, err := os.ReadFile(sshPrivateKeyPath)
@@ -313,13 +304,24 @@ func NewCmdUp() *cobra.Command {
 							return true
 						}
 
-						authorizedKeyPaths := []string{
-							filepath.Join(homeDir, ".ssh", "authorized_keys"),
-							filepath.Join(homeDir, ".ssh", "smallweb", "authorized_keys"),
-							filepath.Join(conf.String("dir"), ".smallweb", "ssh_authorized_keys"),
+						for _, k := range conf.Strings("authorizedKeys") {
+							authorizedKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(k))
+							if err != nil {
+								sshLogger.Error("failed to parse authorized key", "error", err)
+								continue
+							}
+
+							if ssh.KeysEqual(authorizedKey, key) {
+								return true
+							}
 						}
 
-						for _, authorizedKeyPath := range authorizedKeyPaths {
+						authorizedKeysPaths := []string{
+							filepath.Join(homeDir, ".ssh", "authorized_keys"),
+							filepath.Join(homeDir, ".ssh", "smallweb", "authorized_keys"),
+						}
+
+						for _, authorizedKeyPath := range authorizedKeysPaths {
 							authorizedKeysBytes, err := os.ReadFile(authorizedKeyPath)
 							if err != nil {
 								continue
@@ -499,10 +501,11 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hostname = r.Host
 	}
 
-	appname, ok := lookupApp(hostname)
+	appname, ok := lookupAppByDomain(hostname)
 	if !ok {
-		if appname, ok := lookupApp("www." + hostname); ok {
-			http.Redirect(w, r, fmt.Sprintf("%s://%s%s", ExtractScheme(r), appname+"."+conf.String("domain"), r.URL.RequestURI()), http.StatusFound)
+		// check for www redirection
+		if _, ok := lookupAppByDomain("www." + hostname); ok {
+			http.Redirect(w, r, fmt.Sprintf("%s://%s%s", ExtractScheme(r), "www."+conf.String("domain"), r.URL.RequestURI()), http.StatusFound)
 			return
 		}
 
@@ -511,7 +514,7 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wk, err := me.GetWorker(conf.String("dir"), appname)
+	wk, err := me.GetWorker(fmt.Sprintf("%s://%s", ExtractScheme(r), r.Host), conf.String("dir"), appname)
 	if err != nil {
 		if errors.Is(err, app.ErrAppNotFound) {
 			w.WriteHeader(http.StatusNotFound)
@@ -527,11 +530,10 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 
-func lookupApp(hostname string) (app string, found bool) {
-	for _, app := range conf.MapKeys("apps") {
-		if slices.Contains(conf.Strings(fmt.Sprintf("apps.%s.additionalDomains", app)), hostname) {
-			return app, true
-		}
+func lookupAppByDomain(hostname string) (app string, found bool) {
+	additionalDomains := conf.StringMap("additionalDomains")
+	if app, ok := additionalDomains[hostname]; ok {
+		return app, true
 	}
 
 	parts := strings.SplitN(hostname, ".", 2)
@@ -544,44 +546,37 @@ func lookupApp(hostname string) (app string, found bool) {
 		return subdomain, true
 	}
 
-	for _, additionalDomain := range conf.Strings("additionalDomains") {
-		if basedomain == additionalDomain {
-			return subdomain, true
-		}
+	if v, ok := additionalDomains[basedomain]; ok && v == "*" {
+		return subdomain, true
 	}
 
 	return "", false
 }
 
-func (me *Handler) GetWorker(rootDir string, appname string) (*worker.Worker, error) {
-	if wk, ok := me.workers[appname]; ok && wk.IsRunning() && me.watcher.GetAppMtime(appname).Before(wk.StartedAt) {
+func (me *Handler) GetWorker(origin string, rootDir string, appname string) (*worker.Worker, error) {
+	if wk, ok := me.workers[origin]; ok && wk.IsRunning() && me.watcher.GetAppMtime(appname).Before(wk.StartedAt) {
 		return wk, nil
 	}
 
 	me.workerMu.Lock()
 	defer me.workerMu.Unlock()
 
-	var appConfig app.Config
-	if err := conf.Unmarshal(fmt.Sprintf("apps.%s", appname), &appConfig); err != nil {
-		return nil, fmt.Errorf("failed to get app config: %w", err)
-	}
-
-	a, err := app.LoadApp(filepath.Join(rootDir, appname), appConfig)
+	a, err := app.LoadApp(filepath.Join(rootDir, appname))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load app: %w", err)
 	}
 
-	wk := worker.NewWorker(a, api.NewHandler(conf))
+	wk := worker.NewWorker(a, api.NewHandler(origin, conf))
 	if err := wk.Start(me.logger.With("logger", "console", "app", appname)); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}
 
-	me.workers[a.Name] = wk
+	me.workers[origin] = wk
 	return wk, nil
 }
 
 func ExtractScheme(r *http.Request) string {
-	if scheme := r.URL.Query().Get("X-Forwarded-Proto"); scheme != "" {
+	if scheme := r.Header.Get("X-Forwarded-Proto"); scheme != "" {
 		return scheme
 	}
 
