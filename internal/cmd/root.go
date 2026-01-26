@@ -272,27 +272,6 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdCrons())
 	rootCmd.AddCommand(NewCmdInit())
 	rootCmd.AddCommand(NewCmdConfig())
-	rootCmd.AddCommand(NewCmdLink())
-	rootCmd.AddCommand(NewCmdGitReceivePack())
-	rootCmd.AddCommand(NewCmdGitUploadPack())
-
-	if _, ok := os.LookupEnv("SMALLWEB_DISABLE_COMPLETIONS"); ok {
-		rootCmd.CompletionOptions.DisableDefaultCmd = true
-	}
-
-	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
-		disabledCommands := strings.Split(env, ",")
-		for _, commandName := range disabledCommands {
-			if commandName == "completion" {
-				rootCmd.CompletionOptions.DisableDefaultCmd = true
-				continue // Skip disabling the completion command
-			}
-
-			if command, ok := GetCommand(rootCmd, commandName); ok {
-				rootCmd.RemoveCommand(command)
-			}
-		}
-	}
 
 	return rootCmd
 }
