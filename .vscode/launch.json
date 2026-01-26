@@ -40,7 +40,8 @@
             "program": "${workspaceFolder}/main.go",
             "console": "integratedTerminal",
             "args": [
-                "ls"
+                "run",
+                "cli"
             ],
             "env": {
                 "SMALLWEB_DIR": "${workspaceFolder}/example",

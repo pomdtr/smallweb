@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/matthewmueller/jsonc"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
-	"github.com/tailscale/hujson"
 )
 
 func findConfigPath(root string) string {
@@ -41,7 +41,7 @@ func NewCmdConfig() *cobra.Command {
 					return ExitError{1}
 				}
 
-				jsonBytes, err := hujson.Standardize(configBytes)
+				jsonBytes, err := jsonc.Standardize(configBytes)
 				if err != nil {
 					cmd.PrintErrf("failed to standardize config file: %v\n", err)
 					return ExitError{1}

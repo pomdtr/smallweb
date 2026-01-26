@@ -1,6 +1,9 @@
+import { Smallweb } from "jsr:@smallweb/sdk"
+
 async function handleRequest() {
-    const { SMALLWEB_DOMAIN, SMALLWEB_DIR } = Deno.env.toObject()
-    const entries = await Array.fromAsync(Deno.readDir(SMALLWEB_DIR))
+    const smallweb = new Smallweb("./data")
+    const apps = await smallweb.apps.list()
+
     const html = /* html */`
     <style>
         body {
@@ -31,10 +34,10 @@ async function handleRequest() {
             </tr>
         </thead>
         <tbody>
-            ${entries.filter(entry => !entry.name.startsWith(".")).map(entry => `
+            ${apps.map(app => `
                 <tr>
-                    <td>${entry.name}</td>
-                    <td><a href="https://${entry.name}.${SMALLWEB_DOMAIN}">https://${entry.name}.${SMALLWEB_DOMAIN}</a></td>
+                    <td>${app.name}</td>
+                    <td><a href="${app.url}">${app.url}</a></td>
                 </tr>
             `).join('')}
         </tbody>
