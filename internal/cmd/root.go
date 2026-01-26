@@ -2,15 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
-	"github.com/abiosoft/ishell/v2"
-	"github.com/abiosoft/readline"
 	"github.com/adrg/xdg"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
@@ -21,7 +17,6 @@ import (
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/build"
 	"github.com/pomdtr/smallweb/internal/utils"
-	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -63,14 +58,6 @@ var envProvider = env.ProviderWithValue("SMALLWEB_", ".", func(s string, v strin
 	return "", nil
 })
 
-type fakeReadCloser struct {
-	io.Reader
-}
-
-func (f fakeReadCloser) Close() error {
-	return nil
-}
-
 func NewCmdRoot() *cobra.Command {
 	_ = k.Load(envProvider, nil)
 	rootCmd := &cobra.Command{
@@ -101,115 +88,7 @@ func NewCmdRoot() *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				shell := ishell.NewWithConfig(&readline.Config{
-					Prompt:              "> ",
-					ForceUseInteractive: true,
-					FuncGetWidth: func() int {
-						return 80 // Default terminal width
-					},
-					Stdin:  fakeReadCloser{cmd.InOrStdin()},
-					Stdout: cmd.OutOrStdout(),
-					Stderr: cmd.OutOrStdout(),
-				})
-
-				shell.AutoHelp(false)
-
-				appnames, err := app.LookupApps(k.String("dir"))
-				if err != nil {
-					return fmt.Errorf("failed to lookup apps: %w", err)
-				}
-
-				shell.DeleteCmd("exit")
-				shell.DeleteCmd("help")
-				shell.DeleteCmd("clear")
-
-				shell.AddCmd(&ishell.Cmd{
-					Name: "/help",
-					Help: "display help",
-					Func: func(c *ishell.Context) {
-						c.Println(c.HelpText())
-					},
-				})
-
-				shell.AddCmd(&ishell.Cmd{
-					Name: "/clear",
-					Help: "clear the screen",
-					Func: func(c *ishell.Context) {
-						err := c.ClearScreen()
-						if err != nil {
-							c.Err(err)
-						}
-					},
-				})
-
-				shell.AddCmd(&ishell.Cmd{
-					Name: "/exit",
-					Help: "exit the program",
-					Func: func(c *ishell.Context) {
-						c.Stop()
-					},
-				})
-
-				shell.AddCmd(&ishell.Cmd{
-					Name:    "/list",
-					Aliases: []string{"/ls"},
-					Help:    "list available apps",
-					Func: func(c *ishell.Context) {
-						if len(appnames) == 0 {
-							cmd.PrintErrln("No apps found.")
-							return
-						}
-
-						for _, appname := range appnames {
-							cmd.Println(appname)
-						}
-					},
-				})
-
-				shell.NotFound(func(c *ishell.Context) {
-					c.Err(fmt.Errorf("command not found: %s", c.Args[0]))
-				})
-
-				for _, appname := range appnames {
-					shell.AddCmd(&ishell.Cmd{
-						Name: appname,
-						Help: fmt.Sprintf("run %s app", appname),
-						Func: func(c *ishell.Context) {
-							a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
-							if err != nil {
-								c.Err(fmt.Errorf("failed to load app %s: %w", appname, err))
-								return
-							}
-
-							wk := worker.NewWorker(a, nil)
-
-							command, err := wk.Command(cmd.Context(), c.Args)
-							if err != nil {
-								c.Err(fmt.Errorf("failed to create command for app %s: %w", appname, err))
-								return
-							}
-
-							c.Print()
-
-							command.Stdout = cmd.OutOrStdout()
-							command.Stderr = cmd.OutOrStdout()
-
-							command.Run()
-						},
-					})
-
-				}
-
-				shell.Printf("Smallweb %s\n", build.Version)
-				shell.Printf("use /help for a list of commands.\n")
-				shell.Run()
-				return nil
-			}
-
-			if env, ok := os.LookupEnv("SMALLWEB_DISABLE_CUSTOM_COMMANDS"); ok {
-				if disableCustomCommands, _ := strconv.ParseBool(env); disableCustomCommands {
-					return fmt.Errorf("unknown command \"%s\" for \"smallweb\"", args[0])
-				}
+				return cmd.Help()
 			}
 
 			for _, pluginDir := range []string{
@@ -264,6 +143,9 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.PersistentFlags().String("domain", "", "The domain for smallweb")
 	rootCmd.Flags().SetInterspersed(false)
 
+	rootCmd.AddCommand(NewCmdCreate())
+	rootCmd.AddCommand(NewCmdDelete())
+	rootCmd.AddCommand(NewCmdRename())
 	rootCmd.AddCommand(NewCmdRun())
 	rootCmd.AddCommand(NewCmdDocs())
 	rootCmd.AddCommand(NewCmdUp())
@@ -275,24 +157,6 @@ func NewCmdRoot() *cobra.Command {
 	rootCmd.AddCommand(NewCmdLink())
 	rootCmd.AddCommand(NewCmdGitReceivePack())
 	rootCmd.AddCommand(NewCmdGitUploadPack())
-
-	if _, ok := os.LookupEnv("SMALLWEB_DISABLE_COMPLETIONS"); ok {
-		rootCmd.CompletionOptions.DisableDefaultCmd = true
-	}
-
-	if env, ok := os.LookupEnv("SMALLWEB_DISABLED_COMMANDS"); ok {
-		disabledCommands := strings.Split(env, ",")
-		for _, commandName := range disabledCommands {
-			if commandName == "completion" {
-				rootCmd.CompletionOptions.DisableDefaultCmd = true
-				continue // Skip disabling the completion command
-			}
-
-			if command, ok := GetCommand(rootCmd, commandName); ok {
-				rootCmd.RemoveCommand(command)
-			}
-		}
-	}
 
 	return rootCmd
 }
@@ -355,7 +219,7 @@ func completeApp(cmd *cobra.Command, args []string, toComplete string) ([]string
 	flagProvider := posflag.Provider(cmd.Root().PersistentFlags(), ".", k)
 	_ = k.Load(flagProvider, nil)
 
-	apps, err := app.LookupApps(k.String("dir"))
+	apps, err := app.List(k.String("dir"))
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
