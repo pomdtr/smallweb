@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/abiosoft/ishell/v2"
-	"github.com/abiosoft/readline"
 	"github.com/adrg/xdg"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
@@ -20,7 +18,6 @@ import (
 	"github.com/pomdtr/smallweb/internal/app"
 	"github.com/pomdtr/smallweb/internal/build"
 	"github.com/pomdtr/smallweb/internal/utils"
-	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/spf13/cobra"
 )
 
@@ -100,109 +97,7 @@ func NewCmdRoot() *cobra.Command {
 		Args:              cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
-				shell := ishell.NewWithConfig(&readline.Config{
-					Prompt:              "> ",
-					ForceUseInteractive: true,
-					FuncGetWidth: func() int {
-						return 80 // Default terminal width
-					},
-					Stdin:  fakeReadCloser{cmd.InOrStdin()},
-					Stdout: cmd.OutOrStdout(),
-					Stderr: cmd.OutOrStdout(),
-				})
-
-				shell.AutoHelp(false)
-
-				appnames, err := app.LookupApps(k.String("dir"))
-				if err != nil {
-					return fmt.Errorf("failed to lookup apps: %w", err)
-				}
-
-				shell.DeleteCmd("exit")
-				shell.DeleteCmd("help")
-				shell.DeleteCmd("clear")
-
-				shell.AddCmd(&ishell.Cmd{
-					Name: "/help",
-					Help: "display help",
-					Func: func(c *ishell.Context) {
-						c.Println(c.HelpText())
-					},
-				})
-
-				shell.AddCmd(&ishell.Cmd{
-					Name: "/clear",
-					Help: "clear the screen",
-					Func: func(c *ishell.Context) {
-						err := c.ClearScreen()
-						if err != nil {
-							c.Err(err)
-						}
-					},
-				})
-
-				shell.AddCmd(&ishell.Cmd{
-					Name: "/exit",
-					Help: "exit the program",
-					Func: func(c *ishell.Context) {
-						c.Stop()
-					},
-				})
-
-				shell.AddCmd(&ishell.Cmd{
-					Name:    "/list",
-					Aliases: []string{"/ls"},
-					Help:    "list available apps",
-					Func: func(c *ishell.Context) {
-						if len(appnames) == 0 {
-							cmd.PrintErrln("No apps found.")
-							return
-						}
-
-						for _, appname := range appnames {
-							cmd.Println(appname)
-						}
-					},
-				})
-
-				shell.NotFound(func(c *ishell.Context) {
-					c.Err(fmt.Errorf("command not found: %s", c.Args[0]))
-				})
-
-				for _, appname := range appnames {
-					shell.AddCmd(&ishell.Cmd{
-						Name: appname,
-						Help: fmt.Sprintf("run %s app", appname),
-						Func: func(c *ishell.Context) {
-							a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
-							if err != nil {
-								c.Err(fmt.Errorf("failed to load app %s: %w", appname, err))
-								return
-							}
-
-							wk := worker.NewWorker(a, nil)
-
-							command, err := wk.Command(cmd.Context(), c.Args)
-							if err != nil {
-								c.Err(fmt.Errorf("failed to create command for app %s: %w", appname, err))
-								return
-							}
-
-							c.Print()
-
-							command.Stdout = cmd.OutOrStdout()
-							command.Stderr = cmd.OutOrStdout()
-
-							command.Run()
-						},
-					})
-
-				}
-
-				shell.Printf("Smallweb %s\n", build.Version)
-				shell.Printf("use /help for a list of commands.\n")
-				shell.Run()
-				return nil
+				return cmd.Help()
 			}
 
 			for _, pluginDir := range []string{
