@@ -306,10 +306,6 @@ func NewCmdUp() *cobra.Command {
 						authorizedKeys := []string{authorizedKey}
 						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
 
-						if ctx.User() != "_" {
-							authorizedKeys = append(authorizedKeys, k.Strings(fmt.Sprintf("apps.%s.authorizedKeys", ctx.User()))...)
-						}
-
 						for _, authorizedKey := range authorizedKeys {
 							if authorizedKey == "*" {
 								return true
@@ -331,37 +327,28 @@ func NewCmdUp() *cobra.Command {
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
-								var cmd *exec.Cmd
-								if sess.User() != "_" {
-									a, err := app.LoadApp(sess.User(), k.String("dir"), k.String("domain"))
-									if err != nil {
-										fmt.Fprintf(sess, "failed to load app: %v\n", err)
-										sess.Exit(1)
-										return
-									}
+								args := sess.Command()
+								if len(args) == 0 {
+									fmt.Fprintf(sess, "no app provided\n")
+									sess.Exit(1)
+									return
+								}
 
-									wk := worker.NewWorker(a, nil)
-									c, err := wk.Command(sess.Context(), sess.Command())
-									if err != nil {
-										fmt.Fprintf(sess, "failed to get command: %v\n", err)
-										sess.Exit(1)
-										return
-									}
+								appname, args := args[0], args[1:]
 
-									cmd = c
-								} else {
-									execPath, err := os.Executable()
-									if err != nil {
-										fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
-										sess.Exit(1)
-										return
-									}
+								a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+								if err != nil {
+									fmt.Fprintf(sess, "failed to load app: %v\n", err)
+									sess.Exit(1)
+									return
+								}
 
-									cmd = exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
-									cmd.Args = append(cmd.Args, sess.Command()...)
-									cmd.Env = os.Environ()
-									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLE_CUSTOM_COMMANDS=true")
-									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLED_COMMANDS=up,config,init,doctor,completion")
+								wk := worker.NewWorker(a, nil)
+								cmd, err := wk.Command(sess.Context(), args)
+								if err != nil {
+									fmt.Fprintf(sess, "failed to get command: %v\n", err)
+									sess.Exit(1)
+									return
 								}
 
 								ptyReq, winCh, isPty := sess.Pty()

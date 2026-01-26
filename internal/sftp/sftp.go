@@ -33,11 +33,6 @@ func SubsystemHandler(dir string, logger *slog.Logger) ssh.SubsystemHandler {
 			}
 		}()
 
-		if session.User() != "_" {
-			wish.Errorln(session, "sftp subsystem is only available for the _ user")
-			return
-		}
-
 		root, err := os.OpenRoot(dir)
 		if err != nil {
 			if logger != nil {

@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/abiosoft/ishell/v2"
@@ -204,12 +203,6 @@ func NewCmdRoot() *cobra.Command {
 				shell.Printf("use /help for a list of commands.\n")
 				shell.Run()
 				return nil
-			}
-
-			if env, ok := os.LookupEnv("SMALLWEB_DISABLE_CUSTOM_COMMANDS"); ok {
-				if disableCustomCommands, _ := strconv.ParseBool(env); disableCustomCommands {
-					return fmt.Errorf("unknown command \"%s\" for \"smallweb\"", args[0])
-				}
 			}
 
 			for _, pluginDir := range []string{
