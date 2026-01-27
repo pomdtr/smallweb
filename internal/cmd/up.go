@@ -37,9 +37,7 @@ import (
 	"github.com/knadh/koanf/v2"
 
 	"github.com/pomdtr/smallweb/internal/app"
-	"github.com/pomdtr/smallweb/internal/sftp"
 	"github.com/pomdtr/smallweb/internal/watcher"
-	gossh "golang.org/x/crypto/ssh"
 
 	"github.com/pomdtr/smallweb/internal/utils"
 	"github.com/pomdtr/smallweb/internal/worker"
@@ -279,51 +277,10 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				privateKeyBytes, err := os.ReadFile(sshPrivateKeyPath)
-				if err != nil {
-					sysLogger.Error("failed to read private key", "error", err)
-					return ExitError{1}
-				}
-
-				privateKey, err := gossh.ParseRawPrivateKey(privateKeyBytes)
-				if err != nil {
-					sysLogger.Error("failed to parse private key", "error", err)
-					return ExitError{1}
-				}
-
-				signer, err := gossh.NewSignerFromKey(privateKey)
-				if err != nil {
-					sysLogger.Error("failed to create signer", "error", err)
-					return ExitError{1}
-				}
-
-				authorizedKey := string(gossh.MarshalAuthorizedKey(signer.PublicKey()))
 				sshLogger := logger.With("logger", "ssh")
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKeyPath),
-					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
-						authorizedKeys := []string{authorizedKey}
-						authorizedKeys = append(authorizedKeys, k.Strings("authorizedKeys")...)
-
-						for _, authorizedKey := range authorizedKeys {
-							if authorizedKey == "*" {
-								return true
-							}
-
-							k, _, _, _, err := gossh.ParseAuthorizedKey([]byte(authorizedKey))
-							if err != nil {
-								continue
-							}
-
-							if ssh.KeysEqual(k, key) {
-								return true
-							}
-						}
-
-						return false
-					}),
-					sftp.SSHOption(k.String("dir"), nil),
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {

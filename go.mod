@@ -30,11 +30,9 @@ require (
 	github.com/leaanthony/gosod v1.0.4
 	github.com/lmittmann/tint v1.1.2
 	github.com/mhale/smtpd v0.8.3
-	github.com/pkg/sftp v1.13.9
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/slog-http v1.7.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.42.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
@@ -133,7 +131,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
-	github.com/kr/fs v0.1.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/libdns/libdns v1.0.0-beta.1 // indirect
@@ -178,6 +175,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/oauth2 v0.31.0 // indirect

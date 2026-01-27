@@ -15,13 +15,6 @@
             "items": {
                 "type": "string"
             }
-        },
-        "authorizedKeys": {
-            "description": "Authorized SSH keys",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
         }
     }
 }
