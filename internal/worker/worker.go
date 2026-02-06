@@ -317,7 +317,11 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request, err := http.NewRequestWithContext(r.Context(), r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", me.port, r.URL.String()), r.Body)
+	url := r.URL
+	url.Host = fmt.Sprintf("127.0.0.1:%d", me.port)
+	url.Scheme = "http"
+
+	request, err := http.NewRequestWithContext(r.Context(), r.Method, url.String(), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

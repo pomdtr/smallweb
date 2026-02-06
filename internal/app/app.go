@@ -31,9 +31,9 @@ type DenoConfig struct {
 }
 
 type CronJob struct {
-	Description string   `json:"description"`
-	Schedule    string   `json:"schedule"`
-	Args        []string `json:"args"`
+	Description string `json:"description"`
+	Schedule    string `json:"schedule"`
+	Name        string `json:"name"`
 }
 
 type App struct {

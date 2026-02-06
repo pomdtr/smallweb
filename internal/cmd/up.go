@@ -1,21 +1,26 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
-	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
+
+	"github.com/mnako/letters"
 
 	_ "embed"
 
@@ -24,7 +29,6 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/charmbracelet/wish"
-	"github.com/creack/pty"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/lmittmann/tint"
@@ -206,7 +210,7 @@ func NewCmdUp() *cobra.Command {
 
 			if flags.enableCrons {
 				logger.Info("starting cron jobs")
-				crons := CronRunner(logger.With("logger", "cron"))
+				crons := CronRunner(logger.With("logger", "cron"), handler)
 				crons.Start()
 				defer crons.Stop()
 			}
@@ -220,23 +224,23 @@ func NewCmdUp() *cobra.Command {
 							continue
 						}
 
-						appname, domain := parts[0], parts[1]
-						if domain != k.String("domain") {
-							logger.Error("invalid domain", "domain", domain)
-							continue
-						}
-
-						a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
+						email, err := letters.ParseEmail(bytes.NewReader(data))
 						if err != nil {
-							logger.Error("failed to load app", "error", err)
+							logger.Error("failed to parse email", "error", err)
 							continue
 						}
 
-						worker := worker.NewWorker(a, nil)
-						if err := worker.SendEmail(context.Background(), data); err != nil {
-							logger.Error("failed to send email", "error", err)
+						body, err := json.Marshal(email)
+						if err != nil {
+							logger.Error("failed to marshal email", "error", err)
 							continue
 						}
+
+						w := httptest.NewRecorder()
+						u := fmt.Sprintf("http://%s.%s/hooks/email", parts[0], k.String("domain"))
+						r := httptest.NewRequest(http.MethodPost, u, bytes.NewReader(body))
+
+						handler.ServeHTTP(w, r)
 					}
 
 					return nil
@@ -277,114 +281,85 @@ func NewCmdUp() *cobra.Command {
 					return ExitError{1}
 				}
 
-				sshLogger := logger.With("logger", "ssh")
 				srv, err := wish.NewServer(
 					wish.WithAddress(flags.sshAddr),
 					wish.WithHostKeyPath(sshPrivateKeyPath),
+					wish.WithPublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
+						return true
+					}),
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
+								if sess.User() != "cli" {
+									next(sess)
+									return
+								}
 								args := sess.Command()
 								if len(args) == 0 {
-									fmt.Fprintf(sess, "no app provided\n")
+									fmt.Fprintln(sess.Stderr(), "No app provided")
 									sess.Exit(1)
 									return
 								}
 
-								appname, args := args[0], args[1:]
+								var parts []string
 
-								a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
-								if err != nil {
-									fmt.Fprintf(sess, "failed to load app: %v\n", err)
-									sess.Exit(1)
-									return
-								}
+								q := url.Values{}
+								for i := 1; i < len(args); i++ {
+									arg := args[i]
 
-								wk := worker.NewWorker(a, nil)
-								cmd, err := wk.Command(sess.Context(), args)
-								if err != nil {
-									fmt.Fprintf(sess, "failed to get command: %v\n", err)
-									sess.Exit(1)
-									return
-								}
-
-								ptyReq, winCh, isPty := sess.Pty()
-								if isPty {
-									cmd.Env = append(cmd.Env, "TERM="+ptyReq.Term)
-									f, err := pty.Start(cmd)
-									if err != nil {
-										fmt.Fprintf(sess, "failed to start command: %v\n", err)
-										sess.Exit(1)
-									}
-
-									go func() {
-										for win := range winCh {
-											pty.Setsize(f, &pty.Winsize{
-												Rows: uint16(win.Height),
-												Cols: uint16(win.Width),
-											})
+									if strings.HasPrefix(arg, "--") {
+										// Long flag: --key=value or --key
+										key := strings.TrimPrefix(arg, "--")
+										if idx := strings.Index(key, "="); idx != -1 {
+											q.Set(key[:idx], key[idx+1:])
+										} else if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+											q.Set(key, args[i+1])
+											i++
+										} else {
+											q.Set(key, "true")
 										}
-									}()
-
-									go func() {
-										io.Copy(sess, f)
-									}()
-
-									go func() {
-										io.Copy(f, sess)
-									}()
-
-									if err := cmd.Wait(); err != nil {
-										var exitErr *exec.ExitError
-										if errors.As(err, &exitErr) {
-											sess.Exit(exitErr.ExitCode())
-											return
+									} else if strings.HasPrefix(arg, "-") && len(arg) > 1 && arg != "-" {
+										// Short flags: -abc or -a value
+										flags := strings.TrimPrefix(arg, "-")
+										if idx := strings.Index(flags, "="); idx != -1 {
+											q.Set(flags[:idx], flags[idx+1:])
+										} else if len(flags) == 1 && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+											q.Set(flags, args[i+1])
+											i++
+										} else {
+											for _, f := range flags {
+												q.Set(string(f), "true")
+											}
 										}
-
-										fmt.Fprintf(sess, "failed to run command: %v", err)
-										sess.Exit(1)
-										return
+									} else {
+										// Positional argument
+										parts = append(parts, url.PathEscape(arg))
 									}
-
-									return
 								}
 
-								cmd.Stdout = sess
-								cmd.Stderr = sess.Stderr()
-								stdin, err := cmd.StdinPipe()
-								if err != nil {
-									fmt.Fprintf(sess, "failed to get stdin: %v\n", err)
+								w := httptest.NewRecorder()
+								u := fmt.Sprintf("https://%s.%s/hooks/cli", args[0], k.String("domain"))
+								if len(parts) > 0 {
+									u += path.Join(parts...)
+								}
+
+								if query := q.Encode(); query != "" {
+									u += "?" + query
+								}
+
+								r := httptest.NewRequest(http.MethodPost, u, io.NopCloser(sess))
+
+								handler.ServeHTTP(w, r)
+
+								resp := w.Result()
+								io.Copy(sess, resp.Body)
+
+								if resp.StatusCode >= 400 {
 									sess.Exit(1)
 									return
 								}
 
-								go func() {
-									defer stdin.Close()
-									io.Copy(stdin, sess)
-								}()
-
-								if err := cmd.Run(); err != nil {
-									var exitErr *exec.ExitError
-									if errors.As(err, &exitErr) {
-										sess.Exit(exitErr.ExitCode())
-										return
-									}
-
-									fmt.Fprintf(sess, "failed to run command: %v", err)
-									sess.Exit(1)
-									return
-								}
-							}
-						},
-						func(next ssh.Handler) ssh.Handler {
-							return func(sess ssh.Session) {
-								sshLogger.Info(
-									"ssh connection",
-									"user", sess.User(),
-									"remote addr", sess.RemoteAddr().String(),
-									"command", sess.Command(),
-								)
-								next(sess)
+								sess.Exit(0)
 							}
 						},
 					),
@@ -461,18 +436,6 @@ type Handler struct {
 	workers  map[string]*worker.Worker
 }
 
-type AuthData struct {
-	State        string `json:"state"`
-	SuccessURL   string `json:"success_url"`
-	CodeVerifier string `json:"code_verifier"`
-}
-
-type IssuerConfig struct {
-	AuthorizationEndpoint string `json:"authorization_endpoint"`
-	TokenEndpoint         string `json:"token_endpoint"`
-	JwksUri               string `json:"jwks_uri"`
-}
-
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hostname, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
@@ -511,29 +474,31 @@ func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wk.ServeHTTP(w, r)
 }
 
-func lookupApp(domain string) (app string, redirect bool, found bool) {
-	for _, app := range k.MapKeys("apps") {
-		if slices.Contains(k.Strings(fmt.Sprintf("apps.%s.additionalDomains", app)), domain) {
-			return app, false, true
-		}
-	}
-
-	if domain == k.String("domain") {
-		return "www", true, true
-	}
-
-	if strings.HasSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))) {
-		return strings.TrimSuffix(domain, fmt.Sprintf(".%s", k.String("domain"))), false, true
-	}
-
-	for _, additionalDomain := range k.Strings("additionalDomains") {
-		if domain == additionalDomain {
+func lookupApp(d string) (app string, redirect bool, found bool) {
+	domains := k.StringMap("additionalDomains")
+	if v, ok := domains[d]; ok {
+		if v == "*" {
 			return "www", true, true
 		}
 
-		if strings.HasSuffix(domain, fmt.Sprintf(".%s", additionalDomain)) {
-			return strings.TrimSuffix(domain, fmt.Sprintf(".%s", additionalDomain)), false, true
-		}
+		return v, false, true
+	}
+
+	if d == k.String("domain") {
+		return "www", true, true
+	}
+
+	parts := strings.SplitN(d, ".", 2)
+	if len(parts) != 2 {
+		return "", false, false
+	}
+
+	if v, ok := domains[parts[1]]; ok && v == "*" {
+		return parts[0], false, true
+	}
+
+	if parts[1] == k.String("domain") {
+		return parts[0], false, true
 	}
 
 	return "", false, false

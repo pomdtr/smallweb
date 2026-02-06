@@ -6,13 +6,13 @@
     ],
     "properties": {
         "domain": {
-            "description": "Domain name",
+            "description": "Main domain",
             "type": "string"
         },
         "additionalDomains": {
-            "description": "Additional wildcard domains",
-            "type": "array",
-            "items": {
+            "description": "Additional domains",
+            "type": "object",
+            "additionalProperties": {
                 "type": "string"
             }
         }
