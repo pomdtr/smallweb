@@ -1,25 +1,26 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"time"
 
 	"github.com/cli/go-gh/v2/pkg/tableprinter"
 	"github.com/mattn/go-isatty"
 	"github.com/pomdtr/smallweb/internal/app"
-	"github.com/pomdtr/smallweb/internal/worker"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
 type CronItem struct {
-	App      string   `json:"app"`
-	Args     []string `json:"args"`
-	Schedule string   `json:"schedule"`
+	App      string `json:"app"`
+	Name     string `json:"name"`
+	Schedule string `json:"schedule"`
 }
 
 func NewCmdCrons() *cobra.Command {
@@ -55,7 +56,7 @@ func NewCmdCrons() *cobra.Command {
 				for _, job := range a.Config.Crons {
 					crons = append(crons, CronItem{
 						App:      appname,
-						Args:     job.Args,
+						Name:     job.Name,
 						Schedule: job.Schedule,
 					})
 				}
@@ -93,11 +94,11 @@ func NewCmdCrons() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Schedule", "App", "Args"})
+			printer.AddHeader([]string{"Schedule", "App", "Name"})
 			for _, item := range crons {
 				printer.AddField(item.Schedule)
 				printer.AddField(item.App)
-				args, err := json.Marshal(item.Args)
+				args, err := json.Marshal(item.Name)
 				if err != nil {
 					cmd.PrintErrf("failed to marshal args for app %s: %v\n", item.App, err)
 					return ExitError{1}
@@ -124,7 +125,7 @@ func NewCmdCrons() *cobra.Command {
 	return cmd
 }
 
-func CronRunner(logger *slog.Logger) *cron.Cron {
+func CronRunner(logger *slog.Logger, handler http.Handler) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
 	_, _ = c.AddFunc("* * * * *", func() {
@@ -153,25 +154,10 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 					continue
 				}
 
-				a, err := app.LoadApp(appname, k.String("dir"), k.String("domain"))
-				if err != nil {
-					logger.Error("failed to load app", "app", appname, "error", err)
-					continue
-				}
-				wk := worker.NewWorker(a, nil)
+				w := httptest.NewRecorder()
+				r := httptest.NewRequest(http.MethodPost, fmt.Sprintf("https://%s.%s/hooks/cron/%s", appname, k.String("domain"), job.Name), nil)
 
-				command, err := wk.Command(context.Background(), job.Args)
-				if err != nil {
-					logger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
-					continue
-				}
-
-				logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
-				go func() {
-					if err := command.Run(); err != nil {
-						logger.Error("failed to run command", "app", appname, "args", job.Args, "error", err)
-					}
-				}()
+				go handler.ServeHTTP(w, r)
 			}
 		}
 	})

@@ -3,8 +3,7 @@
 /completions/
 /.env
 
-authorized_keys
-
 __debug_bin*
 /smallweb
 /www
+TODO.md

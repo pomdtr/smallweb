@@ -83,44 +83,17 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	}
 
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
-	if me.App.Config.Admin {
-		args = append(
-			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", me.App.RootDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.RootDir),
-		)
-
-		return args, nil
-	}
 
 	// if root is not a symlink
 	appDir := me.App.Dir()
-	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
-		args = append(
-			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", appDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
-		)
-
-		return args, nil
-	}
-
-	target, err := os.Readlink(appDir)
-	if err != nil {
-		return nil, fmt.Errorf("could not read symlink: %w", err)
-	}
-
-	if !filepath.IsAbs(target) {
-		target = filepath.Join(filepath.Dir(appDir), target)
-	}
-
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, target, deno, npmCache),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
+		fmt.Sprintf("--allow-read=%s,%s,%s", appDir, deno, npmCache),
+		fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
 	)
 
 	return args, nil
+
 }
 
 func (me *Worker) Start() error {
@@ -344,7 +317,11 @@ func (me *Worker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request, err := http.NewRequestWithContext(r.Context(), r.Method, fmt.Sprintf("http://127.0.0.1:%d%s", me.port, r.URL.String()), r.Body)
+	url := r.URL
+	url.Host = fmt.Sprintf("127.0.0.1:%d", me.port)
+	url.Scheme = "http"
+
+	request, err := http.NewRequestWithContext(r.Context(), r.Method, url.String(), r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

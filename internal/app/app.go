@@ -21,13 +21,9 @@ var (
 )
 
 type AppConfig struct {
-	Entrypoint    string    `json:"entrypoint,omitempty"`
-	Root          string    `json:"root,omitempty"`
-	Crons         []CronJob `json:"crons,omitempty"`
-	Admin         bool      `json:"admin"`
-	Private       bool      `json:"private"`
-	PrivateRoutes []string  `json:"privateRoutes"`
-	PublicRoutes  []string  `json:"publicRoutes"`
+	Entrypoint string    `json:"entrypoint,omitempty"`
+	Root       string    `json:"root,omitempty"`
+	Crons      []CronJob `json:"crons,omitempty"`
 }
 
 type DenoConfig struct {
@@ -35,9 +31,9 @@ type DenoConfig struct {
 }
 
 type CronJob struct {
-	Description string   `json:"description"`
-	Schedule    string   `json:"schedule"`
-	Args        []string `json:"args"`
+	Description string `json:"description"`
+	Schedule    string `json:"schedule"`
+	Name        string `json:"name"`
 }
 
 type App struct {
@@ -52,12 +48,6 @@ type App struct {
 
 func (me *App) Dir() string {
 	dir := me.BaseDir
-	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-		if root, err := os.Readlink(dir); err == nil {
-			dir = filepath.Join(filepath.Dir(dir), root)
-		}
-	}
-
 	if me.Config.Root != "" {
 		return filepath.Join(dir, me.Config.Root)
 	}
@@ -86,14 +76,7 @@ func (me *App) Dir() string {
 }
 
 func (me *App) DataDir() string {
-	dir := filepath.Join(me.Dir(), "data")
-	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-		if root, err := os.Readlink(dir); err == nil {
-			dir = filepath.Join(filepath.Dir(dir), root)
-		}
-	}
-
-	return dir
+	return filepath.Join(me.Dir(), "data")
 }
 
 func LookupApps(rootDir string) ([]string, error) {
@@ -236,9 +219,6 @@ func (me App) Env() []string {
 	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
 	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", me.RootDir))
 	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.RootDomain))
-	if me.Config.Admin {
-		env = append(env, "SMALLWEB_ADMIN=1")
-	}
 
 	// open telemetry
 	for _, value := range os.Environ() {
