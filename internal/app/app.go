@@ -21,13 +21,10 @@ var (
 )
 
 type AppConfig struct {
-	Entrypoint    string    `json:"entrypoint,omitempty"`
-	Root          string    `json:"root,omitempty"`
-	Crons         []CronJob `json:"crons,omitempty"`
-	Admin         bool      `json:"admin"`
-	Private       bool      `json:"private"`
-	PrivateRoutes []string  `json:"privateRoutes"`
-	PublicRoutes  []string  `json:"publicRoutes"`
+	Entrypoint string    `json:"entrypoint,omitempty"`
+	Root       string    `json:"root,omitempty"`
+	Crons      []CronJob `json:"crons,omitempty"`
+	Admin      bool      `json:"admin"`
 }
 
 type DenoConfig struct {

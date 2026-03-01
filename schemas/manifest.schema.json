@@ -14,24 +14,6 @@
             "description": "Give app read/write access to the whole smallweb folder",
             "type": "boolean"
         },
-        "private": {
-            "description": "Protect all routes behind authentication",
-            "type": "boolean"
-        },
-        "privateRoutes": {
-            "description": "Make specific routes private",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
-        "publicRoutes": {
-            "description": "Make specific routes public",
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
         "crons": {
             "description": "Cron jobs",
             "type": "array",
@@ -54,13 +36,6 @@
                         }
                     }
                 }
-            }
-        },
-        "labels": {
-            "description": "Labels for the project",
-            "type": "object",
-            "additionalProperties": {
-                "type": "string"
             }
         }
     }

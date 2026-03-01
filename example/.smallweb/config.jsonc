@@ -1,10 +1,4 @@
 {
     "$schema": "../../schemas/config.schema.json",
-    "domain": "smallweb.traefik.me",
-    "oidc": {
-        "issuer": "https://lastlogin.net"
-    },
-    "authorizedEmails": [
-        "achille.lacoin@gmail.com"
-    ]
+    "domain": "smallweb.traefik.me"
 }
