@@ -24,7 +24,6 @@ type AppConfig struct {
 	Entrypoint string    `json:"entrypoint,omitempty"`
 	Root       string    `json:"root,omitempty"`
 	Crons      []CronJob `json:"crons,omitempty"`
-	Admin      bool      `json:"admin"`
 }
 
 type DenoConfig struct {
@@ -233,9 +232,6 @@ func (me App) Env() []string {
 	env = append(env, fmt.Sprintf("SMALLWEB_VERSION=%s", build.Version))
 	env = append(env, fmt.Sprintf("SMALLWEB_DIR=%s", me.RootDir))
 	env = append(env, fmt.Sprintf("SMALLWEB_DOMAIN=%s", me.RootDomain))
-	if me.Config.Admin {
-		env = append(env, "SMALLWEB_ADMIN=1")
-	}
 
 	// open telemetry
 	for _, value := range os.Environ() {
