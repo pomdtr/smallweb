@@ -506,22 +506,10 @@ func getListener(addr string, config *tls.Config) (net.Listener, error) {
 }
 
 type Handler struct {
-	watcher       *watcher.Watcher
-	logger        *slog.Logger
-	workerMu      sync.Mutex
-	workers       map[string]*worker.Worker
-}
-
-type AuthData struct {
-	State        string `json:"state"`
-	SuccessURL   string `json:"success_url"`
-	CodeVerifier string `json:"code_verifier"`
-}
-
-type IssuerConfig struct {
-	AuthorizationEndpoint string `json:"authorization_endpoint"`
-	TokenEndpoint         string `json:"token_endpoint"`
-	JwksUri               string `json:"jwks_uri"`
+	watcher  *watcher.Watcher
+	logger   *slog.Logger
+	workerMu sync.Mutex
+	workers  map[string]*worker.Worker
 }
 
 func (me *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
