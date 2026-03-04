@@ -442,20 +442,16 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error) {
-	if args == nil {
-		args = []string{}
-	}
-
+func (me *Worker) TriggerCron(ctx context.Context, name string) error {
 	deno, err := DenoExecutable()
 	if err != nil {
-		return nil, fmt.Errorf("could not find deno executable")
+		return fmt.Errorf("could not find deno executable")
 	}
 
 	cmdArgs := []string{"run"}
 	denoArgs, err := me.DenoArgs(deno)
 	if err != nil {
-		return nil, fmt.Errorf("could not get deno args: %w", err)
+		return fmt.Errorf("could not get deno args: %w", err)
 	}
 	cmdArgs = append(cmdArgs, denoArgs...)
 
@@ -463,21 +459,20 @@ func (me *Worker) Command(ctx context.Context, args []string) (*exec.Cmd, error)
 	encoder := json.NewEncoder(&payload)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
-		"command":    "run",
+		"command":    "cron",
 		"entrypoint": me.App.Entrypoint(),
-		"args":       args,
+		"name":       name,
 	}); err != nil {
-		return nil, fmt.Errorf("could not encode input: %w", err)
+		return fmt.Errorf("could not encode input: %w", err)
 	}
 
 	cmdArgs = append(cmdArgs, sandboxPath, payload.String())
 
 	command := exec.CommandContext(ctx, deno, cmdArgs...)
 	command.Dir = me.App.Dir()
-
 	command.Env = me.App.Env()
 
-	return command, nil
+	return command.Run()
 }
 
 func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {

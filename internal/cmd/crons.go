@@ -17,9 +17,8 @@ import (
 )
 
 type CronItem struct {
-	App      string   `json:"app"`
-	Args     []string `json:"args"`
-	Schedule string   `json:"schedule"`
+	App string `json:"app"`
+	app.CronJob
 }
 
 func NewCmdCrons() *cobra.Command {
@@ -54,9 +53,8 @@ func NewCmdCrons() *cobra.Command {
 
 				for _, job := range a.Config.Crons {
 					crons = append(crons, CronItem{
-						App:      appname,
-						Args:     job.Args,
-						Schedule: job.Schedule,
+						App:     appname,
+						CronJob: job,
 					})
 				}
 			}
@@ -93,17 +91,11 @@ func NewCmdCrons() *cobra.Command {
 				printer = tableprinter.New(cmd.OutOrStdout(), false, 0)
 			}
 
-			printer.AddHeader([]string{"Schedule", "App", "Args"})
+			printer.AddHeader([]string{"Schedule", "App", "Name"})
 			for _, item := range crons {
 				printer.AddField(item.Schedule)
 				printer.AddField(item.App)
-				args, err := json.Marshal(item.Args)
-				if err != nil {
-					cmd.PrintErrf("failed to marshal args for app %s: %v\n", item.App, err)
-					return ExitError{1}
-				}
-
-				printer.AddField(string(args))
+				printer.AddField(item.Name)
 
 				printer.EndRow()
 			}
@@ -160,16 +152,10 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 				}
 				wk := worker.NewWorker(a, nil)
 
-				command, err := wk.Command(context.Background(), job.Args)
-				if err != nil {
-					logger.Error("failed to create command", "app", appname, "args", job.Args, "error", err)
-					continue
-				}
-
-				logger.Info("running cron job", "app", appname, "args", job.Args, "schedule", job.Schedule)
+				logger.Info("running cron job", "app", appname, "name", job.Name, "schedule", job.Schedule)
 				go func() {
-					if err := command.Run(); err != nil {
-						logger.Error("failed to run command", "app", appname, "args", job.Args, "error", err)
+					if err := wk.TriggerCron(context.Background(), job.Name); err != nil {
+						logger.Error("failed to run command", "app", appname, "name", job.Name, "error", err)
 					}
 				}()
 			}

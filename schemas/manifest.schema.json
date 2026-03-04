@@ -17,19 +17,16 @@
                 "type": "object",
                 "required": [
                     "schedule",
-                    "args"
+                    "name"
                 ],
                 "properties": {
                     "schedule": {
                         "description": "Cron schedule",
                         "type": "string"
                     },
-                    "args": {
-                        "description": "Cron arguments",
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
+                    "name": {
+                        "description": "Job name",
+                        "type": "string"
                     }
                 }
             }

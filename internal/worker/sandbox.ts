@@ -140,7 +140,7 @@ if (payload.command === "fetch") {
             }
         },
     );
-} else if (payload.command === "run") {
+} else if (payload.command === "cron") {
     const mod = await import(payload.entrypoint);
     if (!mod.default || typeof mod.default !== "object") {
         console.error(
@@ -155,12 +155,12 @@ if (payload.command === "fetch") {
         Deno.exit(1);
     }
 
-    if (!(typeof handler.run === "function")) {
+    if (!(typeof handler.cron === "function")) {
         console.error("The mod default export run property must be a function.");
         Deno.exit(1);
     }
 
-    await handler.run(payload.args);
+    await handler.cron(payload.name);
 } else if (payload.command === "email") {
     const mod = await import(payload.entrypoint);
     if (!mod.default || typeof mod.default !== "object") {
