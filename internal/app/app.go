@@ -47,11 +47,6 @@ type App struct {
 
 func (me *App) Dir() string {
 	dir := me.BaseDir
-	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-		if root, err := os.Readlink(dir); err == nil {
-			dir = filepath.Join(filepath.Dir(dir), root)
-		}
-	}
 
 	if me.Config.Root != "" {
 		return filepath.Join(dir, me.Config.Root)
@@ -75,17 +70,6 @@ func (me *App) Dir() string {
 
 	if utils.FileExists(filepath.Join(dir, "dist", "index.html")) {
 		return filepath.Join(dir, "dist")
-	}
-
-	return dir
-}
-
-func (me *App) DataDir() string {
-	dir := filepath.Join(me.Dir(), "data")
-	if fi, err := os.Lstat(dir); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-		if root, err := os.Readlink(dir); err == nil {
-			dir = filepath.Join(filepath.Dir(dir), root)
-		}
 	}
 
 	return dir

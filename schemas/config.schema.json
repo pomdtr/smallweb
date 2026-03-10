@@ -11,13 +11,20 @@
         },
         "additionalDomains": {
             "description": "Additional wildcard domains",
-            "type": "array",
-            "items": {
+            "type": "object",
+            "additionalProperties": {
                 "type": "string"
             }
         },
         "authorizedKeys": {
             "description": "Authorized SSH keys",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "authorizedTokens": {
+            "description": "Authorized API tokens",
             "type": "array",
             "items": {
                 "type": "string"

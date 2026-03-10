@@ -442,7 +442,7 @@ func DenoExecutable() (string, error) {
 	return "", fmt.Errorf("deno executable not found")
 }
 
-func (me *Worker) TriggerCron(ctx context.Context, name string) error {
+func (me *Worker) TriggerCron(ctx context.Context, job app.CronJob) error {
 	deno, err := DenoExecutable()
 	if err != nil {
 		return fmt.Errorf("could not find deno executable")
@@ -461,7 +461,8 @@ func (me *Worker) TriggerCron(ctx context.Context, name string) error {
 	if err := encoder.Encode(map[string]any{
 		"command":    "cron",
 		"entrypoint": me.App.Entrypoint(),
-		"name":       name,
+		"name":       job.Name,
+		"schedule":   job.Schedule,
 	}); err != nil {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
