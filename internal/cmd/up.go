@@ -322,18 +322,18 @@ func NewCmdUp() *cobra.Command {
 					wish.WithMiddleware(
 						func(next ssh.Handler) ssh.Handler {
 							return func(sess ssh.Session) {
-									execPath, err := os.Executable()
-									if err != nil {
-										fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
-										sess.Exit(1)
-										return
-									}
+								execPath, err := os.Executable()
+								if err != nil {
+									fmt.Fprintf(sess.Stderr(), "failed to get executable path: %v\n", err)
+									sess.Exit(1)
+									return
+								}
 
 								cmd := exec.Command(execPath, "--dir", k.String("dir"), "--domain", k.String("domain"))
-									cmd.Args = append(cmd.Args, sess.Command()...)
-									cmd.Env = os.Environ()
+								cmd.Args = append(cmd.Args, sess.Command()...)
+								cmd.Env = os.Environ()
 
-									cmd.Env = append(cmd.Env, "SMALLWEB_DISABLED_COMMANDS=up,config,init,doctor,completion")
+								cmd.Env = append(cmd.Env, "SMALLWEB_DISABLED_COMMANDS=up,config,init,doctor,completion")
 
 								ptyReq, winCh, isPty := sess.Pty()
 								if isPty {
@@ -580,7 +580,7 @@ func (me *Handler) GetWorker(appname string, rootDir, domain string) (*worker.Wo
 	}
 
 	wk := worker.NewWorker(a, me.logger.With("logger", "console", "app", appname))
-	if err := wk.Start(); err != nil {
+	if err := wk.StartServer(); err != nil {
 		return nil, fmt.Errorf("failed to start worker: %w", err)
 	}
 

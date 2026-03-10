@@ -1,91 +1,11 @@
-import { accepts } from "jsr:@std/http@1.0.12/negotiation"
-import { escape } from "jsr:@std/html@1.0.3"
-import { decodeBase64 } from "jsr:@std/encoding@1.0.8/base64"
-
-function cleanStack(str?: string) {
-    if (!str) return undefined;
-    return str
-        .split("\n")
-        .filter(
-            (line) =>
-                !line.includes(import.meta.url) &&
-                !line.includes("deno_http/00_serve.ts") &&
-                !line.includes("core/01_core.js")
-        )
-        .join("\n");
-}
-
-function serializeError(e: Error) {
-    return { name: e.name, message: e.message, stack: cleanStack(e.stack) };
-};
-
-function respondWithError(request: Request, error: Error) {
-    const e = serializeError(error);
-    if (accepts(request, "text/html")) {
-        return new Response(/* html */`<!DOCTYPE html>
-    <html>
-      <head>
-        <title>Error</title>
-        <style>
-          * { box-sizing: border-box }
-          body {
-            margin: 0;
-            font-family: monospace;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: black;
-            background-color: white;
-          }
-          div {
-            padding: 0 16px;
-            width: 100%;
-            margin: auto;
-            max-width: 768px;
-            color: inherit;
-            border-left: 0.25em solid #3d444d;
-            border-color: #da3633;
-          }
-          h1 {
-            font-weight: 500;
-            color: #f85149;
-          }
-          pre {
-            margin: 0;
-            padding-bottom: 16px;
-            font-size: 12px;
-            line-height: 1.5;
-            overflow: auto;
-            white-space: pre-wrap;
-            width: 100%;
-          }
-        </style>
-      </head>
-      <body>
-        <div>
-          <h1>
-            ${escape(e.name)}
-          </h1>
-          <pre>${escape(e.stack ?? e.message)}</pre>
-        </div>
-      </body>
-    </html>`, { status: 500, headers: { 'Content-Type': 'text/html' } });
-    }
-
-    return Response.json(
-        { error: e },
-        { status: 500, headers: { 'Content-Type': 'application/json' } },
-    );
-}
-
 const payload = JSON.parse(Deno.args[0]);
 
-if (!payload || !payload.command) {
+if (!payload || !payload.method) {
     console.error("Invalid input.");
     Deno.exit(1);
 }
 
-if (payload.command === "fetch") {
+if (payload.method === "fetch") {
     Deno.serve(
         {
             port: parseInt(payload.port),
@@ -140,7 +60,7 @@ if (payload.command === "fetch") {
             }
         },
     );
-} else if (payload.command === "cron") {
+} else if (payload.method === "cron") {
     const mod = await import(payload.entrypoint);
     if (!mod.default || typeof mod.default !== "object") {
         console.error(
@@ -161,7 +81,7 @@ if (payload.command === "fetch") {
     }
 
     await handler.cron(payload.name);
-} else if (payload.command === "email") {
+} else if (payload.method === "email") {
     const mod = await import(payload.entrypoint);
     if (!mod.default || typeof mod.default !== "object") {
         console.error(
@@ -176,10 +96,119 @@ if (payload.command === "fetch") {
         Deno.exit(1);
     }
 
-    const data = decodeBase64(payload.msg)
-    const blob = new Blob([data]);
-    await handler.email(blob.stream());
-} else {
-    console.error("Unknown command: ", payload.command);
-    Deno.exit(1);
+    await handler.email(Deno.stdin.readable)
+} else if (payload.method === "run") {
+    const mod = await import(payload.entrypoint);
+    if (!mod.default || typeof mod.default !== "object") {
+        console.error(
+            "The mod does not provide an object as it's default export.",
+        );
+
+        Deno.exit(1);
+    }
+
+    const handler = mod.default;
+    if (!("run" in handler)) {
+        console.error("The mod default export does not have a run function.");
+        Deno.exit(1);
+    }
+
+    if (!(typeof handler.run === "function")) {
+        console.error("The mod default export run property must be a function.");
+        Deno.exit(1);
+    }
+
+    await handler.run(payload.args);
+}
+
+const rawToEntityEntries = [
+    ["&", "&amp;"],
+    ["<", "&lt;"],
+    [">", "&gt;"],
+    ['"', "&quot;"],
+    ["'", "&#39;"],
+] as const;
+
+const rawToEntity = new Map<string, string>(rawToEntityEntries);
+
+const rawRe = new RegExp(`[${[...rawToEntity.keys()].join("")}]`, "g");
+
+export function escape(str: string): string {
+    return str.replaceAll(rawRe, (m) => rawToEntity.get(m)!);
+}
+
+function cleanStack(str?: string) {
+    if (!str) return undefined;
+    return str
+        .split("\n")
+        .filter(
+            (line) =>
+                !line.includes(import.meta.url) &&
+                !line.includes("deno_http/00_serve.ts") &&
+                !line.includes("core/01_core.js")
+        )
+        .join("\n");
+}
+
+function serializeError(e: Error) {
+    return { name: e.name, message: e.message, stack: cleanStack(e.stack) };
+};
+
+function respondWithError(request: Request, error: Error) {
+    const e = serializeError(error);
+    if (request.headers.get("accept")?.includes("text/html")) {
+        return new Response(/* html */`<!DOCTYPE html>
+    <html>
+      <head>
+        <title>Error</title>
+        <style>
+          * { box-sizing: border-box }
+          body {
+            margin: 0;
+            font-family: monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: black;
+            background-color: white;
+          }
+          div {
+            padding: 0 16px;
+            width: 100%;
+            margin: auto;
+            max-width: 768px;
+            color: inherit;
+            border-left: 0.25em solid #3d444d;
+            border-color: #da3633;
+          }
+          h1 {
+            font-weight: 500;
+            color: #f85149;
+          }
+          pre {
+            margin: 0;
+            padding-bottom: 16px;
+            font-size: 12px;
+            line-height: 1.5;
+            overflow: auto;
+            white-space: pre-wrap;
+            width: 100%;
+          }
+        </style>
+      </head>
+      <body>
+        <div>
+          <h1>
+            ${escape(e.name)}
+          </h1>
+          <pre>${escape(e.stack ?? e.message)}</pre>
+        </div>
+      </body>
+    </html>`, { status: 500, headers: { 'Content-Type': 'text/html' } });
+    }
+
+    return Response.json(
+        { error: e },
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
 }

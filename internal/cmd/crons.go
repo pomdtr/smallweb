@@ -39,10 +39,9 @@ func NewCmdCronList() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:               "list",
-		Aliases:           []string{"cron"},
-		Short:             "List cron jobs",
-		ValidArgsFunction: completeApp,
+		Use:     "list",
+		Aliases: []string{"cron"},
+		Short:   "List cron jobs",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var crons []CronItem
 			apps, err := app.LookupApps(k.String("dir"))
@@ -127,6 +126,44 @@ func NewCmdCronList() *cobra.Command {
 	return cmd
 }
 
+func NewCmdCronTrigger() *cobra.Command {
+	var flags struct {
+		app string
+	}
+
+	cmd := &cobra.Command{
+		Use:  "trigger <name>",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			a, err := app.LoadApp(flags.app, k.String("dir"), k.String("domain"))
+			if err != nil {
+				return ExitError{1}
+			}
+
+			var job *app.CronJob
+			for _, j := range a.Config.Crons {
+				if j.Name == args[0] {
+					job = &j
+					break
+				}
+			}
+
+			if job == nil {
+				return ExitError{1}
+			}
+
+			wk := worker.NewWorker(a, nil)
+			if err := wk.TriggerCron(cmd.Context(), *job); err != nil {
+				return ExitError{1}
+			}
+
+			return nil
+		},
+	}
+
+	return cmd
+}
+
 func CronRunner(logger *slog.Logger) *cron.Cron {
 	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 	c := cron.New(cron.WithParser(parser))
@@ -164,52 +201,14 @@ func CronRunner(logger *slog.Logger) *cron.Cron {
 				wk := worker.NewWorker(a, nil)
 
 				logger.Info("running cron job", "app", appname, "name", job.Name, "schedule", job.Schedule)
-				go func() {
+				go func(job app.CronJob) {
 					if err := wk.TriggerCron(context.Background(), job); err != nil {
 						logger.Error("failed to run command", "app", appname, "name", job.Name, "schedule", job.Schedule, "error", err)
 					}
-				}()
+				}(job)
 			}
 		}
 	})
 
 	return c
-}
-
-func NewCmdCronTrigger() *cobra.Command {
-	var flags struct {
-		app string
-	}
-
-	cmd := &cobra.Command{
-		Use:  "trigger <name>",
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			a, err := app.LoadApp(flags.app, k.String("dir"), k.String("domain"))
-			if err != nil {
-				return ExitError{1}
-			}
-
-			var job *app.CronJob
-			for _, j := range a.Config.Crons {
-				if j.Name == args[0] {
-					job = &j
-					break
-				}
-			}
-
-			if job == nil {
-				return ExitError{1}
-			}
-
-			wk := worker.NewWorker(a, nil)
-			if err := wk.TriggerCron(cmd.Context(), *job); err != nil {
-				return ExitError{1}
-			}
-
-			return nil
-		},
-	}
-
-	return cmd
 }

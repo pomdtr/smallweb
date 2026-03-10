@@ -2,9 +2,9 @@ package worker
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	_ "embed"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,15 +22,20 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/gorilla/websocket"
 	"github.com/pomdtr/smallweb/internal/app"
-	"github.com/pomdtr/smallweb/internal/build"
 	"github.com/pomdtr/smallweb/internal/utils"
 )
 
 //go:embed sandbox.ts
 var sandboxBytes []byte
-var sandboxPath = filepath.Join(xdg.CacheHome, "smallweb", "sandbox", build.Version, "mod.ts")
+var sandboxPath string
 
 func init() {
+	tempdir, err := os.MkdirTemp("", "smallweb-sandbox-*")
+	if err != nil {
+		panic(fmt.Errorf("could not create temp directory for sandbox: %w", err))
+	}
+
+	sandboxPath = filepath.Join(tempdir, "sandbox.ts")
 	if err := os.MkdirAll(filepath.Dir(sandboxPath), 0o755); err != nil {
 		panic(fmt.Errorf("could not create sandbox directory: %w", err))
 	}
@@ -64,14 +69,16 @@ var upgrader = websocket.Upgrader{} // use default options
 
 type SandboxMethod string
 
-func (me *Worker) DenoArgs(deno string) ([]string, error) {
+func (me *Worker) Args(payload string) []string {
 	args := []string{
+		"run",
 		"--allow-net",
 		"--allow-import",
 		"--allow-env",
 		"--allow-sys",
 		"--no-prompt",
 		"--quiet",
+		sandboxPath,
 	}
 
 	for _, configName := range []string{"deno.json", "deno.jsonc"} {
@@ -85,35 +92,18 @@ func (me *Worker) DenoArgs(deno string) ([]string, error) {
 	npmCache := filepath.Join(xdg.CacheHome, "deno", "npm", "registry.npmjs.org")
 	// if root is not a symlink
 	appDir := me.App.Dir()
-	if fi, err := os.Lstat(appDir); err == nil && fi.Mode()&os.ModeSymlink == 0 {
-		args = append(
-			args,
-			fmt.Sprintf("--allow-read=%s,%s,%s", appDir, deno, npmCache),
-			fmt.Sprintf("--allow-write=%s", me.App.DataDir()),
-		)
-
-		return args, nil
-	}
-
-	target, err := os.Readlink(appDir)
-	if err != nil {
-		return nil, fmt.Errorf("could not read symlink: %w", err)
-	}
-
-	if !filepath.IsAbs(target) {
-		target = filepath.Join(filepath.Dir(appDir), target)
-	}
-
 	args = append(
 		args,
-		fmt.Sprintf("--allow-read=%s,%s,%s,%s", appDir, target, deno, npmCache),
-		fmt.Sprintf("--allow-write=%s,%s", me.App.DataDir(), filepath.Join(target, "data")),
+		fmt.Sprintf("--allow-read=%s,%s", appDir, npmCache),
+		fmt.Sprintf("--allow-write=%s", filepath.Join(appDir, "data")),
 	)
 
-	return args, nil
+	args = append(args, payload)
+
+	return args
 }
 
-func (me *Worker) Start() error {
+func (me *Worker) StartServer() error {
 	port, err := GetFreePort()
 	if err != nil {
 		return fmt.Errorf("could not get free port: %w", err)
@@ -125,26 +115,18 @@ func (me *Worker) Start() error {
 		return fmt.Errorf("could not find deno executable")
 	}
 
-	args := []string{"run"}
-	denoArgs, err := me.DenoArgs(deno)
-	if err != nil {
-		return fmt.Errorf("could not get deno args: %w", err)
-	}
-
-	args = append(args, denoArgs...)
 	input := strings.Builder{}
 	encoder := json.NewEncoder(&input)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
-		"command":    "fetch",
 		"entrypoint": me.App.Entrypoint(),
+		"method":     "fetch",
 		"port":       port,
 	}); err != nil {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	args = append(args, sandboxPath, input.String())
-
+	args := me.Args(input.String())
 	command := exec.Command(deno, args...)
 	command.Dir = me.App.Dir()
 	command.Env = me.App.Env()
@@ -448,18 +430,11 @@ func (me *Worker) TriggerCron(ctx context.Context, job app.CronJob) error {
 		return fmt.Errorf("could not find deno executable")
 	}
 
-	cmdArgs := []string{"run"}
-	denoArgs, err := me.DenoArgs(deno)
-	if err != nil {
-		return fmt.Errorf("could not get deno args: %w", err)
-	}
-	cmdArgs = append(cmdArgs, denoArgs...)
-
 	payload := strings.Builder{}
 	encoder := json.NewEncoder(&payload)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
-		"command":    "cron",
+		"method":     "cron",
 		"entrypoint": me.App.Entrypoint(),
 		"name":       job.Name,
 		"schedule":   job.Schedule,
@@ -467,9 +442,8 @@ func (me *Worker) TriggerCron(ctx context.Context, job app.CronJob) error {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	cmdArgs = append(cmdArgs, sandboxPath, payload.String())
-
-	command := exec.CommandContext(ctx, deno, cmdArgs...)
+	args := me.Args(payload.String())
+	command := exec.CommandContext(ctx, deno, args...)
 	command.Dir = me.App.Dir()
 	command.Env = me.App.Env()
 
@@ -482,29 +456,20 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 		return fmt.Errorf("could not find deno executable")
 	}
 
-	args := []string{"run"}
-	denoArgs, err := me.DenoArgs(deno)
-	if err != nil {
-		return fmt.Errorf("could not get deno args: %w", err)
-	}
-
-	args = append(args, denoArgs...)
-
 	payload := strings.Builder{}
 	encoder := json.NewEncoder(&payload)
 	encoder.SetEscapeHTML(false)
 	if err := encoder.Encode(map[string]any{
-		"command":    "email",
+		"method":     "email",
 		"entrypoint": me.App.Entrypoint(),
-		"msg":        base64.StdEncoding.EncodeToString(msg),
 	}); err != nil {
 		return fmt.Errorf("could not encode input: %w", err)
 	}
 
-	denoArgs = append(args, sandboxPath, payload.String())
+	args := me.Args(payload.String())
+	command := exec.CommandContext(ctx, deno, args...)
 
-	command := exec.CommandContext(ctx, deno, denoArgs...)
-
+	command.Stdin = bytes.NewReader(msg)
 	command.Stderr = os.Stderr
 	command.Stdout = os.Stdout
 	command.Dir = me.App.Dir()
@@ -512,6 +477,30 @@ func (me *Worker) SendEmail(ctx context.Context, msg []byte) error {
 	command.Env = me.App.Env()
 
 	return command.Run()
+}
+
+func (me *Worker) Command(ctx context.Context, a []string) (*exec.Cmd, error) {
+	deno, err := DenoExecutable()
+	if err != nil {
+		return nil, fmt.Errorf("could not find deno executable")
+	}
+
+	payload := strings.Builder{}
+	encoder := json.NewEncoder(&payload)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(map[string]any{
+		"entrypoint": me.App.Entrypoint(),
+		"method":     "run",
+		"args":       a,
+	}); err != nil {
+		return nil, fmt.Errorf("could not encode input: %w", err)
+	}
+
+	args := me.Args(payload.String())
+	command := exec.CommandContext(ctx, deno, args...)
+	command.Env = me.App.Env()
+
+	return command, nil
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.

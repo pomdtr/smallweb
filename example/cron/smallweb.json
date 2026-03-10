@@ -2,7 +2,7 @@
     "crons": [
         {
             "schedule": "* * * * *",
-            "args": []
+            "name": "example"
         }
     ]
 }
